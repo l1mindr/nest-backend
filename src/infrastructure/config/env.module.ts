@@ -6,7 +6,13 @@ import { ENV_VALIDATION_SCHEMA } from './env.constants';
   imports: [
     ConfigModule.forRoot({
       expandVariables: true,
-      validationSchema: ENV_VALIDATION_SCHEMA
+      validationSchema: ENV_VALIDATION_SCHEMA,
+      envFilePath:
+        process.env.NODE_ENV === 'test'
+          ? '.env.test'
+          : process.env.NODE_ENV === 'production'
+            ? '.env.production'
+            : '.env'
     })
   ]
 })
