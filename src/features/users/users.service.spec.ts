@@ -1,11 +1,11 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, Repository } from 'typeorm';
-import { UsersService } from './users.service';
-import { User } from './entities/user.entity';
-import { UserStatus } from './enums/user-status.enum';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { User } from './entities/user.entity';
+import { UserStatus } from './enums/user-status.enum';
+import { UsersService } from './users.service';
 
 describe('UsersService', () => {
   let service: UsersService;

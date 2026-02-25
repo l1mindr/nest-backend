@@ -31,6 +31,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @HttpCode(HttpStatus.CREATED)
   @ApiRegisterUser()
   signUpUser(@Body() registerUserDto: RegisterUserDto) {
     return this.authService.registerUser(registerUserDto);
@@ -49,8 +50,8 @@ export class AuthController {
     return await this.authService.loginUser(loginUserDto, ip, device);
   }
 
-  @HttpCode(HttpStatus.NO_CONTENT)
   @Post('change-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiChangePassword()
   changePassword(
     @User() authData: CustomAuth,
