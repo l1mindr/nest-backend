@@ -18,7 +18,7 @@ export const IsUsername = (
     validator: {
       validate: (value): boolean => isUsername(value),
       defaultMessage: buildMessage(
-        (eachPrefix) => `${eachPrefix}$property must be a valid username`,
+        (eachPrefix) => `${eachPrefix}$property must be a valid`,
         validationOptions
       )
     }
