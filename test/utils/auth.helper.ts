@@ -12,19 +12,6 @@ export async function registerUser(
   return await request(app.getHttpServer()).post('/auth/register').send(data);
 }
 
-export async function loginUser(
-  app: INestApplication,
-  emailOrUsername: string,
-  password: string
-) {
-  const res = await request(app.getHttpServer())
-    .post('/v1/auth/login')
-    .send({ email: emailOrUsername, password })
-    .expect(201);
-
-  return res.body.accessToken as string;
-}
-
 export async function loginUserWithAgent(
   app: INestApplication,
   email: string,
@@ -32,7 +19,7 @@ export async function loginUserWithAgent(
 ) {
   const agent = request.agent(app.getHttpServer());
 
-  await agent.post('/v1/auth/login').send({ email, password }).expect(201);
+  await agent.post('/auth/login').send({ email, password });
 
   return agent;
 }

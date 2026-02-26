@@ -32,7 +32,6 @@ describe('Auth (e2e) version: 1', () => {
     await app.close();
   });
 
-  // ---------------- REGISTER ----------------
   it('should fail if data is invalid', async () => {
     const responseEmail = await registerUser(app, {
       email: 'test.com',
