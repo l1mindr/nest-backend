@@ -1,26 +1,21 @@
 import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
-import { AppModule } from '../../src/app.module';
+import { createTestApp } from '../bootstrap/test-app';
+import { createUser } from '../factories/user.factory';
 import { registerUser } from '../utils/auth.helper';
-import { resetDatabase, runMigrations } from '../utils/database.helper';
+import { resetDatabase } from '../utils/database.helper';
 
-describe('Auth (e2e) version: 1', () => {
+describe('Auth Register (e2e) version: 1', () => {
   let app: INestApplication;
   let dataSource: DataSource;
 
   beforeAll(async () => {
     process.env.NODE_ENV = 'test';
 
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule]
-    }).compile();
+    const testApp = await createTestApp();
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
-
-    dataSource = app.get(DataSource);
-    await runMigrations(dataSource);
+    app = testApp.app;
+    dataSource = testApp.dataSource;
   });
 
   beforeEach(async () => {
@@ -28,7 +23,6 @@ describe('Auth (e2e) version: 1', () => {
   });
 
   afterAll(async () => {
-    await dataSource.destroy();
     await app.close();
   });
 
@@ -36,7 +30,6 @@ describe('Auth (e2e) version: 1', () => {
     const responseEmail = await registerUser(app, {
       email: 'test.com',
       username: 'username',
-
       password: 'Password@123'
     });
     expect(responseEmail.body.message).toBe('email must be an email');
@@ -46,12 +39,9 @@ describe('Auth (e2e) version: 1', () => {
     const responseUsername = await registerUser(app, {
       email: 'tset@test.com',
       username: 'user@name',
-
       password: 'Password@123'
     });
-    expect(responseUsername.body.message).toBe(
-      'username must be a valid username'
-    );
+    expect(responseUsername.body.message).toBe('username must be a valid');
     expect(responseUsername.body.error).toBe('Bad Request');
     expect(responseUsername.status).toBe(400);
 
@@ -67,32 +57,17 @@ describe('Auth (e2e) version: 1', () => {
   });
 
   it('should register a new user', async () => {
-    const res = await registerUser(app, {
-      email: 'test@test.com',
-      username: 'username',
-      password: 'Password@123'
-    });
+    const user = createUser();
+    const res = await registerUser(app, user);
 
     expect(res.status).toBe(201);
   });
 
   it('should not register duplicate email', async () => {
-    expect(
-      (
-        await registerUser(app, {
-          email: 'dup@test.com',
-          username: 'user1',
+    const user = createUser();
+    expect((await registerUser(app, user)).status).toBe(201);
 
-          password: 'Password@123'
-        })
-      ).status
-    ).toBe(201);
-
-    const res = await registerUser(app, {
-      email: 'dup@test.com',
-      username: 'user1',
-      password: 'Password@123'
-    });
+    const res = await registerUser(app, user);
 
     expect(res.body.message).toBe('email already exists');
     expect(res.body.error).toBe('Unprocessable Entity');
@@ -100,21 +75,13 @@ describe('Auth (e2e) version: 1', () => {
   });
 
   it('should not register duplicate username', async () => {
-    expect(
-      (
-        await registerUser(app, {
-          email: 'user1@test.com',
-          username: 'dup_user',
-          password: 'Password@123'
-        })
-      ).status
-    ).toBe(201);
+    const user = createUser();
+    expect((await registerUser(app, { ...user })).status).toBe(201);
 
-    const res = await registerUser(app, {
-      email: 'user2@test.com',
-      username: 'dup_user',
-      password: 'Password@123'
-    });
+    const res = await registerUser(
+      app,
+      createUser({ email: 'test1@test.com' })
+    );
 
     expect(res.body.message).toBe('username already exists');
     expect(res.body.error).toBe('Unprocessable Entity');
