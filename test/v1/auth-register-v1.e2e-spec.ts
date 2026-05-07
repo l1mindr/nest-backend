@@ -27,28 +27,28 @@ describe('Auth Register (e2e) version: 1', () => {
   });
 
   it('should fail if data is invalid', async () => {
+    const user = createUser();
     const responseEmail = await registerUser(app, {
       email: 'test.com',
-      username: 'username',
-      password: 'Password@123'
+      username: user.username,
+      password: user.password
     });
     expect(responseEmail.body.message).toBe('email must be an email');
     expect(responseEmail.body.error).toBe('Bad Request');
     expect(responseEmail.status).toBe(400);
 
     const responseUsername = await registerUser(app, {
-      email: 'tset@test.com',
+      email: user.email,
       username: 'user@name',
-      password: 'Password@123'
+      password: user.password
     });
     expect(responseUsername.body.message).toBe('username must be a valid');
     expect(responseUsername.body.error).toBe('Bad Request');
     expect(responseUsername.status).toBe(400);
 
     const responsePassword = await registerUser(app, {
-      email: 'tset@test.com',
-      username: 'username',
-
+      email: user.email,
+      username: user.username,
       password: 'password'
     });
     expect(responsePassword.body.message).toBe('password must be valid');
@@ -76,7 +76,7 @@ describe('Auth Register (e2e) version: 1', () => {
 
   it('should not register duplicate username', async () => {
     const user = createUser();
-    expect((await registerUser(app, { ...user })).status).toBe(201);
+    expect((await registerUser(app, user)).status).toBe(201);
 
     const res = await registerUser(
       app,

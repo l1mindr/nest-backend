@@ -61,7 +61,7 @@ describe('Auth Login (e2e) version: 1', () => {
   it('should fail if email does not exist', async () => {
     const res = await loginUser(app, {
       email: 'wrong@test.com',
-      password: 'Password@123'
+      password: createUser().password
     });
 
     expect(res.status).toBe(401);
@@ -96,7 +96,7 @@ describe('Auth Login (e2e) version: 1', () => {
   it('should fail if user not found by email or username', async () => {
     const res = await loginUser(app, {
       email: 'unknown_value',
-      password: 'Password@123'
+      password: createUser().password
     });
 
     expect(res.status).toBe(401);
