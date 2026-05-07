@@ -3,13 +3,13 @@ import request from 'supertest';
 
 export async function registerUser(
   app: INestApplication,
-  data: Partial<{
+  body: Partial<{
     email: string;
     username: string;
     password: string;
   }>
 ) {
-  return await request(app.getHttpServer()).post('/auth/register').send(data);
+  return await request(app.getHttpServer()).post('/auth/register').send(body);
 }
 
 export async function loginUserWithAgent(
@@ -22,6 +22,16 @@ export async function loginUserWithAgent(
   await agent.post('/auth/login').send({ email, password });
 
   return agent;
+}
+
+export async function loginUser(
+  app: INestApplication,
+  body: Partial<{
+    email: string;
+    password: string;
+  }>
+) {
+  return request(app.getHttpServer()).post('/auth/login').send(body);
 }
 
 export function authenticatedRequest(app: INestApplication, token: string) {
