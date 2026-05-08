@@ -10,7 +10,9 @@ export async function registerUser(
     password: string;
   }>
 ) {
-  return await request(app.getHttpServer()).post('/auth/register').send(body);
+  return await request(app.getHttpServer())
+    .post('/v1/auth/register')
+    .send(body);
 }
 
 export async function createAuthenticatedUser(
@@ -37,7 +39,7 @@ export async function loginUser(
     password: string;
   }>
 ) {
-  return request(app.getHttpServer()).post('/auth/login').send(body);
+  return request(app.getHttpServer()).post('/v1/auth/login').send(body);
 }
 
 export function authenticatedRequest(app: INestApplication, token: string) {

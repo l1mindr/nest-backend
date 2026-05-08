@@ -1,9 +1,8 @@
-import { HttpExceptionFilter } from '@core/common/filters/http-exception.filter';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import cookieParser from 'cookie-parser';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
+import { setupApp } from '../../src/bootstrap';
 
 export interface ITextContext {
   app: INestApplication;
@@ -18,8 +17,7 @@ export async function createTestApp(): Promise<ITextContext> {
   }).compile();
 
   const app = moduleFixture.createNestApplication();
-  app.use(cookieParser());
-  app.useGlobalFilters(new HttpExceptionFilter());
+  setupApp(app);
   await app.init();
 
   const dataSource = app.get(DataSource);
