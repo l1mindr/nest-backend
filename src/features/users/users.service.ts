@@ -1,13 +1,13 @@
+import { CreateUserDto } from '@features/users/dto/create-user.dto';
+import { UpdateUserDto } from '@features/users/dto/update-user.dto';
+import { User } from '@features/users/entities/user.entity';
+import { IUsersService } from '@features/users/interfaces/users.interface';
 import {
   Injectable,
   NotFoundException,
   UnprocessableEntityException
 } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
-import { CreateUserDto } from '@features/users/dto/create-user.dto';
-import { UpdateUserDto } from '@features/users/dto/update-user.dto';
-import { User } from '@features/users/entities/user.entity';
-import { IUsersService } from '@features/users/interfaces/users.interface';
+import { DataSource, FindOptionsSelect, Repository } from 'typeorm';
 
 @Injectable()
 export class UsersService implements IUsersService {
@@ -19,7 +19,7 @@ export class UsersService implements IUsersService {
 
   private findByIdWithSelect(
     id: string,
-    select: (keyof User)[]
+    select: FindOptionsSelect<User>
   ): Promise<User | null> {
     return this.userRepo.findOne({
       where: { id },
@@ -30,27 +30,28 @@ export class UsersService implements IUsersService {
   async findByIdentifierForAuth(identifier: string): Promise<User | null> {
     return this.userRepo.findOne({
       where: [{ email: identifier }, { username: identifier }],
-      select: ['id', 'password', 'status']
+      select: { id: true, password: true, status: true }
     });
   }
 
   async findByIdForSessionValidation(userId: string): Promise<User | null> {
-    return this.findByIdWithSelect(userId, [
-      'id',
-      'email',
-      'username',
-      'name',
-      'status',
-      'role'
-    ]);
+    return this.findByIdWithSelect(userId, {
+      id: true,
+      email: true,
+      username: true,
+      name: true,
+      status: true,
+      role: true,
+      registryDates: { createdAt: true }
+    });
   }
 
   async findByIdWithPassword(userId: string): Promise<User | null> {
-    return this.findByIdWithSelect(userId, ['id', 'password']);
+    return this.findByIdWithSelect(userId, { id: true, password: true });
   }
 
   async findById(id: string): Promise<User> {
-    const user = await this.findByIdWithSelect(id, ['id']);
+    const user = await this.findByIdWithSelect(id, { id: true });
     if (!user) throw new NotFoundException();
     return user;
   }
