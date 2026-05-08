@@ -10,8 +10,6 @@ describe('Auth Login (e2e) version: 1', () => {
   let dataSource: DataSource;
 
   beforeAll(async () => {
-    process.env.NODE_ENV = 'test';
-
     const testApp = await createTestApp();
 
     app = testApp.app;
