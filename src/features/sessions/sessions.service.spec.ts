@@ -56,9 +56,12 @@ describe('SessionsService', () => {
       version: '26.3'
     } as IDevice);
 
-    expect(mockJwtService.sign).toHaveBeenCalledWith({
-      sub: 'user-id'
-    });
+    expect(mockJwtService.sign).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sub: 'user-id',
+        jti: expect.any(String)
+      })
+    );
     expect(repo.create).toHaveBeenCalled();
     expect(repo.save).toHaveBeenCalled();
     expect(token).toBe('jwt-token');
