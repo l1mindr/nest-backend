@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { createUser } from '../factories/user.factory';
 
 export async function registerUser(
   app: INestApplication,
@@ -12,16 +13,21 @@ export async function registerUser(
   return await request(app.getHttpServer()).post('/auth/register').send(body);
 }
 
-export async function loginUserWithAgent(
+export async function createAuthenticatedUser(
   app: INestApplication,
-  email: string,
-  password: string
+  overrides = {}
 ) {
-  const agent = request.agent(app.getHttpServer());
+  const user = createUser({ ...overrides });
+  await registerUser(app, user);
 
-  await agent.post('/auth/login').send({ email, password });
+  const loginRes = await loginUser(app, {
+    email: user.email,
+    password: user.password
+  });
 
-  return agent;
+  const cookie = loginRes.headers['set-cookie'];
+
+  return { user, cookie };
 }
 
 export async function loginUser(
