@@ -4,6 +4,7 @@ import { User } from '@features/users/entities/user.entity';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { randomUUID } from 'crypto';
 import { DataSource, MoreThan, Not, Repository } from 'typeorm';
 import { IDevice } from './interfaces/device.interface';
 import { ISessionWithCurrent } from './interfaces/session-with-current.interface';
@@ -24,7 +25,7 @@ export class SessionsService implements ISessionsService {
     return await this.dataSource.transaction(async (manager) => {
       const sessionRepo = manager.getRepository(Session);
 
-      const payload: JwtPayload = { sub: userId };
+      const payload: JwtPayload = { sub: userId, jti: randomUUID() };
       const token = this.jwtService.sign(payload);
 
       const THIRTY_ONE_DAYS = 31 * 24 * 60 * 60 * 1000;
