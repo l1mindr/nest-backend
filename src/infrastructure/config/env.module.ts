@@ -5,14 +5,10 @@ import { ENV_VALIDATION_SCHEMA } from './env.constants';
 @Module({
   imports: [
     ConfigModule.forRoot({
+      isGlobal: true,
       expandVariables: true,
       validationSchema: ENV_VALIDATION_SCHEMA,
-      envFilePath:
-        process.env.NODE_ENV === 'test'
-          ? '.env.test'
-          : process.env.NODE_ENV === 'production'
-            ? '.env.production'
-            : '.env'
+      envFilePath: [`.env.${process.env.NODE_ENV}`, '.env']
     })
   ]
 })
