@@ -13,7 +13,7 @@ type RequestOptions = {
 export class ApiClient {
   private readonly agent: InstanceType<typeof TestAgent>;
 
-  constructor(private readonly app: INestApplication) {
+  constructor(app: INestApplication) {
     this.agent = request.agent(app.getHttpServer());
   }
 
