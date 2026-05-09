@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
-import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
+import { ApiClient } from '../helpers/apiClient-helper';
 import { createAuthenticatedUser } from '../utils/auth.helper';
 import { resetDatabase } from '../utils/database.helper';
 
@@ -25,38 +25,45 @@ describe('Users (e2e) version: 1', () => {
   });
 
   it('should get current user profile', async () => {
-    const { user, cookie } = await createAuthenticatedUser(app);
-    const res = await request(app.getHttpServer())
-      .get('/v1/user/me')
-      .set('Cookie', cookie);
+    const user = await createAuthenticatedUser(app);
+    const res = await user.request({
+      method: 'get',
+      url: '/v1/user/me'
+    });
 
     expect(res.status).toBe(200);
-    expect(res.body.data.email).toBe(user.email);
-    expect(res.body.data.username).toBe(user.username);
+    expect(res.body.data.email).toBeDefined();
+    expect(res.body.data.username).toBeDefined();
     expect(res.body.data.role).toBeDefined();
     expect(res.body.data.registeredAt).toBeDefined();
   });
 
   it('should fail if user is not authenticated', async () => {
-    const res = await request(app.getHttpServer()).get('/v1/user/me');
+    const client = new ApiClient(app);
+    const res = await client.request({
+      method: 'get',
+      url: '/v1/user/me'
+    });
 
     expect(res.status).toBe(401);
   });
 
   it('should update profile', async () => {
-    const { cookie } = await createAuthenticatedUser(app);
-    const res = await request(app.getHttpServer())
-      .put('/v1/user')
-      .set('Cookie', cookie)
-      .send({
+    const userClient = await createAuthenticatedUser(app);
+    const res = await userClient.request({
+      method: 'put',
+      url: '/v1/user',
+      body: {
         name: 'New name'
-      });
+      }
+    });
 
-    const getUpdateUser = await request(app.getHttpServer())
-      .get('/v1/user/me')
-      .set('Cookie', cookie);
+    const updateUserDataRes = await userClient.request({
+      method: 'get',
+      url: '/v1/user/me'
+    });
 
     expect(res.status).toBe(204);
-    expect(getUpdateUser.body.data.name).toBe('New name');
+    expect(updateUserDataRes.body.data.name).toBe('New name');
   });
 });

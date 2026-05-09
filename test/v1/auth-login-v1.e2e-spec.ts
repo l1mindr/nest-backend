@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
 import { createUser } from '../factories/user.factory';
-import { loginUser, registerUser } from '../utils/auth.helper';
+import { ApiClient } from '../helpers/apiClient-helper';
 import { resetDatabase } from '../utils/database.helper';
 
 describe('Auth Login (e2e) version: 1', () => {
@@ -26,40 +26,54 @@ describe('Auth Login (e2e) version: 1', () => {
 
   it('should login successfully with email', async () => {
     const user = createUser();
-    await registerUser(app, user);
+    const client = new ApiClient(app);
 
-    const res = await loginUser(app, {
-      email: user.email,
-      password: user.password
+    await client.request({
+      method: 'post',
+      url: '/v1/auth/register',
+      body: user
     });
 
-    expect(res.status).toBe(200);
+    const loginRes = await client.request({
+      method: 'post',
+      url: '/v1/auth/login',
+      body: { email: user.email, password: user.password }
+    });
 
-    expect(res.headers['set-cookie']).toBeDefined();
-
-    expect(res.headers['set-cookie'][0]).toContain('access-token');
+    expect(loginRes.status).toBe(200);
+    expect(loginRes.headers['set-cookie']).toBeDefined();
+    expect(loginRes.headers['set-cookie'][0]).toContain('access-token');
   });
 
   it('should login successfully with username', async () => {
     const user = createUser();
-    await registerUser(app, user);
+    const client = new ApiClient(app);
 
-    const res = await loginUser(app, {
-      email: user.username,
-      password: user.password
+    await client.request({
+      method: 'post',
+      url: '/v1/auth/register',
+      body: user
     });
 
-    expect(res.status).toBe(200);
+    const loginRes = await client.request({
+      method: 'post',
+      url: '/v1/auth/login',
+      body: { email: user.username, password: user.password }
+    });
 
-    expect(res.headers['set-cookie']).toBeDefined();
-
-    expect(res.headers['set-cookie'][0]).toContain('access-token');
+    expect(loginRes.status).toBe(200);
+    expect(loginRes.headers['set-cookie']).toBeDefined();
+    expect(loginRes.headers['set-cookie'][0]).toContain('access-token');
   });
 
   it('should fail if email does not exist', async () => {
-    const res = await loginUser(app, {
-      email: 'wrong@test.com',
-      password: createUser().password
+    const user = createUser({ email: 'wrong@test.com' });
+    const client = new ApiClient(app);
+
+    const res = await client.request({
+      method: 'post',
+      url: '/v1/auth/login',
+      body: { email: user.email, password: user.password }
     });
 
     expect(res.status).toBe(401);
@@ -69,11 +83,18 @@ describe('Auth Login (e2e) version: 1', () => {
 
   it('should fail if password is wrong', async () => {
     const user = createUser();
-    await registerUser(app, user);
+    const client = new ApiClient(app);
 
-    const res = await loginUser(app, {
-      email: user.email,
-      password: 'WrongPassword@123'
+    await client.request({
+      method: 'post',
+      url: '/v1/auth/register',
+      body: user
+    });
+
+    const res = await client.request({
+      method: 'post',
+      url: '/v1/auth/login',
+      body: { email: user.email, password: 'WrongPassword@123' }
     });
 
     expect(res.status).toBe(401);
@@ -82,9 +103,14 @@ describe('Auth Login (e2e) version: 1', () => {
   });
 
   it('should fail if password is empty', async () => {
-    const res = await loginUser(app, {
-      email: createUser().email,
-      password: ''
+    const client = new ApiClient(app);
+    const res = await client.request({
+      method: 'post',
+      url: '/v1/auth/login',
+      body: {
+        email: createUser().email,
+        password: ''
+      }
     });
 
     expect(res.status).toBe(400);
@@ -92,9 +118,14 @@ describe('Auth Login (e2e) version: 1', () => {
   });
 
   it('should fail if user not found by email or username', async () => {
-    const res = await loginUser(app, {
-      email: 'unknown_value',
-      password: createUser().password
+    const client = new ApiClient(app);
+    const res = await client.request({
+      method: 'post',
+      url: '/v1/auth/login',
+      body: {
+        email: 'unknown_value',
+        password: createUser().password
+      }
     });
 
     expect(res.status).toBe(401);

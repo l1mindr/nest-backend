@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
 import { createUser } from '../factories/user.factory';
-import { registerUser } from '../utils/auth.helper';
+import { ApiClient } from '../helpers/apiClient-helper';
 import { resetDatabase } from '../utils/database.helper';
 
 describe('Auth Register (e2e) version: 1', () => {
@@ -26,63 +26,99 @@ describe('Auth Register (e2e) version: 1', () => {
 
   it('should fail if data is invalid', async () => {
     const user = createUser();
-    const responseEmail = await registerUser(app, {
-      email: 'test.com',
-      username: user.username,
-      password: user.password
-    });
-    expect(responseEmail.body.message).toBe('email must be an email');
-    expect(responseEmail.body.error).toBe('Bad Request');
-    expect(responseEmail.status).toBe(400);
+    const client = new ApiClient(app);
 
-    const responseUsername = await registerUser(app, {
-      email: user.email,
-      username: 'user@name',
-      password: user.password
+    const emailRes = await client.request({
+      method: 'post',
+      url: '/v1/auth/register',
+      body: {
+        email: 'test.com',
+        username: user.username,
+        password: user.password
+      }
     });
-    expect(responseUsername.body.message).toBe('username must be a valid');
-    expect(responseUsername.body.error).toBe('Bad Request');
-    expect(responseUsername.status).toBe(400);
+    expect(emailRes.body.message).toBe('email must be an email');
+    expect(emailRes.body.error).toBe('Bad Request');
+    expect(emailRes.status).toBe(400);
 
-    const responsePassword = await registerUser(app, {
-      email: user.email,
-      username: user.username,
-      password: 'password'
+    const usernameRes = await client.request({
+      method: 'post',
+      url: '/v1/auth/register',
+      body: {
+        email: user.email,
+        username: 'user@name',
+        password: user.password
+      }
     });
-    expect(responsePassword.body.message).toBe('password must be valid');
-    expect(responsePassword.body.error).toBe('Bad Request');
-    expect(responsePassword.status).toBe(400);
+    expect(usernameRes.body.message).toBe('username must be a valid');
+    expect(usernameRes.body.error).toBe('Bad Request');
+    expect(usernameRes.status).toBe(400);
+
+    const passwordRes = await client.request({
+      method: 'post',
+      url: '/v1/auth/register',
+      body: {
+        email: user.email,
+        username: user.username,
+        password: 'password'
+      }
+    });
+    expect(passwordRes.body.message).toBe('password must be valid');
+    expect(passwordRes.body.error).toBe('Bad Request');
+    expect(passwordRes.status).toBe(400);
   });
 
   it('should register a new user', async () => {
     const user = createUser();
-    const res = await registerUser(app, user);
+    const client = new ApiClient(app);
+
+    const res = await client.request({
+      method: 'post',
+      url: '/v1/auth/register',
+      body: user
+    });
 
     expect(res.status).toBe(201);
   });
 
   it('should not register duplicate email', async () => {
     const user = createUser();
-    expect((await registerUser(app, user)).status).toBe(201);
+    const client = new ApiClient(app);
 
-    const res = await registerUser(app, user);
+    const registerUserRes = await client.request({
+      method: 'post',
+      url: '/v1/auth/register',
+      body: user
+    });
+    const registerUserAgainRes = await client.request({
+      method: 'post',
+      url: '/v1/auth/register',
+      body: user
+    });
 
-    expect(res.body.message).toBe('email already exists');
-    expect(res.body.error).toBe('Unprocessable Entity');
-    expect(res.status).toBe(422);
+    expect(registerUserRes.status).toBe(201);
+    expect(registerUserAgainRes.body.message).toBe('email already exists');
+    expect(registerUserAgainRes.body.error).toBe('Unprocessable Entity');
+    expect(registerUserAgainRes.status).toBe(422);
   });
 
   it('should not register duplicate username', async () => {
     const user = createUser();
-    expect((await registerUser(app, user)).status).toBe(201);
+    const client = new ApiClient(app);
+    const registerUserRes = await client.request({
+      method: 'post',
+      url: '/v1/auth/register',
+      body: user
+    });
+    const registerUserAgainRes = await client.request({
+      method: 'post',
+      url: '/v1/auth/register',
+      body: createUser({ email: 'test1@test.com' })
+    });
 
-    const res = await registerUser(
-      app,
-      createUser({ email: 'test1@test.com' })
-    );
-
-    expect(res.body.message).toBe('username already exists');
-    expect(res.body.error).toBe('Unprocessable Entity');
-    expect(res.status).toBe(422);
+    expect(registerUserRes.status).toBe(201);
+    expect(registerUserAgainRes.body.message).toBe('username already exists');
+    expect(registerUserAgainRes.body.error).toBe('Unprocessable Entity');
+    expect(registerUserAgainRes.status).toBe(422);
   });
 });
