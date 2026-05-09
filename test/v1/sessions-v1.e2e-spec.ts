@@ -1,9 +1,8 @@
 import { INestApplication } from '@nestjs/common';
-import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
 import { createUser } from '../factories/user.factory';
-import { createAuthenticatedUser, loginUser } from '../utils/auth.helper';
+import { createAuthenticatedUser } from '../utils/auth.helper';
 import { resetDatabase } from '../utils/database.helper';
 
 describe('Sessions (e2e) version: 1', () => {
@@ -14,12 +13,6 @@ describe('Sessions (e2e) version: 1', () => {
     const testApp = await createTestApp();
 
     app = testApp.app;
-    app.useGlobalFilters({
-      catch(e) {
-        console.log('error', e);
-        throw e;
-      }
-    });
     dataSource = testApp.dataSource;
   });
 
@@ -32,48 +25,57 @@ describe('Sessions (e2e) version: 1', () => {
   });
 
   it('should return active sessions', async () => {
-    const { cookie } = await createAuthenticatedUser(app);
-    const res = await request(app.getHttpServer())
-      .get('/v1/sessions')
-      .set('Cookie', cookie);
+    const userClient = await createAuthenticatedUser(app);
+    const res = await userClient.request({
+      method: 'get',
+      url: '/v1/sessions'
+    });
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.data)).toBe(true);
   });
 
   it('should return 204 when logout successfully', async () => {
-    const { cookie } = await createAuthenticatedUser(app);
-    const resLogout = await request(app.getHttpServer())
-      .delete('/v1/sessions')
-      .set('Cookie', cookie);
+    const userClient = await createAuthenticatedUser(app);
+    const logoutRes = await userClient.request({
+      method: 'delete',
+      url: '/v1/sessions'
+    });
 
-    const resSessions = await request(app.getHttpServer())
-      .get('/v1/sessions')
-      .set('Cookie', cookie);
-    expect(resLogout.status).toBe(204);
-    expect(resSessions.status).toBe(401);
+    const meRes = await userClient.request({
+      method: 'get',
+      url: '/v1/user/me'
+    });
+    expect(logoutRes.status).toBe(204);
+    expect(meRes.status).toBe(401);
   });
 
   it('should terminate other sessions', async () => {
     const user = createUser();
-    const { cookie } = await createAuthenticatedUser(app, user);
+    const userClient = await createAuthenticatedUser(app, user);
 
-    await loginUser(app, {
-      email: user.username,
-      password: user.password
+    await userClient.request({
+      method: 'post',
+      url: '/v1/auth/login',
+      body: {
+        email: user.username,
+        password: user.password
+      }
     });
 
-    const resSessions = await request(app.getHttpServer())
-      .get('/v1/sessions')
-      .set('Cookie', cookie);
+    const sessionsRes = await userClient.request({
+      method: 'get',
+      url: '/v1/sessions'
+    });
 
-    expect(resSessions.status).toBe(200);
-    expect(resSessions.body.data).toHaveLength(2);
+    expect(sessionsRes.status).toBe(200);
+    expect(sessionsRes.body.data).toHaveLength(2);
 
-    const resTerminateOtherSessions = await request(app.getHttpServer())
-      .delete('/v1/sessions/others')
-      .set('Cookie', cookie);
+    const terminateOtherSessionsRes = await userClient.request({
+      method: 'delete',
+      url: '/v1/sessions/others'
+    });
 
-    expect(resTerminateOtherSessions.status).toBe(204);
+    expect(terminateOtherSessionsRes.status).toBe(204);
   });
 });

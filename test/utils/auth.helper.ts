@@ -66,7 +66,7 @@ export async function createAdminUserAndLogin(
   dataSource: DataSource
 ) {
   const user = createUser({ email: 'admin@test.com' });
-  await registerUser(app, user);
+  const client = await createAuthenticatedUser(app, user);
 
   const repo = dataSource.getRepository(User);
 
@@ -79,12 +79,7 @@ export async function createAdminUserAndLogin(
     }
   );
 
-  // const loginRes = await loginUser(app, {
-  //   email: user.email,
-  //   password: user.password
-  // });
-
-  return new ApiClient(app);
+  return client;
 }
 export function authenticatedRequest(app: INestApplication, token: string) {
   return request(app.getHttpServer()).set('Authorization', `Bearer ${token}`);
