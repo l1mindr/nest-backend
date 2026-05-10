@@ -1,8 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
+import { UserFactory } from '../factories/user.factory';
 import { ApiClient } from '../helpers/apiClient-helper';
-import { createAuthenticatedUser } from '../utils/auth.helper';
 import { resetDatabase } from '../utils/database.helper';
 
 describe('Users (e2e) version: 1', () => {
@@ -25,8 +25,8 @@ describe('Users (e2e) version: 1', () => {
   });
 
   it('should get current user profile', async () => {
-    const user = await createAuthenticatedUser(app);
-    const res = await user.request({
+    const { client } = await UserFactory.authenticated(app, {});
+    const res = await client.request({
       method: 'get',
       url: '/v1/user/me'
     });
@@ -49,8 +49,8 @@ describe('Users (e2e) version: 1', () => {
   });
 
   it('should update profile', async () => {
-    const userClient = await createAuthenticatedUser(app);
-    const res = await userClient.request({
+    const { client } = await UserFactory.authenticated(app, {});
+    const res = await client.request({
       method: 'put',
       url: '/v1/user',
       body: {
@@ -58,7 +58,7 @@ describe('Users (e2e) version: 1', () => {
       }
     });
 
-    const updateUserDataRes = await userClient.request({
+    const updateUserDataRes = await client.request({
       method: 'get',
       url: '/v1/user/me'
     });

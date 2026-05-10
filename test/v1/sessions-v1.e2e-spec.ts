@@ -1,8 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
-import { createUser } from '../factories/user.factory';
-import { createAuthenticatedUser } from '../utils/auth.helper';
+import { UserFactory } from '../factories/user.factory';
 import { resetDatabase } from '../utils/database.helper';
 
 describe('Sessions (e2e) version: 1', () => {
@@ -25,8 +24,9 @@ describe('Sessions (e2e) version: 1', () => {
   });
 
   it('should return active sessions', async () => {
-    const userClient = await createAuthenticatedUser(app);
-    const res = await userClient.request({
+    const { client } = await UserFactory.authenticated(app, {});
+
+    const res = await client.request({
       method: 'get',
       url: '/v1/sessions'
     });
@@ -36,34 +36,28 @@ describe('Sessions (e2e) version: 1', () => {
   });
 
   it('should return 204 when logout successfully', async () => {
-    const userClient = await createAuthenticatedUser(app);
-    const logoutRes = await userClient.request({
+    const { client } = await UserFactory.authenticated(app, {});
+
+    const logoutRes = await client.request({
       method: 'delete',
       url: '/v1/sessions'
     });
 
-    const meRes = await userClient.request({
+    const meRes = await client.request({
       method: 'get',
       url: '/v1/user/me'
     });
+
     expect(logoutRes.status).toBe(204);
     expect(meRes.status).toBe(401);
   });
 
   it('should terminate other sessions', async () => {
-    const user = createUser();
-    const userClient = await createAuthenticatedUser(app, user);
+    const context1 = await UserFactory.authenticated(app, {});
 
-    await userClient.request({
-      method: 'post',
-      url: '/v1/auth/login',
-      body: {
-        email: user.username,
-        password: user.password
-      }
-    });
+    await UserFactory.authenticated(app, {});
 
-    const sessionsRes = await userClient.request({
+    const sessionsRes = await context1.client.request({
       method: 'get',
       url: '/v1/sessions'
     });
@@ -71,7 +65,7 @@ describe('Sessions (e2e) version: 1', () => {
     expect(sessionsRes.status).toBe(200);
     expect(sessionsRes.body.data).toHaveLength(2);
 
-    const terminateOtherSessionsRes = await userClient.request({
+    const terminateOtherSessionsRes = await context1.client.request({
       method: 'delete',
       url: '/v1/sessions/others'
     });

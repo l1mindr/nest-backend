@@ -1,10 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
-import {
-  createAdminUserAndLogin,
-  createAuthenticatedUser
-} from '../utils/auth.helper';
+import { UserFactory } from '../factories/user.factory';
 import { resetDatabase } from '../utils/database.helper';
 
 describe('Admin Users (e2e) version: 1', () => {
@@ -27,18 +24,20 @@ describe('Admin Users (e2e) version: 1', () => {
   });
 
   it('admin should access to users list', async () => {
-    const adminClient = await createAdminUserAndLogin(app, dataSource);
-    const userClient = await createAuthenticatedUser(app, {
-      email: 'otherUser@test.com',
-      username: 'otherUser',
-      password: 'Password@123'
+    const adminContext = await UserFactory.admin(app, dataSource);
+    const userContext = await UserFactory.authenticated(app, {
+      overrides: {
+        email: 'otherUser@test.com',
+        username: 'otherUser',
+        password: 'Password@123'
+      }
     });
 
-    const adminRes = await adminClient.request({
+    const adminRes = await adminContext.client.request({
       method: 'get',
       url: '/v1/admin/users'
     });
-    const userRes = await userClient.request({
+    const userRes = await userContext.client.request({
       method: 'get',
       url: '/v1/admin/users'
     });

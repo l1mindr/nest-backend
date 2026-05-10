@@ -1,8 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
-import { createUser } from '../factories/user.factory';
-import { ApiClient } from '../helpers/apiClient-helper';
+import { UserFactory } from '../factories/user.factory';
 import { resetDatabase } from '../utils/database.helper';
 
 describe('Auth Login (e2e) version: 1', () => {
@@ -25,55 +24,34 @@ describe('Auth Login (e2e) version: 1', () => {
   });
 
   it('should login successfully with email', async () => {
-    const user = createUser();
-    const client = new ApiClient(app);
-
-    await client.request({
-      method: 'post',
-      url: '/v1/auth/register',
-      body: user
+    const {
+      response: { login }
+    } = await UserFactory.authenticated(app, {
+      loginBy: 'email'
     });
 
-    const loginRes = await client.request({
-      method: 'post',
-      url: '/v1/auth/login',
-      body: { email: user.email, password: user.password }
-    });
-
-    expect(loginRes.status).toBe(200);
-    expect(loginRes.headers['set-cookie']).toBeDefined();
-    expect(loginRes.headers['set-cookie'][0]).toContain('access-token');
+    expect(login.status).toBe(200);
+    expect(login.headers['set-cookie']).toBeDefined();
+    expect(login.headers['set-cookie'][0]).toContain('access-token');
   });
 
   it('should login successfully with username', async () => {
-    const user = createUser();
-    const client = new ApiClient(app);
+    const {
+      response: { login }
+    } = await UserFactory.authenticated(app, { loginBy: 'username' });
 
-    await client.request({
-      method: 'post',
-      url: '/v1/auth/register',
-      body: user
-    });
-
-    const loginRes = await client.request({
-      method: 'post',
-      url: '/v1/auth/login',
-      body: { email: user.username, password: user.password }
-    });
-
-    expect(loginRes.status).toBe(200);
-    expect(loginRes.headers['set-cookie']).toBeDefined();
-    expect(loginRes.headers['set-cookie'][0]).toContain('access-token');
+    expect(login.status).toBe(200);
+    expect(login.headers['set-cookie']).toBeDefined();
+    expect(login.headers['set-cookie'][0]).toContain('access-token');
   });
 
   it('should fail if email does not exist', async () => {
-    const user = createUser({ email: 'wrong@test.com' });
-    const client = new ApiClient(app);
+    const { user, client } = await UserFactory.create(app);
 
     const res = await client.request({
       method: 'post',
       url: '/v1/auth/login',
-      body: { email: user.email, password: user.password }
+      body: { email: 'wrong@test.com', password: user.password }
     });
 
     expect(res.status).toBe(401);
@@ -82,14 +60,7 @@ describe('Auth Login (e2e) version: 1', () => {
   });
 
   it('should fail if password is wrong', async () => {
-    const user = createUser();
-    const client = new ApiClient(app);
-
-    await client.request({
-      method: 'post',
-      url: '/v1/auth/register',
-      body: user
-    });
+    const { user, client } = await UserFactory.create(app);
 
     const res = await client.request({
       method: 'post',
@@ -103,13 +74,13 @@ describe('Auth Login (e2e) version: 1', () => {
   });
 
   it('should fail if password is empty', async () => {
-    const client = new ApiClient(app);
+    const { user, client } = await UserFactory.create(app);
     const res = await client.request({
       method: 'post',
       url: '/v1/auth/login',
       body: {
-        email: createUser().email,
-        password: ''
+        email: user.email,
+        password: null
       }
     });
 
@@ -118,13 +89,14 @@ describe('Auth Login (e2e) version: 1', () => {
   });
 
   it('should fail if user not found by email or username', async () => {
-    const client = new ApiClient(app);
+    const { user, client } = await UserFactory.create(app);
+
     const res = await client.request({
       method: 'post',
       url: '/v1/auth/login',
       body: {
         email: 'unknown_value',
-        password: createUser().password
+        password: user.password
       }
     });
 
