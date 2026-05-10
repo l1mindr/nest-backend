@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
 import { UserFactory } from '../factories/user.factory';
-import { resetDatabase } from '../utils/database.helper';
+import { resetDatabase } from '../helpers/database.helper';
 
 describe('Auth Register (e2e) version: 1', () => {
   let app: INestApplication;

@@ -1,15 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
+import { RequestOptions } from '../utils/types/api.types';
 
-type HttpMethod = 'get' | 'post' | 'put' | 'delete';
-type RequestOptions = {
-  method: HttpMethod;
-  url: string;
-  headers?: Record<string, string>;
-  query?: Record<string, unknown>;
-  body?: string | object;
-};
 export class ApiClient {
   private readonly agent: InstanceType<typeof TestAgent>;
 

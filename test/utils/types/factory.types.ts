@@ -2,8 +2,6 @@ import { Response } from 'supertest';
 import { ApiClient } from '../../helpers/apiClient-helper';
 import { TestUser } from './user.types';
 
-export type LoginIdentifier = 'email' | 'username';
-
 export type FactoryContext<TUser, TResponse> = {
   client: ApiClient;
   user: TUser;

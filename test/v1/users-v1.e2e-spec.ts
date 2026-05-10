@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
 import { UserFactory } from '../factories/user.factory';
 import { ApiClient } from '../helpers/apiClient-helper';
-import { resetDatabase } from '../utils/database.helper';
+import { resetDatabase } from '../helpers/database.helper';
 
 describe('Users (e2e) version: 1', () => {
   let app: INestApplication;

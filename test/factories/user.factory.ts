@@ -1,15 +1,14 @@
 import { User } from '@features/users/entities/user.entity';
+import { UserRole } from '@features/users/enums/user-role.enum';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ApiClient } from '../helpers/apiClient-helper';
 import { createUser } from '../helpers/create-user.helper';
+import { AuthenticatedOptions } from '../utils/types/auth.types';
 import {
   AuthenticatedUserContext,
-  CreateUserContext,
-  LoginIdentifier
+  CreateUserContext
 } from '../utils/types/factory.types';
-import { TestUser } from '../utils/types/user.types';
-import { UserRole } from '@features/users/enums/user-role.enum';
 
 export class UserFactory {
   static async create(
@@ -36,10 +35,7 @@ export class UserFactory {
 
   static async authenticated(
     app: INestApplication,
-    options: {
-      loginBy?: LoginIdentifier;
-      overrides?: Partial<TestUser>;
-    }
+    options: AuthenticatedOptions
   ): Promise<AuthenticatedUserContext> {
     const context = await this.create(app, options.overrides);
     const identifier = options.loginBy ?? 'email';
