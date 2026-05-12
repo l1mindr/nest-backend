@@ -35,6 +35,49 @@ export const SwaggerSessionProperties = {
   }
 };
 
+export const SwaggerSessionPropertiesUpdate = {
+  id: { description: 'UUID of the user', example: 'uuid', readOnly: true },
+  refreshTokenHash: {
+    description: 'The unique token for this session used for authentication.',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    uniqueItems: true
+  },
+  userAgent: {
+    description:
+      'JSON object representing the device details for this session.',
+    example: {
+      deviceType: 'mobile',
+      os: 'iOS',
+      browser: 'Safari',
+      browserVersion: '14.0'
+    }
+  },
+  ipAddress: {
+    description: 'The IP address from which the session was initiated.',
+    example: '192.168.1.100'
+  },
+  expireAt: {
+    description: 'The expiration date of the session.',
+    example: '2024-09-25T10:00:00.000Z'
+  },
+  lastUsedAt: {
+    description: 'The expiration date of the session.',
+    example: '2024-09-25T10:00:00.000Z'
+  },
+  createdAt: {
+    description: 'The expiration date of the session.',
+    example: '2024-09-25T10:00:00.000Z'
+  },
+  updatedAt: {
+    description: 'The expiration date of the session.',
+    example: '2024-09-25T10:00:00.000Z'
+  },
+  user: {
+    description: 'The user who owns this session.',
+    type: () => User
+  }
+};
+
 export const ApiGetSessions = () =>
   applyDecorators(
     ApiOperation({ summary: 'List active sessions for current user' }),

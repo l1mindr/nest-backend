@@ -1,14 +1,16 @@
+import { IDevice } from '@features/sessions/interfaces/device.interface';
+import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import {
   Body,
   Controller,
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   UseInterceptors
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { IDevice } from '@features/sessions/interfaces/device.interface';
-import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
+import { Request } from 'express';
 import { ChangePasswordDto } from '../users/dto/change-password.dto';
 import { AuthService } from './auth.service';
 import {
@@ -48,6 +50,15 @@ export class AuthController {
     @UserAgent() device: IDevice
   ) {
     return await this.authService.loginUser(loginUserDto, ip, device);
+  }
+
+  @Public()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(AuthCookieInterceptor)
+  // @ApiLoginUser()
+  async refreshSession(@Req() req: Request) {
+    return await this.authService.refreshSession(req.cookies.refresh_token);
   }
 
   @Post('change-password')

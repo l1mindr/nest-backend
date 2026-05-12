@@ -3,6 +3,7 @@ import { ChangePasswordDto } from '@features/users/dto/change-password.dto';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { LoginUserDto } from '../dto/login-user.dto';
 import { RegisterUserDto } from '../dto/register-user.dto';
+import { JwtPayload } from './jwt-payload.interface';
 
 export interface IAuthService {
   registerUser(registerUserDto: RegisterUserDto): Promise<void>;
@@ -10,14 +11,15 @@ export interface IAuthService {
     loginUserDto: LoginUserDto,
     ipAddress: string,
     userAgent: IUserAgent
-  ): Promise<AuthTokens>;
+  ): Promise<IAuthTokens>;
   changeUserPassword(
     customAuth: CustomAuth,
     changePasswordDto: ChangePasswordDto
   ): Promise<void>;
-  validateUserJwt(email: string, token: string): Promise<CustomAuth>;
+  validateUserJwt(jwtPayload: JwtPayload): Promise<CustomAuth>;
+  refreshSession(refreshToken: string): Promise<IAuthTokens>;
 }
-export interface AuthTokens {
+export interface IAuthTokens {
   accessToken: string;
   refreshToken: string;
 }

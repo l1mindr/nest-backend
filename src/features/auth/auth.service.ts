@@ -16,6 +16,7 @@ import { ChangePasswordDto } from '../users/dto/change-password.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { IAuthService } from './interfaces/auth.interface';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { HashingProvider } from './providers/hashing.provider';
 
 @Injectable()
@@ -85,15 +86,19 @@ export class AuthService implements IAuthService {
     await this.sessionsService.terminateOthers(user, session.refreshTokenHash);
   }
 
-  async validateUserJwt(userId: string, token: string): Promise<CustomAuth> {
-    const user = await this.usersService.findByIdForSessionValidation(userId);
+  async validateUserJwt({ sub, sessionId }: JwtPayload): Promise<CustomAuth> {
+    const user = await this.usersService.findByIdForSessionValidation(sub);
 
     if (!user) throw new UnauthorizedException('invalid token');
 
-    const session = await this.sessionsService.getActive(user.id, token);
+    const session = await this.sessionsService.getActive(user.id, sessionId);
 
     if (!session) throw new UnauthorizedException('session expired');
 
     return { user, session };
+  }
+
+  async refreshSession(refreshToken: string) {
+    return this.sessionsService.refresh(refreshToken);
   }
 }

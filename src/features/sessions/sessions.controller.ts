@@ -26,13 +26,13 @@ export class SessionsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiRevokeCurrentSession()
   revoke(@User() { user, session }: CustomAuth) {
-    return this.sessionsService.revoke(user, session.token);
+    return this.sessionsService.revoke(user, session.refreshTokenHash);
   }
 
   @Delete('others')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiTerminateOtherSessions()
   terminateOthers(@User() { user, session }: CustomAuth) {
-    return this.sessionsService.terminateOthers(user, session.token);
+    return this.sessionsService.terminateOthers(user, session.refreshTokenHash);
   }
 }
