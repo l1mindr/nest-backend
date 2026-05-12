@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { Observable, tap } from 'rxjs';
+import { AuthTokens } from '../interfaces/auth.interface';
 
 @Injectable()
 export class AuthCookieInterceptor implements NestInterceptor {
@@ -15,13 +16,22 @@ export class AuthCookieInterceptor implements NestInterceptor {
     const isProduction = process.env.NODE_ENV === 'production';
 
     return next.handle().pipe(
-      tap((token: string) => {
-        res.cookie('access-token', token, {
-          httpOnly: true,
-          secure: isProduction,
-          sameSite: isProduction ? 'strict' : 'lax',
-          maxAge: 30 * 24 * 60 * 60 * 1000
-        });
+      tap(({ accessToken, refreshToken }: AuthTokens) => {
+        if (accessToken && refreshToken) {
+          res.cookie('access-token', accessToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
+            maxAge: 15 * 60 * 1000 // 15 minutes
+          });
+
+          res.cookie('refresh-token', refreshToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+          });
+        }
       })
     );
   }
