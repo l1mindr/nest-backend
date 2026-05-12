@@ -241,12 +241,12 @@ Testing stack:
 
 ## Support
 
-Maintained by **L1MindOfficial**
+Maintained by **L1Mindr**
 
 <!-- * Website: [https://mintegs.com](https://mintegs.com) -->
-* Telegram: [https://t.me/l1Mindofficial](https://t.me/l1mindofficial)
-* Youtube: [https://www.youtube.com/@l1Mindofficial](https://www.youtube.com/@l1mindofficial)
-* Tech content & dev branding: **L1MindOfficial**
+* Telegram: [https://t.me/l1Mindr](https://t.me/l1mindr)
+* Youtube: [https://www.youtube.com/@l1Mindr](https://www.youtube.com/@l1mindr)
+* Tech content & dev branding: **L1Mindr**
 
 ---
 
