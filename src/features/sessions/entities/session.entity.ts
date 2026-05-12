@@ -1,8 +1,15 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { User } from '@features/users/entities/user.entity';
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { IDevice } from '../interfaces/device.interface';
-import { SwaggerSessionProperties as SessionProps } from '../sessions.swagger';
+import { ApiProperty } from '@nestjs/swagger';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn
+} from 'typeorm';
+import { IUserAgent } from '../interfaces/user-agent.interface';
+import { SwaggerSessionPropertiesUpdate as SessionProps } from '../sessions.swagger';
 
 @Entity()
 export class Session {
@@ -10,21 +17,36 @@ export class Session {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ApiProperty(SessionProps.token)
-  @Column({ unique: true })
-  token: string;
+  @ApiProperty(SessionProps.refreshTokenHash)
+  @Column()
+  refreshTokenHash: string;
 
-  @ApiProperty(SessionProps.device)
+  @ApiProperty(SessionProps.userAgent)
   @Column({ type: 'json' })
-  device: IDevice;
+  userAgent: IUserAgent;
 
-  @ApiProperty(SessionProps.ip)
+  @ApiProperty(SessionProps.ipAddress)
   @Column()
-  ip: string;
+  ipAddress: string;
 
-  @ApiProperty(SessionProps.expiryDate)
-  @Column()
-  expiryDate: Date;
+  @Column({ default: false })
+  isRevoked: boolean;
+
+  @ApiProperty(SessionProps.expireAt)
+  @Column({ type: 'timestamp' })
+  expiresAt: Date;
+
+  @ApiProperty(SessionProps.lastUsedAt)
+  @Column({ type: 'timestamp' })
+  lastUsedAt: Date;
+
+  @ApiProperty(SessionProps.createdAt)
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @ApiProperty(SessionProps.updatedAt)
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @ApiProperty(SessionProps.user)
   @ManyToOne(() => User, (user) => user.sessions, { nullable: false })

@@ -1,5 +1,8 @@
-import { IDevice } from '@features/sessions/interfaces/device.interface';
-import { ISessionsService } from '@features/sessions/interfaces/sessions.interface';
+import {
+  ISessionsService,
+  IssuedTokens
+} from '@features/sessions/interfaces/sessions.interface';
+import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
 import { IUsersService } from '@features/users/interfaces/users.interface';
 import { SESSIONS_SERVICE, USERS_SERVICE } from '@infrastructure/di/tokens';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
@@ -36,9 +39,9 @@ export class AuthService implements IAuthService {
 
   async loginUser(
     { email, password }: LoginUserDto,
-    ip: string,
-    device: IDevice
-  ): Promise<string> {
+    ipAddress: string,
+    userAgent: IUserAgent
+  ): Promise<IssuedTokens> {
     const user = await this.usersService.findByIdentifierForAuth(email);
 
     if (!user) throw new UnauthorizedException('invalid credentials');
@@ -47,7 +50,7 @@ export class AuthService implements IAuthService {
 
     if (!isMatch) throw new UnauthorizedException('invalid credentials');
 
-    return await this.sessionsService.issue(user.id, ip, device);
+    return await this.sessionsService.issue(user.id, ipAddress, userAgent);
   }
 
   async changeUserPassword(
@@ -79,7 +82,7 @@ export class AuthService implements IAuthService {
     // Hash new password and update
     const password = await this.hashingProvider.hash(newPassword);
     await this.usersService.setPassword(user.id, password);
-    await this.sessionsService.terminateOthers(user, session.token);
+    await this.sessionsService.terminateOthers(user, session.refreshTokenHash);
   }
 
   async validateUserJwt(userId: string, token: string): Promise<CustomAuth> {

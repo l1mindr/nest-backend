@@ -1,97 +1,142 @@
 import { JwtPayload } from '@features/auth/interfaces/jwt-payload.interface';
+import { HashingProvider } from '@features/auth/providers/hashing.provider';
 import { Session } from '@features/sessions/entities/session.entity';
 import { User } from '@features/users/entities/user.entity';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { randomUUID } from 'crypto';
 import { DataSource, MoreThan, Not, Repository } from 'typeorm';
-import { IDevice } from './interfaces/device.interface';
-import { ISessionWithCurrent } from './interfaces/session-with-current.interface';
-import { ISessionsService } from './interfaces/sessions.interface';
+import { ISessionWithCurrentUpdate } from './interfaces/session-with-current.interface';
+import {
+  ISessionsService,
+  IssuedTokens
+} from './interfaces/sessions.interface';
+import { IUserAgent } from './interfaces/user-agent.interface';
 
 @Injectable()
 export class SessionsService implements ISessionsService {
   constructor(
     private readonly dataSource: DataSource,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
+    private readonly hashingProvider: HashingProvider
   ) {}
 
   private get sessionRepo(): Repository<Session> {
     return this.dataSource.getRepository(Session);
   }
 
-  async issue(userId: string, ip: string, device: IDevice): Promise<string> {
-    return await this.dataSource.transaction(async (manager) => {
-      const sessionRepo = manager.getRepository(Session);
+  private async generateToken(userId: string, sessionId: string) {
+    const jwtPayload: JwtPayload = {
+      sub: userId,
+      sessionId
+      // role
+    };
+    const accessToken = await this.jwtService.signAsync(
+      {
+        ...jwtPayload
+        // role
+      },
 
-      const payload: JwtPayload = { sub: userId, jti: randomUUID() };
-      const token = this.jwtService.sign(payload);
-
-      const THIRTY_ONE_DAYS = 31 * 24 * 60 * 60 * 1000;
-
-      const session = sessionRepo.create({
-        owner: { id: userId },
-        ip,
-        device,
-        token,
-        expiryDate: new Date(Date.now() + THIRTY_ONE_DAYS)
-      });
-
-      try {
-        await sessionRepo.save(session);
-      } catch {
-        throw new InternalServerErrorException('Failed to create session');
+      {
+        expiresIn: '15m'
       }
-      return token;
+    );
+
+    const refreshToken = await this.jwtService.signAsync(jwtPayload, {
+      expiresIn: '7d'
     });
+
+    return { accessToken, refreshToken };
+  }
+
+  async issue(
+    userId: string,
+    ipAddress: string,
+    userAgent: IUserAgent
+  ): Promise<IssuedTokens> {
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const sessionRepo = manager.getRepository(Session);
+
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+
+        const session = await sessionRepo.save(
+          sessionRepo.create({
+            owner: { id: userId },
+            ipAddress,
+            userAgent,
+            expiresAt,
+            lastUsedAt: new Date()
+          })
+        );
+
+        const { accessToken, refreshToken } = await this.generateToken(
+          userId,
+          session.id
+        );
+
+        session.refreshTokenHash =
+          await this.hashingProvider.hash(refreshToken);
+
+        await sessionRepo.save(session);
+
+        return {
+          accessToken,
+          refreshToken
+        };
+      });
+    } catch {
+      throw new InternalServerErrorException('Failed to create session');
+    }
   }
 
   async getActive(userId: string, token: string): Promise<Session | null> {
     return this.sessionRepo.findOne({
       where: {
-        token,
+        refreshTokenHash: token,
         owner: {
           id: userId
         },
-        expiryDate: MoreThan(new Date())
+        expiresAt: MoreThan(new Date())
       }
     });
   }
 
   async list({
     user: { id },
-    session: { token, ip, expiryDate, device }
-  }: CustomAuth): Promise<ISessionWithCurrent[]> {
+    session: { refreshTokenHash, ipAddress, expiresAt, userAgent, lastUsedAt }
+  }: CustomAuth): Promise<ISessionWithCurrentUpdate[]> {
     const sessions = await this.sessionRepo.find({
       where: {
         owner: { id },
-        token: Not(token)
+        refreshTokenHash: Not(refreshTokenHash)
       },
-      select: ['device', 'expiryDate', 'ip']
+      select: ['userAgent', 'expiresAt', 'ipAddress']
     });
 
-    const currentSession: ISessionWithCurrent = {
-      ip,
-      expiryDate,
-      device,
+    const currentSession: ISessionWithCurrentUpdate = {
+      ipAddress,
+      expiresAt,
+      userAgent,
+      lastUsedAt,
       current: true
     };
 
     return [currentSession, ...sessions];
   }
 
-  async revoke({ id }: User, token: string): Promise<void> {
+  async revoke({ id }: User, refreshTokenHash: string): Promise<void> {
     await this.sessionRepo.delete({
       owner: { id },
-      token
+      refreshTokenHash
     });
   }
 
   async terminateOthers({ id }: User, token: string): Promise<void> {
     await this.sessionRepo.delete({
       owner: { id },
-      token: Not(token)
+      refreshTokenHash: Not(token)
     });
   }
 }
