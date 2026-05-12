@@ -19,10 +19,10 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "NODE_ENV=test jest --config ./test/jest-e2e.json",
     "migration:create": "yarn typeorm migration:create",
-    "migration:generate": "yarn build && yarn typeorm migration:generate -d dist/src/infrastructure/database/data-source -p",
+    "migration:generate": "yarn build && yarn typeorm migration:generate -d dist/infrastructure/database/data-source -p",
     "premigration:run": "yarn build",
-    "migration:run": "yarn typeorm migration:run -d dist/src/infrastructure/database/data-source",
-    "migration:revert": "yarn typeorm migration:revert -d dist/src/infrastructure/database/data-source",
+    "migration:run": "yarn typeorm migration:run -d dist/infrastructure/database/data-source",
+    "migration:revert": "yarn typeorm migration:revert -d dist/infrastructure/database/data-source",
     "docs": "npx @compodoc/compodoc -p tsconfig.json -s --port 3333 -w --theme material",
     "prepare": "node .husky/install.mjs",
     "deprecated": "npx ts-node findDeprecatedFiles.ts"
