@@ -18,7 +18,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromExtractors([
         ExtractJwt.fromAuthHeaderAsBearerToken(),
         (req) => {
-          return req.cookies['access-token'] || null;
+          return req.cookies['access_token'] || null;
         }
       ]),
       secretOrKey: jwtConfiguration.secret,
@@ -26,13 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(req: Request, { sub }: JwtPayload) {
-    const authHeader = req.headers.authorization;
-
-    const token = authHeader?.startsWith('Bearer ')
-      ? authHeader.slice(7)
-      : req.cookies['access-token'];
-
-    return this.authService.validateUserJwt(sub, token);
+  validate(req: Request, jwtPayload: JwtPayload) {
+    return this.authService.validateUserJwt(jwtPayload);
   }
 }
