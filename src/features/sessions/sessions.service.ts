@@ -3,7 +3,11 @@ import { HashingProvider } from '@features/auth/providers/hashing.provider';
 import { Session } from '@features/sessions/entities/session.entity';
 import { User } from '@features/users/entities/user.entity';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DataSource, MoreThan, Not, Repository } from 'typeorm';
 import { ISessionWithCurrentUpdate } from './interfaces/session-with-current.interface';
@@ -91,14 +95,59 @@ export class SessionsService implements ISessionsService {
     }
   }
 
-  async getActive(userId: string, token: string): Promise<Session | null> {
+  async refresh(refreshToken: string): Promise<IssuedTokens> {
+    const { sub, sessionId } =
+      await this.jwtService.verifyAsync<JwtPayload>(refreshToken);
+
+    const session = await this.sessionRepo.findOne({
+      where: {
+        id: sessionId,
+        isRevoked: false,
+        expiresAt: MoreThan(new Date()),
+        owner: { id: sub }
+      },
+      relations: {
+        owner: true // for adding role after test and caching
+      }
+    });
+
+    if (!session) throw new UnauthorizedException('invalid session');
+
+    const isValidRefreshToken = await this.hashingProvider.compare(
+      refreshToken,
+      session.refreshTokenHash
+    );
+
+    if (!isValidRefreshToken) {
+      session.isRevoked = true;
+      await this.sessionRepo.save(session);
+
+      throw new UnauthorizedException('invalid refresh token');
+    }
+
+    const tokens = await this.generateToken(session.owner.id, session.id);
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    session.refreshTokenHash = await this.hashingProvider.hash(refreshToken);
+    session.lastUsedAt = new Date();
+    session.expiresAt = expiresAt;
+
+    await this.sessionRepo.save(session);
+
+    return { ...tokens };
+  }
+
+  async getActive(userId: string, sessionId: string): Promise<Session | null> {
     return this.sessionRepo.findOne({
       where: {
-        refreshTokenHash: token,
+        id: sessionId,
+        isRevoked: false,
+        expiresAt: MoreThan(new Date()),
         owner: {
           id: userId
-        },
-        expiresAt: MoreThan(new Date())
+        }
       }
     });
   }

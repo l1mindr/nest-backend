@@ -10,12 +10,13 @@ export type IssuedTokens = {
 };
 
 export interface ISessionsService {
-  getActive(userId: string, token: string): Promise<Session | null>;
+  getActive(userId: string, sessionId: string): Promise<Session | null>;
   issue(
     userId: string,
     ipAddress: string,
     userAgent: IUserAgent
   ): Promise<IssuedTokens>;
+  refresh(refreshToken: string): Promise<IssuedTokens>;
   list(customAuth: CustomAuth): Promise<ISessionWithCurrentUpdate[]>;
   revoke(user: User, token: string): Promise<void>;
   terminateOthers(user: User, token: string): Promise<void>;
