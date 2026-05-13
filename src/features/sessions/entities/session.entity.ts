@@ -9,7 +9,7 @@ import {
   UpdateDateColumn
 } from 'typeorm';
 import { IUserAgent } from '../interfaces/user-agent.interface';
-import { SwaggerSessionPropertiesUpdate as SessionProps } from '../sessions.swagger';
+import { SwaggerSessionProperties as SessionProps } from '../sessions.swagger';
 
 @Entity()
 export class Session {
