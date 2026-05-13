@@ -26,7 +26,7 @@ export class SessionsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiRevokeCurrentSession()
   revoke(@User() { user, session }: CustomAuth) {
-    return this.sessionsService.revoke(user, session.refreshTokenHash);
+    return this.sessionsService.revoke(user, session.id);
   }
 
   @Delete('others')

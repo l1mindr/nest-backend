@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DataSource, MoreThan, Not, Repository } from 'typeorm';
-import { ISessionWithCurrentUpdate } from './interfaces/session-with-current.interface';
+import { ISessionWithCurrent } from './interfaces/session-with-current.interface';
 import {
   ISessionsService,
   IssuedTokens
@@ -154,38 +154,54 @@ export class SessionsService implements ISessionsService {
 
   async list({
     user: { id },
-    session: { refreshTokenHash, ipAddress, expiresAt, userAgent, lastUsedAt }
-  }: CustomAuth): Promise<ISessionWithCurrentUpdate[]> {
+    session
+  }: CustomAuth): Promise<ISessionWithCurrent[]> {
     const sessions = await this.sessionRepo.find({
       where: {
         owner: { id },
-        refreshTokenHash: Not(refreshTokenHash)
+        isRevoked: false,
+        expiresAt: MoreThan(new Date()),
+        id: Not(session.id)
       },
       select: ['userAgent', 'expiresAt', 'ipAddress']
     });
 
-    const currentSession: ISessionWithCurrentUpdate = {
-      ipAddress,
-      expiresAt,
-      userAgent,
-      lastUsedAt,
+    const currentSession: ISessionWithCurrent = {
+      ipAddress: session.ipAddress,
+      expiresAt: session.expiresAt,
+      userAgent: session.userAgent,
+      lastUsedAt: session.lastUsedAt,
       current: true
     };
 
     return [currentSession, ...sessions];
   }
 
-  async revoke({ id }: User, refreshTokenHash: string): Promise<void> {
-    await this.sessionRepo.delete({
-      owner: { id },
-      refreshTokenHash
-    });
+  async revoke({ id }: User, sessionId: string): Promise<void> {
+    await this.sessionRepo.update(
+      {
+        owner: { id },
+        id: sessionId
+      },
+      {
+        isRevoked: true,
+        expiresAt: new Date(),
+        lastUsedAt: new Date()
+      }
+    );
   }
 
-  async terminateOthers({ id }: User, token: string): Promise<void> {
-    await this.sessionRepo.delete({
-      owner: { id },
-      refreshTokenHash: Not(token)
-    });
+  async terminateOthers({ id }: User, sessionId: string): Promise<void> {
+    await this.sessionRepo.update(
+      {
+        owner: { id },
+        id: Not(sessionId)
+      },
+      {
+        isRevoked: true,
+        expiresAt: new Date(),
+        lastUsedAt: new Date()
+      }
+    );
   }
 }
