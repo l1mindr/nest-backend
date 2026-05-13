@@ -1,17 +1,17 @@
-import { IDevice } from '@features/sessions/interfaces/device.interface';
+import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export const UserAgent = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): IDevice => {
+  (data: unknown, ctx: ExecutionContext): IUserAgent => {
     const request = ctx.switchToHttp().getRequest();
     const userAgent = request.headers['user-agent'];
 
-    const defaultDevice: IDevice = {
+    const defaultUserAgent: IUserAgent = {
       name: 'unknown'
     };
 
     if (!userAgent) {
-      return defaultDevice;
+      return defaultUserAgent;
     }
 
     const devicePatterns = [
@@ -53,6 +53,6 @@ export const UserAgent = createParamDecorator(
       }
     }
 
-    return defaultDevice;
+    return defaultUserAgent;
   }
 );
