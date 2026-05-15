@@ -11,15 +11,15 @@ export interface IAuthService {
     loginUserDto: LoginUserDto,
     ipAddress: string,
     userAgent: IUserAgent
-  ): Promise<IAuthTokens>;
+  ): Promise<AuthTokens>;
   changeUserPassword(
     customAuth: CustomAuth,
     changePasswordDto: ChangePasswordDto
   ): Promise<void>;
   validateUserJwt(jwtPayload: JwtPayload): Promise<CustomAuth>;
-  refreshSession(refreshToken: string): Promise<IAuthTokens>;
+  refreshSession(refreshToken: string): Promise<AuthTokens>;
 }
-export interface IAuthTokens {
+export type AuthTokens = {
   accessToken: string;
   refreshToken: string;
-}
+};

@@ -11,11 +11,9 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { DataSource, MoreThan, Not, Repository } from 'typeorm';
 import { SessionsDto } from './dto/sessions.dto';
-import {
-  ISessionsService,
-  IssuedTokens
-} from './interfaces/sessions.interface';
+import { ISessionsService } from './interfaces/sessions.interface';
 import { IUserAgent } from './interfaces/user-agent.interface';
+import { AuthTokens } from '@features/auth/interfaces/auth.interface';
 
 @Injectable()
 export class SessionsService implements ISessionsService {
@@ -57,7 +55,7 @@ export class SessionsService implements ISessionsService {
     userId: string,
     ipAddress: string,
     userAgent: IUserAgent
-  ): Promise<IssuedTokens> {
+  ): Promise<AuthTokens> {
     try {
       return await this.dataSource.transaction(async (manager) => {
         const sessionRepo = manager.getRepository(Session);
@@ -95,7 +93,7 @@ export class SessionsService implements ISessionsService {
     }
   }
 
-  async refresh(refreshToken: string): Promise<IssuedTokens> {
+  async refresh(refreshToken: string): Promise<AuthTokens> {
     const { sub, sessionId } =
       await this.jwtService.verifyAsync<JwtPayload>(refreshToken);
 

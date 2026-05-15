@@ -1,7 +1,4 @@
-import {
-  ISessionsService,
-  IssuedTokens
-} from '@features/sessions/interfaces/sessions.interface';
+import { ISessionsService } from '@features/sessions/interfaces/sessions.interface';
 import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
 import { IUsersService } from '@features/users/interfaces/users.interface';
 import { SESSIONS_SERVICE, USERS_SERVICE } from '@infrastructure/di/tokens';
@@ -15,7 +12,7 @@ import {
 import { ChangePasswordDto } from '../users/dto/change-password.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
-import { IAuthService } from './interfaces/auth.interface';
+import { AuthTokens, IAuthService } from './interfaces/auth.interface';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { HashingProvider } from './providers/hashing.provider';
 
@@ -42,7 +39,7 @@ export class AuthService implements IAuthService {
     { email, password }: LoginUserDto,
     ipAddress: string,
     userAgent: IUserAgent
-  ): Promise<IssuedTokens> {
+  ): Promise<AuthTokens> {
     const user = await this.usersService.findByIdentifierForAuth(email);
 
     if (!user) throw new UnauthorizedException('invalid credentials');
