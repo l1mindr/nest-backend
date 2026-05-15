@@ -1,6 +1,6 @@
 import { Session } from '@features/sessions/entities/session.entity';
-import { IDevice } from '@features/sessions/interfaces/device.interface';
 import { ISessionsService } from '@features/sessions/interfaces/sessions.interface';
+import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
 import { User } from '@features/users/entities/user.entity';
 import { IUsersService } from '@features/users/interfaces/users.interface';
 import { SESSIONS_SERVICE, USERS_SERVICE } from '@infrastructure/di/tokens';
@@ -89,7 +89,7 @@ describe('AuthService', () => {
       service.loginUser({ email: 'a@test.com', password: 'password' }, 'ip', {
         name: 'safari',
         version: '26.3'
-      } as IDevice)
+      } as IUserAgent)
     ).rejects.toThrow(UnauthorizedException);
   });
 
@@ -105,7 +105,7 @@ describe('AuthService', () => {
       service.loginUser({ email: 'a@test.com', password: 'password' }, 'ip', {
         name: 'safari',
         version: '26.3'
-      } as IDevice)
+      } as IUserAgent)
     ).rejects.toThrow(UnauthorizedException);
   });
 
@@ -124,13 +124,13 @@ describe('AuthService', () => {
       {
         name: 'safari',
         version: '26.3'
-      } as IDevice
+      } as IUserAgent
     );
 
     expect(mockSessionsService.issue).toHaveBeenCalledWith('user-id', 'ip', {
       name: 'safari',
       version: '26.3'
-    } as IDevice);
+    } as IUserAgent);
     expect(res).toBe('token-123');
   });
 

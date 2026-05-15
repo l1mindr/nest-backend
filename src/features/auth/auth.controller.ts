@@ -1,4 +1,4 @@
-import { IDevice } from '@features/sessions/interfaces/device.interface';
+import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import {
   Body,
@@ -46,10 +46,10 @@ export class AuthController {
   @ApiLoginUser()
   async signInUser(
     @Body() loginUserDto: LoginUserDto,
-    @IpAddress() ip: string,
-    @UserAgent() device: IDevice
+    @IpAddress() ipAddress: string,
+    @UserAgent() userAgent: IUserAgent
   ) {
-    return await this.authService.loginUser(loginUserDto, ip, device);
+    return await this.authService.loginUser(loginUserDto, ipAddress, userAgent);
   }
 
   @Public()

@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, Repository } from 'typeorm';
 import { Session } from './entities/session.entity';
-import { IDevice } from './interfaces/device.interface';
+import { IUserAgent } from './interfaces/user-agent.interface';
 import { SessionsService } from './sessions.service';
 
 describe('SessionsService', () => {
@@ -54,7 +54,7 @@ describe('SessionsService', () => {
     const token = await service.issue('user-id', 'ip', {
       name: 'safari',
       version: '26.3'
-    } as IDevice);
+    } as IUserAgent);
 
     expect(mockJwtService.sign).toHaveBeenCalledWith(
       expect.objectContaining({
