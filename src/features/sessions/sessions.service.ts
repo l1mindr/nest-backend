@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DataSource, MoreThan, Not, Repository } from 'typeorm';
-import { ISessionWithCurrent } from './interfaces/session-with-current.interface';
+import { SessionsDto } from './dto/sessions.dto';
 import {
   ISessionsService,
   IssuedTokens
@@ -152,10 +152,7 @@ export class SessionsService implements ISessionsService {
     });
   }
 
-  async list({
-    user: { id },
-    session
-  }: CustomAuth): Promise<ISessionWithCurrent[]> {
+  async list({ user: { id }, session }: CustomAuth): Promise<SessionsDto[]> {
     const sessions = await this.sessionRepo.find({
       where: {
         owner: { id },
@@ -166,15 +163,25 @@ export class SessionsService implements ISessionsService {
       select: ['userAgent', 'expiresAt', 'ipAddress']
     });
 
-    const currentSession: ISessionWithCurrent = {
+    const currentSession: SessionsDto = {
       ipAddress: session.ipAddress,
       expiresAt: session.expiresAt,
-      userAgent: session.userAgent,
+      device: session.userAgent,
       lastUsedAt: session.lastUsedAt,
       current: true
     };
 
-    return [currentSession, ...sessions];
+    const sessionsMap = sessions.map((item): SessionsDto => {
+      return {
+        ipAddress: item.ipAddress,
+        expiresAt: item.expiresAt,
+        device: item.userAgent,
+        lastUsedAt: item.lastUsedAt,
+        current: false
+      };
+    });
+
+    return [currentSession, ...sessionsMap];
   }
 
   async revoke({ id }: User, sessionId: string): Promise<void> {
