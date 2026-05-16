@@ -1,4 +1,4 @@
-import { JwtPayload } from '@features/auth/interfaces/jwt-payload.interface';
+import { IJwtPayload } from '@features/auth/interfaces/jwt-payload.interface';
 import { HashingProvider } from '@features/auth/providers/hashing.provider';
 import { Session } from '@features/sessions/entities/session.entity';
 import { User } from '@features/users/entities/user.entity';
@@ -28,7 +28,7 @@ export class SessionsService implements ISessionsService {
   }
 
   private async generateToken(userId: string, sessionId: string) {
-    const jwtPayload: JwtPayload = {
+    const jwtPayload: IJwtPayload = {
       sub: userId,
       sessionId
       // role
@@ -95,7 +95,7 @@ export class SessionsService implements ISessionsService {
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
     const { sub, sessionId } =
-      await this.jwtService.verifyAsync<JwtPayload>(refreshToken);
+      await this.jwtService.verifyAsync<IJwtPayload>(refreshToken);
 
     const session = await this.sessionRepo.findOne({
       where: {

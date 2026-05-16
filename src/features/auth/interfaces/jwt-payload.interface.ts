@@ -1,4 +1,4 @@
-export interface JwtPayload {
+export interface IJwtPayload {
   readonly sub: string;
   readonly sessionId: string;
   readonly role?: string;

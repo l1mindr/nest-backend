@@ -13,7 +13,7 @@ import { ChangePasswordDto } from '../users/dto/change-password.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { AuthTokens, IAuthService } from './interfaces/auth.interface';
-import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { IJwtPayload } from './interfaces/jwt-payload.interface';
 import { HashingProvider } from './providers/hashing.provider';
 
 @Injectable()
@@ -83,7 +83,7 @@ export class AuthService implements IAuthService {
     await this.sessionsService.terminateOthers(user, session.refreshTokenHash);
   }
 
-  async validateUserJwt({ sub, sessionId }: JwtPayload): Promise<CustomAuth> {
+  async validateUserJwt({ sub, sessionId }: IJwtPayload): Promise<CustomAuth> {
     const user = await this.usersService.findByIdForSessionValidation(sub);
 
     if (!user) throw new UnauthorizedException('invalid token');
