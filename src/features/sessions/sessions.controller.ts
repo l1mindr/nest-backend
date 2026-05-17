@@ -33,6 +33,6 @@ export class SessionsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiTerminateOtherSessions()
   terminateOthers(@User() { user, session }: CustomAuth) {
-    return this.sessionsService.terminateOthers(user, session.refreshTokenHash);
+    return this.sessionsService.terminateOthers(user, session.id);
   }
 }
