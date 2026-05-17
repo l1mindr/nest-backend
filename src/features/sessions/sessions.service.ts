@@ -1,3 +1,4 @@
+import { AuthTokens } from '@features/auth/interfaces/auth.interface';
 import { IJwtPayload } from '@features/auth/interfaces/jwt-payload.interface';
 import { HashingProvider } from '@features/auth/providers/hashing.provider';
 import { Session } from '@features/sessions/entities/session.entity';
@@ -13,7 +14,7 @@ import { DataSource, MoreThan, Not, Repository } from 'typeorm';
 import { SessionsDto } from './dto/sessions.dto';
 import { ISessionsService } from './interfaces/sessions.interface';
 import { IUserAgent } from './interfaces/user-agent.interface';
-import { AuthTokens } from '@features/auth/interfaces/auth.interface';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class SessionsService implements ISessionsService {
@@ -33,7 +34,7 @@ export class SessionsService implements ISessionsService {
       sessionId
       // role
     };
-    const accessToken = await this.jwtService.signAsync(
+    const accessToken = await this.jwtService.sign(
       {
         ...jwtPayload
         // role
@@ -44,7 +45,7 @@ export class SessionsService implements ISessionsService {
       }
     );
 
-    const refreshToken = await this.jwtService.signAsync(jwtPayload, {
+    const refreshToken = await this.jwtService.sign(jwtPayload, {
       expiresIn: '7d'
     });
 
@@ -69,7 +70,8 @@ export class SessionsService implements ISessionsService {
             ipAddress,
             userAgent,
             expiresAt,
-            lastUsedAt: new Date()
+            lastUsedAt: new Date(),
+            refreshTokenHash: randomUUID()
           })
         );
 
@@ -88,7 +90,8 @@ export class SessionsService implements ISessionsService {
           refreshToken
         };
       });
-    } catch {
+    } catch (err) {
+      console.log('err session', err);
       throw new InternalServerErrorException('Failed to create session');
     }
   }
