@@ -3,5 +3,12 @@
   "compilerOptions": {
     "rootDir": "."
   },
-  "include": ["src", "test/**/*.ts", "commitlint.config.ts"]
+  "include": [
+    "src",
+    "test/**/*.ts",
+    "commitlint.config.ts",
+    "eslint.config.mjs",
+    "jest.unit.config.ts",
+    "jest.e2e.config.ts"
+  ]
 }

@@ -23,27 +23,23 @@ export default [
     plugins: {
       '@typescript-eslint': typescriptEslintEslintPlugin
     },
-
     languageOptions: {
       globals: {
         ...globals.node,
         ...globals.jest
       },
-
       parser: tsParser,
       ecmaVersion: 5,
       sourceType: 'module',
-
       parserOptions: {
         project: ['./tsconfig.eslint.json']
       }
     },
-
     rules: {
       '@typescript-eslint/interface-name-prefix': 'off',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-explicit-any': 'off'
     }
-  },
+  }
 ];
