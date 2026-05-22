@@ -32,7 +32,8 @@ describe('Auth Login (e2e) version: 1', () => {
 
     expect(login.status).toBe(200);
     expect(login.headers['set-cookie']).toBeDefined();
-    expect(login.headers['set-cookie'][0]).toContain('access-token');
+    expect(login.headers['set-cookie'][0]).toContain('access_token');
+    expect(login.headers['set-cookie'][1]).toContain('refresh_token');
   });
 
   it('should login successfully with username', async () => {
@@ -42,7 +43,8 @@ describe('Auth Login (e2e) version: 1', () => {
 
     expect(login.status).toBe(200);
     expect(login.headers['set-cookie']).toBeDefined();
-    expect(login.headers['set-cookie'][0]).toContain('access-token');
+    expect(login.headers['set-cookie'][0]).toContain('access_token');
+    expect(login.headers['set-cookie'][1]).toContain('refresh_token');
   });
 
   it('should fail if email does not exist', async () => {
