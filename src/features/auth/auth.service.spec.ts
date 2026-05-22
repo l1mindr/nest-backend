@@ -31,6 +31,7 @@ describe('AuthService', () => {
 
     mockSessionsService = {
       issue: jest.fn(),
+      refresh: jest.fn(),
       getActive: jest.fn(),
       list: jest.fn(),
       revoke: jest.fn(),
@@ -116,7 +117,10 @@ describe('AuthService', () => {
     } as User);
 
     mockHashingProvider.compare.mockResolvedValue(true);
-    mockSessionsService.issue.mockResolvedValue('token-123');
+    mockSessionsService.issue.mockResolvedValue({
+      accessToken: 'jwt-token',
+      refreshToken: 'jwt-token-hash'
+    });
 
     const res = await service.loginUser(
       { email: 'a@test.com', password: 'password' },
@@ -131,7 +135,10 @@ describe('AuthService', () => {
       name: 'safari',
       version: '26.3'
     } as IUserAgent);
-    expect(res).toBe('token-123');
+    expect(res).toEqual({
+      accessToken: 'jwt-token',
+      refreshToken: 'jwt-token-hash'
+    });
   });
 
   it('should throw if user not found', async () => {
@@ -141,7 +148,7 @@ describe('AuthService', () => {
       service.changeUserPassword(
         {
           user: { id: 'user-id' },
-          session: { token: 'jwt-token' }
+          session: { refreshTokenHash: 'jwt-token-hash' }
         } as CustomAuth,
         { currentPassword: 'password', newPassword: 'new-password' }
       )
@@ -160,7 +167,7 @@ describe('AuthService', () => {
       service.changeUserPassword(
         {
           user: { id: 'user-id' },
-          session: { token: 'jwt-token' }
+          session: { refreshTokenHash: 'jwt-token-hash' }
         } as CustomAuth,
         { currentPassword: 'wrong', newPassword: 'newPassword' }
       )
@@ -181,7 +188,7 @@ describe('AuthService', () => {
       service.changeUserPassword(
         {
           user: { id: 'user-id' },
-          session: { token: 'jwt-token' }
+          session: { refreshTokenHash: 'jwt-token-hash' }
         } as CustomAuth,
         { currentPassword: 'hash-password', newPassword: 'hash-password' }
       )
@@ -203,7 +210,7 @@ describe('AuthService', () => {
     await service.changeUserPassword(
       {
         user: { id: 'user-id' },
-        session: { token: 'jwt-token' }
+        session: { refreshTokenHash: 'jwt-token-hash' }
       } as CustomAuth,
       { currentPassword: 'hash-password', newPassword: 'new-password' }
     );
@@ -214,14 +221,17 @@ describe('AuthService', () => {
     );
     expect(mockSessionsService.terminateOthers).toHaveBeenCalledWith(
       { id: 'user-id' },
-      'jwt-token'
+      'jwt-token-hash'
     );
   });
 
   it('should throw if user not found', async () => {
     mockUsersService.findByIdForSessionValidation.mockResolvedValue(null);
     await expect(
-      service.validateUserJwt('user-id', 'jwt-token')
+      service.validateUserJwt({
+        sub: 'user-id',
+        sessionId: 'session-id'
+      })
     ).rejects.toThrow(UnauthorizedException);
   });
 
@@ -233,7 +243,10 @@ describe('AuthService', () => {
     mockSessionsService.getActive.mockResolvedValue(null);
 
     await expect(
-      service.validateUserJwt('user-id', 'jwt-token')
+      service.validateUserJwt({
+        sub: 'user-id',
+        sessionId: 'session-id'
+      })
     ).rejects.toThrow(UnauthorizedException);
   });
 
@@ -242,14 +255,17 @@ describe('AuthService', () => {
       id: 'user-id'
     } as User);
     mockSessionsService.getActive.mockResolvedValue({
-      token: 'jwt-token'
+      refreshTokenHash: 'jwt-token-hash'
     } as Session);
 
-    const res = await service.validateUserJwt('user-id', 'jwt-token');
+    const res = await service.validateUserJwt({
+      sub: 'user-id',
+      sessionId: 'session-id'
+    });
 
     expect(res).toEqual({
       user: { id: 'user-id' },
-      session: { token: 'jwt-token' }
+      session: { refreshTokenHash: 'jwt-token-hash' }
     });
   });
 });

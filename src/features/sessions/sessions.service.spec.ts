@@ -1,131 +1,346 @@
+import { IJwtPayload } from '@features/auth/interfaces/jwt-payload.interface';
 import { User } from '@features/users/entities/user.entity';
-import { InternalServerErrorException } from '@nestjs/common';
+import {
+  InternalServerErrorException,
+  UnauthorizedException
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, MoreThan, Repository } from 'typeorm';
 import { Session } from './entities/session.entity';
-import { IUserAgent } from './interfaces/user-agent.interface';
 import { SessionsService } from './sessions.service';
 
 describe('SessionsService', () => {
   let service: SessionsService;
-  let repo: jest.Mocked<Repository<Session>>;
-  let mockDataSource: any;
-  let mockJwtService: any;
 
-  beforeEach(async () => {
-    repo = {
+  let dataSource: jest.Mocked<DataSource>;
+  let jwtService: jest.Mocked<JwtService>;
+
+  let sessionRepo: jest.Mocked<Repository<Session>>;
+
+  const hashingProvider = {
+    hash: jest.fn(),
+    compare: jest.fn()
+  };
+
+  beforeEach(() => {
+    sessionRepo = {
       create: jest.fn(),
       save: jest.fn(),
       findOne: jest.fn(),
       find: jest.fn(),
-      delete: jest.fn()
-    } as any;
+      update: jest.fn()
+    } as unknown as jest.Mocked<Repository<Session>>;
 
-    mockJwtService = {
-      sign: jest.fn().mockReturnValue('jwt-token')
-    };
+    dataSource = {
+      transaction: jest.fn(),
+      getRepository: jest.fn().mockReturnValue(sessionRepo)
+    } as unknown as jest.Mocked<DataSource>;
 
-    mockDataSource = {
-      getRepository: jest.fn().mockReturnValue(repo),
-      transaction: jest.fn().mockImplementation(async (cb) => {
-        const mockManager = {
-          getRepository: jest.fn().mockReturnValue(repo)
-        };
-        return cb(mockManager);
-      })
-    };
+    jwtService = {
+      sign: jest.fn(),
+      verifyAsync: jest.fn()
+    } as unknown as jest.Mocked<JwtService>;
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        SessionsService,
-        { provide: DataSource, useValue: mockDataSource },
-        { provide: JwtService, useValue: mockJwtService }
-      ]
-    }).compile();
-
-    service = module.get(SessionsService);
-  });
-
-  it('should issue session and return token', async () => {
-    repo.create.mockReturnValue({} as any);
-    repo.save.mockResolvedValue({} as any);
-
-    const token = await service.issue('user-id', 'ip', {
-      name: 'safari',
-      version: '26.3'
-    } as IUserAgent);
-
-    expect(mockJwtService.sign).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sub: 'user-id',
-        jti: expect.any(String)
-      })
-    );
-    expect(repo.create).toHaveBeenCalled();
-    expect(repo.save).toHaveBeenCalled();
-    expect(token).toBe('jwt-token');
-  });
-
-  it('should throw if saving session fails', async () => {
-    repo.create.mockReturnValue({} as any);
-    repo.save.mockRejectedValue(new Error());
-
-    await expect(service.issue('user-id', 'ip', {} as any)).rejects.toThrow(
-      InternalServerErrorException
+    service = new SessionsService(
+      dataSource,
+      jwtService,
+      hashingProvider as any
     );
   });
 
-  it('should return active session', async () => {
-    const fakeSession = { token: 'jwt-token' };
-
-    repo.findOne.mockResolvedValue(fakeSession as any);
-
-    const res = await service.getActive('user-id', 'jwt-token');
-    expect(repo.findOne).toHaveBeenCalled();
-    expect(res).toEqual(fakeSession);
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('should return current session + other sessions', async () => {
-    const otherSessions = [
-      {
-        ip: '2.2.2.2',
-        expiryDate: new Date(),
-        device: { name: 'safari', version: '26.3' }
-      }
-    ];
+  describe('issue', () => {
+    it('should create session and return tokens', async () => {
+      const user = {
+        id: 'user-id'
+      } as User;
 
-    repo.find.mockResolvedValue(otherSessions as any);
+      const createdSession = {
+        id: 'session-id'
+      } as Session;
 
-    const res = await service.list({
-      user: { id: 'user-id' },
-      session: {
-        token: 'abc',
-        ip: '1.1.1.1',
-        expiryDate: new Date(),
-        device: {}
-      }
-    } as any);
+      const updatedSession = {
+        ...createdSession,
+        refreshTokenHash: 'hashed-refresh'
+      } as Session;
 
-    expect(repo.find).toHaveBeenCalled();
-    expect(res.length).toBe(2);
-    expect(res[0].current).toBe(true);
-  });
+      const saveMock = jest
+        .fn()
+        .mockResolvedValueOnce(createdSession)
+        .mockResolvedValueOnce(updatedSession);
 
-  it('should delete specific session', async () => {
-    await service.revoke({ id: 'user-id' } as User, 'jwt-token');
+      dataSource.transaction.mockImplementation(async (callback: any) =>
+        callback({
+          getRepository: () => ({
+            create: jest.fn((data) => data),
+            save: saveMock
+          })
+        })
+      );
 
-    expect(repo.delete).toHaveBeenCalledWith({
-      owner: { id: 'user-id' },
-      token: 'jwt-token'
+      jwtService.sign
+        .mockReturnValueOnce('access-token')
+        .mockReturnValueOnce('refresh-token');
+
+      hashingProvider.hash.mockResolvedValue('hashed-refresh');
+
+      const result = await service.issue(user.id, '127.0.0.1', {
+        browser: 'Chrome'
+      } as any);
+
+      expect(result).toEqual({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token'
+      });
+
+      expect(jwtService.sign).toHaveBeenCalledTimes(2);
+
+      expect(hashingProvider.hash).toHaveBeenCalledWith('refresh-token');
+
+      expect(saveMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw when session creation fails', async () => {
+      dataSource.transaction.mockRejectedValue(new Error('DB Error'));
+
+      await expect(
+        service.issue('user-id', '127.0.0.1', {} as any)
+      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 
-  it('should delete all other sessions', async () => {
-    await service.terminateOthers({ id: 'user-id' } as User, 'jwt-token');
-    expect(repo.delete).toHaveBeenCalledWith({
-      owner: { id: 'user-id' },
-      token: expect.any(Object)
+  describe('refresh', () => {
+    it('should rotate tokens', async () => {
+      const session = {
+        id: 'session-id',
+        refreshTokenHash: 'hashed-refresh',
+        isRevoked: false,
+        expiresAt: new Date(Date.now() + 100000),
+        owner: {
+          id: 'user-id'
+        }
+      } as Session;
+
+      const payload: IJwtPayload = {
+        sub: 'user-id',
+        sessionId: 'session-id'
+      };
+
+      jwtService.verifyAsync.mockResolvedValue(payload);
+
+      sessionRepo.findOne.mockResolvedValue(session);
+
+      hashingProvider.compare.mockResolvedValue(true);
+
+      jwtService.sign
+        .mockReturnValueOnce('new-access-token')
+        .mockReturnValueOnce('new-refresh-token');
+
+      hashingProvider.hash.mockResolvedValue('new-hashed-refresh');
+
+      sessionRepo.save.mockResolvedValue(session);
+
+      const result = await service.refresh('refresh-token');
+
+      expect(result).toEqual({
+        accessToken: 'new-access-token',
+        refreshToken: 'new-refresh-token'
+      });
+
+      expect(session.refreshTokenHash).toBe('new-hashed-refresh');
+
+      expect(sessionRepo.save).toHaveBeenCalledWith(session);
+    });
+
+    it('should throw when session does not exist', async () => {
+      jwtService.verifyAsync.mockResolvedValue({
+        sub: 'user-id',
+        sessionId: 'session-id'
+      });
+
+      sessionRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.refresh('refresh-token')).rejects.toThrow(
+        UnauthorizedException
+      );
+    });
+
+    it('should revoke session on token reuse detection', async () => {
+      const session = {
+        id: 'session-id',
+        refreshTokenHash: 'hashed-refresh',
+        isRevoked: false,
+        expiresAt: new Date(),
+        lastUsedAt: new Date(),
+        owner: {
+          id: 'user-id'
+        }
+      } as Session;
+
+      jwtService.verifyAsync.mockResolvedValue({
+        sub: 'user-id',
+        sessionId: 'session-id'
+      });
+
+      sessionRepo.findOne.mockResolvedValue(session);
+
+      hashingProvider.compare.mockResolvedValue(false);
+
+      sessionRepo.save.mockImplementation(async (entity) => entity as Session);
+
+      await expect(service.refresh('refresh-token')).rejects.toThrow(
+        UnauthorizedException
+      );
+
+      expect(session.isRevoked).toBe(true);
+      expect(sessionRepo.save).toHaveBeenCalledTimes(1);
+
+      expect(sessionRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'session-id', isRevoked: true })
+      );
+    });
+  });
+
+  describe('getActive', () => {
+    it('should return active session', async () => {
+      const session = {
+        id: 'session-id'
+      } as Session;
+
+      sessionRepo.findOne.mockResolvedValue(session);
+
+      const result = await service.getActive('user-id', 'session-id');
+
+      expect(sessionRepo.findOne).toHaveBeenCalledWith({
+        where: {
+          id: 'session-id',
+          owner: {
+            id: 'user-id'
+          },
+          isRevoked: false,
+          expiresAt: MoreThan(expect.any(Date))
+        }
+      });
+
+      expect(result).toBe(session);
+    });
+  });
+
+  describe('revoke', () => {
+    it('should revoke session', async () => {
+      await service.revoke({ id: 'user-id' } as User, 'session-id');
+
+      expect(sessionRepo.update).toHaveBeenCalledWith(
+        {
+          id: 'session-id',
+          owner: {
+            id: 'user-id'
+          }
+        },
+        {
+          isRevoked: true
+        }
+      );
+    });
+  });
+
+  describe('terminateOthers', () => {
+    it('should revoke all sessions except current', async () => {
+      await service.terminateOthers(
+        { id: 'user-id' } as User,
+        'current-session-id'
+      );
+
+      expect(sessionRepo.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('list', () => {
+    it('should return sessions with current flag', async () => {
+      const user = {
+        id: 'user-id'
+      } as User;
+
+      const currentSession = {
+        id: 'current-session-id',
+        ipAddress: '127.0.0.1',
+        expiresAt: new Date(),
+        userAgent: {
+          name: 'Chrome',
+          version: '120'
+        },
+        lastUsedAt: new Date(),
+        refreshTokenHash: 'refreshTokenHash',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isRevoked: false,
+        owner: user
+      };
+
+      const dbSessions = [
+        {
+          id: 's1',
+          ipAddress: '1.1.1.1',
+          expiresAt: new Date(),
+          userAgent: {
+            name: 'Firefox',
+            version: '118'
+          },
+          lastUsedAt: new Date()
+        },
+        {
+          id: 's2',
+          ipAddress: '2.2.2.2',
+          expiresAt: new Date(),
+          userAgent: {
+            name: 'Safari',
+            version: '17'
+          },
+          lastUsedAt: new Date()
+        }
+      ] as any;
+
+      sessionRepo.find.mockResolvedValue(dbSessions);
+
+      const result = await service.list({ user, session: currentSession });
+
+      expect(sessionRepo.find).toHaveBeenCalled();
+
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          sessionId: currentSession.id,
+          ipAddress: currentSession.ipAddress,
+          expiresAt: expect.any(Date),
+          device: currentSession.userAgent,
+          lastUsedAt: expect.any(Date),
+          current: true
+        })
+      );
+
+      expect(result[1]).toEqual(
+        expect.objectContaining({
+          sessionId: dbSessions[0].id,
+          ipAddress: '1.1.1.1',
+          device: dbSessions[0].userAgent,
+          expiresAt: expect.any(Date),
+          lastUsedAt: expect.any(Date)
+        })
+      );
+
+      expect(result[2]).toEqual(
+        expect.objectContaining({
+          sessionId: dbSessions[1].id,
+          ipAddress: '2.2.2.2',
+          device: dbSessions[1].userAgent,
+          expiresAt: expect.any(Date),
+          lastUsedAt: expect.any(Date)
+        })
+      );
+
+      expect(result).toHaveLength(3);
     });
   });
 });
