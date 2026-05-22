@@ -10,11 +10,11 @@ import {
   UnauthorizedException
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { randomUUID } from 'crypto';
 import { DataSource, MoreThan, Not, Repository } from 'typeorm';
 import { SessionsDto } from './dto/sessions.dto';
 import { ISessionsService } from './interfaces/sessions.interface';
 import { IUserAgent } from './interfaces/user-agent.interface';
-import { randomUUID } from 'crypto';
 
 @Injectable()
 export class SessionsService implements ISessionsService {
@@ -90,8 +90,7 @@ export class SessionsService implements ISessionsService {
           refreshToken
         };
       });
-    } catch (err) {
-      console.log('err session', err);
+    } catch {
       throw new InternalServerErrorException('Failed to create session');
     }
   }
@@ -165,6 +164,7 @@ export class SessionsService implements ISessionsService {
     });
 
     const currentSession: SessionsDto = {
+      sessionId: session.id,
       ipAddress: session.ipAddress,
       expiresAt: session.expiresAt,
       device: session.userAgent,
@@ -174,11 +174,11 @@ export class SessionsService implements ISessionsService {
 
     const sessionsMap = sessions.map((item): SessionsDto => {
       return {
+        sessionId: item.id,
         ipAddress: item.ipAddress,
         expiresAt: item.expiresAt,
         device: item.userAgent,
-        lastUsedAt: item.lastUsedAt,
-        current: false
+        lastUsedAt: item.lastUsedAt
       };
     });
 
@@ -192,9 +192,7 @@ export class SessionsService implements ISessionsService {
         id: sessionId
       },
       {
-        isRevoked: true,
-        expiresAt: new Date(),
-        lastUsedAt: new Date()
+        isRevoked: true
       }
     );
   }
@@ -206,9 +204,7 @@ export class SessionsService implements ISessionsService {
         id: Not(sessionId)
       },
       {
-        isRevoked: true,
-        expiresAt: new Date(),
-        lastUsedAt: new Date()
+        isRevoked: true
       }
     );
   }
