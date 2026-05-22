@@ -28,25 +28,34 @@ export class SessionsService implements ISessionsService {
     return this.dataSource.getRepository(Session);
   }
 
-  private async generateToken(userId: string, sessionId: string) {
+  private createExpirationDate(now: number): Date {
+    return new Date(now + 7 * 24 * 60 * 60 * 1000);
+  }
+
+  private async generateToken(
+    userId: string,
+    sessionId: string,
+    now: number,
+    expiresAt: Date
+  ) {
     const jwtPayload: IJwtPayload = {
       sub: userId,
       sessionId
       // role
     };
-    const accessToken = await this.jwtService.sign(
-      {
-        ...jwtPayload
-        // role
-      },
 
-      {
-        expiresIn: '15m'
-      }
-    );
+    const accessExp = Math.floor(now) / 1000 + 15 * 60;
+    const refreshExp = Math.floor(expiresAt.getTime()) / 1000;
 
-    const refreshToken = await this.jwtService.sign(jwtPayload, {
-      expiresIn: '7d'
+    const accessToken = await this.jwtService.signAsync({
+      ...jwtPayload,
+      exp: accessExp
+      // role
+    });
+
+    const refreshToken = await this.jwtService.signAsync({
+      ...jwtPayload,
+      exp: refreshExp
     });
 
     return { accessToken, refreshToken };
@@ -61,8 +70,8 @@ export class SessionsService implements ISessionsService {
       return await this.dataSource.transaction(async (manager) => {
         const sessionRepo = manager.getRepository(Session);
 
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
+        const now = Date.now();
+        const expiresAt = this.createExpirationDate(now);
 
         const session = await sessionRepo.save(
           sessionRepo.create({
@@ -77,7 +86,9 @@ export class SessionsService implements ISessionsService {
 
         const { accessToken, refreshToken } = await this.generateToken(
           userId,
-          session.id
+          session.id,
+          now,
+          expiresAt
         );
 
         session.refreshTokenHash =
@@ -90,7 +101,8 @@ export class SessionsService implements ISessionsService {
           refreshToken
         };
       });
-    } catch {
+    } catch (err) {
+      console.log('err', err);
       throw new InternalServerErrorException('Failed to create session');
     }
   }
@@ -124,11 +136,15 @@ export class SessionsService implements ISessionsService {
 
       throw new UnauthorizedException('invalid refresh token');
     }
+    const now = Date.now();
+    const expiresAt = this.createExpirationDate(now);
 
-    const tokens = await this.generateToken(session.owner.id, session.id);
-
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const tokens = await this.generateToken(
+      session.owner.id,
+      session.id,
+      now,
+      expiresAt
+    );
 
     session.refreshTokenHash = await this.hashingProvider.hash(refreshToken);
     session.lastUsedAt = new Date();
