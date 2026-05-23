@@ -1,19 +1,20 @@
 import { IJwtPayload } from '@features/auth/interfaces/jwt-payload.interface';
+import { TokenService } from '@features/token/token.service';
 import { User } from '@features/users/entities/user.entity';
 import {
   InternalServerErrorException,
   UnauthorizedException
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { DataSource, MoreThan, Repository } from 'typeorm';
 import { Session } from './entities/session.entity';
+import { IUserAgent } from './interfaces/user-agent.interface';
 import { SessionsService } from './sessions.service';
 
 describe('SessionsService', () => {
   let service: SessionsService;
 
   let dataSource: jest.Mocked<DataSource>;
-  let jwtService: jest.Mocked<JwtService>;
+  let tokenService: jest.Mocked<TokenService>;
 
   let sessionRepo: jest.Mocked<Repository<Session>>;
 
@@ -36,15 +37,16 @@ describe('SessionsService', () => {
       getRepository: jest.fn().mockReturnValue(sessionRepo)
     } as unknown as jest.Mocked<DataSource>;
 
-    jwtService = {
-      sign: jest.fn(),
-      verifyAsync: jest.fn()
-    } as unknown as jest.Mocked<JwtService>;
+    tokenService = {
+      issuePair: jest.fn(),
+      verifyAccessToken: jest.fn(),
+      verifyRefreshToken: jest.fn()
+    } as unknown as jest.Mocked<TokenService>;
 
     service = new SessionsService(
       dataSource,
-      jwtService,
-      hashingProvider as any
+      hashingProvider as any,
+      tokenService
     );
   });
 
@@ -81,22 +83,24 @@ describe('SessionsService', () => {
         })
       );
 
-      jwtService.sign
-        .mockReturnValueOnce('access-token')
-        .mockReturnValueOnce('refresh-token');
+      tokenService.issuePair.mockResolvedValueOnce({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token'
+      });
 
       hashingProvider.hash.mockResolvedValue('hashed-refresh');
 
       const result = await service.issue(user.id, '127.0.0.1', {
-        browser: 'Chrome'
-      } as any);
+        name: 'Chrome',
+        version: '26'
+      } as IUserAgent);
 
       expect(result).toEqual({
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       });
 
-      expect(jwtService.sign).toHaveBeenCalledTimes(2);
+      expect(tokenService.issuePair).toHaveBeenCalledTimes(1);
 
       expect(hashingProvider.hash).toHaveBeenCalledWith('refresh-token');
 
@@ -107,7 +111,7 @@ describe('SessionsService', () => {
       dataSource.transaction.mockRejectedValue(new Error('DB Error'));
 
       await expect(
-        service.issue('user-id', '127.0.0.1', {} as any)
+        service.issue('user-id', '127.0.0.1', {} as IUserAgent)
       ).rejects.toThrow(InternalServerErrorException);
     });
   });
@@ -129,16 +133,16 @@ describe('SessionsService', () => {
         sessionId: 'session-id'
       };
 
-      jwtService.verifyAsync.mockResolvedValue(payload);
+      tokenService.verifyRefreshToken.mockResolvedValue(payload);
 
       sessionRepo.findOne.mockResolvedValue(session);
 
       hashingProvider.compare.mockResolvedValue(true);
 
-      jwtService.sign
-        .mockReturnValueOnce('new-access-token')
-        .mockReturnValueOnce('new-refresh-token');
-
+      tokenService.issuePair.mockResolvedValueOnce({
+        accessToken: 'new-access-token',
+        refreshToken: 'new-refresh-token'
+      });
       hashingProvider.hash.mockResolvedValue('new-hashed-refresh');
 
       sessionRepo.save.mockResolvedValue(session);
@@ -156,7 +160,7 @@ describe('SessionsService', () => {
     });
 
     it('should throw when session does not exist', async () => {
-      jwtService.verifyAsync.mockResolvedValue({
+      tokenService.verifyRefreshToken.mockResolvedValue({
         sub: 'user-id',
         sessionId: 'session-id'
       });
@@ -180,7 +184,7 @@ describe('SessionsService', () => {
         }
       } as Session;
 
-      jwtService.verifyAsync.mockResolvedValue({
+      tokenService.verifyRefreshToken.mockResolvedValue({
         sub: 'user-id',
         sessionId: 'session-id'
       });

@@ -71,8 +71,7 @@ export class SessionsService implements ISessionsService {
           refreshToken
         };
       });
-    } catch (err) {
-      console.log('err', err);
+    } catch {
       throw new InternalServerErrorException('Failed to create session');
     }
   }
