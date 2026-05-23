@@ -7,12 +7,12 @@ import {
   Param,
   UseGuards
 } from '@nestjs/common';
-import { Roles } from '../../shared/decorators/roles.decorator';
-import { RolesGuard } from '../../shared/guards/roles.guard';
 import { AdminUserDto } from './dto/admin-user.dto';
 import { UserRole } from './enums/user-role.enum';
 import { UsersService } from './users.service';
 import { ApiAdminGetAllUsers, ApiAdminGetUser } from './users.swagger';
+import { RolesGuard } from '@features/security/guards/roles.guard';
+import { Roles } from '@features/security/decorators/roles.decorator';
 
 @Controller({
   path: 'admin/users',
