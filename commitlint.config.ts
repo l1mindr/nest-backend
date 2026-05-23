@@ -52,7 +52,7 @@ const Configuration: UserConfig = {
     /**
      * Header max length
      */
-    'header-max-length': [2, 'always', 100]
+    'header-max-length': [2, 'always', 150]
   },
 
   /**
