@@ -1,3 +1,4 @@
+import { Public } from '@features/security/decorators/public.decorator';
 import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import {
@@ -24,7 +25,6 @@ import { UserAgent } from './decorators/userAgent.decorator';
 import { LoginUserDto } from './dto/login-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { AuthCookieInterceptor } from './interceptors/auth-cookie.interceptor';
-import { Public } from '@features/token/decorators/public.decorator';
 
 @Controller({ path: 'auth', version: '1' })
 @ApiTags('auth')
