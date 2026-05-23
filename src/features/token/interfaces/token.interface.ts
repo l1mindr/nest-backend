@@ -1,4 +1,5 @@
-import { IJwtPayload } from '@features/auth/interfaces/jwt-payload.interface';
+import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
+import { IJwtPayload } from './jwt-payload.interface';
 
 export type issuedTokens = {
   accessToken: string;
@@ -14,4 +15,5 @@ export interface ITokenService {
   ): Promise<issuedTokens>;
   verifyAccessToken(token: string): Promise<IJwtPayload>;
   verifyRefreshToken(token: string): Promise<IJwtPayload>;
+  validatePayload(payload: IJwtPayload): Promise<CustomAuth>;
 }
