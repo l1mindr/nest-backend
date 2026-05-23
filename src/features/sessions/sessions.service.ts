@@ -1,7 +1,7 @@
 import { AuthTokens } from '@features/auth/interfaces/auth.interface';
-import { IJwtPayload } from '@features/auth/interfaces/jwt-payload.interface';
 import { HashingProvider } from '@features/auth/providers/hashing.provider';
 import { Session } from '@features/sessions/entities/session.entity';
+import { TokenService } from '@features/token/token.service';
 import { User } from '@features/users/entities/user.entity';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import {
@@ -9,7 +9,6 @@ import {
   InternalServerErrorException,
   UnauthorizedException
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
 import { DataSource, MoreThan, Not, Repository } from 'typeorm';
 import { SessionsDto } from './dto/sessions.dto';
@@ -20,8 +19,8 @@ import { IUserAgent } from './interfaces/user-agent.interface';
 export class SessionsService implements ISessionsService {
   constructor(
     private readonly dataSource: DataSource,
-    private readonly jwtService: JwtService,
-    private readonly hashingProvider: HashingProvider
+    private readonly hashingProvider: HashingProvider,
+    private readonly tokenService: TokenService
   ) {}
 
   private get sessionRepo(): Repository<Session> {
@@ -30,35 +29,6 @@ export class SessionsService implements ISessionsService {
 
   private createExpirationDate(now: number): Date {
     return new Date(now + 7 * 24 * 60 * 60 * 1000);
-  }
-
-  private async generateToken(
-    userId: string,
-    sessionId: string,
-    now: number,
-    expiresAt: Date
-  ) {
-    const jwtPayload: IJwtPayload = {
-      sub: userId,
-      sessionId
-      // role
-    };
-
-    const accessExp = Math.floor(now) / 1000 + 15 * 60;
-    const refreshExp = Math.floor(expiresAt.getTime()) / 1000;
-
-    const accessToken = await this.jwtService.signAsync({
-      ...jwtPayload,
-      exp: accessExp
-      // role
-    });
-
-    const refreshToken = await this.jwtService.signAsync({
-      ...jwtPayload,
-      exp: refreshExp
-    });
-
-    return { accessToken, refreshToken };
   }
 
   async issue(
@@ -84,7 +54,7 @@ export class SessionsService implements ISessionsService {
           })
         );
 
-        const { accessToken, refreshToken } = await this.generateToken(
+        const { accessToken, refreshToken } = await this.tokenService.issuePair(
           userId,
           session.id,
           now,
@@ -109,7 +79,7 @@ export class SessionsService implements ISessionsService {
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
     const { sub, sessionId } =
-      await this.jwtService.verifyAsync<IJwtPayload>(refreshToken);
+      await this.tokenService.verifyRefreshToken(refreshToken);
 
     const session = await this.sessionRepo.findOne({
       where: {
@@ -139,7 +109,7 @@ export class SessionsService implements ISessionsService {
     const now = Date.now();
     const expiresAt = this.createExpirationDate(now);
 
-    const tokens = await this.generateToken(
+    const tokens = await this.tokenService.issuePair(
       session.owner.id,
       session.id,
       now,

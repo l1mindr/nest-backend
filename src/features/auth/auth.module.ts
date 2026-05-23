@@ -1,9 +1,10 @@
+import { SessionsService } from '@features/sessions/sessions.service';
+import { TokenModule } from '@features/token/token.module';
+import { UsersService } from '@features/users/users.service';
+import { SESSIONS_SERVICE, USERS_SERVICE } from '@infrastructure/di/tokens';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { JwtModule } from '@nestjs/jwt';
-import { SessionsService } from '@features/sessions/sessions.service';
-import { UsersService } from '@features/users/users.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import jwtConfig from './config/jwt.config';
@@ -12,13 +13,9 @@ import { RolesGuard } from './guards/roles.guard';
 import { BcryptProvider } from './providers/bcrypt.provider';
 import { HashingProvider } from './providers/hashing.provider';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { SESSIONS_SERVICE, USERS_SERVICE } from '@infrastructure/di/tokens';
 
 @Module({
-  imports: [
-    JwtModule.registerAsync(jwtConfig.asProvider()),
-    ConfigModule.forFeature(jwtConfig)
-  ],
+  imports: [ConfigModule.forFeature(jwtConfig), TokenModule],
   controllers: [AuthController],
   providers: [
     AuthService,
