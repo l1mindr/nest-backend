@@ -1,11 +1,10 @@
-import { ISessionsService } from '@features/sessions/interfaces/sessions.interface';
 import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
-import { IUsersService } from '@features/users/interfaces/users.interface';
-import { SESSIONS_SERVICE, USERS_SERVICE } from '@infrastructure/di/tokens';
+import { SessionsService } from '@features/sessions/sessions.service';
+import { TokenService } from '@features/token/token.service';
+import { UsersService } from '@features/users/users.service';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import {
   BadRequestException,
-  Inject,
   Injectable,
   UnauthorizedException
 } from '@nestjs/common';
@@ -13,17 +12,15 @@ import { ChangePasswordDto } from '../users/dto/change-password.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { AuthTokens, IAuthService } from './interfaces/auth.interface';
-import { IJwtPayload } from './interfaces/jwt-payload.interface';
 import { HashingProvider } from './providers/hashing.provider';
 
 @Injectable()
 export class AuthService implements IAuthService {
   constructor(
     private readonly hashingProvider: HashingProvider,
-    @Inject(SESSIONS_SERVICE)
-    private readonly sessionsService: ISessionsService,
-    @Inject(USERS_SERVICE)
-    private readonly usersService: IUsersService
+    private readonly sessionsService: SessionsService,
+    private readonly usersService: UsersService,
+    private readonly tokenService: TokenService
   ) {}
 
   async registerUser(registerUserDto: RegisterUserDto): Promise<void> {
@@ -48,7 +45,30 @@ export class AuthService implements IAuthService {
 
     if (!isMatch) throw new UnauthorizedException('invalid credentials');
 
-    return await this.sessionsService.issue(user.id, ipAddress, userAgent);
+    const now = Date.now();
+    const expiresAt = this.tokenService.createExpirationDate(now);
+
+    const session = await this.sessionsService.issue(
+      user.id,
+      ipAddress,
+      userAgent,
+      expiresAt
+    );
+
+    const { accessToken, refreshToken } = await this.tokenService.issuePair(
+      user.id,
+      session.id,
+      now,
+      expiresAt
+    );
+
+    const refreshTokenHash = await this.hashingProvider.hash(refreshToken);
+
+    await this.sessionsService.updateRefreshState(session, {
+      refreshTokenHash
+    });
+
+    return { accessToken, refreshToken };
   }
 
   async changeUserPassword(
@@ -83,19 +103,45 @@ export class AuthService implements IAuthService {
     await this.sessionsService.terminateOthers(user, session.refreshTokenHash);
   }
 
-  async validateUserJwt({ sub, sessionId }: IJwtPayload): Promise<CustomAuth> {
-    const user = await this.usersService.findByIdForSessionValidation(sub);
+  async refresh(refreshToken: string) {
+    const { sub, sessionId } =
+      await this.tokenService.verifyRefreshToken(refreshToken);
 
-    if (!user) throw new UnauthorizedException('invalid token');
-
-    const session = await this.sessionsService.getActive(user.id, sessionId);
+    const session = await this.sessionsService.getActive(sub, sessionId);
 
     if (!session) throw new UnauthorizedException('session expired');
 
-    return { user, session };
-  }
+    const isValidRefreshToken = await this.hashingProvider.compare(
+      refreshToken,
+      session.refreshTokenHash
+    );
 
-  async refreshSession(refreshToken: string) {
-    return this.sessionsService.refresh(refreshToken);
+    if (!isValidRefreshToken) {
+      await this.sessionsService.updateRefreshState(session, {
+        isRevoked: true
+      });
+
+      throw new UnauthorizedException('refresh token reuse detected');
+    }
+
+    const now = Date.now();
+    const expiresAt = this.tokenService.createExpirationDate(now);
+
+    const tokens = await this.tokenService.issuePair(
+      session.owner.id,
+      session.id,
+      now,
+      expiresAt
+    );
+
+    const refreshTokenHash = await this.hashingProvider.hash(refreshToken);
+
+    await this.sessionsService.updateRefreshState(session, {
+      refreshTokenHash,
+      lastUsedAt: new Date(),
+      expiresAt
+    });
+
+    return { ...tokens };
   }
 }

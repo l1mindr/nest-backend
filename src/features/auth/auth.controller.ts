@@ -19,12 +19,12 @@ import {
   ApiRegisterUser
 } from './auth.swagger';
 import { IpAddress } from './decorators/ipAddress.decorator';
-import { Public } from './decorators/public.decorator';
 import { User } from './decorators/user.decorator';
 import { UserAgent } from './decorators/userAgent.decorator';
 import { LoginUserDto } from './dto/login-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { AuthCookieInterceptor } from './interceptors/auth-cookie.interceptor';
+import { Public } from '@features/token/decorators/public.decorator';
 
 @Controller({ path: 'auth', version: '1' })
 @ApiTags('auth')
@@ -58,7 +58,7 @@ export class AuthController {
   @UseInterceptors(AuthCookieInterceptor)
   // @ApiLoginUser()
   async refreshSession(@Req() req: Request) {
-    return await this.authService.refreshSession(req.cookies.refresh_token);
+    return await this.authService.refresh(req.cookies.refresh_token);
   }
 
   @Post('change-password')
