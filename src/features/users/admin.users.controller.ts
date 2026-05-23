@@ -1,5 +1,3 @@
-import { Roles } from '@features/auth/decorators/roles.decorator';
-import { RolesGuard } from '@features/auth/guards/roles.guard';
 import { IdDto } from '@infrastructure/http/dto/id.dto';
 import {
   Controller,
@@ -9,6 +7,8 @@ import {
   Param,
   UseGuards
 } from '@nestjs/common';
+import { Roles } from '../../shared/decorators/roles.decorator';
+import { RolesGuard } from '../../shared/guards/roles.guard';
 import { AdminUserDto } from './dto/admin-user.dto';
 import { UserRole } from './enums/user-role.enum';
 import { UsersService } from './users.service';
