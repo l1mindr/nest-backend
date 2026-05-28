@@ -44,10 +44,10 @@ export class AdminUserResponseDto extends TimestampResponseDto {
   @Expose()
   status: UserStatus;
 
-  @Expose()
-  @Transform(({ obj }) => obj.registryDates.createdAt)
   @ApiProperty({
     example: '2024-10-01T12:34:56.000Z'
   })
+  @Expose()
+  @Transform(({ obj }) => obj.registryDates.createdAt)
   registeredAt: Date;
 }
