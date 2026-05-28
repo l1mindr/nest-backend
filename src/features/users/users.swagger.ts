@@ -3,7 +3,7 @@ import { ErrorResponseDto } from '@infrastructure/http/dto/error-response.dto';
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { Session } from './../sessions/entities/session.entity';
-import { UserProfileDto } from './dto/user-profile.dto';
+import { UserProfileResponseDto } from './dto/response/user-profile.response.dto';
 import { User } from './entities/user.entity';
 import { UserRole } from './enums/user-role.enum';
 import { UserStatus } from './enums/user-status.enum';
@@ -48,7 +48,7 @@ export const ApiGetProfile = () =>
     ApiResponse({
       status: 200,
       description: 'User profile retrieved successfully',
-      type: UserProfileDto
+      type: UserProfileResponseDto
     }),
     ApiResponse({
       status: 404,
