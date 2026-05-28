@@ -1,3 +1,6 @@
+import { Serialize } from '@core/common/decorators/serialize.decorator';
+import { Roles } from '@features/security/decorators/roles.decorator';
+import { RolesGuard } from '@features/security/guards/roles.guard';
 import { IdDto } from '@infrastructure/http/dto/id.dto';
 import {
   Controller,
@@ -7,12 +10,10 @@ import {
   Param,
   UseGuards
 } from '@nestjs/common';
-import { AdminUserDto } from './dto/admin-user.dto';
+import { AdminUserResponseDto } from './dto/response/admin-user.response.dto';
 import { UserRole } from './enums/user-role.enum';
 import { UsersService } from './users.service';
 import { ApiAdminGetAllUsers, ApiAdminGetUser } from './users.swagger';
-import { RolesGuard } from '@features/security/guards/roles.guard';
-import { Roles } from '@features/security/decorators/roles.decorator';
 
 @Controller({
   path: 'admin/users',
@@ -26,9 +27,9 @@ export class AdminUsersController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiAdminGetAllUsers()
+  @Serialize(AdminUserResponseDto)
   async getAll() {
-    const users = await this.usersService.list();
-    return users.map((user) => new AdminUserDto(user));
+    return await this.usersService.list();
   }
 
   @Get(':id')

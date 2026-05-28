@@ -11,13 +11,14 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserProfileDto } from './dto/user-profile.dto';
 import { UsersService } from './users.service';
 import {
   ApiChangeProfile,
   ApiDeleteAccount,
   ApiGetProfile
 } from './users.swagger';
+import { Serialize } from '@core/common/decorators/serialize.decorator';
+import { UserProfileResponseDto } from './dto/response/user-profile.response.dto';
 
 @Controller({
   path: 'user',
@@ -30,14 +31,9 @@ export class UsersController {
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @ApiGetProfile()
+  @Serialize(UserProfileResponseDto)
   getProfile(@User('user') user: UserEntity) {
-    return new UserProfileDto(
-      user.name,
-      user.username,
-      user.email,
-      user.role,
-      user.registryDates.createdAt
-    );
+    return user;
   }
 
   @Put()
