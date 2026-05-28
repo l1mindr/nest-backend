@@ -1,6 +1,86 @@
 version: 2
+
 updates:
-  - package-ecosystem: 'npm'
-    directory: '/'
+  # NPM Dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+
     schedule:
-      interval: 'daily'
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Baku"
+
+    open-pull-requests-limit: 5
+
+    target-branch: "main"
+
+    labels:
+      - "dependencies"
+      - "npm"
+
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+
+    versioning-strategy: increase
+
+    reviewers:
+      - "l1mindr"
+
+    assignees:
+      - "l1mindr"
+
+    groups:
+      nestjs:
+        patterns:
+          - "@nestjs/*"
+
+      eslint:
+        patterns:
+          - "eslint*"
+          - "@typescript-eslint/*"
+
+      testing:
+        patterns:
+          - "jest"
+          - "@nestjs/testing"
+          - "supertest"
+          - "@types/jest"
+
+      typescript:
+        patterns:
+          - "typescript"
+          - "ts-node"
+          - "ts-jest"
+
+      swagger:
+        patterns:
+          - "@nestjs/swagger"
+          - "swagger*"
+
+    ignore:
+      - dependency-name: "@nestjs/*"
+        update-types:
+          - "version-update:semver-major"
+
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
+
+      - dependency-name: "eslint"
+        update-types:
+          - "version-update:semver-major"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+
+    schedule:
+      interval: "weekly"
+
+    labels:
+      - "github-actions"
+
+    commit-message:
+      prefix: "ci"
