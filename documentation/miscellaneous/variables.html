@@ -137,9 +137,6 @@
                             <a href="#ApiAdminGetUser" title="src/features/users/users.swagger.ts" ><b>ApiAdminGetUser</b>&nbsp;&nbsp;&nbsp;(src/.../users.swagger.ts)</a>
                         </li>
                         <li>
-                            <a href="#ApiChangePassword" title="src/features/auth/auth.swagger.ts" ><b>ApiChangePassword</b>&nbsp;&nbsp;&nbsp;(src/.../auth.swagger.ts)</a>
-                        </li>
-                        <li>
                             <a href="#ApiChangeProfile" title="src/features/users/users.swagger.ts" ><b>ApiChangeProfile</b>&nbsp;&nbsp;&nbsp;(src/.../users.swagger.ts)</a>
                         </li>
                         <li>
@@ -152,22 +149,10 @@
                             <a href="#ApiGetSessions" title="src/features/sessions/sessions.swagger.ts" ><b>ApiGetSessions</b>&nbsp;&nbsp;&nbsp;(src/.../sessions.swagger.ts)</a>
                         </li>
                         <li>
-                            <a href="#ApiLoginUser" title="src/features/auth/auth.swagger.ts" ><b>ApiLoginUser</b>&nbsp;&nbsp;&nbsp;(src/.../auth.swagger.ts)</a>
-                        </li>
-                        <li>
-                            <a href="#ApiRegisterUser" title="src/features/auth/auth.swagger.ts" ><b>ApiRegisterUser</b>&nbsp;&nbsp;&nbsp;(src/.../auth.swagger.ts)</a>
-                        </li>
-                        <li>
                             <a href="#ApiRevokeCurrentSession" title="src/features/sessions/sessions.swagger.ts" ><b>ApiRevokeCurrentSession</b>&nbsp;&nbsp;&nbsp;(src/.../sessions.swagger.ts)</a>
                         </li>
                         <li>
                             <a href="#ApiTerminateOtherSessions" title="src/features/sessions/sessions.swagger.ts" ><b>ApiTerminateOtherSessions</b>&nbsp;&nbsp;&nbsp;(src/.../sessions.swagger.ts)</a>
-                        </li>
-                        <li>
-                            <a href="#Configuration" title="commitlint.config.ts" ><b>Configuration</b>&nbsp;&nbsp;&nbsp;(commitlint.config.ts)</a>
-                        </li>
-                        <li>
-                            <a href="#directoryPath" title="findDeprecatedFiles.ts" ><b>directoryPath</b>&nbsp;&nbsp;&nbsp;(findDeprecatedFiles.ts)</a>
                         </li>
                         <li>
                             <a href="#ENV_VALIDATION_SCHEMA" title="src/infrastructure/config/env.constants.ts" ><b>ENV_VALIDATION_SCHEMA</b>&nbsp;&nbsp;&nbsp;(src/.../env.constants.ts)</a>
@@ -179,7 +164,7 @@
                             <a href="#IS_PASSWORD_KEY" title="src/core/validators/decorators/is-password.decorator.ts" ><b>IS_PASSWORD_KEY</b>&nbsp;&nbsp;&nbsp;(src/.../is-password.decorator.ts)</a>
                         </li>
                         <li>
-                            <a href="#IS_PUBLIC_KEY" title="src/features/auth/decorators/public.decorator.ts" ><b>IS_PUBLIC_KEY</b>&nbsp;&nbsp;&nbsp;(src/.../public.decorator.ts)</a>
+                            <a href="#IS_PUBLIC_KEY" title="src/features/security/decorators/public.decorator.ts" ><b>IS_PUBLIC_KEY</b>&nbsp;&nbsp;&nbsp;(src/.../public.decorator.ts)</a>
                         </li>
                         <li>
                             <a href="#IS_USERNAME_KEY" title="src/core/validators/decorators/is-username.decorator.ts" ><b>IS_USERNAME_KEY</b>&nbsp;&nbsp;&nbsp;(src/.../is-username.decorator.ts)</a>
@@ -206,13 +191,13 @@
                             <a href="#PASSWORD_REGEX" title="src/core/validators/rules/password.rules.ts" ><b>PASSWORD_REGEX</b>&nbsp;&nbsp;&nbsp;(src/.../password.rules.ts)</a>
                         </li>
                         <li>
-                            <a href="#Public" title="src/features/auth/decorators/public.decorator.ts" ><b>Public</b>&nbsp;&nbsp;&nbsp;(src/.../public.decorator.ts)</a>
+                            <a href="#Public" title="src/features/security/decorators/public.decorator.ts" ><b>Public</b>&nbsp;&nbsp;&nbsp;(src/.../public.decorator.ts)</a>
                         </li>
                         <li>
-                            <a href="#Roles" title="src/features/auth/decorators/roles.decorator.ts" ><b>Roles</b>&nbsp;&nbsp;&nbsp;(src/.../roles.decorator.ts)</a>
+                            <a href="#Roles" title="src/features/security/decorators/roles.decorator.ts" ><b>Roles</b>&nbsp;&nbsp;&nbsp;(src/.../roles.decorator.ts)</a>
                         </li>
                         <li>
-                            <a href="#ROLES_KEY" title="src/features/auth/decorators/roles.decorator.ts" ><b>ROLES_KEY</b>&nbsp;&nbsp;&nbsp;(src/.../roles.decorator.ts)</a>
+                            <a href="#ROLES_KEY" title="src/features/security/decorators/roles.decorator.ts" ><b>ROLES_KEY</b>&nbsp;&nbsp;&nbsp;(src/.../roles.decorator.ts)</a>
                         </li>
                         <li>
                             <a href="#SESSIONS_SERVICE" title="src/infrastructure/di/tokens.ts" ><b>SESSIONS_SERVICE</b>&nbsp;&nbsp;&nbsp;(src/.../tokens.ts)</a>
@@ -435,7 +420,11 @@
                     <td class="col-md-4">
                         <i>Default value : </i><code>() &#x3D;&gt;
   applyDecorators(
-    ApiOperation({ summary: &#x27;Delete user account (soft delete)&#x27; }),
+    ApiOperation({
+      summary: &#x27;Request account deletion&#x27;,
+      description:
+        &#x27;Marks the user account for deletion. The account will be permanently removed after the grace period.&#x27;
+    }),
     ApiResponse({
       status: 204,
       description: &#x27;User account deleted successfully (no content)&#x27;
@@ -500,7 +489,7 @@
     ApiResponse({
       status: 200,
       description: &#x27;User profile retrieved successfully&#x27;,
-      type: User
+      type: UserProfileDto
     }),
     ApiResponse({
       status: 404,
@@ -579,145 +568,6 @@
                     </td>
                 </tr>
 
-
-        </tbody>
-    </table>
-</section>
-    <h3>src/features/auth/auth.swagger.ts</h3>
-    <section data-compodoc="block-properties">
-    <h3></h3>    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="ApiChangePassword"></a>
-                    <span class="name">
-                        <span ><b>ApiChangePassword</b></span>
-                        <a href="#ApiChangePassword"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>    <code>unknown</code>
-
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Default value : </i><code>() &#x3D;&gt;
-  applyDecorators(
-    ApiOperation({
-      summary: &#x27;Change user password&#x27;,
-      description:
-        &#x27;This endpoint allows the user to change their password. The current password must be provided for validation.&#x27;
-    }),
-    ApiResponse({
-      status: 204,
-      description: &#x27;Password changed successfully&#x27;
-    }),
-    ApiBadRequestResponse({
-      description:
-        &#x27;Invalid input data, including an incorrect current password or other validation errors&#x27;
-    }),
-    ApiUnauthorizedResponse({
-      description:
-        &#x27;Unauthorized: User must be authenticated to change the password&#x27;
-    }),
-    ApiInternalServerErrorResponse({ description: &#x27;Internal server error&#x27; })
-  )</code>
-                    </td>
-                </tr>
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Change Password Swagger</p>
-</div>
-                </td>
-            </tr>
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="ApiLoginUser"></a>
-                    <span class="name">
-                        <span ><b>ApiLoginUser</b></span>
-                        <a href="#ApiLoginUser"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>    <code>unknown</code>
-
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Default value : </i><code>() &#x3D;&gt;
-  applyDecorators(
-    ApiOperation({ summary: &#x27;User login&#x27; }),
-    ApiResponse({
-      status: 200,
-      description: &#x27;Successfully logged in&#x27;,
-      type: LoginResponseDto
-    }),
-    ApiBadRequestResponse({ description: &#x27;Invalid credentials&#x27; }),
-    ApiInternalServerErrorResponse({ description: &#x27;Unexpected error occurred&#x27; })
-  )</code>
-                    </td>
-                </tr>
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Login User Swagger</p>
-</div>
-                </td>
-            </tr>
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="ApiRegisterUser"></a>
-                    <span class="name">
-                        <span ><b>ApiRegisterUser</b></span>
-                        <a href="#ApiRegisterUser"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>    <code>unknown</code>
-
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Default value : </i><code>() &#x3D;&gt;
-  applyDecorators(
-    ApiOperation({ summary: &#x27;Register a new user&#x27; }),
-    ApiResponse({
-      status: 201,
-      description: &#x27;User successfully registered&#x27;,
-      type: RegisterUserDto
-    }),
-    ApiBadRequestResponse({ description: &#x27;Invalid input data&#x27; }),
-    ApiInternalServerErrorResponse({ description: &#x27;Unexpected error occurred&#x27; })
-  )</code>
-                    </td>
-                </tr>
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Register User Swagger</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -860,12 +710,12 @@
                     <td class="col-md-4">
                         <i>Default value : </i><code>{
   id: { description: &#x27;UUID of the user&#x27;, example: &#x27;uuid&#x27;, readOnly: true },
-  token: {
+  refreshTokenHash: {
     description: &#x27;The unique token for this session used for authentication.&#x27;,
     example: &#x27;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&#x27;,
     uniqueItems: true
   },
-  device: {
+  userAgent: {
     description:
       &#x27;JSON object representing the device details for this session.&#x27;,
     example: {
@@ -875,11 +725,23 @@
       browserVersion: &#x27;14.0&#x27;
     }
   },
-  ip: {
+  ipAddress: {
     description: &#x27;The IP address from which the session was initiated.&#x27;,
     example: &#x27;192.168.1.100&#x27;
   },
-  expiryDate: {
+  expireAt: {
+    description: &#x27;The expiration date of the session.&#x27;,
+    example: &#x27;2024-09-25T10:00:00.000Z&#x27;
+  },
+  lastUsedAt: {
+    description: &#x27;The expiration date of the session.&#x27;,
+    example: &#x27;2024-09-25T10:00:00.000Z&#x27;
+  },
+  createdAt: {
+    description: &#x27;The expiration date of the session.&#x27;,
+    example: &#x27;2024-09-25T10:00:00.000Z&#x27;
+  },
+  updatedAt: {
     description: &#x27;The expiration date of the session.&#x27;,
     example: &#x27;2024-09-25T10:00:00.000Z&#x27;
   },
@@ -891,172 +753,6 @@
                     </td>
                 </tr>
 
-
-        </tbody>
-    </table>
-</section>
-    <h3>commitlint.config.ts</h3>
-    <section data-compodoc="block-properties">
-    <h3></h3>    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="Configuration"></a>
-                    <span class="name">
-                        <span ><b>Configuration</b></span>
-                        <a href="#Configuration"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="../classes/User.html" target="_self" >UserConfig</a></code>
-
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Default value : </i><code>{
-  extends: [&#x27;@commitlint/config-conventional&#x27;],
-  parserPreset: &#x27;conventional-changelog-atom&#x27;,
-  formatter: &#x27;@commitlint/format&#x27;,
-  rules: {
-    &#x27;type-enum&#x27;: [
-      2,
-      &#x27;always&#x27;,
-      [
-        &#x27;feat&#x27;,
-        &#x27;fix&#x27;,
-        &#x27;docs&#x27;,
-        &#x27;style&#x27;,
-        &#x27;refactor&#x27;,
-        &#x27;perf&#x27;,
-        &#x27;test&#x27;,
-        &#x27;build&#x27;,
-        &#x27;ci&#x27;,
-        &#x27;chore&#x27;,
-        &#x27;revert&#x27;
-      ]
-    ],
-    &#x27;scope-enum&#x27;: [
-      2,
-      &#x27;always&#x27;,
-      [
-        &#x27;setup&#x27;,
-        &#x27;config&#x27;,
-        &#x27;deps&#x27;,
-        &#x27;feature&#x27;,
-        &#x27;bug&#x27;,
-        &#x27;docs&#x27;,
-        &#x27;style&#x27;,
-        &#x27;refactor&#x27;,
-        &#x27;test&#x27;,
-        &#x27;build&#x27;,
-        &#x27;ci&#x27;,
-        &#x27;release&#x27;,
-        &#x27;other&#x27;
-      ]
-    ],
-    &#x27;header-max-length&#x27;: [2, &#x27;always&#x27;, 150]
-  }
-}</code>
-                    </td>
-                </tr>
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Commitlint Configuration</p>
-<p>This configuration defines the rules and settings for commit message linting using
-the Commitlint library. It enforces a conventional commit message format, ensuring
-that commit messages are consistent and meaningful.</p>
-<p>The configuration extends from the conventional commit style and includes a custom
-parser preset and formatter.</p>
-<p>Rules:</p>
-<ul>
-<li><p><code>type-enum</code>: Specifies the allowed types of commits:</p>
-<ul>
-<li><code>feat</code>: New feature</li>
-<li><code>fix</code>: Bug fix</li>
-<li><code>docs</code>: Documentation changes</li>
-<li><code>style</code>: Changes that do not affect the meaning of the code (white-space, formatting, etc.)</li>
-<li><code>refactor</code>: Code changes that neither fix a bug nor add a feature</li>
-<li><code>perf</code>: Performance improvement</li>
-<li><code>test</code>: Adding missing tests or correcting existing tests</li>
-<li><code>build</code>: Changes affecting the build system or external dependencies</li>
-<li><code>ci</code>: Changes to CI configuration files and scripts</li>
-<li><code>chore</code>: Other changes that don&#39;t modify src or test files</li>
-<li><code>revert</code>: Reverts a previous commit</li>
-</ul>
-</li>
-<li><p><code>scope-enum</code>: Specifies the allowed scopes for commits, helping to categorize changes:</p>
-<ul>
-<li><code>setup</code>: Project setup</li>
-<li><code>config</code>: Configuration files</li>
-<li><code>deps</code>: Dependency updates</li>
-<li><code>feature</code>: Feature-specific changes</li>
-<li><code>bug</code>: Bug fixes</li>
-<li><code>docs</code>: Documentation</li>
-<li><code>style</code>: Code style/formatting</li>
-<li><code>refactor</code>: Code refactoring</li>
-<li><code>test</code>: Tests</li>
-<li><code>build</code>: Build scripts or configuration</li>
-<li><code>ci</code>: Continuous integration</li>
-<li><code>release</code>: Release related changes</li>
-<li><code>other</code>: Other changes</li>
-</ul>
-</li>
-</ul>
-<p>Usage:
-To use this configuration, ensure that you have Commitlint set up in your project.
-Here’s an example of a valid commit message that would pass this configuration:</p>
-<ul>
-<li><code>feat(config): add support for new environment variables</code></li>
-<li><code>fix(docs): correct typo in installation instructions</code></li>
-<li><code>chore(deps): update dependency version</code></li>
-</ul>
-</div>
-                </td>
-            </tr>
-
-        </tbody>
-    </table>
-</section>
-    <h3>findDeprecatedFiles.ts</h3>
-    <section data-compodoc="block-properties">
-    <h3></h3>    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="directoryPath"></a>
-                    <span class="name">
-                        <span ><b>directoryPath</b></span>
-                        <a href="#directoryPath"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Default value : </i><code>path.join(__dirname, &#x27;src&#x27;)</code>
-                    </td>
-                </tr>
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Defines the path to the &#39;src&#39; directory located in the current module&#39;s directory.</p>
-<p>The <code>__dirname</code> variable contains the absolute path to the directory that
-contains the currently executing script. By using <code>path.join</code>, we create a
-cross-platform compatible path that points to the &#39;src&#39; subdirectory.</p>
-<p>This path will be used later in the script to search for TypeScript files
-that may contain the <code>@deprecated</code> tag.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1083,76 +779,18 @@ that may contain the <code>@deprecated</code> tag.</p>
                 <tr>
                     <td class="col-md-4">
                         <i>Default value : </i><code>Joi.object({
-  /**
-   * The username for the database connection.
-   * This is a required string that should match the database user&#x27;s login credentials.
-   */
   DATA_SOURCE_USERNAME: Joi.string().required(),
-
-  /**
-   * The password for the database connection.
-   * This is a required string that corresponds to the user&#x27;s password for the database.
-   */
   DATA_SOURCE_PASSWORD: Joi.string().required(),
-
-  /**
-   * The host address for the database server.
-   * This is required and must be a valid hostname or IP address where the database is hosted.
-   */
   DATA_SOURCE_HOST: Joi.string().required(),
-
-  /**
-   * The port number on which the database server is running.
-   * This is required and must be a valid number representing the port used to connect to the database.
-   */
   DATA_SOURCE_PORT: Joi.number().required(),
-
-  /**
-   * The name of the database to connect to.
-   * This is a required string representing the specific database within the server.
-   */
   DATA_SOURCE_DATABASE: Joi.string().required(),
-
-  /**
-   * The full URL for the database connection.
-   * This is a required string that combines the database credentials and host information into a single connection string.
-   */
   DATA_SOURCE_URL: Joi.string().required(),
-
-  /**
-   * The secret key used for signing JSON Web Tokens (JWT).
-   * This is a required string and must be securely set to ensure the integrity and security of JWT authentication.
-   */
   JWT_SECRET_KEY: Joi.string().required(),
-
-  /**
-   * The environment in which the application is running.
-   * This is a required string that must be set to either &#x27;development&#x27;, &#x27;production&#x27;, or other recognized environments.
-   */
   NODE_ENV: Joi.string().required()
 })</code>
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The <code>ENV_VALIDATION_SCHEMA</code> is a Joi schema used to validate environment variables
-in the application. This ensures that the necessary environment variables are provided and
-meet the expected data types, preventing the application from starting with invalid or missing configuration.</p>
-<p>Each environment variable is validated with the following rules:</p>
-<ul>
-<li><code>DATA_SOURCE_USERNAME</code>: The username for the database connection (required).</li>
-<li><code>DATA_SOURCE_PASSWORD</code>: The password for the database connection (required).</li>
-<li><code>DATA_SOURCE_HOST</code>: The hostname for the database server (required).</li>
-<li><code>DATA_SOURCE_PORT</code>: The port number for the database server (required, must be a number).</li>
-<li><code>DATA_SOURCE_DATABASE</code>: The name of the database (required).</li>
-<li><code>DATA_SOURCE_URL</code>: The full connection URL for the database, typically combining the above credentials (required).</li>
-<li><code>JWT_SECRET_KEY</code>: The secret key used for signing JSON Web Tokens (JWT) (required).</li>
-<li><code>NODE_ENV</code>: The environment in which the application is running (e.g., &#39;development&#39;, &#39;production&#39;) (required).</li>
-</ul>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1194,21 +832,6 @@ meet the expected data types, preventing the application from starting with inva
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Custom decorator to extract the client&#39;s IP address from the request.</p>
-<p>This decorator checks the &#39;x-forwarded-for&#39; header to determine the
-originating IP address of the client, which is particularly useful
-when the application is behind a proxy or load balancer.</p>
-<p>In production environments, the IP is taken from the &#39;x-forwarded-for&#39;
-header, and it splits the address string to retrieve the first IP,
-ensuring accuracy. If the IP is not found or the application is
-running in development, it defaults to &#39;127.0.0.1&#39;.</p>
-<p>Usage: <code>@IpAddress()</code> can be used in route handlers to get the IP
-address of the client.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1238,15 +861,6 @@ address of the client.</p>
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The <code>IS_PASSWORD_KEY</code> constant is a unique identifier used for the <code>IsPassword</code> validation decorator.</p>
-<p>This key is essential for the <code>class-validator</code> library to recognize and manage the password validation
-logic associated with the <code>IsPassword</code> decorator. By providing a specific identifier, it helps maintain
-consistency and avoids naming collisions with other validation decorators in the application.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1273,12 +887,6 @@ consistency and avoids naming collisions with other validation decorators in the
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The <code>isPassword</code> function checks if the given value matches the defined password regex.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1318,18 +926,11 @@ consistency and avoids naming collisions with other validation decorators in the
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The <code>IsPassword</code> function creates a custom validator that uses the <code>isPassword</code> function to validate the input.
-It returns a decorator that can be applied to class properties to enforce password requirements.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
 </section>
-    <h3>src/features/auth/decorators/public.decorator.ts</h3>
+    <h3>src/features/security/decorators/public.decorator.ts</h3>
     <section data-compodoc="block-properties">
     <h3></h3>    <table class="table table-sm table-bordered">
         <tbody>
@@ -1354,17 +955,6 @@ It returns a decorator that can be applied to class properties to enforce passwo
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The <code>IS_PUBLIC_KEY</code> constant is a unique identifier used in conjunction with the
-<code>Public</code> decorator to mark routes as public.</p>
-<p>This key is crucial for route guards to identify whether a particular route
-should bypass authentication checks. By setting the metadata key to <code>true</code>,
-it clearly indicates that the route is open to all users, regardless of their
-authentication status.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1391,18 +981,6 @@ authentication status.</p>
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Custom decorator to mark a route as public.</p>
-<p>When applied to a route handler, this decorator sets a metadata
-key (<code>isPublic</code>) to <code>true</code>, indicating that the route should be
-accessible without authentication.</p>
-<p>This is useful for public endpoints, such as login and registration,
-where no authentication is required.</p>
-<p>Usage: <code>@Public()</code> can be used above route handler methods.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1432,15 +1010,6 @@ where no authentication is required.</p>
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The <code>IS_USERNAME_KEY</code> constant serves as a unique identifier for the <code>IsUsername</code> validation decorator.</p>
-<p>This key is crucial for the <code>class-validator</code> library to recognize and manage the username validation
-logic associated with the <code>IsUsername</code> decorator. It ensures that the validation process is consistent
-and helps prevent naming conflicts with other validation decorators within the application.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1467,12 +1036,6 @@ and helps prevent naming conflicts with other validation decorators within the a
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The <code>isUsername</code> function checks if the value matches the defined username regex.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1503,7 +1066,7 @@ and helps prevent naming conflicts with other validation decorators within the a
     validator: {
       validate: (value): boolean &#x3D;&gt; isUsername(value),
       defaultMessage: buildMessage(
-        (eachPrefix) &#x3D;&gt; &#x60;${eachPrefix}$property must be a valid username&#x60;,
+        (eachPrefix) &#x3D;&gt; &#x60;${eachPrefix}$property must be a valid&#x60;,
         validationOptions
       )
     }
@@ -1512,13 +1075,6 @@ and helps prevent naming conflicts with other validation decorators within the a
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The <code>IsUsername</code> function creates a custom validator that uses the <code>isUsername</code> function to validate the input.
-It returns a decorator that can be applied to class properties to enforce username requirements.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1606,7 +1162,7 @@ It returns a decorator that can be applied to class properties to enforce userna
         </tbody>
     </table>
 </section>
-    <h3>src/features/auth/decorators/roles.decorator.ts</h3>
+    <h3>src/features/security/decorators/roles.decorator.ts</h3>
     <section data-compodoc="block-properties">
     <h3></h3>    <table class="table table-sm table-bordered">
         <tbody>
@@ -1631,13 +1187,6 @@ It returns a decorator that can be applied to class properties to enforce userna
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The custom Roles decorator will accept one or more roles
-and associate them with the metadata key defined above.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1664,12 +1213,6 @@ and associate them with the metadata key defined above.</p>
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Define a constant key to store roles in the metadata</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1826,22 +1369,6 @@ and associate them with the metadata key defined above.</p>
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Custom decorator to extract user information from the request.</p>
-<p>This decorator allows easy access to the authenticated user or
-specific user-related data (such as session information) from the
-request object. It retrieves the user data set in the request
-during authentication.</p>
-<p>Usage:</p>
-<ul>
-<li><code>@User()</code> retrieves the entire user object.</li>
-<li><code>@User(&#39;user&#39;)</code> or <code>@User(&#39;session&#39;)</code> retrieves specific properties
-from the user object, as indicated by the provided string.</li>
-</ul>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -1868,20 +1395,18 @@ from the user object, as indicated by the provided string.</li>
                 <tr>
                     <td class="col-md-4">
                         <i>Default value : </i><code>createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): IDevice &#x3D;&gt; {
+  (data: unknown, ctx: ExecutionContext): IUserAgent &#x3D;&gt; {
     const request &#x3D; ctx.switchToHttp().getRequest();
     const userAgent &#x3D; request.headers[&#x27;user-agent&#x27;];
 
-    // Default device initialization
-    const defaultDevice: IDevice &#x3D; {
+    const defaultUserAgent: IUserAgent &#x3D; {
       name: &#x27;unknown&#x27;
     };
 
     if (!userAgent) {
-      return defaultDevice;
+      return defaultUserAgent;
     }
 
-    // Define device patterns
     const devicePatterns &#x3D; [
       {
         name: &#x27;iOS&#x27;,
@@ -1906,11 +1431,10 @@ from the user object, as indicated by the provided string.</li>
       {
         name: &#x27;Linux&#x27;,
         regex: /Linux/i,
-        versionRegex: null // No version regex for Linux
+        versionRegex: null
       }
     ];
 
-    // Check against patterns
     for (const { name, regex, versionRegex } of devicePatterns) {
       if (regex.test(userAgent)) {
         return {
@@ -1922,7 +1446,7 @@ from the user object, as indicated by the provided string.</li>
       }
     }
 
-    return defaultDevice;
+    return defaultUserAgent;
   }
 )</code>
                     </td>
@@ -2054,20 +1578,6 @@ from the user object, as indicated by the provided string.</li>
                     </td>
                 </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p><code>VALIDATION_PIPE_OPTIONS</code> defines the configuration options for the global <code>ValidationPipe</code>.
-This object is used to customize how validation is applied to incoming request data.</p>
-<ul>
-<li><code>whitelist</code>: Automatically strips out any properties that are not defined in the DTO, ensuring only
-validated properties are accepted.</li>
-<li><code>forbidNonWhitelisted</code>: Throws an error if any non-whitelisted properties are present in the request body.</li>
-<li><code>transform</code>: Automatically transforms payloads to their corresponding types as defined by the DTO.</li>
-<li><code>transformOptions.enableImplicitConversion</code>: Allows implicit type conversion (e.g., string to number) based on the DTO types.</li>
-</ul>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>

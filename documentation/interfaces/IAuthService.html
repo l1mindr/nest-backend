@@ -172,15 +172,15 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="#registerUser" 
+                                    <a href="#refresh" 
 >
-                                        registerUser
+                                        refresh
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="#validateUserJwt" 
+                                    <a href="#registerUser" 
 >
-                                        validateUserJwt
+                                        registerUser
                                     </a>
                                 </li>
                             </ul>
@@ -287,7 +287,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>loginUser(loginUserDto: <a href="../classes/LoginUserDto.html" target="_self">LoginUserDto</a>, ip: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, device: <a href="../interfaces/IDevice.html" target="_self">IDevice</a>)</code>
+<code>loginUser(loginUserDto: <a href="../classes/LoginUserDto.html" target="_self">LoginUserDto</a>, ipAddress: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, userAgent: <a href="../interfaces/IUserAgent.html" target="_self">IUserAgent</a>)</code>
                 </td>
             </tr>
 
@@ -328,7 +328,7 @@
 
                                         </tr>
                                         <tr>
-                                                <td>ip</td>
+                                                <td>ipAddress</td>
                                             <td>
                                                             <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
@@ -340,9 +340,9 @@
 
                                         </tr>
                                         <tr>
-                                                <td>device</td>
+                                                <td>userAgent</td>
                                             <td>
-                                                            <code><a href="../interfaces/IDevice.html" target="_self" >IDevice</a></code>
+                                                            <code><a href="../interfaces/IUserAgent.html" target="_self" >IUserAgent</a></code>
                                             </td>
 
                                             <td>
@@ -355,7 +355,74 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>    <code>Promise&lt;string&gt;</code>
+                            <b>Returns : </b>        <code><a href="../miscellaneous/typealiases.html#AuthTokens" target="_self" >Promise&lt;AuthTokens&gt;</a></code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="refresh"></a>
+                    <span class="name">
+                        <span ><b>refresh</b></span>
+                        <a href="#refresh"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>refresh(refreshToken: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="18"
+                                    class="link-to-prism">src/features/auth/interfaces/auth.interface.ts:18</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>refreshToken</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>        <code><a href="../miscellaneous/typealiases.html#AuthTokens" target="_self" >Promise&lt;AuthTokens&gt;</a></code>
 
                         </div>
                             <div class="io-description">
@@ -432,94 +499,15 @@
             </tr>
         </tbody>
     </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="validateUserJwt"></a>
-                    <span class="name">
-                        <span ><b>validateUserJwt</b></span>
-                        <a href="#validateUserJwt"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>validateUserJwt(email: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, token: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
-                </td>
-            </tr>
-
-
-                    <tr>
-                        <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="18"
-                                    class="link-to-prism">src/features/auth/interfaces/auth.interface.ts:18</a></div>
-                        </td>
-                    </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                            <div class="io-description">
-                                <b>Parameters :</b>
-                                
-                                <table class="params">
-                                    <thead>
-                                        <tr>
-                                            <td>Name</td>
-                                                <td>Type</td>
-                                            <td>Optional</td>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                                <td>email</td>
-                                            <td>
-                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-
-                                        </tr>
-                                        <tr>
-                                                <td>token</td>
-                                            <td>
-                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../interfaces/CustomAuth.html" target="_self" >Promise&lt;CustomAuth&gt;</a></code>
-
-                        </div>
-                            <div class="io-description">
-                                
-                            </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
 </section>
 
     </div>
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { IDevice } from &#x27;features/sessions/interfaces/device.interface&#x27;;
-import { ChangePasswordDto } from &#x27;features/users/dto/change-password.dto&#x27;;
-import { CustomAuth } from &#x27;infrastructure/http/interfaces/custom-request.interface&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { IUserAgent } from &#x27;@features/sessions/interfaces/user-agent.interface&#x27;;
+import { ChangePasswordDto } from &#x27;@features/users/dto/change-password.dto&#x27;;
+import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
 import { LoginUserDto } from &#x27;../dto/login-user.dto&#x27;;
 import { RegisterUserDto } from &#x27;../dto/register-user.dto&#x27;;
 
@@ -527,15 +515,19 @@ export interface IAuthService {
   registerUser(registerUserDto: RegisterUserDto): Promise&lt;void&gt;;
   loginUser(
     loginUserDto: LoginUserDto,
-    ip: string,
-    device: IDevice
-  ): Promise&lt;string&gt;;
+    ipAddress: string,
+    userAgent: IUserAgent
+  ): Promise&lt;AuthTokens&gt;;
   changeUserPassword(
     customAuth: CustomAuth,
     changePasswordDto: ChangePasswordDto
   ): Promise&lt;void&gt;;
-  validateUserJwt(email: string, token: string): Promise&lt;CustomAuth&gt;;
+  refresh(refreshToken: string): Promise&lt;AuthTokens&gt;;
 }
+export type AuthTokens &#x3D; {
+  accessToken: string;
+  refreshToken: string;
+};
 </code></pre>
     </div>
 </div>

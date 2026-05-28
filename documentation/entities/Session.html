@@ -153,12 +153,12 @@
                             <li>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
-                                <a href="#device" >device</a>
+                                <a href="#createdAt" >createdAt</a>
                             </li>
                             <li>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
-                                <a href="#expiryDate" >expiryDate</a>
+                                <a href="#expiresAt" >expiresAt</a>
                             </li>
                             <li>
                                     <span class="modifier"></span>
@@ -168,7 +168,16 @@
                             <li>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
-                                <a href="#ip" >ip</a>
+                                <a href="#ipAddress" >ipAddress</a>
+                            </li>
+                            <li>
+                                    <span class="modifier"></span>
+                                <a href="#isRevoked" >isRevoked</a>
+                            </li>
+                            <li>
+                                    <span class="modifier"></span>
+                                    <span class="modifier"></span>
+                                <a href="#lastUsedAt" >lastUsedAt</a>
                             </li>
                             <li>
                                     <span class="modifier"></span>
@@ -178,7 +187,17 @@
                             <li>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
-                                <a href="#token" >token</a>
+                                <a href="#refreshTokenHash" >refreshTokenHash</a>
+                            </li>
+                            <li>
+                                    <span class="modifier"></span>
+                                    <span class="modifier"></span>
+                                <a href="#updatedAt" >updatedAt</a>
+                            </li>
+                            <li>
+                                    <span class="modifier"></span>
+                                    <span class="modifier"></span>
+                                <a href="#userAgent" >userAgent</a>
                             </li>
                         </ul>
                     </td>
@@ -202,56 +221,12 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="device"></a>
+                    <a name="createdAt"></a>
                     <span class="name">
                             <span class="modifier"></span>
                             <span class="modifier"></span>
-                        <span ><b>device</b></span>
-                        <a href="#device"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="../interfaces/IDevice.html" target="_self" >IDevice</a></code>
-
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <b>Decorators : </b>
-                        <br />
-                        <code>
-                            @ApiProperty(SessionProps.device)<br />@Column({type: &#x27;json&#x27;})<br />
-                        </code>
-                    </td>
-                </tr>
-                    <tr>
-                        <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="31" class="link-to-prism">src/features/sessions/entities/session.entity.ts:31</a></div>
-                        </td>
-                    </tr>
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>JSON object representing the device information for this session.
-Includes details like the device&#39;s type, operating system, browser, etc.</p>
-</div>
-                </td>
-            </tr>
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="expiryDate"></a>
-                    <span class="name">
-                            <span class="modifier"></span>
-                            <span class="modifier"></span>
-                        <span ><b>expiryDate</b></span>
-                        <a href="#expiryDate"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>createdAt</b></span>
+                        <a href="#createdAt"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
@@ -266,22 +241,53 @@ Includes details like the device&#39;s type, operating system, browser, etc.</p>
                         <b>Decorators : </b>
                         <br />
                         <code>
-                            @ApiProperty(SessionProps.expiryDate)<br />@Column()<br />
+                            @ApiProperty(SessionProps.createdAt)<br />@CreateDateColumn()<br />
                         </code>
                     </td>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="46" class="link-to-prism">src/features/sessions/entities/session.entity.ts:46</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="45" class="link-to-prism">src/features/sessions/entities/session.entity.ts:45</a></div>
                         </td>
                     </tr>
 
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
             <tr>
                 <td class="col-md-4">
-                    <div class="io-description"><p>The expiration date of the session, after which it becomes invalid.</p>
-</div>
+                    <a name="expiresAt"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                            <span class="modifier"></span>
+                        <span ><b>expiresAt</b></span>
+                        <a href="#expiresAt"><span class="icon ion-ios-link"></span></a>
+                    </span>
                 </td>
             </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date" target="_blank" >Date</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <b>Decorators : </b>
+                        <br />
+                        <code>
+                            @ApiProperty(SessionProps.expireAt)<br />@Column({type: &#x27;timestamp&#x27;})<br />
+                        </code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="37" class="link-to-prism">src/features/sessions/entities/session.entity.ts:37</a></div>
+                        </td>
+                    </tr>
+
 
         </tbody>
     </table>
@@ -315,17 +321,10 @@ Includes details like the device&#39;s type, operating system, browser, etc.</p>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="15" class="link-to-prism">src/features/sessions/entities/session.entity.ts:15</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="18" class="link-to-prism">src/features/sessions/entities/session.entity.ts:18</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The unique identifier for the session.
-This is automatically generated as a UUID (Universal Unique Identifier).</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -333,12 +332,12 @@ This is automatically generated as a UUID (Universal Unique Identifier).</p>
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="ip"></a>
+                    <a name="ipAddress"></a>
                     <span class="name">
                             <span class="modifier"></span>
                             <span class="modifier"></span>
-                        <span ><b>ip</b></span>
-                        <a href="#ip"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>ipAddress</b></span>
+                        <a href="#ipAddress"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
@@ -353,23 +352,89 @@ This is automatically generated as a UUID (Universal Unique Identifier).</p>
                         <b>Decorators : </b>
                         <br />
                         <code>
-                            @ApiProperty(SessionProps.ip)<br />@Column()<br />
+                            @ApiProperty(SessionProps.ipAddress)<br />@Column()<br />
                         </code>
                     </td>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="39" class="link-to-prism">src/features/sessions/entities/session.entity.ts:39</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="30" class="link-to-prism">src/features/sessions/entities/session.entity.ts:30</a></div>
                         </td>
                     </tr>
 
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
             <tr>
                 <td class="col-md-4">
-                    <div class="io-description"><p>The IP address from which the session was initiated.
-Used to track the user&#39;s access point and for security checks.</p>
-</div>
+                    <a name="isRevoked"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                        <span ><b>isRevoked</b></span>
+                        <a href="#isRevoked"><span class="icon ion-ios-link"></span></a>
+                    </span>
                 </td>
             </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <b>Decorators : </b>
+                        <br />
+                        <code>
+                            @Column({default: false})<br />
+                        </code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="33" class="link-to-prism">src/features/sessions/entities/session.entity.ts:33</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="lastUsedAt"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                            <span class="modifier"></span>
+                        <span ><b>lastUsedAt</b></span>
+                        <a href="#lastUsedAt"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date" target="_blank" >Date</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <b>Decorators : </b>
+                        <br />
+                        <code>
+                            @ApiProperty(SessionProps.lastUsedAt)<br />@Column({type: &#x27;timestamp&#x27;})<br />
+                        </code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="41" class="link-to-prism">src/features/sessions/entities/session.entity.ts:41</a></div>
+                        </td>
+                    </tr>
+
 
         </tbody>
     </table>
@@ -403,17 +468,10 @@ Used to track the user&#39;s access point and for security checks.</p>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="54" class="link-to-prism">src/features/sessions/entities/session.entity.ts:54</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="53" class="link-to-prism">src/features/sessions/entities/session.entity.ts:53</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The user who owns this session.
-This establishes a Many-to-One relationship with the <code>User</code> entity.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -421,12 +479,12 @@ This establishes a Many-to-One relationship with the <code>User</code> entity.</
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="token"></a>
+                    <a name="refreshTokenHash"></a>
                     <span class="name">
                             <span class="modifier"></span>
                             <span class="modifier"></span>
-                        <span ><b>token</b></span>
-                        <a href="#token"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>refreshTokenHash</b></span>
+                        <a href="#refreshTokenHash"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
@@ -441,23 +499,90 @@ This establishes a Many-to-One relationship with the <code>User</code> entity.</
                         <b>Decorators : </b>
                         <br />
                         <code>
-                            @ApiProperty(SessionProps.token)<br />@Column({unique: true})<br />
+                            @ApiProperty(SessionProps.refreshTokenHash)<br />@Column()<br />
                         </code>
                     </td>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="23" class="link-to-prism">src/features/sessions/entities/session.entity.ts:23</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="22" class="link-to-prism">src/features/sessions/entities/session.entity.ts:22</a></div>
                         </td>
                     </tr>
 
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
             <tr>
                 <td class="col-md-4">
-                    <div class="io-description"><p>The session&#39;s authentication token.
-This token is unique and used to identify the session when validating user requests.</p>
-</div>
+                    <a name="updatedAt"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                            <span class="modifier"></span>
+                        <span ><b>updatedAt</b></span>
+                        <a href="#updatedAt"><span class="icon ion-ios-link"></span></a>
+                    </span>
                 </td>
             </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date" target="_blank" >Date</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <b>Decorators : </b>
+                        <br />
+                        <code>
+                            @ApiProperty(SessionProps.updatedAt)<br />@UpdateDateColumn()<br />
+                        </code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="49" class="link-to-prism">src/features/sessions/entities/session.entity.ts:49</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="userAgent"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                            <span class="modifier"></span>
+                        <span ><b>userAgent</b></span>
+                        <a href="#userAgent"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="../interfaces/IUserAgent.html" target="_self" >IUserAgent</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <b>Decorators : </b>
+                        <br />
+                        <code>
+                            @ApiProperty(SessionProps.userAgent)<br />@Column({type: &#x27;json&#x27;})<br />
+                        </code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="26" class="link-to-prism">src/features/sessions/entities/session.entity.ts:26</a></div>
+                        </td>
+                    </tr>
+
 
         </tbody>
     </table>
@@ -466,57 +591,56 @@ This token is unique and used to identify the session when validating user reque
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { ApiProperty } from &#x27;@nestjs/swagger&#x27;;
-import { User } from &#x27;features/users/entities/user.entity&#x27;;
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from &#x27;typeorm&#x27;;
-import { IDevice } from &#x27;../interfaces/device.interface&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { User } from &#x27;@features/users/entities/user.entity&#x27;;
+import { ApiProperty } from &#x27;@nestjs/swagger&#x27;;
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn
+} from &#x27;typeorm&#x27;;
+import { IUserAgent } from &#x27;../interfaces/user-agent.interface&#x27;;
 import { SwaggerSessionProperties as SessionProps } from &#x27;../sessions.swagger&#x27;;
 
 @Entity()
 export class Session {
-  /**
-   * The unique identifier for the session.
-   * This is automatically generated as a UUID (Universal Unique Identifier).
-   */
   @ApiProperty(SessionProps.id)
   @PrimaryGeneratedColumn(&#x27;uuid&#x27;)
   id: string;
 
-  /**
-   * The session&#x27;s authentication token.
-   * This token is unique and used to identify the session when validating user requests.
-   */
-  @ApiProperty(SessionProps.token)
-  @Column({ unique: true })
-  token: string;
+  @ApiProperty(SessionProps.refreshTokenHash)
+  @Column()
+  refreshTokenHash: string;
 
-  /**
-   * JSON object representing the device information for this session.
-   * Includes details like the device&#x27;s type, operating system, browser, etc.
-   */
-  @ApiProperty(SessionProps.device)
+  @ApiProperty(SessionProps.userAgent)
   @Column({ type: &#x27;json&#x27; })
-  device: IDevice;
+  userAgent: IUserAgent;
 
-  /**
-   * The IP address from which the session was initiated.
-   * Used to track the user&#x27;s access point and for security checks.
-   */
-  @ApiProperty(SessionProps.ip)
+  @ApiProperty(SessionProps.ipAddress)
   @Column()
-  ip: string;
+  ipAddress: string;
 
-  /**
-   * The expiration date of the session, after which it becomes invalid.
-   */
-  @ApiProperty(SessionProps.expiryDate)
-  @Column()
-  expiryDate: Date;
+  @Column({ default: false })
+  isRevoked: boolean;
 
-  /**
-   * The user who owns this session.
-   * This establishes a Many-to-One relationship with the &#x60;User&#x60; entity.
-   */
+  @ApiProperty(SessionProps.expireAt)
+  @Column({ type: &#x27;timestamp&#x27; })
+  expiresAt: Date;
+
+  @ApiProperty(SessionProps.lastUsedAt)
+  @Column({ type: &#x27;timestamp&#x27; })
+  lastUsedAt: Date;
+
+  @ApiProperty(SessionProps.createdAt)
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @ApiProperty(SessionProps.updatedAt)
+  @UpdateDateColumn()
+  updatedAt: Date;
+
   @ApiProperty(SessionProps.user)
   @ManyToOne(() &#x3D;&gt; User, (user) &#x3D;&gt; user.sessions, { nullable: false })
   owner: User;

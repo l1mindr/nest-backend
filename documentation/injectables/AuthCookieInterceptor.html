@@ -195,8 +195,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="12"
-                                    class="link-to-prism">src/features/auth/interceptors/auth-cookie.interceptor.ts:12</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="13"
+                                    class="link-to-prism">src/features/auth/interceptors/auth-cookie.interceptor.ts:13</a></div>
                         </td>
                     </tr>
 
@@ -268,21 +268,32 @@
 } from &#x27;@nestjs/common&#x27;;
 import { Response } from &#x27;express&#x27;;
 import { Observable, tap } from &#x27;rxjs&#x27;;
+import { AuthTokens } from &#x27;../interfaces/auth.interface&#x27;;
 
 @Injectable()
 export class AuthCookieInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable&lt;any&gt; {
     const ctx &#x3D; context.switchToHttp();
     const res &#x3D; ctx.getResponse&lt;Response&gt;();
+    const isProduction &#x3D; process.env.NODE_ENV &#x3D;&#x3D;&#x3D; &#x27;production&#x27;;
 
     return next.handle().pipe(
-      tap((token: string) &#x3D;&gt; {
-        res.cookie(&#x27;jwt&#x27;, token, {
-          httpOnly: true,
-          secure: true,
-          sameSite: &#x27;strict&#x27;,
-          maxAge: 30 * 24 * 60 * 60 * 1000
-        });
+      tap(({ accessToken, refreshToken }: AuthTokens) &#x3D;&gt; {
+        if (accessToken &amp;&amp; refreshToken) {
+          res.cookie(&#x27;access_token&#x27;, accessToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? &#x27;strict&#x27; : &#x27;lax&#x27;,
+            maxAge: 15 * 60 * 1000 // 15 minutes
+          });
+
+          res.cookie(&#x27;refresh_token&#x27;, refreshToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? &#x27;strict&#x27; : &#x27;lax&#x27;,
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+          });
+        }
       })
     );
   }

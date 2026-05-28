@@ -142,35 +142,6 @@
         </p>
 
 
-            <p class="comment">
-                <h3>Description</h3>
-            </p>
-            <p class="comment">
-                <p>The <code>RegisterUserDto</code> class is used to represent the data transfer object
-for user registration requests within the application.</p>
-<p>This class defines the structure of the data required to create a new user
-account and enforces validation rules to ensure the integrity and security
-of the input data.</p>
-<p>Validation Rules:</p>
-<ul>
-<li><p><code>email</code>: Must be a valid email format, which is essential for account
-verification and future communication with the user. This is enforced by
-the <code>@IsEmail()</code> decorator from the <code>class-validator</code> library.</p>
-</li>
-<li><p><code>username</code>: Must adhere to specific criteria set by the <code>IsUsername</code>
-decorator, ensuring that it meets length and character restrictions.
-This helps prevent issues such as invalid usernames that could disrupt
-user experience or security.</p>
-</li>
-<li><p><code>password</code>: Must comply with strong security standards as defined by the
-<code>IsPassword</code> decorator. This validation ensures that the password is
-sufficiently robust to safeguard the user account from unauthorized access.</p>
-</li>
-</ul>
-<p>Each of these properties is marked as <code>readonly</code>, indicating that their
-values are intended to be immutable after instantiation of the class.</p>
-
-            </p>
 
 
 
@@ -255,20 +226,10 @@ values are intended to be immutable after instantiation of the class.</p>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="46" class="link-to-prism">src/features/auth/dto/register-user.dto.ts:46</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="13" class="link-to-prism">src/features/auth/dto/register-user.dto.ts:13</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The user&#39;s email address.</p>
-<p>This field must be a valid email format. It is crucial for account
-verification and future communication with the user. The validation
-is enforced by the <code>@IsEmail()</code> decorator from the <code>class-validator</code>
-library.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -303,19 +264,10 @@ library.</p>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="75" class="link-to-prism">src/features/auth/dto/register-user.dto.ts:75</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="28" class="link-to-prism">src/features/auth/dto/register-user.dto.ts:28</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The password for the new account.</p>
-<p>This field must comply with robust security standards enforced by the
-<code>IsPassword</code> decorator. It ensures that the password is sufficiently strong
-to protect the user account from unauthorized access and security threats.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -350,19 +302,10 @@ to protect the user account from unauthorized access and security threats.</p>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="61" class="link-to-prism">src/features/auth/dto/register-user.dto.ts:61</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="21" class="link-to-prism">src/features/auth/dto/register-user.dto.ts:21</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The desired username for the new account.</p>
-<p>This field must meet specific criteria defined by the <code>IsUsername</code>
-decorator. This typically includes length restrictions and rules against
-invalid characters to ensure a valid and user-friendly username.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -378,45 +321,12 @@ invalid characters to ensure a valid and user-friendly username.</p>
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { ApiProperty } from &#x27;@nestjs/swagger&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { IsPassword } from &#x27;@core/validators/decorators/is-password.decorator&#x27;;
+import { IsUsername } from &#x27;@core/validators/decorators/is-username.decorator&#x27;;
+import { ApiProperty } from &#x27;@nestjs/swagger&#x27;;
 import { IsEmail } from &#x27;class-validator&#x27;;
-import { IsPassword } from &#x27;core/validators/decorators/is-password.decorator&#x27;;
-import { IsUsername } from &#x27;core/validators/decorators/is-username.decorator&#x27;;
 
-/**
- * The &#x60;RegisterUserDto&#x60; class is used to represent the data transfer object
- * for user registration requests within the application.
- *
- * This class defines the structure of the data required to create a new user
- * account and enforces validation rules to ensure the integrity and security
- * of the input data.
- *
- * Validation Rules:
- * - &#x60;email&#x60;: Must be a valid email format, which is essential for account
- *   verification and future communication with the user. This is enforced by
- *   the &#x60;@IsEmail()&#x60; decorator from the &#x60;class-validator&#x60; library.
- *
- * - &#x60;username&#x60;: Must adhere to specific criteria set by the &#x60;IsUsername&#x60;
- *   decorator, ensuring that it meets length and character restrictions.
- *   This helps prevent issues such as invalid usernames that could disrupt
- *   user experience or security.
- *
- * - &#x60;password&#x60;: Must comply with strong security standards as defined by the
- *   &#x60;IsPassword&#x60; decorator. This validation ensures that the password is
- *   sufficiently robust to safeguard the user account from unauthorized access.
- *
- * Each of these properties is marked as &#x60;readonly&#x60;, indicating that their
- * values are intended to be immutable after instantiation of the class.
- */
 export class RegisterUserDto {
-  /**
-   * The user&#x27;s email address.
-   *
-   * This field must be a valid email format. It is crucial for account
-   * verification and future communication with the user. The validation
-   * is enforced by the &#x60;@IsEmail()&#x60; decorator from the &#x60;class-validator&#x60;
-   * library.
-   */
   @ApiProperty({
     description:
       &#x27;A valid email address used for account verification and communication.&#x27;,
@@ -425,13 +335,6 @@ export class RegisterUserDto {
   @IsEmail()
   readonly email: string;
 
-  /**
-   * The desired username for the new account.
-   *
-   * This field must meet specific criteria defined by the &#x60;IsUsername&#x60;
-   * decorator. This typically includes length restrictions and rules against
-   * invalid characters to ensure a valid and user-friendly username.
-   */
   @ApiProperty({
     description:
       &#x27;The username for the new account, adhering to specified format criteria.&#x27;,
@@ -440,13 +343,6 @@ export class RegisterUserDto {
   @IsUsername()
   readonly username: string;
 
-  /**
-   * The password for the new account.
-   *
-   * This field must comply with robust security standards enforced by the
-   * &#x60;IsPassword&#x60; decorator. It ensures that the password is sufficiently strong
-   * to protect the user account from unauthorized access and security threats.
-   */
   @ApiProperty({
     description: &#x27;The password must meet the required security standards.&#x27;,
     example: &#x27;SecurePassword@1234&#x27;

@@ -236,6 +236,9 @@
                         <li class="list-group-item">
                             <a href="../controllers/UsersController.html">UsersController</a>
                         </li>
+                        <li class="list-group-item">
+                            <a href="../controllers/AdminUsersController.html">AdminUsersController</a>
+                        </li>
                     </ul>
                 </div>
                 <div class="col-sm-3">
@@ -258,13 +261,14 @@
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Module } from &#x27;@nestjs/common&#x27;;
 import { TypeOrmModule } from &#x27;@nestjs/typeorm&#x27;;
+import { AdminUsersController } from &#x27;./admin.users.controller&#x27;;
 import { User } from &#x27;./entities/user.entity&#x27;;
 import { UsersController } from &#x27;./users.controller&#x27;;
 import { UsersService } from &#x27;./users.service&#x27;;
 
 @Module({
   imports: [TypeOrmModule.forFeature([User])],
-  controllers: [UsersController],
+  controllers: [UsersController, AdminUsersController],
   providers: [UsersService],
   exports: [UsersService]
 })

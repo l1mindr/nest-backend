@@ -155,17 +155,20 @@
                             <li>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
-                                <a href="#evoke" >evoke</a>
-                            </li>
-                            <li>
-                                    <span class="modifier"></span>
                                     <span class="modifier"></span>
                                 <a href="#getAll" >getAll</a>
                             </li>
                             <li>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
-                                <a href="#terminateOther" >terminateOther</a>
+                                    <span class="modifier"></span>
+                                <a href="#revoke" >revoke</a>
+                            </li>
+                            <li>
+                                    <span class="modifier"></span>
+                                    <span class="modifier"></span>
+                                    <span class="modifier"></span>
+                                <a href="#terminateOthers" >terminateOthers</a>
                             </li>
                         </ul>
                     </td>
@@ -188,84 +191,9 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="evoke"></a>
-                    <span class="name">
-                            <span class="modifier"></span>
-                            <span class="modifier"></span>
-                        <span ><b>evoke</b></span>
-                        <a href="#evoke"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>evoke(undefined: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>)</code>
-                </td>
-            </tr>
-
-            <tr>
-                <td class="col-md-4">
-                    <b>Decorators : </b>
-                    <br />
-                    <code>@Delete()<br />@HttpCode(HttpStatus.NO_CONTENT)<br /></code>
-                </td>
-            </tr>
-
-                    <tr>
-                        <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="21"
-                                    class="link-to-prism">src/features/sessions/sessions.controller.ts:21</a></div>
-                        </td>
-                    </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                            <div class="io-description">
-                                <b>Parameters :</b>
-                                
-                                <table class="params">
-                                    <thead>
-                                        <tr>
-                                            <td>Name</td>
-                                                <td>Type</td>
-                                            <td>Optional</td>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>
-                                                            <code><a href="../interfaces/CustomAuth.html" target="_self" >CustomAuth</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <div class="io-description">
-                            <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                        </div>
-                            <div class="io-description">
-                                
-                            </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
                     <a name="getAll"></a>
                     <span class="name">
+                            <span class="modifier"></span>
                             <span class="modifier"></span>
                             <span class="modifier"></span>
                         <span ><b>getAll</b></span>
@@ -284,14 +212,14 @@
                 <td class="col-md-4">
                     <b>Decorators : </b>
                     <br />
-                    <code>@Get()<br />@HttpCode(HttpStatus.OK)<br /></code>
+                    <code>@Get()<br />@HttpCode(HttpStatus.OK)<br />@ApiGetSessions()<br /></code>
                 </td>
             </tr>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="15"
-                                    class="link-to-prism">src/features/sessions/sessions.controller.ts:15</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="21"
+                                    class="link-to-prism">src/features/sessions/sessions.controller.ts:21</a></div>
                         </td>
                     </tr>
 
@@ -341,19 +269,20 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="terminateOther"></a>
+                    <a name="revoke"></a>
                     <span class="name">
                             <span class="modifier"></span>
                             <span class="modifier"></span>
-                        <span ><b>terminateOther</b></span>
-                        <a href="#terminateOther"><span class="icon ion-ios-link"></span></a>
+                            <span class="modifier"></span>
+                        <span ><b>revoke</b></span>
+                        <a href="#revoke"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>terminateOther(undefined: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>)</code>
+                    <code>revoke(: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>)</code>
                 </td>
             </tr>
 
@@ -361,14 +290,91 @@
                 <td class="col-md-4">
                     <b>Decorators : </b>
                     <br />
-                    <code>@Delete(&#x27;others&#x27;)<br />@HttpCode(HttpStatus.NO_CONTENT)<br /></code>
+                    <code>@Delete()<br />@HttpCode(HttpStatus.NO_CONTENT)<br />@ApiRevokeCurrentSession()<br /></code>
                 </td>
             </tr>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="27"
-                                    class="link-to-prism">src/features/sessions/sessions.controller.ts:27</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="28"
+                                    class="link-to-prism">src/features/sessions/sessions.controller.ts:28</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                            <code><a href="../interfaces/CustomAuth.html" target="_self" >CustomAuth</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="terminateOthers"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                            <span class="modifier"></span>
+                            <span class="modifier"></span>
+                        <span ><b>terminateOthers</b></span>
+                        <a href="#terminateOthers"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>terminateOthers(: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>)</code>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <b>Decorators : </b>
+                    <br />
+                    <code>@Delete(&#x27;others&#x27;)<br />@HttpCode(HttpStatus.NO_CONTENT)<br />@ApiTerminateOtherSessions()<br /></code>
+                </td>
+            </tr>
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="35"
+                                    class="link-to-prism">src/features/sessions/sessions.controller.ts:35</a></div>
                         </td>
                     </tr>
 
@@ -417,10 +423,15 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Controller, Delete, Get, HttpCode, HttpStatus } from &#x27;@nestjs/common&#x27;;
-import { User } from &#x27;features/auth/decorators/user.decorator&#x27;;
-import { CustomAuth } from &#x27;infrastructure/http/interfaces/custom-request.interface&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { User } from &#x27;@features/auth/decorators/user.decorator&#x27;;
+import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
+import { Controller, Delete, Get, HttpCode, HttpStatus } from &#x27;@nestjs/common&#x27;;
 import { SessionsService } from &#x27;./sessions.service&#x27;;
+import {
+  ApiGetSessions,
+  ApiRevokeCurrentSession,
+  ApiTerminateOtherSessions
+} from &#x27;./sessions.swagger&#x27;;
 
 @Controller({
   path: &#x27;sessions&#x27;,
@@ -431,20 +442,23 @@ export class SessionsController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
+  @ApiGetSessions()
   getAll(@User() customAuth: CustomAuth) {
     return this.sessionsService.list(customAuth);
   }
 
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
-  evoke(@User() { user, session }: CustomAuth) {
-    return this.sessionsService.revoke(user, session.token);
+  @ApiRevokeCurrentSession()
+  revoke(@User() { user, session }: CustomAuth) {
+    return this.sessionsService.revoke(user, session.id);
   }
 
   @Delete(&#x27;others&#x27;)
   @HttpCode(HttpStatus.NO_CONTENT)
-  terminateOther(@User() { user, session }: CustomAuth) {
-    return this.sessionsService.terminateOthers(user, session.token);
+  @ApiTerminateOtherSessions()
+  terminateOthers(@User() { user, session }: CustomAuth) {
+    return this.sessionsService.terminateOthers(user, session.id);
   }
 }
 </code></pre>

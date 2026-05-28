@@ -134,7 +134,7 @@
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>src/features/auth/strategies/jwt.strategy.ts</code>
+            <code>src/features/token/strategies/jwt.strategy.ts</code>
         </p>
 
 
@@ -181,12 +181,12 @@
             <tbody>
                 <tr>
                     <td class="col-md-4">
-<code>constructor(jwtConfiguration: ConfigType<unknown>, authService: <a href="../injectables/AuthService.html" target="_self">AuthService</a>)</code>
+<code>constructor(jwtConfiguration: ConfigType<unknown>, tokenService: <a href="../injectables/TokenService.html" target="_self">TokenService</a>)</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="11" class="link-to-prism">src/features/auth/strategies/jwt.strategy.ts:11</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="11" class="link-to-prism">src/features/token/strategies/jwt.strategy.ts:11</a></div>
                             </td>
                         </tr>
 
@@ -216,10 +216,10 @@
                                                     
                                                 </tr>
                                                 <tr>
-                                                        <td>authService</td>
+                                                        <td>tokenService</td>
                                                   
                                                         <td>
-                                                                        <code><a href="../injectables/AuthService.html" target="_self" >AuthService</a></code>
+                                                                        <code><a href="../injectables/TokenService.html" target="_self" >TokenService</a></code>
                                                         </td>
                                                   
                                                     <td>
@@ -254,15 +254,15 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>validate(req: Request, undefined: <a href="../interfaces/JwtPayload.html" target="_self">JwtPayload</a>)</code>
+<code>validate(req: Request, jwtPayload: <a href="../interfaces/IJwtPayload.html" target="_self">IJwtPayload</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="31"
-                                    class="link-to-prism">src/features/auth/strategies/jwt.strategy.ts:31</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="29"
+                                    class="link-to-prism">src/features/token/strategies/jwt.strategy.ts:29</a></div>
                         </td>
                     </tr>
 
@@ -295,8 +295,9 @@
 
                                         </tr>
                                         <tr>
+                                                <td>jwtPayload</td>
                                             <td>
-                                                            <code><a href="../interfaces/JwtPayload.html" target="_self" >JwtPayload</a></code>
+                                                            <code><a href="../interfaces/IJwtPayload.html" target="_self" >IJwtPayload</a></code>
                                             </td>
 
                                             <td>
@@ -329,25 +330,23 @@
 import { ConfigType } from &#x27;@nestjs/config&#x27;;
 import { PassportStrategy } from &#x27;@nestjs/passport&#x27;;
 import { Request } from &#x27;express&#x27;;
-import { AuthService } from &#x27;features/auth/auth.service&#x27;;
-import jwtConfig from &#x27;features/auth/config/jwt.config&#x27;;
-import { JwtPayload } from &#x27;features/auth/interfaces/jwt-payload.interface&#x27;;
 import { ExtractJwt, Strategy } from &#x27;passport-jwt&#x27;;
+import jwtConfig from &#x27;../config/jwt.config&#x27;;
+import { TokenService } from &#x27;../token.service&#x27;;
+import { IJwtPayload } from &#x27;../interfaces/jwt-payload.interface&#x27;;
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType&lt;typeof jwtConfig&gt;,
-    private readonly authService: AuthService
+    private readonly tokenService: TokenService
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        // Extract from the Authorization header
         ExtractJwt.fromAuthHeaderAsBearerToken(),
-        // Extract from cookies
         (req) &#x3D;&gt; {
-          return req.cookies[&#x27;access-token&#x27;] || null;
+          return req.cookies[&#x27;access_token&#x27;] || null;
         }
       ]),
       secretOrKey: jwtConfiguration.secret,
@@ -355,12 +354,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(req: Request, { email }: JwtPayload) {
-    const token &#x3D;
-      req.headers?.authorization?.replace(&#x27;bearer &#x27;, &#x27;&#x27;) ||
-      req.cookies[&#x27;access-token&#x27;];
-
-    return this.authService.validateUserJwt(email, token);
+  validate(req: Request, jwtPayload: IJwtPayload) {
+    return this.tokenService.validatePayload(jwtPayload);
   }
 }
 </code></pre>

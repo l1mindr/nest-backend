@@ -199,7 +199,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>get(undefined: <a href="../classes/IdDto.html" target="_self">IdDto</a>)</code>
+                    <code>get(: <a href="../classes/IdDto.html" target="_self">IdDto</a>)</code>
                 </td>
             </tr>
 
@@ -213,8 +213,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="35"
-                                    class="link-to-prism">src/features/users/admin.users.controller.ts:35</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="37"
+                                    class="link-to-prism">src/features/users/admin.users.controller.ts:37</a></div>
                         </td>
                     </tr>
 
@@ -291,8 +291,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="28"
-                                    class="link-to-prism">src/features/users/admin.users.controller.ts:28</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="29"
+                                    class="link-to-prism">src/features/users/admin.users.controller.ts:29</a></div>
                         </td>
                     </tr>
 
@@ -312,7 +312,8 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import {
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { IdDto } from &#x27;@infrastructure/http/dto/id.dto&#x27;;
+import {
   Controller,
   Get,
   HttpCode,
@@ -320,12 +321,12 @@
   Param,
   UseGuards
 } from &#x27;@nestjs/common&#x27;;
-import { Roles } from &#x27;features/auth/decorators/roles.decorator&#x27;;
-import { RolesGuard } from &#x27;features/auth/guards/roles.guard&#x27;;
-import { IdDto } from &#x27;infrastructure/http/dto/id.dto&#x27;;
+import { AdminUserDto } from &#x27;./dto/admin-user.dto&#x27;;
 import { UserRole } from &#x27;./enums/user-role.enum&#x27;;
 import { UsersService } from &#x27;./users.service&#x27;;
 import { ApiAdminGetAllUsers, ApiAdminGetUser } from &#x27;./users.swagger&#x27;;
+import { RolesGuard } from &#x27;@features/security/guards/roles.guard&#x27;;
+import { Roles } from &#x27;@features/security/decorators/roles.decorator&#x27;;
 
 @Controller({
   path: &#x27;admin/users&#x27;,
@@ -340,7 +341,8 @@ export class AdminUsersController {
   @HttpCode(HttpStatus.OK)
   @ApiAdminGetAllUsers()
   async getAll() {
-    return await this.usersService.list();
+    const users &#x3D; await this.usersService.list();
+    return users.map((user) &#x3D;&gt; new AdminUserDto(user));
   }
 
   @Get(&#x27;:id&#x27;)

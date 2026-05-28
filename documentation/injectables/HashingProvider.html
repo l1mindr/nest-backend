@@ -138,14 +138,6 @@
         </p>
 
 
-            <p class="comment">
-                <h3>Description</h3>
-            </p>
-            <p class="comment">
-                <p>The <code>HashingProvider</code> is an abstract class defining the contract for hashing providers.
-It requires implementation of methods for hashing data and comparing hashes.</p>
-
-            </p>
 
 
 
@@ -210,16 +202,14 @@ It requires implementation of methods for hashing data and comparing hashes.</p>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="26"
-                                    class="link-to-prism">src/features/auth/providers/hashing.provider.ts:26</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="6"
+                                    class="link-to-prism">src/features/auth/providers/hashing.provider.ts:6</a></div>
                         </td>
                     </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                        <div class="io-description"><p>Compares the provided plain text data with an encrypted (hashed) string.</p>
-</div>
 
                             <div class="io-description">
                                 <b>Parameters :</b>
@@ -230,7 +220,6 @@ It requires implementation of methods for hashing data and comparing hashes.</p>
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
-                                                <td>Description</td>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -245,12 +234,6 @@ It requires implementation of methods for hashing data and comparing hashes.</p>
                                             </td>
 
 
-                                            <td>
-                                                    <ul>
-<li>The plain text data to compare (e.g., password).</li>
-</ul>
-
-                                            </td>
                                         </tr>
                                         <tr>
                                                 <td>encrypted</td>
@@ -263,12 +246,6 @@ It requires implementation of methods for hashing data and comparing hashes.</p>
                                             </td>
 
 
-                                            <td>
-                                                    <ul>
-<li>The hashed value to compare against.</li>
-</ul>
-
-                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -278,8 +255,7 @@ It requires implementation of methods for hashing data and comparing hashes.</p>
 
                         </div>
                             <div class="io-description">
-                                <p>A promise that resolves to a boolean indicating if the data matches the hash.</p>
-
+                                
                             </div>
                 </td>
             </tr>
@@ -307,16 +283,14 @@ It requires implementation of methods for hashing data and comparing hashes.</p>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="17"
-                                    class="link-to-prism">src/features/auth/providers/hashing.provider.ts:17</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="5"
+                                    class="link-to-prism">src/features/auth/providers/hashing.provider.ts:5</a></div>
                         </td>
                     </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                        <div class="io-description"><p>Hashes the provided data and returns the hashed string.</p>
-</div>
 
                             <div class="io-description">
                                 <b>Parameters :</b>
@@ -327,7 +301,6 @@ It requires implementation of methods for hashing data and comparing hashes.</p>
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
-                                                <td>Description</td>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -342,12 +315,6 @@ It requires implementation of methods for hashing data and comparing hashes.</p>
                                             </td>
 
 
-                                            <td>
-                                                    <ul>
-<li>The data to be hashed (string or buffer).</li>
-</ul>
-
-                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -357,8 +324,7 @@ It requires implementation of methods for hashing data and comparing hashes.</p>
 
                         </div>
                             <div class="io-description">
-                                <p>A promise that resolves to the hashed string.</p>
-
+                                
                             </div>
                 </td>
             </tr>
@@ -372,29 +338,9 @@ It requires implementation of methods for hashing data and comparing hashes.</p>
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Injectable } from &#x27;@nestjs/common&#x27;;
 
-/**
- * The &#x60;HashingProvider&#x60; is an abstract class defining the contract for hashing providers.
- * It requires implementation of methods for hashing data and comparing hashes.
- *
- * @abstract
- */
 @Injectable()
 export abstract class HashingProvider {
-  /**
-   * Hashes the provided data and returns the hashed string.
-   *
-   * @param data - The data to be hashed (string or buffer).
-   * @returns A promise that resolves to the hashed string.
-   */
   abstract hash(data: string | Buffer): Promise&lt;string&gt;;
-
-  /**
-   * Compares the provided plain text data with an encrypted (hashed) string.
-   *
-   * @param data - The plain text data to compare (e.g., password).
-   * @param encrypted - The hashed value to compare against.
-   * @returns A promise that resolves to a boolean indicating if the data matches the hash.
-   */
   abstract compare(data: string | Buffer, encrypted: string): Promise&lt;boolean&gt;;
 }
 </code></pre>

@@ -223,15 +223,6 @@
 
 
 
-        <p class="comment">
-            <h3>Description</h3>
-        </p>
-        <p class="comment">
-            <p>AppModule is the root module of the NestJS application.
-It imports various feature modules, defines controllers,
-and provides services required by the application.</p>
-
-        </p>
 
 
         <div class="container-fluid module">
@@ -260,16 +251,11 @@ and provides services required by the application.</p>
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Module } from &#x27;@nestjs/common&#x27;;
-import { CoreModule } from &#x27;core/core.module&#x27;;
-import { FeaturesModule } from &#x27;features/features.module&#x27;;
-import { InfrastructureModule } from &#x27;infrastructure/infrastructure.module&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { CoreModule } from &#x27;@core/core.module&#x27;;
+import { FeaturesModule } from &#x27;@features/features.module&#x27;;
+import { InfrastructureModule } from &#x27;@infrastructure/infrastructure.module&#x27;;
+import { Module } from &#x27;@nestjs/common&#x27;;
 
-/**
- * AppModule is the root module of the NestJS application.
- * It imports various feature modules, defines controllers,
- * and provides services required by the application.
- */
 @Module({
   imports: [CoreModule, InfrastructureModule, FeaturesModule]
 })

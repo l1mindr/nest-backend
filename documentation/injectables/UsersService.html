@@ -163,6 +163,18 @@
                                 <a href="#findByIdentifierForAuth" >findByIdentifierForAuth</a>
                             </li>
                             <li>
+                                    <span class="modifier">Async</span>
+                                <a href="#findByIdForSessionValidation" >findByIdForSessionValidation</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Async</span>
+                                <a href="#findByIdWithPassword" >findByIdWithPassword</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Private</span>
+                                <a href="#findByIdWithSelect" >findByIdWithSelect</a>
+                            </li>
+                            <li>
                                     <span class="modifier">Private</span>
                                 <a href="#handleUniqueConstraintError" >handleUniqueConstraintError</a>
                             </li>
@@ -288,8 +300,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="44"
-                                    class="link-to-prism">src/features/users/users.service.ts:44</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="53"
+                                    class="link-to-prism">src/features/users/users.service.ts:53</a></div>
                         </td>
                     </tr>
 
@@ -357,8 +369,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="20"
-                                    class="link-to-prism">src/features/users/users.service.ts:20</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="30"
+                                    class="link-to-prism">src/features/users/users.service.ts:30</a></div>
                         </td>
                     </tr>
 
@@ -408,6 +420,225 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
+                    <a name="findByIdForSessionValidation"></a>
+                    <span class="name">
+                            <span class="modifier">Async</span>
+                        <span ><b>findByIdForSessionValidation</b></span>
+                        <a href="#findByIdForSessionValidation"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>findByIdForSessionValidation(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="37"
+                                    class="link-to-prism">src/features/users/users.service.ts:37</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>userId</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;User | null&gt;</a></code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="findByIdWithPassword"></a>
+                    <span class="name">
+                            <span class="modifier">Async</span>
+                        <span ><b>findByIdWithPassword</b></span>
+                        <a href="#findByIdWithPassword"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>findByIdWithPassword(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="49"
+                                    class="link-to-prism">src/features/users/users.service.ts:49</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>userId</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;User | null&gt;</a></code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="findByIdWithSelect"></a>
+                    <span class="name">
+                            <span class="modifier">Private</span>
+                        <span ><b>findByIdWithSelect</b></span>
+                        <a href="#findByIdWithSelect"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>findByIdWithSelect(id: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, select: <a href="../classes/User.html" target="_self">FindOptionsSelect&lt;User&gt;</a>)</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="20"
+                                    class="link-to-prism">src/features/users/users.service.ts:20</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>id</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>select</td>
+                                            <td>
+                                                            <code><a href="../classes/User.html" target="_self" >FindOptionsSelect&lt;User&gt;</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;User | null&gt;</a></code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
                     <a name="handleUniqueConstraintError"></a>
                     <span class="name">
                             <span class="modifier">Private</span>
@@ -426,8 +657,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="64"
-                                    class="link-to-prism">src/features/users/users.service.ts:64</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="90"
+                                    class="link-to-prism">src/features/users/users.service.ts:90</a></div>
                         </td>
                     </tr>
 
@@ -495,8 +726,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="40"
-                                    class="link-to-prism">src/features/users/users.service.ts:40</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="72"
+                                    class="link-to-prism">src/features/users/users.service.ts:72</a></div>
                         </td>
                     </tr>
 
@@ -534,8 +765,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="31"
-                                    class="link-to-prism">src/features/users/users.service.ts:31</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="63"
+                                    class="link-to-prism">src/features/users/users.service.ts:63</a></div>
                         </td>
                     </tr>
 
@@ -603,8 +834,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="59"
-                                    class="link-to-prism">src/features/users/users.service.ts:59</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="85"
+                                    class="link-to-prism">src/features/users/users.service.ts:85</a></div>
                         </td>
                     </tr>
 
@@ -672,8 +903,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="27"
-                                    class="link-to-prism">src/features/users/users.service.ts:27</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="59"
+                                    class="link-to-prism">src/features/users/users.service.ts:59</a></div>
                         </td>
                     </tr>
 
@@ -753,8 +984,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="50"
-                                    class="link-to-prism">src/features/users/users.service.ts:50</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="76"
+                                    class="link-to-prism">src/features/users/users.service.ts:76</a></div>
                         </td>
                     </tr>
 
@@ -845,16 +1076,16 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import {
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { CreateUserDto } from &#x27;@features/users/dto/create-user.dto&#x27;;
+import { UpdateUserDto } from &#x27;@features/users/dto/update-user.dto&#x27;;
+import { User } from &#x27;@features/users/entities/user.entity&#x27;;
+import { IUsersService } from &#x27;@features/users/interfaces/users.interface&#x27;;
+import {
   Injectable,
   NotFoundException,
   UnprocessableEntityException
 } from &#x27;@nestjs/common&#x27;;
-import { DataSource, Repository } from &#x27;typeorm&#x27;;
-import { CreateUserDto } from &#x27;./dto/create-user.dto&#x27;;
-import { UpdateUserDto } from &#x27;./dto/update-user.dto&#x27;;
-import { User } from &#x27;./entities/user.entity&#x27;;
-import { IUsersService } from &#x27;./interfaces/users.interface&#x27;;
+import { DataSource, FindOptionsSelect, Repository } from &#x27;typeorm&#x27;;
 
 @Injectable()
 export class UsersService implements IUsersService {
@@ -864,11 +1095,43 @@ export class UsersService implements IUsersService {
     return this.dataSource.getRepository(User);
   }
 
+  private findByIdWithSelect(
+    id: string,
+    select: FindOptionsSelect&lt;User&gt;
+  ): Promise&lt;User | null&gt; {
+    return this.userRepo.findOne({
+      where: { id },
+      select
+    });
+  }
+
   async findByIdentifierForAuth(identifier: string): Promise&lt;User | null&gt; {
     return this.userRepo.findOne({
       where: [{ email: identifier }, { username: identifier }],
-      select: [&#x27;id&#x27;, &#x27;email&#x27;, &#x27;name&#x27;, &#x27;username&#x27;, &#x27;password&#x27;, &#x27;role&#x27;, &#x27;status&#x27;]
+      select: { id: true, password: true, status: true }
     });
+  }
+
+  async findByIdForSessionValidation(userId: string): Promise&lt;User | null&gt; {
+    return this.findByIdWithSelect(userId, {
+      id: true,
+      email: true,
+      username: true,
+      name: true,
+      status: true,
+      role: true,
+      registryDates: { createdAt: true }
+    });
+  }
+
+  async findByIdWithPassword(userId: string): Promise&lt;User | null&gt; {
+    return this.findByIdWithSelect(userId, { id: true, password: true });
+  }
+
+  async findById(id: string): Promise&lt;User&gt; {
+    const user &#x3D; await this.findByIdWithSelect(id, { id: true });
+    if (!user) throw new NotFoundException();
+    return user;
   }
 
   async setPassword(userid: string, hashPassword: string): Promise&lt;void&gt; {
@@ -888,16 +1151,10 @@ export class UsersService implements IUsersService {
     return this.userRepo.find();
   }
 
-  async findById(id: string): Promise&lt;User&gt; {
-    const user &#x3D; await this.userRepo.findOneBy({ id });
-    if (!user) throw new NotFoundException();
-    return user;
-  }
-
   async updateProfile(id: string, updateUserDto: UpdateUserDto): Promise&lt;void&gt; {
-    const existingUser &#x3D; await this.findById(id);
     try {
-      if (existingUser) await this.userRepo.update({ id }, updateUserDto);
+      await this.findById(id);
+      await this.userRepo.update({ id }, updateUserDto);
     } catch (error: any) {
       this.handleUniqueConstraintError(error);
     }
@@ -909,6 +1166,7 @@ export class UsersService implements IUsersService {
   }
 
   private handleUniqueConstraintError(error: any) {
+    // PostgreSQL unique constraint violation
     if (error.code &#x3D;&#x3D;&#x3D; &#x27;23505&#x27;) {
       const detail: string &#x3D; error.detail ?? &#x27;&#x27;;
 

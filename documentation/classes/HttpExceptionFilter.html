@@ -276,7 +276,8 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import {
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { ErrorResponseDto } from &#x27;@infrastructure/http/dto/error-response.dto&#x27;;
+import {
   ArgumentsHost,
   Catch,
   ExceptionFilter,
@@ -284,7 +285,6 @@
   HttpStatus
 } from &#x27;@nestjs/common&#x27;;
 import { Request, Response } from &#x27;express&#x27;;
-import { ErrorResponseDto } from &#x27;infrastructure/http/dto/error-response.dto&#x27;;
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -297,7 +297,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response &#x3D; exception.getResponse();
     const isDev &#x3D; process.env.NODE_ENV !&#x3D;&#x3D; &#x27;production&#x27;;
 
-    // set error
     const error &#x3D; HttpStatus[status]
       .replace(&#x27;_&#x27;, &#x27; &#x27;)
       .split(&#x27; &#x27;)

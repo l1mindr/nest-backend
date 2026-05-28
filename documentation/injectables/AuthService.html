@@ -164,11 +164,11 @@
                             </li>
                             <li>
                                     <span class="modifier">Async</span>
-                                <a href="#registerUser" >registerUser</a>
+                                <a href="#refresh" >refresh</a>
                             </li>
                             <li>
                                     <span class="modifier">Async</span>
-                                <a href="#validateUserJwt" >validateUserJwt</a>
+                                <a href="#registerUser" >registerUser</a>
                             </li>
                         </ul>
                     </td>
@@ -188,12 +188,12 @@
             <tbody>
                 <tr>
                     <td class="col-md-4">
-<code>constructor(hashingProvider: <a href="../injectables/HashingProvider.html" target="_self">HashingProvider</a>, jwtService: JwtService, sessionsService: <a href="../interfaces/ISessionsService.html" target="_self">ISessionsService</a>, usersService: <a href="../interfaces/IUsersService.html" target="_self">IUsersService</a>)</code>
+<code>constructor(hashingProvider: <a href="../injectables/HashingProvider.html" target="_self">HashingProvider</a>, sessionsService: <a href="../injectables/SessionsService.html" target="_self">SessionsService</a>, usersService: <a href="../injectables/UsersService.html" target="_self">UsersService</a>, tokenService: <a href="../injectables/TokenService.html" target="_self">TokenService</a>)</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="21" class="link-to-prism">src/features/auth/auth.service.ts:21</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="18" class="link-to-prism">src/features/auth/auth.service.ts:18</a></div>
                             </td>
                         </tr>
 
@@ -223,22 +223,10 @@
                                                     
                                                 </tr>
                                                 <tr>
-                                                        <td>jwtService</td>
-                                                  
-                                                        <td>
-                                                                    <code>JwtService</code>
-                                                        </td>
-                                                  
-                                                    <td>
-                                                            No
-                                                    </td>
-                                                    
-                                                </tr>
-                                                <tr>
                                                         <td>sessionsService</td>
                                                   
                                                         <td>
-                                                                        <code><a href="../interfaces/ISessionsService.html" target="_self" >ISessionsService</a></code>
+                                                                        <code><a href="../injectables/SessionsService.html" target="_self" >SessionsService</a></code>
                                                         </td>
                                                   
                                                     <td>
@@ -250,7 +238,19 @@
                                                         <td>usersService</td>
                                                   
                                                         <td>
-                                                                        <code><a href="../interfaces/IUsersService.html" target="_self" >IUsersService</a></code>
+                                                                        <code><a href="../injectables/UsersService.html" target="_self" >UsersService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>tokenService</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/TokenService.html" target="_self" >TokenService</a></code>
                                                         </td>
                                                   
                                                     <td>
@@ -287,15 +287,15 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>changeUserPassword(undefined: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>, undefined: <a href="../classes/ChangePasswordDto.html" target="_self">ChangePasswordDto</a>)</code>
+                    <code>changeUserPassword(: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>, : <a href="../classes/ChangePasswordDto.html" target="_self">ChangePasswordDto</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="66"
-                                    class="link-to-prism">src/features/auth/auth.service.ts:66</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="74"
+                                    class="link-to-prism">src/features/auth/auth.service.ts:74</a></div>
                         </td>
                     </tr>
 
@@ -366,15 +366,15 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>loginUser(undefined: <a href="../classes/LoginUserDto.html" target="_self">LoginUserDto</a>, ip: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, device: <a href="../interfaces/IDevice.html" target="_self">IDevice</a>)</code>
+                    <code>loginUser(: <a href="../classes/LoginUserDto.html" target="_self">LoginUserDto</a>, ipAddress: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, userAgent: <a href="../interfaces/IUserAgent.html" target="_self">IUserAgent</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="40"
-                                    class="link-to-prism">src/features/auth/auth.service.ts:40</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="35"
+                                    class="link-to-prism">src/features/auth/auth.service.ts:35</a></div>
                         </td>
                     </tr>
 
@@ -406,7 +406,7 @@
 
                                         </tr>
                                         <tr>
-                                                <td>ip</td>
+                                                <td>ipAddress</td>
                                             <td>
                                                             <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
@@ -418,9 +418,9 @@
 
                                         </tr>
                                         <tr>
-                                                <td>device</td>
+                                                <td>userAgent</td>
                                             <td>
-                                                            <code><a href="../interfaces/IDevice.html" target="_self" >IDevice</a></code>
+                                                            <code><a href="../interfaces/IUserAgent.html" target="_self" >IUserAgent</a></code>
                                             </td>
 
                                             <td>
@@ -433,7 +433,76 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>    <code>Promise&lt;string&gt;</code>
+                            <b>Returns : </b>        <code><a href="../miscellaneous/typealiases.html#AuthTokens" target="_self" >Promise&lt;AuthTokens&gt;</a></code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="refresh"></a>
+                    <span class="name">
+                            <span class="modifier">Async</span>
+                        <span ><b>refresh</b></span>
+                        <a href="#refresh"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>refresh(refreshToken: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="106"
+                                    class="link-to-prism">src/features/auth/auth.service.ts:106</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>refreshToken</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>    <code>unknown</code>
 
                         </div>
                             <div class="io-description">
@@ -465,8 +534,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="31"
-                                    class="link-to-prism">src/features/auth/auth.service.ts:31</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="26"
+                                    class="link-to-prism">src/features/auth/auth.service.ts:26</a></div>
                         </td>
                     </tr>
 
@@ -512,121 +581,35 @@
             </tr>
         </tbody>
     </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="validateUserJwt"></a>
-                    <span class="name">
-                            <span class="modifier">Async</span>
-                        <span ><b>validateUserJwt</b></span>
-                        <a href="#validateUserJwt"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>validateUserJwt(email: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, token: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
-                </td>
-            </tr>
-
-
-                    <tr>
-                        <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="91"
-                                    class="link-to-prism">src/features/auth/auth.service.ts:91</a></div>
-                        </td>
-                    </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                            <div class="io-description">
-                                <b>Parameters :</b>
-                                
-                                <table class="params">
-                                    <thead>
-                                        <tr>
-                                            <td>Name</td>
-                                                <td>Type</td>
-                                            <td>Optional</td>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                                <td>email</td>
-                                            <td>
-                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-
-                                        </tr>
-                                        <tr>
-                                                <td>token</td>
-                                            <td>
-                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../interfaces/CustomAuth.html" target="_self" >Promise&lt;CustomAuth&gt;</a></code>
-
-                        </div>
-                            <div class="io-description">
-                                
-                            </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
 </section>
 
     </div>
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import {
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { IUserAgent } from &#x27;@features/sessions/interfaces/user-agent.interface&#x27;;
+import { SessionsService } from &#x27;@features/sessions/sessions.service&#x27;;
+import { TokenService } from &#x27;@features/token/token.service&#x27;;
+import { UsersService } from &#x27;@features/users/users.service&#x27;;
+import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
+import {
   BadRequestException,
-  Inject,
   Injectable,
   UnauthorizedException
 } from &#x27;@nestjs/common&#x27;;
-import { JwtService } from &#x27;@nestjs/jwt&#x27;;
-import { IDevice } from &#x27;features/sessions/interfaces/device.interface&#x27;;
-import { ISessionsService } from &#x27;features/sessions/interfaces/sessions.interface&#x27;;
-import { IUsersService } from &#x27;features/users/interfaces/users.interface&#x27;;
-import { SESSIONS_SERVICE, USERS_SERVICE } from &#x27;infrastructure/di/tokens&#x27;;
-import { CustomAuth } from &#x27;infrastructure/http/interfaces/custom-request.interface&#x27;;
 import { ChangePasswordDto } from &#x27;../users/dto/change-password.dto&#x27;;
 import { LoginUserDto } from &#x27;./dto/login-user.dto&#x27;;
 import { RegisterUserDto } from &#x27;./dto/register-user.dto&#x27;;
-import { IAuthService } from &#x27;./interfaces/auth.interface&#x27;;
-import { JwtPayload } from &#x27;./interfaces/jwt-payload.interface&#x27;;
+import { AuthTokens, IAuthService } from &#x27;./interfaces/auth.interface&#x27;;
 import { HashingProvider } from &#x27;./providers/hashing.provider&#x27;;
 
 @Injectable()
 export class AuthService implements IAuthService {
   constructor(
     private readonly hashingProvider: HashingProvider,
-    private readonly jwtService: JwtService,
-    @Inject(SESSIONS_SERVICE)
-    private readonly sessionsService: ISessionsService,
-    @Inject(USERS_SERVICE)
-    private readonly usersService: IUsersService
+    private readonly sessionsService: SessionsService,
+    private readonly usersService: UsersService,
+    private readonly tokenService: TokenService
   ) {}
 
   async registerUser(registerUserDto: RegisterUserDto): Promise&lt;void&gt; {
@@ -640,10 +623,9 @@ export class AuthService implements IAuthService {
 
   async loginUser(
     { email, password }: LoginUserDto,
-    ip: string,
-    device: IDevice
-  ): Promise&lt;string&gt; {
-    // Find the user by email or username
+    ipAddress: string,
+    userAgent: IUserAgent
+  ): Promise&lt;AuthTokens&gt; {
     const user &#x3D; await this.usersService.findByIdentifierForAuth(email);
 
     if (!user) throw new UnauthorizedException(&#x27;invalid credentials&#x27;);
@@ -652,56 +634,104 @@ export class AuthService implements IAuthService {
 
     if (!isMatch) throw new UnauthorizedException(&#x27;invalid credentials&#x27;);
 
-    const payload: JwtPayload &#x3D; { email };
+    const now &#x3D; Date.now();
+    const expiresAt &#x3D; this.tokenService.createExpirationDate(now);
 
-    // Generate a JWT token
-    const token: string &#x3D; this.jwtService.sign(payload);
+    const session &#x3D; await this.sessionsService.issue(
+      user.id,
+      ipAddress,
+      userAgent,
+      expiresAt
+    );
 
-    // Create a session for the user
-    await this.sessionsService.issue(user.id, token, ip, device);
+    const { accessToken, refreshToken } &#x3D; await this.tokenService.issuePair(
+      user.id,
+      session.id,
+      now,
+      expiresAt
+    );
 
-    // Return the token
-    return token;
+    const refreshTokenHash &#x3D; await this.hashingProvider.hash(refreshToken);
+
+    await this.sessionsService.updateRefreshState(session, {
+      refreshTokenHash
+    });
+
+    return { accessToken, refreshToken };
   }
 
   async changeUserPassword(
     { user, session }: CustomAuth,
     { currentPassword, newPassword }: ChangePasswordDto
   ): Promise&lt;void&gt; {
-    // Verify that the current password matches
+    const userWithPassword &#x3D; await this.usersService.findByIdWithPassword(
+      user.id
+    );
+
+    if (!userWithPassword) throw new UnauthorizedException(&#x27;invalid token&#x27;);
+
+    // Verify current password
     const isMatch &#x3D; await this.hashingProvider.compare(
       currentPassword,
-      user.password
+      userWithPassword.password
     );
 
     if (!isMatch) throw new BadRequestException(&#x27;invalid current password&#x27;);
 
-    // If the passwords are different, update the user&#x27;s password
-    if (currentPassword !&#x3D;&#x3D; newPassword) {
-      // Hashing password
-      const password &#x3D; await this.hashingProvider.hash(newPassword);
+    // Check new password is different
+    const isSame &#x3D; await this.hashingProvider.compare(
+      newPassword,
+      userWithPassword.password
+    );
 
-      // Set new password
-      await this.usersService.setPassword(user.id, password);
+    if (isSame) throw new BadRequestException(&#x27;new password must be different&#x27;);
 
-      // Remove the session after password change
-      await this.sessionsService.terminateOthers(user, session.token);
-    }
+    // Hash new password and update
+    const password &#x3D; await this.hashingProvider.hash(newPassword);
+    await this.usersService.setPassword(user.id, password);
+    await this.sessionsService.terminateOthers(user, session.refreshTokenHash);
   }
 
-  async validateUserJwt(email: string, token: string): Promise&lt;CustomAuth&gt; {
-    // Find the user associated with the JWT email
-    const user &#x3D; await this.usersService.findByIdentifierForAuth(email);
+  async refresh(refreshToken: string) {
+    const { sub, sessionId } &#x3D;
+      await this.tokenService.verifyRefreshToken(refreshToken);
 
-    if (!user) throw new UnauthorizedException(&#x27;invalid token&#x27;);
-
-    // Validate the session using the user&#x27;s ID and token
-    const session &#x3D; await this.sessionsService.getActive(user.id, token);
+    const session &#x3D; await this.sessionsService.getActive(sub, sessionId);
 
     if (!session) throw new UnauthorizedException(&#x27;session expired&#x27;);
 
-    // Return the authenticated user and session
-    return { user, session };
+    const isValidRefreshToken &#x3D; await this.hashingProvider.compare(
+      refreshToken,
+      session.refreshTokenHash
+    );
+
+    if (!isValidRefreshToken) {
+      await this.sessionsService.updateRefreshState(session, {
+        isRevoked: true
+      });
+
+      throw new UnauthorizedException(&#x27;refresh token reuse detected&#x27;);
+    }
+
+    const now &#x3D; Date.now();
+    const expiresAt &#x3D; this.tokenService.createExpirationDate(now);
+
+    const tokens &#x3D; await this.tokenService.issuePair(
+      session.owner.id,
+      session.id,
+      now,
+      expiresAt
+    );
+
+    const refreshTokenHash &#x3D; await this.hashingProvider.hash(refreshToken);
+
+    await this.sessionsService.updateRefreshState(session, {
+      refreshTokenHash,
+      lastUsedAt: new Date(),
+      expiresAt
+    });
+
+    return { ...tokens };
   }
 }
 </code></pre>

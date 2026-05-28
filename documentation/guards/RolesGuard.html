@@ -136,7 +136,7 @@
                 <h3>File</h3>
             </p>
             <p class="comment">
-                <code>src/features/auth/guards/roles.guard.ts</code>
+                <code>src/features/security/guards/roles.guard.ts</code>
             </p>
 
 
@@ -183,18 +183,12 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="6" class="link-to-prism">src/features/auth/guards/roles.guard.ts:6</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="6" class="link-to-prism">src/features/security/guards/roles.guard.ts:6</a></div>
                             </td>
                         </tr>
 
                 <tr>
                     <td class="col-md-4">
-                            <div class="io-description"><p>Creates an instance of RolesGuard.</p>
-<p>metadata defined by decorators.</p>
-<p>The <code>private readonly</code> modifier indicates that this parameter is only
-accessible within the class and cannot be changed after initialization,
-ensuring the guard&#39;s integrity during its lifecycle.</p>
-</div>
                             <div>
                                     <b>Parameters :</b>
                                     <table class="params">
@@ -203,7 +197,6 @@ ensuring the guard&#39;s integrity during its lifecycle.</p>
                                                 <td>Name</td>
                                                     <td>Type</td>
                                                 <td>Optional</td>
-                                                    <td>Description</td>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -218,16 +211,6 @@ ensuring the guard&#39;s integrity during its lifecycle.</p>
                                                             No
                                                     </td>
                                                     
-                                                        <td>
-                                                                <ul>
-<li>An instance of the Reflector service used to access
-metadata defined by decorators.</li>
-</ul>
-<p>The <code>private readonly</code> modifier indicates that this parameter is only
-accessible within the class and cannot be changed after initialization,
-ensuring the guard&#39;s integrity during its lifecycle.</p>
-
-                                                        </td>
                                                 </tr>
                                         </tbody>
                                     </table>
@@ -263,18 +246,14 @@ ensuring the guard&#39;s integrity during its lifecycle.</p>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="28"
-                                    class="link-to-prism">src/features/auth/guards/roles.guard.ts:28</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="9"
+                                    class="link-to-prism">src/features/security/guards/roles.guard.ts:9</a></div>
                         </td>
                     </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                        <div class="io-description"><p>Determines whether the current request is authorized to proceed based on user roles.
-It checks if the user has one of the roles required by the route, which are defined using
-the @Roles decorator. If no roles are specified, access is granted by default.</p>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-none">           and the incoming request.</code></pre></div></div>
 
                             <div class="io-description">
                                 <b>Parameters :</b>
@@ -285,7 +264,6 @@ the @Roles decorator. If no roles are specified, access is granted by default.</
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
-                                                <td>Description</td>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -300,11 +278,6 @@ the @Roles decorator. If no roles are specified, access is granted by default.</
                                             </td>
 
 
-                                            <td>
-                                                    <p>The current execution context, providing access to the route handler
-and the incoming request.</p>
-
-                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -314,8 +287,7 @@ and the incoming request.</p>
 
                         </div>
                             <div class="io-description">
-                                <p>boolean True if the user is authorized, false otherwise.</p>
-
+                                
                             </div>
                 </td>
             </tr>
@@ -328,52 +300,28 @@ and the incoming request.</p>
         <div class="tab-pane fade  tab-source-code" id="source">
             <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Injectable, CanActivate, ExecutionContext } from &#x27;@nestjs/common&#x27;;
 import { Reflector } from &#x27;@nestjs/core&#x27;;
-import { ROLES_KEY } from &#x27;features/auth/decorators/roles.decorator&#x27;;
+import { ROLES_KEY } from &#x27;../decorators/roles.decorator&#x27;;
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  /**
-   * Creates an instance of RolesGuard.
-   *
-   * @param reflector - An instance of the Reflector service used to access
-   * metadata defined by decorators.
-   *
-   * The &#x60;private readonly&#x60; modifier indicates that this parameter is only
-   * accessible within the class and cannot be changed after initialization,
-   * ensuring the guard&#x27;s integrity during its lifecycle.
-   */
   constructor(private reflector: Reflector) {}
 
-  /**
-   * Determines whether the current request is authorized to proceed based on user roles.
-   * It checks if the user has one of the roles required by the route, which are defined using
-   * the @Roles decorator. If no roles are specified, access is granted by default.
-   *
-   * @param context The current execution context, providing access to the route handler
-   *                and the incoming request.
-   * @returns boolean True if the user is authorized, false otherwise.
-   */
   canActivate(context: ExecutionContext): boolean {
-    // Retrieve the required roles from the route metadata
     const requiredRoles &#x3D; this.reflector.getAllAndOverride&lt;string[]&gt;(
       ROLES_KEY,
       [context.getHandler(), context.getClass()]
     );
 
-    // If no roles are defined, grant access by default
     if (!requiredRoles) {
       return true;
     }
 
-    // Extract the user object from the request (assuming it&#x27;s populated by authentication middleware)
     const { user: data } &#x3D; context.switchToHttp().getRequest();
 
-    // Deny access if the user object or its role property is missing
     if (!data.user || !data.user.role) {
       return false;
     }
 
-    // Check if the user&#x27;s role matches any of the required roles for the route
     return requiredRoles.includes(data.user.role);
   }
 }

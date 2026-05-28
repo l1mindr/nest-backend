@@ -215,19 +215,6 @@
 
 
 
-        <p class="comment">
-            <h3>Description</h3>
-        </p>
-        <p class="comment">
-            <p>The <code>CommonModule</code> provides shared functionality across the application.
-It imports the <code>EnvModule</code> to handle environment variables and sets up a global
-validation pipeline using the <code>ValidationPipe</code> from NestJS.</p>
-<p>The validation pipe ensures that all incoming request data is validated according to the
-defined DTOs (Data Transfer Objects) and applies the validation rules set in <code>VALIDATION_PIPE_OPTIONS</code>.</p>
-<p>This module is designed to encapsulate common configurations and providers that will be used
-across the entire application.</p>
-
-        </p>
 
 
         <div class="container-fluid module">
@@ -262,40 +249,16 @@ across the entire application.</p>
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Module, ValidationPipe } from &#x27;@nestjs/common&#x27;;
 import { APP_INTERCEPTOR, APP_PIPE } from &#x27;@nestjs/core&#x27;;
 import { DataResponseInterceptor } from &#x27;./interceptors/data-response/data-response.interceptor&#x27;;
-import { EnvModule } from &#x27;infrastructure/config/env.module&#x27;;
 import { VALIDATION_PIPE_OPTIONS } from &#x27;./validation/validation.constants&#x27;;
+import { EnvModule } from &#x27;@infrastructure/config/env.module&#x27;;
 
-/**
- * The &#x60;CommonModule&#x60; provides shared functionality across the application.
- * It imports the &#x60;EnvModule&#x60; to handle environment variables and sets up a global
- * validation pipeline using the &#x60;ValidationPipe&#x60; from NestJS.
- *
- * The validation pipe ensures that all incoming request data is validated according to the
- * defined DTOs (Data Transfer Objects) and applies the validation rules set in &#x60;VALIDATION_PIPE_OPTIONS&#x60;.
- *
- * This module is designed to encapsulate common configurations and providers that will be used
- * across the entire application.
- */
 @Module({
-  /**
-   * &#x60;EnvModule&#x60; is imported to ensure that environment variable handling is available across the application.
-   */
   imports: [EnvModule],
-
-  /**
-   * The &#x60;providers&#x60; array sets up the global validation pipe and response interceptor.
-   * - &#x60;APP_PIPE&#x60; is a special NestJS token used to apply the validation pipe globally.
-   * - &#x60;useValue&#x60; is used to instantiate the &#x60;ValidationPipe&#x60; with predefined options from &#x60;VALIDATION_PIPE_OPTIONS&#x60;.
-   * - &#x60;APP_INTERCEPTOR&#x60; is used to apply the &#x60;DataResponseInterceptor&#x60; globally, modifying all outgoing responses.
-   */
   providers: [
-    /* Setting the ValidationPipe globally with custom validation options */
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe(VALIDATION_PIPE_OPTIONS)
     },
-
-    /* Setting the DataResponseInterceptor globally to format outgoing responses */
     {
       provide: APP_INTERCEPTOR,
       useClass: DataResponseInterceptor

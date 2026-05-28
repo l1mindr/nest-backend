@@ -174,6 +174,10 @@
                                     <span class="modifier">Async</span>
                                 <a href="#terminateOthers" >terminateOthers</a>
                             </li>
+                            <li>
+                                    <span class="modifier">Async</span>
+                                <a href="#updateRefreshState" >updateRefreshState</a>
+                            </li>
                         </ul>
                     </td>
                 </tr>
@@ -211,7 +215,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="11" class="link-to-prism">src/features/sessions/sessions.service.ts:11</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="12" class="link-to-prism">src/features/sessions/sessions.service.ts:12</a></div>
                             </td>
                         </tr>
 
@@ -269,15 +273,15 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>getActive(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, token: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                    <code>getActive(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, sessionId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="37"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:37</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="35"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:35</a></div>
                         </td>
                     </tr>
 
@@ -310,7 +314,7 @@
 
                                         </tr>
                                         <tr>
-                                                <td>token</td>
+                                                <td>sessionId</td>
                                             <td>
                                                             <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
@@ -350,15 +354,15 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>issue(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, token: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ip: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, device: <a href="../interfaces/IDevice.html" target="_self">IDevice</a>)</code>
+                    <code>issue(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ipAddress: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, userAgent: <a href="../interfaces/IUserAgent.html" target="_self">IUserAgent</a>, expiresAt: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date" target="_blank">Date</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="18"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:18</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="19"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:19</a></div>
                         </td>
                     </tr>
 
@@ -391,7 +395,7 @@
 
                                         </tr>
                                         <tr>
-                                                <td>token</td>
+                                                <td>ipAddress</td>
                                             <td>
                                                             <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
@@ -403,9 +407,9 @@
 
                                         </tr>
                                         <tr>
-                                                <td>ip</td>
+                                                <td>userAgent</td>
                                             <td>
-                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                                            <code><a href="../interfaces/IUserAgent.html" target="_self" >IUserAgent</a></code>
                                             </td>
 
                                             <td>
@@ -415,9 +419,9 @@
 
                                         </tr>
                                         <tr>
-                                                <td>device</td>
+                                                <td>expiresAt</td>
                                             <td>
-                                                            <code><a href="../interfaces/IDevice.html" target="_self" >IDevice</a></code>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date" target="_blank" >Date</a></code>
                                             </td>
 
                                             <td>
@@ -430,7 +434,7 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../entitys/Session.html" target="_self" >Promise&lt;Session&gt;</a></code>
+                            <b>Returns : </b>    <code>unknown</code>
 
                         </div>
                             <div class="io-description">
@@ -455,15 +459,15 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>list(undefined: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>)</code>
+                    <code>list(: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="49"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:49</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="48"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:48</a></div>
                         </td>
                     </tr>
 
@@ -498,7 +502,7 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../interfaces/ISessionWithCurrent.html" target="_self" >Promise&lt;ISessionWithCurrent[]&gt;</a></code>
+                            <b>Returns : </b>        <code><a href="../classes/SessionsDto.html" target="_self" >Promise&lt;SessionsDto[]&gt;</a></code>
 
                         </div>
                             <div class="io-description">
@@ -523,87 +527,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>revoke(undefined: <a href="../classes/User.html" target="_self">User</a>, token: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
-                </td>
-            </tr>
-
-
-                    <tr>
-                        <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="71"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:71</a></div>
-                        </td>
-                    </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                            <div class="io-description">
-                                <b>Parameters :</b>
-                                
-                                <table class="params">
-                                    <thead>
-                                        <tr>
-                                            <td>Name</td>
-                                                <td>Type</td>
-                                            <td>Optional</td>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>
-                                                            <code><a href="../classes/User.html" target="_self" >User</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-
-                                        </tr>
-                                        <tr>
-                                                <td>token</td>
-                                            <td>
-                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <div class="io-description">
-                            <b>Returns : </b>    <code>Promise&lt;void&gt;</code>
-
-                        </div>
-                            <div class="io-description">
-                                
-                            </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="terminateOthers"></a>
-                    <span class="name">
-                            <span class="modifier">Async</span>
-                        <span ><b>terminateOthers</b></span>
-                        <a href="#terminateOthers"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>terminateOthers(undefined: <a href="../classes/User.html" target="_self">User</a>, token: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                    <code>revoke(: <a href="../classes/User.html" target="_self">User</a>, sessionId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
                 </td>
             </tr>
 
@@ -643,9 +567,170 @@
 
                                         </tr>
                                         <tr>
-                                                <td>token</td>
+                                                <td>sessionId</td>
                                             <td>
                                                             <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>    <code>Promise&lt;void&gt;</code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="terminateOthers"></a>
+                    <span class="name">
+                            <span class="modifier">Async</span>
+                        <span ><b>terminateOthers</b></span>
+                        <a href="#terminateOthers"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>terminateOthers(: <a href="../classes/User.html" target="_self">User</a>, sessionId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="93"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:93</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                            <code><a href="../classes/User.html" target="_self" >User</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>sessionId</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>    <code>Promise&lt;void&gt;</code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="updateRefreshState"></a>
+                    <span class="name">
+                            <span class="modifier">Async</span>
+                        <span ><b>updateRefreshState</b></span>
+                        <a href="#updateRefreshState"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>updateRefreshState(session: <a href="../entitys/Session.html" target="_self">Session</a>, payload: <a href="../entitys/Session.html" target="_self">Partial&lt;Session&gt;</a>)</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="105"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:105</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>session</td>
+                                            <td>
+                                                            <code><a href="../entitys/Session.html" target="_self" >Session</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>payload</td>
+                                            <td>
+                                                            <code><a href="../entitys/Session.html" target="_self" >Partial&lt;Session&gt;</a></code>
                                             </td>
 
                                             <td>
@@ -690,7 +775,7 @@
                 </tr>
                             <tr>
                                 <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="14" class="link-to-prism">src/features/sessions/sessions.service.ts:14</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="15" class="link-to-prism">src/features/sessions/sessions.service.ts:15</a></div>
                                 </td>
                             </tr>
 
@@ -701,14 +786,15 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Injectable } from &#x27;@nestjs/common&#x27;;
-import { Session } from &#x27;features/sessions/entities/session.entity&#x27;;
-import { User } from &#x27;features/users/entities/user.entity&#x27;;
-import { CustomAuth } from &#x27;infrastructure/http/interfaces/custom-request.interface&#x27;;
-import { DataSource, Not, Raw, Repository } from &#x27;typeorm&#x27;;
-import { IDevice } from &#x27;./interfaces/device.interface&#x27;;
-import { ISessionWithCurrent } from &#x27;./interfaces/session-with-current.interface&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Session } from &#x27;@features/sessions/entities/session.entity&#x27;;
+import { User } from &#x27;@features/users/entities/user.entity&#x27;;
+import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
+import { Injectable } from &#x27;@nestjs/common&#x27;;
+import { randomUUID } from &#x27;crypto&#x27;;
+import { DataSource, MoreThan, Not, Repository } from &#x27;typeorm&#x27;;
+import { SessionsDto } from &#x27;./dto/sessions.dto&#x27;;
 import { ISessionsService } from &#x27;./interfaces/sessions.interface&#x27;;
+import { IUserAgent } from &#x27;./interfaces/user-agent.interface&#x27;;
 
 @Injectable()
 export class SessionsService implements ISessionsService {
@@ -720,75 +806,96 @@ export class SessionsService implements ISessionsService {
 
   async issue(
     userId: string,
-    token: string,
-    ip: string,
-    device: IDevice
-  ): Promise&lt;Session&gt; {
-    const session &#x3D; this.sessionRepo.create({
-      owner: {
-        id: userId
-      },
-      ip,
-      token,
-      device,
-      expiryDate: new Date(new Date().setMilliseconds(31 * 24 * 60 * 60 * 1000))
+    ipAddress: string,
+    userAgent: IUserAgent,
+    expiresAt: Date
+  ) {
+    return await this.sessionRepo.create({
+      owner: { id: userId },
+      ipAddress,
+      userAgent,
+      expiresAt,
+      lastUsedAt: new Date(),
+      refreshTokenHash: randomUUID()
     });
-
-    return this.sessionRepo.save(session);
   }
 
-  async getActive(userId: string, token: string): Promise&lt;Session | null&gt; {
+  async getActive(userId: string, sessionId: string): Promise&lt;Session | null&gt; {
     return this.sessionRepo.findOne({
       where: {
-        token,
+        id: sessionId,
+        isRevoked: false,
+        expiresAt: MoreThan(new Date()),
         owner: {
           id: userId
-        },
-        expiryDate: Raw((alias) &#x3D;&gt; &#x60;${alias} &gt; NOW()&#x60;)
+        }
       }
     });
   }
 
-  async list({
-    user: { id },
-    session: { token, ip, expiryDate, device }
-  }: CustomAuth): Promise&lt;ISessionWithCurrent[]&gt; {
+  async list({ user: { id }, session }: CustomAuth): Promise&lt;SessionsDto[]&gt; {
     const sessions &#x3D; await this.sessionRepo.find({
       where: {
         owner: { id },
-        token: Not(token)
+        isRevoked: false,
+        expiresAt: MoreThan(new Date()),
+        id: Not(session.id)
       },
-      select: [&#x27;device&#x27;, &#x27;expiryDate&#x27;, &#x27;ip&#x27;]
+      select: [&#x27;userAgent&#x27;, &#x27;expiresAt&#x27;, &#x27;ipAddress&#x27;]
     });
 
-    const currentSession: ISessionWithCurrent &#x3D; {
-      ip,
-      expiryDate,
-      device,
+    const currentSession: SessionsDto &#x3D; {
+      sessionId: session.id,
+      ipAddress: session.ipAddress,
+      expiresAt: session.expiresAt,
+      device: session.userAgent,
+      lastUsedAt: session.lastUsedAt,
       current: true
     };
 
-    return [currentSession, ...sessions];
+    const sessionsMap &#x3D; sessions.map((item): SessionsDto &#x3D;&gt; {
+      return {
+        sessionId: item.id,
+        ipAddress: item.ipAddress,
+        expiresAt: item.expiresAt,
+        device: item.userAgent,
+        lastUsedAt: item.lastUsedAt
+      };
+    });
+
+    return [currentSession, ...sessionsMap];
   }
 
-  async revoke({ id }: User, token: string): Promise&lt;void&gt; {
-    const session &#x3D; await this.sessionRepo.findOne({
-      where: {
+  async revoke({ id }: User, sessionId: string): Promise&lt;void&gt; {
+    await this.sessionRepo.update(
+      {
         owner: { id },
-        token
+        id: sessionId
+      },
+      {
+        isRevoked: true
       }
-    });
-    await this.sessionRepo.remove(session);
+    );
   }
 
-  async terminateOthers({ id }: User, token: string): Promise&lt;void&gt; {
-    const sessions &#x3D; await this.sessionRepo.find({
-      where: {
+  async terminateOthers({ id }: User, sessionId: string): Promise&lt;void&gt; {
+    await this.sessionRepo.update(
+      {
         owner: { id },
-        token: Not(token)
+        id: Not(sessionId)
+      },
+      {
+        isRevoked: true
       }
-    });
-    await this.sessionRepo.remove(sessions);
+    );
+  }
+
+  async updateRefreshState(
+    session: Session,
+    payload: Partial&lt;Session&gt;
+  ): Promise&lt;void&gt; {
+    Object.assign(session, payload);
+    await this.sessionRepo.save(session);
   }
 }
 </code></pre>

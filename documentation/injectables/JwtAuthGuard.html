@@ -134,22 +134,10 @@
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>src/features/auth/guards/jwt-auth.guard.ts</code>
+            <code>src/features/security/guards/jwt-auth.guard.ts</code>
         </p>
 
 
-            <p class="comment">
-                <h3>Description</h3>
-            </p>
-            <p class="comment">
-                <p>The <code>JwtAuthGuard</code> class is a custom guard that extends the
-built-in Passport <code>AuthGuard</code> for JWT authentication.</p>
-<p>It checks whether the current route is public (i.e., does not require authentication)
-by utilizing a reflector to retrieve the metadata defined by the <code>@Public()</code> decorator.
-If the route is public, it allows the request to proceed; otherwise, it invokes the
-default JWT authentication mechanism.</p>
-
-            </p>
 
             <p class="comment">
                 <h3>Extends</h3>
@@ -201,19 +189,12 @@ default JWT authentication mechanism.</p>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="22" class="link-to-prism">src/features/auth/guards/jwt-auth.guard.ts:22</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="11" class="link-to-prism">src/features/security/guards/jwt-auth.guard.ts:11</a></div>
                             </td>
                         </tr>
 
                 <tr>
                     <td class="col-md-4">
-                            <div class="io-description"><p>Creates an instance of JwtAuthGuard.</p>
-<p>metadata defined by decorators. This allows the guard to check if the
-current route is public (i.e., does not require authentication).</p>
-<p>The <code>private readonly</code> modifier indicates that this parameter is only
-accessible within the class and cannot be changed after initialization,
-ensuring the guard&#39;s integrity during its lifecycle.</p>
-</div>
                             <div>
                                     <b>Parameters :</b>
                                     <table class="params">
@@ -222,7 +203,6 @@ ensuring the guard&#39;s integrity during its lifecycle.</p>
                                                 <td>Name</td>
                                                     <td>Type</td>
                                                 <td>Optional</td>
-                                                    <td>Description</td>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -237,17 +217,6 @@ ensuring the guard&#39;s integrity during its lifecycle.</p>
                                                             No
                                                     </td>
                                                     
-                                                        <td>
-                                                                <ul>
-<li>An instance of the Reflector service used to access
-metadata defined by decorators. This allows the guard to check if the
-current route is public (i.e., does not require authentication).</li>
-</ul>
-<p>The <code>private readonly</code> modifier indicates that this parameter is only
-accessible within the class and cannot be changed after initialization,
-ensuring the guard&#39;s integrity during its lifecycle.</p>
-
-                                                        </td>
                                                 </tr>
                                         </tbody>
                                     </table>
@@ -283,16 +252,14 @@ ensuring the guard&#39;s integrity during its lifecycle.</p>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="44"
-                                    class="link-to-prism">src/features/auth/guards/jwt-auth.guard.ts:44</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="16"
+                                    class="link-to-prism">src/features/security/guards/jwt-auth.guard.ts:16</a></div>
                         </td>
                     </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                        <div class="io-description"><p>Determines if the request can be activated.</p>
-</div>
 
                             <div class="io-description">
                                 <b>Parameters :</b>
@@ -303,7 +270,6 @@ ensuring the guard&#39;s integrity during its lifecycle.</p>
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
-                                                <td>Description</td>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -318,12 +284,6 @@ ensuring the guard&#39;s integrity during its lifecycle.</p>
                                             </td>
 
 
-                                            <td>
-                                                    <ul>
-<li>The execution context for the request, containing details about the request and response.</li>
-</ul>
-
-                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -333,8 +293,7 @@ ensuring the guard&#39;s integrity during its lifecycle.</p>
 
                         </div>
                             <div class="io-description">
-                                <p>A boolean indicating whether the request is allowed.</p>
-
+                                
                             </div>
                 </td>
             </tr>
@@ -360,8 +319,8 @@ ensuring the guard&#39;s integrity during its lifecycle.</p>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="69"
-                                    class="link-to-prism">src/features/auth/guards/jwt-auth.guard.ts:69</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="27"
+                                    class="link-to-prism">src/features/security/guards/jwt-auth.guard.ts:27</a></div>
                         </td>
                     </tr>
 
@@ -429,67 +388,25 @@ ensuring the guard&#39;s integrity during its lifecycle.</p>
   ExecutionContext,
   Injectable,
   UnauthorizedException
-} from &#x27;@nestjs/common&#x27;; // Import necessary decorators and types from NestJS
-import { Reflector } from &#x27;@nestjs/core&#x27;; // Import Reflector to access metadata
-import { AuthGuard } from &#x27;@nestjs/passport&#x27;; // Import AuthGuard for Passport authentication
-import { IS_PUBLIC_KEY } from &#x27;features/auth/decorators/public.decorator&#x27;; // Import the public key metadata constant
+} from &#x27;@nestjs/common&#x27;;
+import { Reflector } from &#x27;@nestjs/core&#x27;;
+import { AuthGuard } from &#x27;@nestjs/passport&#x27;;
+import { IS_PUBLIC_KEY } from &#x27;../decorators/public.decorator&#x27;;
 
-/**
- * The &#x60;JwtAuthGuard&#x60; class is a custom guard that extends the
- * built-in Passport &#x60;AuthGuard&#x60; for JWT authentication.
- *
- * It checks whether the current route is public (i.e., does not require authentication)
- * by utilizing a reflector to retrieve the metadata defined by the &#x60;@Public()&#x60; decorator.
- * If the route is public, it allows the request to proceed; otherwise, it invokes the
- * default JWT authentication mechanism.
- *
- * @extends AuthGuard
- */
-@Injectable() // Marks the class as a provider that can be injected
+@Injectable()
 export class JwtAuthGuard extends AuthGuard(&#x27;jwt&#x27;) {
-  /**
-   * Creates an instance of JwtAuthGuard.
-   *
-   * @param reflector - An instance of the Reflector service used to access
-   * metadata defined by decorators. This allows the guard to check if the
-   * current route is public (i.e., does not require authentication).
-   *
-   * The &#x60;private readonly&#x60; modifier indicates that this parameter is only
-   * accessible within the class and cannot be changed after initialization,
-   * ensuring the guard&#x27;s integrity during its lifecycle.
-   */
   constructor(private readonly reflector: Reflector) {
     super();
   }
 
-  /**
-   * Determines if the request can be activated.
-   *
-   * @param context - The execution context for the request, containing details about the request and response.
-   * @returns A boolean indicating whether the request is allowed.
-   */
   canActivate(context: ExecutionContext) {
-    /**
-     * Check if the current route is marked as public.
-     * This retrieves the metadata set by the @Public() decorator,
-     * allowing us to determine if authentication is required for this route.
-     */
     const isPublic &#x3D; this.reflector.getAllAndOverride&lt;boolean&gt;(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass()
     ]);
 
-    /**
-     * If the route is public, allow access without authentication.
-     * Return true to indicate that the request should proceed.
-     */
     if (isPublic) return true;
 
-    /**
-     * Otherwise, use the default JWT authentication mechanism.
-     * Call the parent method for JWT authentication, which will
-     * validate the JWT token and ensure the user is authenticated.
-     */
     return super.canActivate(context);
   }
 

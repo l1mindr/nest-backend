@@ -138,14 +138,6 @@
         </p>
 
 
-            <p class="comment">
-                <h3>Description</h3>
-            </p>
-            <p class="comment">
-                <p>The <code>BcryptProvider</code> class implements the <code>HashingProvider</code> interface using bcrypt for hashing.
-It provides methods for hashing passwords and comparing plain text with hashed values.</p>
-
-            </p>
 
 
 
@@ -207,16 +199,14 @@ It provides methods for hashing passwords and comparing plain text with hashed v
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="32"
-                                    class="link-to-prism">src/features/auth/providers/bcrypt.provider.ts:32</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="12"
+                                    class="link-to-prism">src/features/auth/providers/bcrypt.provider.ts:12</a></div>
                         </td>
                     </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                        <div class="io-description"><p>Compares a given plain text data with an encrypted (hashed) string.</p>
-</div>
 
                             <div class="io-description">
                                 <b>Parameters :</b>
@@ -227,7 +217,6 @@ It provides methods for hashing passwords and comparing plain text with hashed v
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
-                                                <td>Description</td>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -242,12 +231,6 @@ It provides methods for hashing passwords and comparing plain text with hashed v
                                             </td>
 
 
-                                            <td>
-                                                    <ul>
-<li>The plain text data to compare (e.g., password).</li>
-</ul>
-
-                                            </td>
                                         </tr>
                                         <tr>
                                                 <td>encrypted</td>
@@ -260,12 +243,6 @@ It provides methods for hashing passwords and comparing plain text with hashed v
                                             </td>
 
 
-                                            <td>
-                                                    <ul>
-<li>The hashed value to compare against.</li>
-</ul>
-
-                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -275,8 +252,7 @@ It provides methods for hashing passwords and comparing plain text with hashed v
 
                         </div>
                             <div class="io-description">
-                                <p>A promise that resolves to a boolean indicating whether the data matches the hash.</p>
-
+                                
                             </div>
                 </td>
             </tr>
@@ -304,16 +280,14 @@ It provides methods for hashing passwords and comparing plain text with hashed v
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="20"
-                                    class="link-to-prism">src/features/auth/providers/bcrypt.provider.ts:20</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="7"
+                                    class="link-to-prism">src/features/auth/providers/bcrypt.provider.ts:7</a></div>
                         </td>
                     </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                        <div class="io-description"><p>Hashes a given data (string or buffer) using bcrypt.</p>
-</div>
 
                             <div class="io-description">
                                 <b>Parameters :</b>
@@ -325,7 +299,6 @@ It provides methods for hashing passwords and comparing plain text with hashed v
                                                 <td>Type</td>
                                             <td>Optional</td>
                                                 <td>Default value</td>
-                                                <td>Description</td>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -342,12 +315,6 @@ It provides methods for hashing passwords and comparing plain text with hashed v
                                             <td>
                                             </td>
 
-                                            <td>
-                                                    <ul>
-<li>The data to be hashed (typically a password).</li>
-</ul>
-
-                                            </td>
                                         </tr>
                                         <tr>
                                                 <td>roundsSalt</td>
@@ -363,12 +330,6 @@ It provides methods for hashing passwords and comparing plain text with hashed v
                                                     <code>10</code>
                                             </td>
 
-                                            <td>
-                                                    <ul>
-<li>The number of salt rounds for hashing (default is 10).</li>
-</ul>
-
-                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -378,8 +339,7 @@ It provides methods for hashing passwords and comparing plain text with hashed v
 
                         </div>
                             <div class="io-description">
-                                <p>A promise that resolves to the hashed string.</p>
-
+                                
                             </div>
                 </td>
             </tr>
@@ -395,35 +355,15 @@ It provides methods for hashing passwords and comparing plain text with hashed v
 import * as bcrypt from &#x27;bcrypt&#x27;;
 import { HashingProvider } from &#x27;./hashing.provider&#x27;;
 
-/**
- * The &#x60;BcryptProvider&#x60; class implements the &#x60;HashingProvider&#x60; interface using bcrypt for hashing.
- * It provides methods for hashing passwords and comparing plain text with hashed values.
- *
- * @implements HashingProvider
- */
 @Injectable()
 export class BcryptProvider implements HashingProvider {
-  /**
-   * Hashes a given data (string or buffer) using bcrypt.
-   *
-   * @param data - The data to be hashed (typically a password).
-   * @param roundsSalt - The number of salt rounds for hashing (default is 10).
-   * @returns A promise that resolves to the hashed string.
-   */
   async hash(data: string | Buffer, roundsSalt: number &#x3D; 10) {
-    const getSalt &#x3D; await bcrypt.genSalt(roundsSalt); // Generates a salt with specified rounds
-    return bcrypt.hash(data, getSalt); // Returns the hashed data
+    const getSalt &#x3D; await bcrypt.genSalt(roundsSalt);
+    return bcrypt.hash(data, getSalt);
   }
 
-  /**
-   * Compares a given plain text data with an encrypted (hashed) string.
-   *
-   * @param data - The plain text data to compare (e.g., password).
-   * @param encrypted - The hashed value to compare against.
-   * @returns A promise that resolves to a boolean indicating whether the data matches the hash.
-   */
   compare(data: string | Buffer, encrypted: string) {
-    return bcrypt.compare(data, encrypted); // Returns true if they match, false otherwise
+    return bcrypt.compare(data, encrypted);
   }
 }
 </code></pre>

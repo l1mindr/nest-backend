@@ -23,6 +23,7 @@ export default [
     plugins: {
       '@typescript-eslint': typescriptEslintEslintPlugin
     },
+    ignores: ['documentation/template-playground/**'],
     languageOptions: {
       globals: {
         ...globals.node,

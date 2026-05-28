@@ -142,25 +142,6 @@
         </p>
 
 
-            <p class="comment">
-                <h3>Description</h3>
-            </p>
-            <p class="comment">
-                <p>The <code>LoginUserDto</code> class defines the data transfer object
-for handling user login requests in the application.</p>
-<p>It captures the essential credentials needed for a user to
-authenticate themselves and grants access to their account.</p>
-<p>Validation Rules:</p>
-<ul>
-<li><code>email</code>: Must be a non-empty string, indicating that the user
-has provided either their email address or username. This
-flexibility allows users to log in with either credential.</li>
-<li><code>password</code>: Must meet predefined security standards as dictated
-by the <code>IsPassword</code> decorator, ensuring that the user provides a
-strong password for authentication.</li>
-</ul>
-
-            </p>
 
 
 
@@ -241,19 +222,10 @@ strong password for authentication.</li>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="35" class="link-to-prism">src/features/auth/dto/login-user.dto.ts:35</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="13" class="link-to-prism">src/features/auth/dto/login-user.dto.ts:13</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The user&#39;s email address or username.</p>
-<p>This field must not be empty and must be a string. It allows users
-to log in using either their email or username, providing flexibility
-in how users access their accounts.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -288,19 +260,10 @@ in how users access their accounts.</p>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="50" class="link-to-prism">src/features/auth/dto/login-user.dto.ts:50</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="21" class="link-to-prism">src/features/auth/dto/login-user.dto.ts:21</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The password for the user account.</p>
-<p>This field must comply with the security standards enforced by the
-<code>IsPassword</code> decorator. It ensures that the password is strong enough
-to protect the user&#39;s account from unauthorized access.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -316,33 +279,11 @@ to protect the user&#39;s account from unauthorized access.</p>
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { ApiProperty } from &#x27;@nestjs/swagger&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { IsPassword } from &#x27;@core/validators/decorators/is-password.decorator&#x27;;
+import { ApiProperty } from &#x27;@nestjs/swagger&#x27;;
 import { IsNotEmpty, IsString } from &#x27;class-validator&#x27;;
-import { IsPassword } from &#x27;core/validators/decorators/is-password.decorator&#x27;;
 
-/**
- * The &#x60;LoginUserDto&#x60; class defines the data transfer object
- * for handling user login requests in the application.
- *
- * It captures the essential credentials needed for a user to
- * authenticate themselves and grants access to their account.
- *
- * Validation Rules:
- * - &#x60;email&#x60;: Must be a non-empty string, indicating that the user
- *   has provided either their email address or username. This
- *   flexibility allows users to log in with either credential.
- * - &#x60;password&#x60;: Must meet predefined security standards as dictated
- *   by the &#x60;IsPassword&#x60; decorator, ensuring that the user provides a
- *   strong password for authentication.
- */
 export class LoginUserDto {
-  /**
-   * The user&#x27;s email address or username.
-   *
-   * This field must not be empty and must be a string. It allows users
-   * to log in using either their email or username, providing flexibility
-   * in how users access their accounts.
-   */
   @ApiProperty({
     description:
       &#x27;The email address or username of the user, must be a non-empty string.&#x27;,
@@ -352,13 +293,6 @@ export class LoginUserDto {
   @IsString()
   readonly email: string;
 
-  /**
-   * The password for the user account.
-   *
-   * This field must comply with the security standards enforced by the
-   * &#x60;IsPassword&#x60; decorator. It ensures that the password is strong enough
-   * to protect the user&#x27;s account from unauthorized access.
-   */
   @ApiProperty({
     description:
       &#x27;The password must meet security standards enforced by the application.&#x27;,

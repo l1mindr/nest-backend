@@ -145,15 +145,6 @@
         </p>
 
 
-            <p class="comment">
-                <h3>Description</h3>
-            </p>
-            <p class="comment">
-                <p>The <code>CustomRequest</code> interface extends the Express <code>Request</code> object by adding
-an <code>auth</code> property. This property contains authentication details such as the
-authenticated user and their active session.</p>
-
-            </p>
 
             <p class="comment">
                 <h3>Extends</h3>
@@ -222,14 +213,6 @@ authenticated user and their active session.</p>
 
 
 
-                            <tr>
-                                <td class="col-md-4">
-                                    <div class="io-description"><p>The authentication details associated with the request, including
-the authenticated user and their active session information.
-This property allows for type-safe access to the user&#39;s authentication context.</p>
-</div>
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
             </section>
@@ -238,41 +221,15 @@ This property allows for type-safe access to the user&#39;s authentication conte
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Request } from &#x27;express&#x27;;
-import { Session } from &#x27;features/sessions/entities/session.entity&#x27;;
-import { User } from &#x27;features/users/entities/user.entity&#x27;;
+import { Session } from &#x27;@features/sessions/entities/session.entity&#x27;;
+import { User } from &#x27;@features/users/entities/user.entity&#x27;;
 
-/**
- * The &#x60;CustomAuth&#x60; interface represents the authentication context of a request.
- * It contains the authenticated user and the session information.
- */
 export interface CustomAuth {
-  /**
-   * The authenticated &#x60;User&#x60; object, representing the logged-in user.
-   * This object contains user-specific data, such as username, email,
-   * roles, and permissions.
-   */
   readonly user: User;
-
-  /**
-   * The &#x60;Session&#x60; object representing the active session associated
-   * with the authenticated user. This object holds session-related
-   * information, such as session ID, timestamps, and any other
-   * session-specific data.
-   */
   readonly session: Session;
 }
 
-/**
- * The &#x60;CustomRequest&#x60; interface extends the Express &#x60;Request&#x60; object by adding
- * an &#x60;auth&#x60; property. This property contains authentication details such as the
- * authenticated user and their active session.
- */
 export interface CustomRequest extends Request {
-  /**
-   * The authentication details associated with the request, including
-   * the authenticated user and their active session information.
-   * This property allows for type-safe access to the user&#x27;s authentication context.
-   */
   readonly auth: CustomAuth;
 }
 </code></pre>

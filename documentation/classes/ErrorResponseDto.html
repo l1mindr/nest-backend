@@ -142,19 +142,6 @@
         </p>
 
 
-            <p class="comment">
-                <h3>Description</h3>
-            </p>
-            <p class="comment">
-                <p>ErrorResponseDto is a Data Transfer Object (DTO) that defines the structure of
-error responses returned to clients. It ensures that error information is
-consistent and includes key details such as the HTTP status code, error message,
-type of error, and additional context if available.</p>
-<p>This class is primarily used in the API to send structured error responses
-to clients, helping with better error handling, debugging, and client-side
-processing of errors.</p>
-
-            </p>
 
 
 
@@ -220,15 +207,12 @@ processing of errors.</p>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="87" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:87</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="39" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:39</a></div>
                             </td>
                         </tr>
 
                 <tr>
                     <td class="col-md-4">
-                            <div class="io-description"><p>Constructs a new ErrorResponseDto object. Initializes required fields with provided
-values and auto-generates the <code>timestamp</code> field to reflect the time of the error occurrence.</p>
-</div>
                             <div>
                                     <b>Parameters :</b>
                                     <table class="params">
@@ -237,7 +221,6 @@ values and auto-generates the <code>timestamp</code> field to reflect the time o
                                                 <td>Name</td>
                                                     <td>Type</td>
                                                 <td>Optional</td>
-                                                    <td>Description</td>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -252,12 +235,6 @@ values and auto-generates the <code>timestamp</code> field to reflect the time o
                                                             No
                                                     </td>
                                                     
-                                                        <td>
-                                                                <ul>
-<li>The HTTP status code associated with the error.</li>
-</ul>
-
-                                                        </td>
                                                 </tr>
                                                 <tr>
                                                         <td>message</td>
@@ -270,12 +247,6 @@ values and auto-generates the <code>timestamp</code> field to reflect the time o
                                                             No
                                                     </td>
                                                     
-                                                        <td>
-                                                                <ul>
-<li>A description of the error.</li>
-</ul>
-
-                                                        </td>
                                                 </tr>
                                                 <tr>
                                                         <td>error</td>
@@ -288,12 +259,6 @@ values and auto-generates the <code>timestamp</code> field to reflect the time o
                                                             No
                                                     </td>
                                                     
-                                                        <td>
-                                                                <ul>
-<li>A string identifying the type of error.</li>
-</ul>
-
-                                                        </td>
                                                 </tr>
                                                 <tr>
                                                         <td>path</td>
@@ -306,12 +271,6 @@ values and auto-generates the <code>timestamp</code> field to reflect the time o
                                                             No
                                                     </td>
                                                     
-                                                        <td>
-                                                                <ul>
-<li>The request path that caused the error.</li>
-</ul>
-
-                                                        </td>
                                                 </tr>
                                                 <tr>
                                                         <td>details</td>
@@ -324,12 +283,6 @@ values and auto-generates the <code>timestamp</code> field to reflect the time o
                                                             Yes
                                                     </td>
                                                     
-                                                        <td>
-                                                                <ul>
-<li>(Optional) Additional details regarding the error.</li>
-</ul>
-
-                                                        </td>
                                                 </tr>
                                         </tbody>
                                     </table>
@@ -375,18 +328,10 @@ values and auto-generates the <code>timestamp</code> field to reflect the time o
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="87" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:87</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="39" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:39</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Optional field for providing additional context or details about the error.
-This could include more specific information that may not be covered by
-the main error message or type.</p>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-html"></code></pre></div></div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -419,17 +364,10 @@ the main error message or type.</p>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="48" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:48</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="20" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:20</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>A string representing the type or name of the error. This could map to specific
-error types like &quot;BadRequest&quot;, &quot;ValidationError&quot;, etc.</p>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-html"></code></pre></div></div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -462,17 +400,10 @@ error types like &quot;BadRequest&quot;, &quot;ValidationError&quot;, etc.</p>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="36" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:36</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="14" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:14</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>A human-readable message that provides more information about the error.
-This message is intended to give users a clear explanation of what went wrong.</p>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-html"></code></pre></div></div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -505,17 +436,10 @@ This message is intended to give users a clear explanation of what went wrong.</
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="72" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:72</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="32" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:32</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The API request path that triggered the error. This helps in identifying
-which endpoint or resource was involved in causing the error.</p>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-html"></code></pre></div></div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -548,17 +472,10 @@ which endpoint or resource was involved in causing the error.</p>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="24" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:24</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="8" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:8</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The HTTP status code representing the type of error that occurred.
-Common status codes include 400 (Bad Request), 404 (Not Found), and 500 (Internal Server Error).</p>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-html"></code></pre></div></div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -591,17 +508,10 @@ Common status codes include 400 (Bad Request), 404 (Not Found), and 500 (Interna
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="60" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:60</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="26" class="link-to-prism">src/infrastructure/http/dto/error-response.dto.ts:26</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The timestamp when the error occurred, in ISO 8601 format.
-This is useful for tracking and logging purposes, especially in debugging scenarios.</p>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-html"></code></pre></div></div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -619,85 +529,37 @@ This is useful for tracking and logging purposes, especially in debugging scenar
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { ApiProperty } from &#x27;@nestjs/swagger&#x27;;
 
-/**
- * ErrorResponseDto is a Data Transfer Object (DTO) that defines the structure of
- * error responses returned to clients. It ensures that error information is
- * consistent and includes key details such as the HTTP status code, error message,
- * type of error, and additional context if available.
- *
- * This class is primarily used in the API to send structured error responses
- * to clients, helping with better error handling, debugging, and client-side
- * processing of errors.
- */
 export class ErrorResponseDto {
-  /**
-   * The HTTP status code representing the type of error that occurred.
-   * Common status codes include 400 (Bad Request), 404 (Not Found), and 500 (Internal Server Error).
-   *
-   * @example 400
-   */
   @ApiProperty({
     description: &#x27;HTTP status code of the error&#x27;,
     example: 400
   })
   statusCode: number;
 
-  /**
-   * A human-readable message that provides more information about the error.
-   * This message is intended to give users a clear explanation of what went wrong.
-   *
-   * @example &#x27;User already exists&#x27;
-   */
   @ApiProperty({
     description: &#x27;Description of the error&#x27;,
     example: &#x27;User already exists&#x27;
   })
   message: string;
 
-  /**
-   * A string representing the type or name of the error. This could map to specific
-   * error types like &quot;BadRequest&quot;, &quot;ValidationError&quot;, etc.
-   *
-   * @example &#x27;Unprocessable Entity&#x27;
-   */
   @ApiProperty({
     description: &#x27;Type of error&#x27;,
     example: &#x27;Unprocessable Entity&#x27;
   })
   error: string;
 
-  /**
-   * The timestamp when the error occurred, in ISO 8601 format.
-   * This is useful for tracking and logging purposes, especially in debugging scenarios.
-   *
-   * @example &#x27;2024-09-25T14:35:00.000Z&#x27;
-   */
   @ApiProperty({
     description: &#x27;Timestamp of the error occurrence&#x27;,
     example: &#x27;2024-09-25T14:35:00.000Z&#x27;
   })
   timestamp: string;
 
-  /**
-   * The API request path that triggered the error. This helps in identifying
-   * which endpoint or resource was involved in causing the error.
-   *
-   * @example &#x27;/api/users&#x27;
-   */
   @ApiProperty({
     description: &#x27;Path of the request that resulted in the error&#x27;,
     example: &#x27;/api/users&#x27;
   })
   path: string;
 
-  /**
-   * Optional field for providing additional context or details about the error.
-   * This could include more specific information that may not be covered by
-   * the main error message or type.
-   *
-   * @example &#x27;The email provided is already in use.&#x27;
-   * @optional
-   */
   @ApiProperty({
     description: &#x27;Additional details regarding the error&#x27;,
     example: &#x27;The email provided is already in use.&#x27;,
@@ -705,16 +567,6 @@ export class ErrorResponseDto {
   })
   details?: string;
 
-  /**
-   * Constructs a new ErrorResponseDto object. Initializes required fields with provided
-   * values and auto-generates the &#x60;timestamp&#x60; field to reflect the time of the error occurrence.
-   *
-   * @param statusCode - The HTTP status code associated with the error.
-   * @param message - A description of the error.
-   * @param error - A string identifying the type of error.
-   * @param path - The request path that caused the error.
-   * @param details - (Optional) Additional details regarding the error.
-   */
   constructor(
     statusCode: number,
     message: string,

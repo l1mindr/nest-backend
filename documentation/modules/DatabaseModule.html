@@ -136,18 +136,6 @@
 
 
 
-        <p class="comment">
-            <h3>Description</h3>
-        </p>
-        <p class="comment">
-            <p>The <code>DatabaseModule</code> is responsible for configuring and managing the application&#39;s database connection.
-It imports the <code>TypeOrmModule</code> and sets up the database connection asynchronously using the provided configuration.</p>
-<p>The <code>forRootAsync</code> method allows for dynamic database configuration, which can be particularly useful for loading
-database settings from external sources like environment variables, external configuration files, or APIs at runtime.</p>
-<p>This module acts as a centralized entry point for database-related functionality in the application, ensuring that
-the database connection is properly established and available throughout the app.</p>
-
-        </p>
 
 
         <div class="container-fluid module">
@@ -164,21 +152,7 @@ the database connection is properly established and available throughout the app
 import { TypeOrmModule } from &#x27;@nestjs/typeorm&#x27;;
 import databaseConfig from &#x27;./config/database.config&#x27;;
 
-/**
- * The &#x60;DatabaseModule&#x60; is responsible for configuring and managing the application&#x27;s database connection.
- * It imports the &#x60;TypeOrmModule&#x60; and sets up the database connection asynchronously using the provided configuration.
- *
- * The &#x60;forRootAsync&#x60; method allows for dynamic database configuration, which can be particularly useful for loading
- * database settings from external sources like environment variables, external configuration files, or APIs at runtime.
- *
- * This module acts as a centralized entry point for database-related functionality in the application, ensuring that
- * the database connection is properly established and available throughout the app.
- */
 @Module({
-  /**
-   * The &#x60;imports&#x60; array registers the &#x60;TypeOrmModule&#x60; and configures it using the async provider method from
-   * the &#x60;databaseConfig&#x60; object. The configuration is dynamically loaded, ensuring flexibility in setting up the database connection.
-   */
   imports: [TypeOrmModule.forRootAsync(databaseConfig.asProvider())]
 })
 export class DatabaseModule {}

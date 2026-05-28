@@ -136,18 +136,6 @@
 
 
 
-        <p class="comment">
-            <h3>Description</h3>
-        </p>
-        <p class="comment">
-            <p>The <code>EnvModule</code> is responsible for loading and validating environment variables in the application.
-It leverages the <code>ConfigModule</code> from NestJS to manage configuration settings and ensure
-that required environment variables are correctly set.</p>
-<p>The module also validates the environment variables using the <code>ENV_VALIDATION_SCHEMA</code>
-to prevent misconfiguration, making sure that all required environment variables are present and valid.
-Additionally, <code>expandVariables</code> is enabled to support nested environment variables.</p>
-
-        </p>
 
 
         <div class="container-fluid module">
@@ -164,27 +152,13 @@ Additionally, <code>expandVariables</code> is enabled to support nested environm
 import { ConfigModule } from &#x27;@nestjs/config&#x27;;
 import { ENV_VALIDATION_SCHEMA } from &#x27;./env.constants&#x27;;
 
-/**
- * The &#x60;EnvModule&#x60; is responsible for loading and validating environment variables in the application.
- * It leverages the &#x60;ConfigModule&#x60; from NestJS to manage configuration settings and ensure
- * that required environment variables are correctly set.
- *
- * The module also validates the environment variables using the &#x60;ENV_VALIDATION_SCHEMA&#x60;
- * to prevent misconfiguration, making sure that all required environment variables are present and valid.
- * Additionally, &#x60;expandVariables&#x60; is enabled to support nested environment variables.
- */
 @Module({
-  /**
-   * The &#x60;imports&#x60; array registers the &#x60;ConfigModule&#x60; and sets it up to:
-   * - &#x60;expandVariables&#x60;: This option allows for environment variable substitution, enabling variables
-   *   to reference other environment variables (e.g., &#x60;DATABASE_URL&#x60; can contain parts of other variables).
-   * - &#x60;validationSchema&#x60;: This defines the schema used to validate the environment variables, ensuring
-   *   that all required variables are correctly set. The validation schema is defined in &#x60;ENV_VALIDATION_SCHEMA&#x60;.
-   */
   imports: [
     ConfigModule.forRoot({
+      isGlobal: true,
       expandVariables: true,
-      validationSchema: ENV_VALIDATION_SCHEMA
+      validationSchema: ENV_VALIDATION_SCHEMA,
+      envFilePath: [&#x60;.env.${process.env.NODE_ENV}&#x60;, &#x27;.env&#x27;]
     })
   ]
 })

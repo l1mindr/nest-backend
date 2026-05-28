@@ -142,19 +142,6 @@
         </p>
 
 
-            <p class="comment">
-                <h3>Description</h3>
-            </p>
-            <p class="comment">
-                <p>The <code>IdDto</code> class is a Data Transfer Object (DTO) used to validate and transfer an entity&#39;s unique identifier.
-This class ensures that the provided <code>id</code> is both a valid string and a valid UUID format.</p>
-<p>The DTO uses decorators from <code>class-validator</code> to enforce these validation rules.</p>
-<p>Fields:</p>
-<ul>
-<li><code>id</code>: A required string that must be a valid UUID, ensuring proper formatting and uniqueness.</li>
-</ul>
-
-            </p>
 
 
 
@@ -229,17 +216,10 @@ This class ensures that the provided <code>id</code> is both a valid string and 
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="45" class="link-to-prism">src/infrastructure/http/dto/id.dto.ts:45</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="10" class="link-to-prism">src/infrastructure/http/dto/id.dto.ts:10</a></div>
                         </td>
                     </tr>
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>The &#39;id&#39; property represents a unique identifier for a user or resource.
-This identifier must be a string and must conform to the UUID format.</p>
-</div>
-                </td>
-            </tr>
 
         </tbody>
     </table>
@@ -258,47 +238,12 @@ This identifier must be a string and must conform to the UUID format.</p>
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { ApiProperty } from &#x27;@nestjs/swagger&#x27;;
 import { IsString, IsUUID } from &#x27;class-validator&#x27;;
 
-/**
- * The &#x60;IdDto&#x60; class is a Data Transfer Object (DTO) used to validate and transfer an entity&#x27;s unique identifier.
- * This class ensures that the provided &#x60;id&#x60; is both a valid string and a valid UUID format.
- *
- * The DTO uses decorators from &#x60;class-validator&#x60; to enforce these validation rules.
- *
- * Fields:
- * - &#x60;id&#x60;: A required string that must be a valid UUID, ensuring proper formatting and uniqueness.
- */
 export class IdDto {
-  /**
-   * The &#x27;id&#x27; property represents a unique identifier for a user or resource.
-   * This identifier must be a string and must conform to the UUID format.
-   */
   @ApiProperty({
-    /**
-     * Description of the ID property, specifying that it must be a string
-     * and adhere to the UUID format. This helps ensure correct usage
-     * when interacting with the API.
-     */
     description: &#x27;The ID must be a string that conforms to the UUID format&#x27;
   })
-
-  /**
-   * Ensures the value assigned to &#x27;id&#x27; is of type string.
-   * This validation helps catch type errors early in the request lifecycle.
-   */
   @IsString()
-
-  /**
-   * Validates that the string is a valid UUID.
-   * This ensures that the ID follows the expected UUID structure,
-   * which is critical for unique identification of resources.
-   */
   @IsUUID()
-
-  /**
-   * Declares the property as read-only, meaning it cannot be modified
-   * after the instance of this DTO is created. This is a common practice
-   * for ID fields to ensure data integrity.
-   */
   readonly id: string;
 }
 </code></pre>

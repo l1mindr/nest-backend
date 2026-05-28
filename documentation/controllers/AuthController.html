@@ -163,11 +163,20 @@
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
+                                    <span class="modifier">Async</span>
+                                <a href="#refreshSession" >refreshSession</a>
+                            </li>
+                            <li>
+                                    <span class="modifier"></span>
+                                    <span class="modifier"></span>
+                                    <span class="modifier"></span>
+                                    <span class="modifier"></span>
                                     <span class="modifier"></span>
                                     <span class="modifier">Async</span>
                                 <a href="#signInUser" >signInUser</a>
                             </li>
                             <li>
+                                    <span class="modifier"></span>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
@@ -215,14 +224,14 @@
                 <td class="col-md-4">
                     <b>Decorators : </b>
                     <br />
-                    <code>@HttpCode(HttpStatus.NO_CONTENT)<br />@Post(&#x27;change-password&#x27;)<br />@ApiChangePassword()<br /></code>
+                    <code>@Post(&#x27;change-password&#x27;)<br />@HttpCode(HttpStatus.NO_CONTENT)<br />@ApiChangePassword()<br /></code>
                 </td>
             </tr>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="55"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:55</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="67"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:67</a></div>
                         </td>
                     </tr>
 
@@ -284,6 +293,86 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
+                    <a name="refreshSession"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                            <span class="modifier"></span>
+                            <span class="modifier"></span>
+                            <span class="modifier"></span>
+                            <span class="modifier">Async</span>
+                        <span ><b>refreshSession</b></span>
+                        <a href="#refreshSession"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>refreshSession(req: Request)</code>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <b>Decorators : </b>
+                    <br />
+                    <code>@Public()<br />@Post(&#x27;refresh&#x27;)<br />@HttpCode(HttpStatus.OK)<br />@UseInterceptors(AuthCookieInterceptor)<br /></code>
+                </td>
+            </tr>
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="60"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:60</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>req</td>
+                                            <td>
+                                                        <code>Request</code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>    <code>unknown</code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
                     <a name="signInUser"></a>
                     <span class="name">
                             <span class="modifier"></span>
@@ -300,7 +389,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>signInUser(loginUserDto: <a href="../classes/LoginUserDto.html" target="_self">LoginUserDto</a>, ip: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, device: <a href="../interfaces/IDevice.html" target="_self">IDevice</a>)</code>
+                    <code>signInUser(loginUserDto: <a href="../classes/LoginUserDto.html" target="_self">LoginUserDto</a>, ipAddress: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, userAgent: <a href="../interfaces/IUserAgent.html" target="_self">IUserAgent</a>)</code>
                 </td>
             </tr>
 
@@ -314,8 +403,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="44"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:44</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="47"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:47</a></div>
                         </td>
                     </tr>
 
@@ -348,7 +437,7 @@
 
                                         </tr>
                                         <tr>
-                                                <td>ip</td>
+                                                <td>ipAddress</td>
                                             <td>
                                                             <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
@@ -360,9 +449,9 @@
 
                                         </tr>
                                         <tr>
-                                                <td>device</td>
+                                                <td>userAgent</td>
                                             <td>
-                                                            <code><a href="../interfaces/IDevice.html" target="_self" >IDevice</a></code>
+                                                            <code><a href="../interfaces/IUserAgent.html" target="_self" >IUserAgent</a></code>
                                             </td>
 
                                             <td>
@@ -394,6 +483,7 @@
                             <span class="modifier"></span>
                             <span class="modifier"></span>
                             <span class="modifier"></span>
+                            <span class="modifier"></span>
                         <span ><b>signUpUser</b></span>
                         <a href="#signUpUser"><span class="icon ion-ios-link"></span></a>
                     </span>
@@ -410,14 +500,14 @@
                 <td class="col-md-4">
                     <b>Decorators : </b>
                     <br />
-                    <code>@Public()<br />@Post(&#x27;register&#x27;)<br />@ApiRegisterUser()<br /></code>
+                    <code>@Public()<br />@Post(&#x27;register&#x27;)<br />@HttpCode(HttpStatus.CREATED)<br />@ApiRegisterUser()<br /></code>
                 </td>
             </tr>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="35"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:35</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="38"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:38</a></div>
                         </td>
                     </tr>
 
@@ -467,17 +557,20 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import {
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Public } from &#x27;@features/security/decorators/public.decorator&#x27;;
+import { IUserAgent } from &#x27;@features/sessions/interfaces/user-agent.interface&#x27;;
+import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
+import {
   Body,
   Controller,
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   UseInterceptors
 } from &#x27;@nestjs/common&#x27;;
 import { ApiTags } from &#x27;@nestjs/swagger&#x27;;
-import { IDevice } from &#x27;features/sessions/interfaces/device.interface&#x27;;
-import { CustomAuth } from &#x27;infrastructure/http/interfaces/custom-request.interface&#x27;;
+import { Request } from &#x27;express&#x27;;
 import { ChangePasswordDto } from &#x27;../users/dto/change-password.dto&#x27;;
 import { AuthService } from &#x27;./auth.service&#x27;;
 import {
@@ -486,7 +579,6 @@ import {
   ApiRegisterUser
 } from &#x27;./auth.swagger&#x27;;
 import { IpAddress } from &#x27;./decorators/ipAddress.decorator&#x27;;
-import { Public } from &#x27;./decorators/public.decorator&#x27;;
 import { User } from &#x27;./decorators/user.decorator&#x27;;
 import { UserAgent } from &#x27;./decorators/userAgent.decorator&#x27;;
 import { LoginUserDto } from &#x27;./dto/login-user.dto&#x27;;
@@ -500,6 +592,7 @@ export class AuthController {
 
   @Public()
   @Post(&#x27;register&#x27;)
+  @HttpCode(HttpStatus.CREATED)
   @ApiRegisterUser()
   signUpUser(@Body() registerUserDto: RegisterUserDto) {
     return this.authService.registerUser(registerUserDto);
@@ -512,14 +605,23 @@ export class AuthController {
   @ApiLoginUser()
   async signInUser(
     @Body() loginUserDto: LoginUserDto,
-    @IpAddress() ip: string,
-    @UserAgent() device: IDevice
+    @IpAddress() ipAddress: string,
+    @UserAgent() userAgent: IUserAgent
   ) {
-    return await this.authService.loginUser(loginUserDto, ip, device);
+    return await this.authService.loginUser(loginUserDto, ipAddress, userAgent);
   }
 
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @Public()
+  @Post(&#x27;refresh&#x27;)
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(AuthCookieInterceptor)
+  // @ApiLoginUser()
+  async refreshSession(@Req() req: Request) {
+    return await this.authService.refresh(req.cookies.refresh_token);
+  }
+
   @Post(&#x27;change-password&#x27;)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiChangePassword()
   changePassword(
     @User() authData: CustomAuth,

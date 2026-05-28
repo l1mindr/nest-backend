@@ -138,22 +138,6 @@
         </p>
 
 
-            <p class="comment">
-                <h3>Description</h3>
-            </p>
-            <p class="comment">
-                <p>The DataResponseInterceptor class is a globally applied interceptor that modifies the structure of
-HTTP responses in a NestJS application. It implements the NestInterceptor interface, allowing it to
-intercept and transform responses before they are sent to the client.</p>
-<p>The primary responsibility of this interceptor is to append an <code>apiVersion</code> field to every response,
-indicating the version of the API being used. The API version is determined from the request itself,
-and if no version is specified, it defaults to &#39;1&#39;.</p>
-<p>This interceptor leverages RxJS&#39;s <code>map</code> operator to modify the response object by wrapping the original
-response data along with the <code>apiVersion</code>, ensuring consistent response formatting across the application.</p>
-<p>It is typically used in APIs where versioning is important, and response consistency is desired across
-multiple endpoints.</p>
-
-            </p>
 
 
 
@@ -211,16 +195,14 @@ multiple endpoints.</p>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="33"
-                                    class="link-to-prism">src/core/common/interceptors/data-response/data-response.interceptor.ts:33</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="11"
+                                    class="link-to-prism">src/core/common/interceptors/data-response/data-response.interceptor.ts:11</a></div>
                         </td>
                     </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                        <div class="io-description"><p>The intercept method intercepts the execution context and modifies the response.</p>
-</div>
 
                             <div class="io-description">
                                 <b>Parameters :</b>
@@ -231,7 +213,6 @@ multiple endpoints.</p>
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
-                                                <td>Description</td>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -246,12 +227,6 @@ multiple endpoints.</p>
                                             </td>
 
 
-                                            <td>
-                                                    <ul>
-<li>ExecutionContext gives access to the request and its details.</li>
-</ul>
-
-                                            </td>
                                         </tr>
                                         <tr>
                                                 <td>next</td>
@@ -264,12 +239,6 @@ multiple endpoints.</p>
                                             </td>
 
 
-                                            <td>
-                                                    <ul>
-<li>CallHandler provides a handle() method to delegate to the next action in the pipeline.</li>
-</ul>
-
-                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -279,8 +248,7 @@ multiple endpoints.</p>
 
                         </div>
                             <div class="io-description">
-                                <p>Observable that wraps the modified response.</p>
-
+                                
                             </div>
                 </td>
             </tr>
@@ -300,35 +268,9 @@ multiple endpoints.</p>
 } from &#x27;@nestjs/common&#x27;;
 import { map, Observable } from &#x27;rxjs&#x27;;
 
-/**
- * The DataResponseInterceptor class is a globally applied interceptor that modifies the structure of
- * HTTP responses in a NestJS application. It implements the NestInterceptor interface, allowing it to
- * intercept and transform responses before they are sent to the client.
- *
- * The primary responsibility of this interceptor is to append an &#x60;apiVersion&#x60; field to every response,
- * indicating the version of the API being used. The API version is determined from the request itself,
- * and if no version is specified, it defaults to &#x27;1&#x27;.
- *
- * This interceptor leverages RxJS&#x27;s &#x60;map&#x60; operator to modify the response object by wrapping the original
- * response data along with the &#x60;apiVersion&#x60;, ensuring consistent response formatting across the application.
- *
- * It is typically used in APIs where versioning is important, and response consistency is desired across
- * multiple endpoints.
- */
 @Injectable()
 export class DataResponseInterceptor implements NestInterceptor {
-  /**
-   * The intercept method intercepts the execution context and modifies the response.
-   *
-   * @param context - ExecutionContext gives access to the request and its details.
-   * @param next - CallHandler provides a handle() method to delegate to the next action in the pipeline.
-   * @returns Observable that wraps the modified response.
-   */
   intercept(context: ExecutionContext, next: CallHandler): Observable&lt;any&gt; {
-    /**
-     * Passing the request to the next handler in the pipeline.
-     * The map operator is used to transform the response data by adding an &#x60;apiVersion&#x60; field.
-     */
     return next.handle().pipe(
       map((data) &#x3D;&gt; {
         if (data)
