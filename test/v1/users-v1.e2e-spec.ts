@@ -35,7 +35,7 @@ describe('Users (e2e) version: 1', () => {
     expect(res.body.data.email).toBeDefined();
     expect(res.body.data.username).toBeDefined();
     expect(res.body.data.role).toBeDefined();
-    expect(res.body.data.registeredAt).toBeDefined();
+    expect(res.body.data.joinedAt).toBeDefined();
   });
 
   it('should fail if user is not authenticated', async () => {
