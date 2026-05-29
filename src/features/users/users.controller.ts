@@ -10,7 +10,6 @@ import {
   Put
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 import {
   ApiChangeProfile,
@@ -19,6 +18,7 @@ import {
 } from './users.swagger';
 import { Serialize } from '@core/common/decorators/serialize.decorator';
 import { UserProfileResponseDto } from './dto/response/user-profile.response.dto';
+import { UpdateUserRequestDto } from './dto/request/update-user.request.dto';
 
 @Controller({
   path: 'user',
@@ -41,9 +41,9 @@ export class UsersController {
   @ApiChangeProfile()
   changeProfile(
     @User('user') user: UserEntity,
-    @Body() updateUserDto: UpdateUserDto
+    @Body() updateUserRequestDto: UpdateUserRequestDto
   ) {
-    return this.usersService.updateProfile(user.id, updateUserDto);
+    return this.usersService.updateProfile(user.id, updateUserRequestDto);
   }
 
   @Delete('delete-account')

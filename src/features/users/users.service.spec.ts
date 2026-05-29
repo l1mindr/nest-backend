@@ -2,7 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, Repository } from 'typeorm';
 import { CreateUserRequestDto } from './dto/request/create-user.request.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserRequestDto } from './dto/request/update-user.request.dto';
 import { User } from './entities/user.entity';
 import { UserStatus } from './enums/user-status.enum';
 import { UsersService } from './users.service';
@@ -119,7 +119,7 @@ describe('UsersService', () => {
     repo.update.mockResolvedValue({} as any);
 
     await expect(
-      service.updateProfile(userId, { name: 'Updated' } as UpdateUserDto)
+      service.updateProfile(userId, { name: 'Updated' } as UpdateUserRequestDto)
     ).resolves.toBeUndefined();
     expect(repo.update).toHaveBeenCalledWith(
       { id: userId },
@@ -132,7 +132,7 @@ describe('UsersService', () => {
     await expect(
       service.updateProfile(
         '550e8400-e29b-41d4-a716-446655440000',
-        {} as UpdateUserDto
+        {} as UpdateUserRequestDto
       )
     ).rejects.toThrow(NotFoundException);
   });

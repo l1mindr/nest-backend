@@ -1,4 +1,3 @@
-import { UpdateUserDto } from '@features/users/dto/update-user.dto';
 import { User } from '@features/users/entities/user.entity';
 import { IUsersService } from '@features/users/interfaces/users.interface';
 import {
@@ -8,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { DataSource, FindOptionsSelect, Repository } from 'typeorm';
 import { CreateUserRequestDto } from './dto/request/create-user.request.dto';
+import { UpdateUserRequestDto } from './dto/request/update-user.request.dto';
 
 @Injectable()
 export class UsersService implements IUsersService {
@@ -73,10 +73,13 @@ export class UsersService implements IUsersService {
     return this.userRepo.find();
   }
 
-  async updateProfile(id: string, updateUserDto: UpdateUserDto): Promise<void> {
+  async updateProfile(
+    id: string,
+    updateUserRequestDto: UpdateUserRequestDto
+  ): Promise<void> {
     try {
       await this.findById(id);
-      await this.userRepo.update({ id }, updateUserDto);
+      await this.userRepo.update({ id }, updateUserRequestDto);
     } catch (error: any) {
       this.handleUniqueConstraintError(error);
     }
