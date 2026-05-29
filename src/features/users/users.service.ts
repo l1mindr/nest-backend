@@ -1,4 +1,3 @@
-import { CreateUserDto } from '@features/users/dto/create-user.dto';
 import { UpdateUserDto } from '@features/users/dto/update-user.dto';
 import { User } from '@features/users/entities/user.entity';
 import { IUsersService } from '@features/users/interfaces/users.interface';
@@ -8,6 +7,7 @@ import {
   UnprocessableEntityException
 } from '@nestjs/common';
 import { DataSource, FindOptionsSelect, Repository } from 'typeorm';
+import { CreateUserRequestDto } from './dto/request/create-user.request.dto';
 
 @Injectable()
 export class UsersService implements IUsersService {
@@ -60,9 +60,9 @@ export class UsersService implements IUsersService {
     await this.userRepo.update({ id: userid }, { password: hashPassword });
   }
 
-  async register(createUserDto: CreateUserDto): Promise<void> {
+  async register(createUserRequestDto: CreateUserRequestDto): Promise<void> {
     try {
-      const user = this.userRepo.create(createUserDto);
+      const user = this.userRepo.create(createUserRequestDto);
       await this.userRepo.save(user);
     } catch (error: any) {
       this.handleUniqueConstraintError(error);

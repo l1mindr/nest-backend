@@ -1,24 +1,27 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsOptional, Length } from 'class-validator';
 import { IsPassword } from '@core/validators/decorators/is-password.decorator';
 import { IsUsername } from '@core/validators/decorators/is-username.decorator';
-import { UserStatus } from '../enums/user-status.enum';
+import { UserStatus } from '@features/users/enums/user-status.enum';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+import { IsEmail, IsEnum, IsOptional, MaxLength } from 'class-validator';
 
-export class CreateUserDto {
+export class CreateUserRequestDto {
   @ApiProperty({
     description: 'A valid email address for the user',
     example: 'test@gmail.com'
   })
+  @Transform(({ value }) => value.trim().toLowerCase())
   @IsEmail()
-  readonly email: string;
+  email: string;
 
   @ApiProperty({
     description:
       'Username consisting of lowercase characters, numbers, & special characters (_), with a length between 3 and 30 characters',
     example: 'test_122'
   })
+  @Transform(({ value }) => value.trim().toLowerCase())
   @IsUsername()
-  readonly username: string;
+  username: string;
 
   @ApiProperty({
     description:
@@ -26,7 +29,7 @@ export class CreateUserDto {
     example: 'test@1234'
   })
   @IsPassword()
-  readonly password: string;
+  password: string;
 
   @ApiPropertyOptional({
     enum: UserStatus,
@@ -36,13 +39,13 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsEnum(UserStatus)
-  readonly status?: UserStatus;
+  status?: UserStatus;
 
   @ApiPropertyOptional({
     description: 'User name, limited to a maximum of 30 characters',
     example: 'mohmadreza mosalli'
   })
   @IsOptional()
-  @Length(0, 30)
-  readonly name?: string;
+  @MaxLength(30)
+  name?: string | null;
 }

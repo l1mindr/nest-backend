@@ -1,9 +1,9 @@
-import { CreateUserDto } from '../dto/create-user.dto';
+import { CreateUserRequestDto } from '../dto/request/create-user.request.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
 
 export interface IUsersService {
-  register(dto: CreateUserDto): Promise<void>;
+  register(dto: CreateUserRequestDto): Promise<void>;
   list(): Promise<User[]>;
   findByIdentifierForAuth(identifier: string): Promise<User | null>;
   findByIdForSessionValidation(userId: string): Promise<User | null>;

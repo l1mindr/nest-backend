@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, Repository } from 'typeorm';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserRequestDto } from './dto/request/create-user.request.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { UserStatus } from './enums/user-status.enum';
@@ -75,7 +75,7 @@ describe('UsersService', () => {
 
   // ----------------- register -----------------
   it('register should create and save user successfully', async () => {
-    const dto: CreateUserDto = {
+    const dto: CreateUserRequestDto = {
       email: 'a@test.com',
       username: 'user1',
       password: 'password'
