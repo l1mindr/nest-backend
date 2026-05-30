@@ -1,34 +1,18 @@
-import { IsPassword } from '@core/validators/decorators/is-password.decorator';
-import { IsUsername } from '@core/validators/decorators/is-username.decorator';
+import { EmailField } from '@core/common/decorators/fields/email-field.decorator';
+import { PasswordField } from '@core/common/decorators/fields/password-field.decorator';
+import { UsernameField } from '@core/common/decorators/fields/username-field.decorator';
 import { UserStatus } from '@features/users/enums/user-status.enum';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsEmail, IsEnum, IsOptional, MaxLength } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsOptional, MaxLength } from 'class-validator';
 
 export class CreateUserRequestDto {
-  @ApiProperty({
-    description: 'A valid email address for the user',
-    example: 'test@gmail.com'
-  })
-  @Transform(({ value }) => value.trim().toLowerCase())
-  @IsEmail()
+  @EmailField()
   email: string;
 
-  @ApiProperty({
-    description:
-      'Username consisting of lowercase characters, numbers, & special characters (_), with a length between 3 and 30 characters',
-    example: 'test_122'
-  })
-  @Transform(({ value }) => value.trim().toLowerCase())
-  @IsUsername()
+  @UsernameField()
   username: string;
 
-  @ApiProperty({
-    description:
-      'Password must include numbers, letters, special characters (@#$%^!&*(_+)=), and must be between 8 and 20 characters long',
-    example: 'test@1234'
-  })
-  @IsPassword()
+  @PasswordField()
   password: string;
 
   @ApiPropertyOptional({
