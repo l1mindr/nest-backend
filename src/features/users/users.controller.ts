@@ -41,9 +41,9 @@ export class UsersController {
   @ApiChangeProfile()
   changeProfile(
     @User('user') user: UserEntity,
-    @Body() updateUserRequestDto: UpdateUserRequestDto
+    @Body() dto: UpdateUserRequestDto
   ) {
-    return this.usersService.updateProfile(user.id, updateUserRequestDto);
+    return this.usersService.updateProfile(user.id, dto);
   }
 
   @Delete('delete-account')
