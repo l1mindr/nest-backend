@@ -9,10 +9,10 @@ import {
   UnauthorizedException
 } from '@nestjs/common';
 import { ChangePasswordDto } from '../users/dto/change-password.dto';
-import { LoginUserDto } from './dto/login-user.dto';
-import { RegisterUserDto } from './dto/register-user.dto';
 import { AuthTokens, IAuthService } from './interfaces/auth.interface';
 import { HashingProvider } from './providers/hashing.provider';
+import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
+import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
 
 @Injectable()
 export class AuthService implements IAuthService {
@@ -23,17 +23,17 @@ export class AuthService implements IAuthService {
     private readonly tokenService: TokenService
   ) {}
 
-  async registerUser(registerUserDto: RegisterUserDto): Promise<void> {
-    const password = await this.hashingProvider.hash(registerUserDto.password);
+  async registerUser(dto: RegisterUserRequestDto): Promise<void> {
+    const password = await this.hashingProvider.hash(dto.password);
 
     return this.usersService.register({
-      ...registerUserDto,
+      ...dto,
       password
     });
   }
 
   async loginUser(
-    { email, password }: LoginUserDto,
+    { email, password }: LoginUserRequestDto,
     ipAddress: string,
     userAgent: IUserAgent
   ): Promise<AuthTokens> {

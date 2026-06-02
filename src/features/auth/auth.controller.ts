@@ -22,9 +22,9 @@ import {
 import { IpAddress } from './decorators/ipAddress.decorator';
 import { User } from './decorators/user.decorator';
 import { UserAgent } from './decorators/userAgent.decorator';
-import { LoginUserDto } from './dto/login-user.dto';
 import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
 import { AuthCookieInterceptor } from './interceptors/auth-cookie.interceptor';
+import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
 
 @Controller({ path: 'auth', version: '1' })
 @ApiTags('auth')
@@ -45,18 +45,18 @@ export class AuthController {
   @UseInterceptors(AuthCookieInterceptor)
   @ApiLoginUser()
   async signInUser(
-    @Body() loginUserDto: LoginUserDto,
+    @Body() dto: LoginUserRequestDto,
     @IpAddress() ipAddress: string,
     @UserAgent() userAgent: IUserAgent
   ) {
-    return await this.authService.loginUser(loginUserDto, ipAddress, userAgent);
+    return await this.authService.loginUser(dto, ipAddress, userAgent);
   }
 
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(AuthCookieInterceptor)
-  // @ApiLoginUser()
+  @ApiLoginUser()
   async refreshSession(@Req() req: Request) {
     return await this.authService.refresh(req.cookies.refresh_token);
   }

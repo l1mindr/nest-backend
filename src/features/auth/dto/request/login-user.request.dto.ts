@@ -1,8 +1,8 @@
-import { IsPassword } from '@core/validators/decorators/is-password.decorator';
+import { PasswordField } from '@core/common/decorators/fields/password-field.decorator';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 
-export class LoginUserDto {
+export class LoginUserRequestDto {
   @ApiProperty({
     description:
       'The email address or username of the user, must be a non-empty string.',
@@ -12,11 +12,6 @@ export class LoginUserDto {
   @IsString()
   readonly email: string;
 
-  @ApiProperty({
-    description:
-      'The password must meet security standards enforced by the application.',
-    example: 'SecurePassword@1234'
-  })
-  @IsPassword()
+  @PasswordField()
   readonly password: string;
 }
