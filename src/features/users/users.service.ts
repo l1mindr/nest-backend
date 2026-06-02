@@ -1,13 +1,10 @@
 import { User } from '@features/users/entities/user.entity';
 import { IUsersService } from '@features/users/interfaces/users.interface';
-import {
-  Injectable,
-  NotFoundException,
-  UnprocessableEntityException
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { DataSource, FindOptionsSelect, Repository } from 'typeorm';
 import { CreateUserRequestDto } from './dto/request/create-user.request.dto';
 import { UpdateUserRequestDto } from './dto/request/update-user.request.dto';
+import { UserErrors } from './errors/user-errors';
 
 @Injectable()
 export class UsersService implements IUsersService {
@@ -52,7 +49,7 @@ export class UsersService implements IUsersService {
 
   async findById(id: string): Promise<User> {
     const user = await this.findByIdWithSelect(id, { id: true });
-    if (!user) throw new NotFoundException();
+    if (!user) throw UserErrors.userNotFound(id);
     return user;
   }
 
@@ -95,11 +92,9 @@ export class UsersService implements IUsersService {
     if (error.code === '23505') {
       const detail: string = error.detail ?? '';
 
-      if (detail.includes('email'))
-        throw new UnprocessableEntityException('email already exists');
+      if (detail.includes('email')) throw UserErrors.emailAlreadyExists();
 
-      if (detail.includes('username'))
-        throw new UnprocessableEntityException('username already exists');
+      if (detail.includes('username')) throw UserErrors.usernameAlreadyExists();
     }
 
     throw error;
