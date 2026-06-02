@@ -1,6 +1,8 @@
+import { Serialize } from '@core/common/decorators/serialize.decorator';
 import { User } from '@features/auth/decorators/user.decorator';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { Controller, Delete, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { SessionResponseDto } from './dto/response/session.response.dto';
 import { SessionsService } from './sessions.service';
 import {
   ApiGetSessions,
@@ -18,6 +20,7 @@ export class SessionsController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiGetSessions()
+  @Serialize(SessionResponseDto)
   getAll(@User() customAuth: CustomAuth) {
     return this.sessionsService.list(customAuth);
   }

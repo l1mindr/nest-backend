@@ -1,7 +1,7 @@
 import { User } from '@features/users/entities/user.entity';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
-import { SessionsDto } from '../dto/sessions.dto';
 import { Session } from '../entities/session.entity';
+import { SessionListItem } from '../types/session-list-item.type';
 import { IUserAgent } from './user-agent.interface';
 
 export interface ISessionsService {
@@ -12,7 +12,7 @@ export interface ISessionsService {
     userAgent: IUserAgent,
     expiresAt: Date
   ): Promise<Session>;
-  list(customAuth: CustomAuth): Promise<SessionsDto[]>;
+  list(customAuth: CustomAuth): Promise<SessionListItem[]>;
   revoke(user: User, sessionId: string): Promise<void>;
   terminateOthers(user: User, sessionId: string): Promise<void>;
   updateRefreshState(

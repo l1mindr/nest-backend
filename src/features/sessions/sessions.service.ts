@@ -4,9 +4,9 @@ import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.inter
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { DataSource, MoreThan, Not, Repository } from 'typeorm';
-import { SessionsDto } from './dto/sessions.dto';
 import { ISessionsService } from './interfaces/sessions.interface';
 import { IUserAgent } from './interfaces/user-agent.interface';
+import { SessionListItem } from './types/session-list-item.type';
 
 @Injectable()
 export class SessionsService implements ISessionsService {
@@ -45,7 +45,10 @@ export class SessionsService implements ISessionsService {
     });
   }
 
-  async list({ user: { id }, session }: CustomAuth): Promise<SessionsDto[]> {
+  async list({
+    user: { id },
+    session
+  }: CustomAuth): Promise<SessionListItem[]> {
     const sessions = await this.sessionRepo.find({
       where: {
         owner: { id },
@@ -56,26 +59,7 @@ export class SessionsService implements ISessionsService {
       select: ['userAgent', 'expiresAt', 'ipAddress']
     });
 
-    const currentSession: SessionsDto = {
-      sessionId: session.id,
-      ipAddress: session.ipAddress,
-      expiresAt: session.expiresAt,
-      device: session.userAgent,
-      lastUsedAt: session.lastUsedAt,
-      current: true
-    };
-
-    const sessionsMap = sessions.map((item): SessionsDto => {
-      return {
-        sessionId: item.id,
-        ipAddress: item.ipAddress,
-        expiresAt: item.expiresAt,
-        device: item.userAgent,
-        lastUsedAt: item.lastUsedAt
-      };
-    });
-
-    return [currentSession, ...sessionsMap];
+    return [{ ...session, current: true }, ...sessions];
   }
 
   async revoke({ id }: User, sessionId: string): Promise<void> {
