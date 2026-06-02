@@ -1,16 +1,15 @@
+import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
 import { SessionsService } from '@features/sessions/sessions.service';
+import { TokenErrors } from '@features/token/errors/token-errors';
 import { TokenService } from '@features/token/token.service';
 import { UsersService } from '@features/users/users.service';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
 import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
+import { AuthErrors } from './errors/auth-errors';
 import { AuthTokens, IAuthService } from './interfaces/auth.interface';
 import { HashingProvider } from './providers/hashing.provider';
 
@@ -39,11 +38,11 @@ export class AuthService implements IAuthService {
   ): Promise<AuthTokens> {
     const user = await this.usersService.findByIdentifierForAuth(email);
 
-    if (!user) throw new UnauthorizedException('invalid credentials');
+    if (!user) throw AuthErrors.invalidCredentials();
 
     const isMatch = await this.hashingProvider.compare(password, user.password);
 
-    if (!isMatch) throw new UnauthorizedException('invalid credentials');
+    if (!isMatch) throw AuthErrors.invalidCredentials();
 
     const now = Date.now();
     const expiresAt = this.tokenService.createExpirationDate(now);
@@ -79,7 +78,7 @@ export class AuthService implements IAuthService {
       user.id
     );
 
-    if (!userWithPassword) throw new UnauthorizedException('invalid token');
+    if (!userWithPassword) throw TokenErrors.invalidToken();
 
     // Verify current password
     const isMatch = await this.hashingProvider.compare(
@@ -87,7 +86,7 @@ export class AuthService implements IAuthService {
       userWithPassword.password
     );
 
-    if (!isMatch) throw new BadRequestException('invalid current password');
+    if (!isMatch) throw AuthErrors.invalidCurrentPassword();
 
     // Check new password is different
     const isSame = await this.hashingProvider.compare(
@@ -95,7 +94,7 @@ export class AuthService implements IAuthService {
       userWithPassword.password
     );
 
-    if (isSame) throw new BadRequestException('new password must be different');
+    if (isSame) throw AuthErrors.passwordMustBeDifferent();
 
     // Hash new password and update
     const password = await this.hashingProvider.hash(newPassword);
@@ -109,7 +108,7 @@ export class AuthService implements IAuthService {
 
     const session = await this.sessionsService.getActive(sub, sessionId);
 
-    if (!session) throw new UnauthorizedException('session expired');
+    if (!session) throw SessionErrors.sessionExpired();
 
     const isValidRefreshToken = await this.hashingProvider.compare(
       refreshToken,
@@ -120,8 +119,7 @@ export class AuthService implements IAuthService {
       await this.sessionsService.updateRefreshState(session, {
         isRevoked: true
       });
-
-      throw new UnauthorizedException('refresh token reuse detected');
+      throw SessionErrors.sessionReuseDetected(sessionId);
     }
 
     const now = Date.now();
