@@ -12,7 +12,6 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
-import { ChangePasswordDto } from '../users/dto/change-password.dto';
 import { AuthService } from './auth.service';
 import {
   ApiChangePassword,
@@ -22,9 +21,10 @@ import {
 import { IpAddress } from './decorators/ipAddress.decorator';
 import { User } from './decorators/user.decorator';
 import { UserAgent } from './decorators/userAgent.decorator';
+import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
+import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
 import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
 import { AuthCookieInterceptor } from './interceptors/auth-cookie.interceptor';
-import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
 
 @Controller({ path: 'auth', version: '1' })
 @ApiTags('auth')
@@ -66,8 +66,8 @@ export class AuthController {
   @ApiChangePassword()
   changePassword(
     @User() authData: CustomAuth,
-    @Body() changePasswordDto: ChangePasswordDto
+    @Body() dto: ChangePasswordRequestDto
   ) {
-    return this.authService.changeUserPassword(authData, changePasswordDto);
+    return this.authService.changeUserPassword(authData, dto);
   }
 }

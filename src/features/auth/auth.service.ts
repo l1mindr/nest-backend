@@ -8,11 +8,11 @@ import {
   Injectable,
   UnauthorizedException
 } from '@nestjs/common';
-import { ChangePasswordDto } from '../users/dto/change-password.dto';
+import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
+import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
+import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
 import { AuthTokens, IAuthService } from './interfaces/auth.interface';
 import { HashingProvider } from './providers/hashing.provider';
-import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
-import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
 
 @Injectable()
 export class AuthService implements IAuthService {
@@ -73,7 +73,7 @@ export class AuthService implements IAuthService {
 
   async changeUserPassword(
     { user, session }: CustomAuth,
-    { currentPassword, newPassword }: ChangePasswordDto
+    { currentPassword, newPassword }: ChangePasswordRequestDto
   ): Promise<void> {
     const userWithPassword = await this.usersService.findByIdWithPassword(
       user.id
@@ -100,7 +100,7 @@ export class AuthService implements IAuthService {
     // Hash new password and update
     const password = await this.hashingProvider.hash(newPassword);
     await this.usersService.setPassword(user.id, password);
-    await this.sessionsService.terminateOthers(user, session.refreshTokenHash);
+    await this.sessionsService.terminateOthers(user, session.id);
   }
 
   async refresh(refreshToken: string) {
