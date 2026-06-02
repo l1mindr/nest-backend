@@ -7,8 +7,8 @@ import {
   ApiInternalServerErrorResponse,
   ApiCookieAuth
 } from '@nestjs/swagger';
-import { LoginResponseDto } from './dto/login-response.dto';
 import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
+import { LoginUserResponseDto } from './dto/response/login-user.response.dto';
 
 export function ApiRegisterUser() {
   return applyDecorators(
@@ -33,7 +33,7 @@ export function ApiLoginUser() {
     ApiResponse({
       status: 200,
       description: 'Successfully logged in, JWT set in HttpOnly cookie',
-      type: LoginResponseDto
+      type: LoginUserResponseDto
     }),
     ApiBadRequestResponse({
       description: 'Invalid credentials'

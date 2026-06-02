@@ -1,13 +1,13 @@
 import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
 import { ChangePasswordDto } from '@features/users/dto/change-password.dto';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
-import { LoginUserDto } from '../dto/login-user.dto';
-import { RegisterUserDto } from '../dto/register-user.dto';
+import { LoginUserRequestDto } from '../dto/request/login-user.request.dto';
+import { RegisterUserRequestDto } from '../dto/request/register-user.request.dto';
 
 export interface IAuthService {
-  registerUser(registerUserDto: RegisterUserDto): Promise<void>;
+  registerUser(dto: RegisterUserRequestDto): Promise<void>;
   loginUser(
-    loginUserDto: LoginUserDto,
+    dto: LoginUserRequestDto,
     ipAddress: string,
     userAgent: IUserAgent
   ): Promise<AuthTokens>;
