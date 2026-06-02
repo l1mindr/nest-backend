@@ -1,8 +1,10 @@
+import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { SessionsService } from '@features/sessions/sessions.service';
 import { UsersService } from '@features/users/users.service';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { TokenErrors } from './errors/token-errors';
 import { IJwtPayload } from './interfaces/jwt-payload.interface';
 import { ITokenService } from './interfaces/token.interface';
 
@@ -58,11 +60,11 @@ export class TokenService implements ITokenService {
   async validatePayload({ sub, sessionId }: IJwtPayload): Promise<CustomAuth> {
     const user = await this.usersService.findByIdForSessionValidation(sub);
 
-    if (!user) throw new UnauthorizedException('invalid token');
+    if (!user) throw TokenErrors.invalidToken();
 
     const session = await this.sessionsService.getActive(user.id, sessionId);
 
-    if (!session) throw new UnauthorizedException('session expired');
+    if (!session) throw SessionErrors.sessionExpired(sessionId);
 
     return { user, session };
   }
