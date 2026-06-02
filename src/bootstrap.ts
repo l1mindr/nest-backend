@@ -1,4 +1,3 @@
-import { HttpExceptionFilter } from '@core/common/filters/http-exception.filter';
 import { INestApplication, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import compression from 'compression';
@@ -32,6 +31,4 @@ export async function setupApp(app: INestApplication) {
   });
 
   app.use(cookieParser());
-
-  app.useGlobalFilters(new HttpExceptionFilter());
 }
