@@ -7,8 +7,8 @@ import {
   ApiInternalServerErrorResponse,
   ApiCookieAuth
 } from '@nestjs/swagger';
-import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
 
 export function ApiRegisterUser() {
   return applyDecorators(
@@ -16,7 +16,7 @@ export function ApiRegisterUser() {
     ApiResponse({
       status: 201,
       description: 'User successfully registered',
-      type: RegisterUserDto
+      type: RegisterUserRequestDto
     }),
     ApiBadRequestResponse({
       description: 'Invalid input data'
