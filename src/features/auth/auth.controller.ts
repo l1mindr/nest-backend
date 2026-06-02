@@ -23,7 +23,7 @@ import { IpAddress } from './decorators/ipAddress.decorator';
 import { User } from './decorators/user.decorator';
 import { UserAgent } from './decorators/userAgent.decorator';
 import { LoginUserDto } from './dto/login-user.dto';
-import { RegisterUserDto } from './dto/register-user.dto';
+import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
 import { AuthCookieInterceptor } from './interceptors/auth-cookie.interceptor';
 
 @Controller({ path: 'auth', version: '1' })
@@ -35,8 +35,8 @@ export class AuthController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiRegisterUser()
-  signUpUser(@Body() registerUserDto: RegisterUserDto) {
-    return this.authService.registerUser(registerUserDto);
+  signUpUser(@Body() dto: RegisterUserRequestDto) {
+    return this.authService.registerUser(dto);
   }
 
   @Public()
