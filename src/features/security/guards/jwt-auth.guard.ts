@@ -1,8 +1,8 @@
-import { TokenErrors } from '@features/token/errors/token-errors';
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { SecurityErrors } from '../errors/security-errors';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -22,7 +22,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   handleRequest(err, user) {
-    if (err || !user) throw TokenErrors.invalidToken();
+    if (err || !user) {
+      throw SecurityErrors.authenticationRequired();
+    }
 
     return user;
   }

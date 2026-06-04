@@ -5,5 +5,6 @@ export enum ErrorDomain {
   TOKEN = 'TOKEN',
   SYSTEM = 'SYSTEM',
   HTTP = 'HTTP',
-  VALIDATION = 'VALIDATION'
+  VALIDATION = 'VALIDATION',
+  SECURITY = 'SECURITY'
 }
