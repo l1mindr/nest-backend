@@ -1,3 +1,4 @@
+import { User } from '@features/users/entities/user.entity';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';

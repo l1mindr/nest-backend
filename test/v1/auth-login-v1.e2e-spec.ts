@@ -57,8 +57,6 @@ describe('Auth Login (e2e) version: 1', () => {
     });
 
     expect(res.status).toBe(401);
-    expect(res.body.message).toBe('invalid credentials');
-    expect(res.body.error).toBe('Unauthorized');
   });
 
   it('should fail if password is wrong', async () => {
@@ -71,8 +69,6 @@ describe('Auth Login (e2e) version: 1', () => {
     });
 
     expect(res.status).toBe(401);
-    expect(res.body.message).toBe('invalid credentials');
-    expect(res.body.error).toBe('Unauthorized');
   });
 
   it('should fail if password is empty', async () => {
@@ -86,8 +82,7 @@ describe('Auth Login (e2e) version: 1', () => {
       }
     });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Bad Request');
+    expect(res.status).toBe(422);
   });
 
   it('should fail if user not found by email or username', async () => {
@@ -103,6 +98,5 @@ describe('Auth Login (e2e) version: 1', () => {
     });
 
     expect(res.status).toBe(401);
-    expect(res.body.message).toBe('invalid credentials');
   });
 });

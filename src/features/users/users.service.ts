@@ -27,7 +27,11 @@ export class UsersService implements IUsersService {
   async findByIdentifierForAuth(identifier: string): Promise<User | null> {
     return this.userRepo.findOne({
       where: [{ email: identifier }, { username: identifier }],
-      select: { id: true, password: true, status: true }
+      select: {
+        id: true,
+        password: true,
+        status: true
+      }
     });
   }
 

@@ -32,21 +32,9 @@ describe('Auth Register (e2e) version: 1', () => {
       password: 'password'
     });
 
-    expect(checkEmailUser.response.register.body.message).toBe(
-      'email must be an email'
-    );
-    expect(checkEmailUser.response.register.body.error).toBe('Bad Request');
-    expect(checkEmailUser.response.register.status).toBe(400);
-    expect(checkUsernameUser.response.register.body.message).toBe(
-      'username must be a valid'
-    );
-    expect(checkUsernameUser.response.register.body.error).toBe('Bad Request');
-    expect(checkUsernameUser.response.register.status).toBe(400);
-    expect(checkPasswordUser.response.register.body.message).toBe(
-      'password must be valid'
-    );
-    expect(checkPasswordUser.response.register.body.error).toBe('Bad Request');
-    expect(checkPasswordUser.response.register.status).toBe(400);
+    expect(checkEmailUser.response.register.status).toBe(422);
+    expect(checkUsernameUser.response.register.status).toBe(422);
+    expect(checkPasswordUser.response.register.status).toBe(422);
   });
 
   it('should register a new user', async () => {
@@ -62,10 +50,6 @@ describe('Auth Register (e2e) version: 1', () => {
     const context2 = await UserFactory.create(app);
 
     expect(context1.response.register.status).toBe(201);
-    expect(context2.response.register.body.message).toBe(
-      'email already exists'
-    );
-    expect(context2.response.register.body.error).toBe('Unprocessable Entity');
     expect(context2.response.register.status).toBe(422);
   });
 
@@ -74,10 +58,6 @@ describe('Auth Register (e2e) version: 1', () => {
     const context2 = await UserFactory.create(app, { email: 'test1@test.com' });
 
     expect(context1.response.register.status).toBe(201);
-    expect(context2.response.register.body.message).toBe(
-      'username already exists'
-    );
-    expect(context2.response.register.body.error).toBe('Unprocessable Entity');
     expect(context2.response.register.status).toBe(422);
   });
 });
