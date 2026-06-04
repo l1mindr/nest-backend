@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { AppError } from './app.error';
+import { DomainErrorCode } from './domain-error-code.enum';
 import { ErrorDomain } from './error-domain.enum';
 
 export class ErrorMapper {
@@ -18,7 +19,7 @@ export class ErrorMapper {
           : ((response as any)?.message ?? 'HTTP Error');
 
       return new AppError(
-        'HTTP_EXCEPTION',
+        DomainErrorCode.HTTP_EXCEPTION,
         ErrorDomain.HTTP,
         status,
         (response as any)?.errors,
@@ -28,7 +29,7 @@ export class ErrorMapper {
 
     // Unknown errors
     return new AppError(
-      'INTERNAL_ERROR',
+      DomainErrorCode.INTERNAL_ERROR,
       ErrorDomain.SYSTEM,
       HttpStatus.INTERNAL_SERVER_ERROR,
       undefined,
