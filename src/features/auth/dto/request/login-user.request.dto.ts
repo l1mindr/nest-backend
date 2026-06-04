@@ -1,5 +1,6 @@
 import { PasswordField } from '@core/common/decorators/fields/password-field.decorator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 export class LoginUserRequestDto {
@@ -10,8 +11,9 @@ export class LoginUserRequestDto {
   })
   @IsNotEmpty()
   @IsString()
-  readonly email: string;
+  @Transform(({ value }) => value.trim().toLowerCase())
+  email: string;
 
   @PasswordField()
-  readonly password: string;
+  password: string;
 }

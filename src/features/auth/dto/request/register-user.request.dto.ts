@@ -4,11 +4,11 @@ import { UsernameField } from '@core/common/decorators/fields/username-field.dec
 
 export class RegisterUserRequestDto {
   @EmailField()
-  readonly email: string;
+  email: string;
 
   @UsernameField()
-  readonly username: string;
+  username: string;
 
   @PasswordField()
-  readonly password: string;
+  password: string;
 }
