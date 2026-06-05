@@ -46,7 +46,7 @@ export class AuthService implements IAuthService {
 
     if (!isMatch) throw AuthErrors.invalidCredentials();
 
-    const { now, expiresAt } = this.clockService.createAuthTimestamps();
+    const { now, expiresAt } = this.clockService.snapshot();
 
     const session = await this.sessionsService.issue(
       user.id,
@@ -65,7 +65,8 @@ export class AuthService implements IAuthService {
     const refreshTokenHash = await this.hashingProvider.hash(refreshToken);
 
     await this.sessionsService.updateRefreshState(session, {
-      refreshTokenHash
+      refreshTokenHash,
+      lastUsedAt: new Date(now)
     });
 
     return { accessToken, refreshToken };
@@ -123,7 +124,7 @@ export class AuthService implements IAuthService {
       throw SessionErrors.sessionReuseDetected(sessionId);
     }
 
-    const { now, expiresAt } = this.clockService.createAuthTimestamps();
+    const { now, expiresAt } = this.clockService.snapshot();
 
     const tokens = await this.tokenService.issuePair(
       session.owner.id,
@@ -136,7 +137,7 @@ export class AuthService implements IAuthService {
 
     await this.sessionsService.updateRefreshState(session, {
       refreshTokenHash,
-      lastUsedAt: new Date(),
+      lastUsedAt: new Date(now),
       expiresAt
     });
 

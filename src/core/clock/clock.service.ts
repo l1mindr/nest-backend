@@ -7,12 +7,16 @@ export class ClockService {
     return Date.now();
   }
 
-  createAuthTimestamps() {
+  addDaysFrom(ms: number, days: number): Date {
+    return new Date(ms + days * TimeConstants.MS_PER_DAY);
+  }
+
+  snapshot() {
     const now = this.nowMs();
 
     return {
       now,
-      expiresAt: new Date(now + TimeConstants.MS_PER_DAY)
+      expiresAt: this.addDaysFrom(now, 7)
     };
   }
 }
