@@ -16,10 +16,6 @@ export class TokenService implements ITokenService {
     private readonly sessionsService: SessionsService
   ) {}
 
-  createExpirationDate(now: number): Date {
-    return new Date(now + 7 * 24 * 60 * 60 * 1000);
-  }
-
   async issuePair(
     userId: string,
     sessionId: string,

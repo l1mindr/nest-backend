@@ -1,3 +1,4 @@
+import { ClockService } from '@core/clock/clock.service';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
 import { SessionsService } from '@features/sessions/sessions.service';
@@ -16,6 +17,7 @@ import { HashingProvider } from './providers/hashing.provider';
 @Injectable()
 export class AuthService implements IAuthService {
   constructor(
+    private readonly clockService: ClockService,
     private readonly hashingProvider: HashingProvider,
     private readonly sessionsService: SessionsService,
     private readonly usersService: UsersService,
@@ -44,8 +46,7 @@ export class AuthService implements IAuthService {
 
     if (!isMatch) throw AuthErrors.invalidCredentials();
 
-    const now = Date.now();
-    const expiresAt = this.tokenService.createExpirationDate(now);
+    const { now, expiresAt } = this.clockService.createAuthTimestamps();
 
     const session = await this.sessionsService.issue(
       user.id,
@@ -122,8 +123,7 @@ export class AuthService implements IAuthService {
       throw SessionErrors.sessionReuseDetected(sessionId);
     }
 
-    const now = Date.now();
-    const expiresAt = this.tokenService.createExpirationDate(now);
+    const { now, expiresAt } = this.clockService.createAuthTimestamps();
 
     const tokens = await this.tokenService.issuePair(
       session.owner.id,
