@@ -100,6 +100,18 @@ const Configuration: UserConfig = {
 
           config: {
             description: 'Configuration'
+          },
+
+          deps: {
+            description: 'Update dependencies'
+          },
+
+          core: {
+            description: 'Core module'
+          },
+
+          device: {
+            description: 'Device module'
           }
         }
       }

@@ -5341,6 +5341,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"detect-europe-js@npm:^0.1.2":
+  version: 0.1.2
+  resolution: "detect-europe-js@npm:0.1.2"
+  checksum: 10c0/46fccf2a9ddeec8ecb7a369be1452f84856cbd0ccdeb3c47e41fe6c9d69f63d6bd75f91b5aa1ae310e56d8fbcbff0e802b1504cdcc3a92f3327c94408e6d07a2
+  languageName: node
+  linkType: hard
+
 "detect-newline@npm:^3.0.0":
   version: 3.1.0
   resolution: "detect-newline@npm:3.1.0"
@@ -6954,6 +6961,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"is-standalone-pwa@npm:^0.1.1":
+  version: 0.1.1
+  resolution: "is-standalone-pwa@npm:0.1.1"
+  checksum: 10c0/af1a11edef4a8f00c24014576285070fb73eebb3583cae790c0a825e338e19f05048a26e5fd5ef10f6056032d6a4520054ff824532c15df784933c0fcc5e13fd
+  languageName: node
+  linkType: hard
+
 "is-stream@npm:^2.0.0":
   version: 2.0.1
   resolution: "is-stream@npm:2.0.1"
@@ -8471,6 +8485,7 @@ __metadata:
     tsconfig-paths: "npm:^4.2.0"
     typeorm: "npm:^0.3.28"
     typescript: "npm:^5.9.3"
+    ua-parser-js: "npm:^2.0.10"
   languageName: unknown
   linkType: soft
 
@@ -10633,6 +10648,26 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10c0/ad09fdf7a756814dce65bc60c1657b40d44451346858eea230e10f2e95a289d9183b6e32e5c11e95acc0ccc214b4f36289dcad4bf1886b0adb84d711d336a430
+  languageName: node
+  linkType: hard
+
+"ua-is-frozen@npm:^0.1.2":
+  version: 0.1.2
+  resolution: "ua-is-frozen@npm:0.1.2"
+  checksum: 10c0/fb41929bd4924c9676391e6d7197d30580749a96697a83c8b6e77fb137e3ff8492dcd1e6f871f6a9517848651a93af37bfefb25385f16d90e19678ade22d30b7
+  languageName: node
+  linkType: hard
+
+"ua-parser-js@npm:^2.0.10":
+  version: 2.0.10
+  resolution: "ua-parser-js@npm:2.0.10"
+  dependencies:
+    detect-europe-js: "npm:^0.1.2"
+    is-standalone-pwa: "npm:^0.1.1"
+    ua-is-frozen: "npm:^0.1.2"
+  bin:
+    ua-parser-js: script/cli.js
+  checksum: 10c0/77d4dbc6047a2f06ee96bfa6bf496d4325a7076d6e97cfdd1f6b09477cbc5b82fd81b035c103b1b5a8711f09dd7f5acd4940eecefbe942546cc2f5a0ee7345c5
   languageName: node
   linkType: hard
 
