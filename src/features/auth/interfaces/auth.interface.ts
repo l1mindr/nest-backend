@@ -1,4 +1,4 @@
-import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
+import { DeviceContext } from '@core/device/context/device-context.interface';
 import { ChangePasswordDto } from '@features/users/dto/change-password.dto';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { LoginUserRequestDto } from '../dto/request/login-user.request.dto';
@@ -9,7 +9,7 @@ export interface IAuthService {
   loginUser(
     dto: LoginUserRequestDto,
     ipAddress: string,
-    userAgent: IUserAgent
+    device: DeviceContext
   ): Promise<AuthTokens>;
   changeUserPassword(
     customAuth: CustomAuth,

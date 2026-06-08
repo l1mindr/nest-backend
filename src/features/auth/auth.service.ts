@@ -1,6 +1,7 @@
 import { ClockService } from '@core/clock/clock.service';
+import { DeviceContext } from '@core/device/context/device-context.interface';
+import { DeviceMapper } from '@core/device/mappers/device.mapper';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
-import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
 import { SessionsService } from '@features/sessions/sessions.service';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import { TokenService } from '@features/token/token.service';
@@ -17,6 +18,7 @@ import { HashingProvider } from './providers/hashing.provider';
 @Injectable()
 export class AuthService implements IAuthService {
   constructor(
+    private readonly deviceMapper: DeviceMapper,
     private readonly clockService: ClockService,
     private readonly hashingProvider: HashingProvider,
     private readonly sessionsService: SessionsService,
@@ -36,7 +38,7 @@ export class AuthService implements IAuthService {
   async loginUser(
     { email, password }: LoginUserRequestDto,
     ipAddress: string,
-    userAgent: IUserAgent
+    device: DeviceContext
   ): Promise<AuthTokens> {
     const user = await this.usersService.findByIdentifierForAuth(email);
 
@@ -47,6 +49,7 @@ export class AuthService implements IAuthService {
     if (!isMatch) throw AuthErrors.invalidCredentials();
 
     const { now, expiresAt } = this.clockService.snapshot();
+    const userAgent = this.deviceMapper.toSessionUserAgent(device);
 
     const session = await this.sessionsService.issue(
       user.id,

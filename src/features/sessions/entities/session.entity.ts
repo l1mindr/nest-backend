@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from 'typeorm';
-import { IUserAgent } from '../interfaces/user-agent.interface';
+import { ISessionUserAgent } from '../interfaces/session-user-agent.interface';
 import { SwaggerSessionProperties as SessionProps } from '../sessions.swagger';
 
 @Entity()
@@ -23,7 +23,7 @@ export class Session {
 
   @ApiProperty(SessionProps.userAgent)
   @Column({ type: 'json' })
-  userAgent: IUserAgent;
+  userAgent: ISessionUserAgent;
 
   @ApiProperty(SessionProps.ipAddress)
   @Column()

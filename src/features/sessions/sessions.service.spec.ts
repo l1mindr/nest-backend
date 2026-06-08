@@ -2,12 +2,12 @@ import { IJwtPayload } from '@features/auth/interfaces/jwt-payload.interface';
 import { TokenService } from '@features/token/token.service';
 import { User } from '@features/users/entities/user.entity';
 import {
-  InternalServerErrorException,
-  UnauthorizedException
+    InternalServerErrorException,
+    UnauthorizedException
 } from '@nestjs/common';
 import { DataSource, MoreThan, Repository } from 'typeorm';
 import { Session } from './entities/session.entity';
-import { IUserAgent } from './interfaces/user-agent.interface';
+import { IUserAgent } from './interfaces/session-user-agent.interface';
 import { SessionsService } from './sessions.service';
 
 describe('SessionsService', () => {

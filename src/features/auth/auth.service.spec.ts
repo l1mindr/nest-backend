@@ -1,6 +1,6 @@
 import { Session } from '@features/sessions/entities/session.entity';
+import { IUserAgent } from '@features/sessions/interfaces/session-user-agent.interface';
 import { ISessionsService } from '@features/sessions/interfaces/sessions.interface';
-import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
 import { User } from '@features/users/entities/user.entity';
 import { IUsersService } from '@features/users/interfaces/users.interface';
 import { SESSIONS_SERVICE, USERS_SERVICE } from '@infrastructure/di/tokens';

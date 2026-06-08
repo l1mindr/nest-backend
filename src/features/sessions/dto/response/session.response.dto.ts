@@ -1,7 +1,6 @@
+import { ISessionUserAgent } from '@features/sessions/interfaces/session-user-agent.interface';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
-
-import { IUserAgent } from '../../interfaces/user-agent.interface';
 
 export class SessionResponseDto {
   @ApiProperty({
@@ -22,7 +21,7 @@ export class SessionResponseDto {
   })
   @Expose()
   @Transform(({ obj }) => obj.userAgent)
-  device: IUserAgent;
+  device: ISessionUserAgent;
 
   @ApiProperty({
     example: '2026-06-15T12:00:00.000Z'

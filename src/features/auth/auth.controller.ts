@@ -1,9 +1,11 @@
+import { DeviceContext } from '@core/device/context/device-context.interface';
+import { Device } from '@core/device/decorators/device.decorator';
 import { Public } from '@features/security/decorators/public.decorator';
-import { IUserAgent } from '@features/sessions/interfaces/user-agent.interface';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -20,7 +22,6 @@ import {
 } from './auth.swagger';
 import { IpAddress } from './decorators/ipAddress.decorator';
 import { User } from './decorators/user.decorator';
-import { UserAgent } from './decorators/userAgent.decorator';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
 import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
@@ -30,6 +31,12 @@ import { AuthCookieInterceptor } from './interceptors/auth-cookie.interceptor';
 @ApiTags('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Public()
+  @Get('test')
+  test(@Device() device: DeviceContext) {
+    return device;
+  }
 
   @Public()
   @Post('register')
@@ -47,9 +54,9 @@ export class AuthController {
   async signInUser(
     @Body() dto: LoginUserRequestDto,
     @IpAddress() ipAddress: string,
-    @UserAgent() userAgent: IUserAgent
+    @Device() device: DeviceContext
   ) {
-    return await this.authService.loginUser(dto, ipAddress, userAgent);
+    return await this.authService.loginUser(dto, ipAddress, device);
   }
 
   @Public()
