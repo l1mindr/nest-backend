@@ -2,14 +2,14 @@ import { User } from '@features/users/entities/user.entity';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { Session } from '../entities/session.entity';
 import { SessionListItem } from '../types/session-list-item.type';
-import { ISessionUserAgent } from './session-user-agent.interface';
+import { ISessionDevice } from './session-device.interface';
 
 export interface ISessionsService {
   getActive(userId: string, sessionId: string): Promise<Session | null>;
   issue(
     userId: string,
     ipAddress: string,
-    device: ISessionUserAgent,
+    device: ISessionDevice,
     expiresAt: Date
   ): Promise<Session>;
   list(customAuth: CustomAuth): Promise<SessionListItem[]>;

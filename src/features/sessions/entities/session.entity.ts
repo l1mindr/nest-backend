@@ -8,8 +8,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from 'typeorm';
-import { ISessionUserAgent } from '../interfaces/session-user-agent.interface';
 import { SwaggerSessionProperties as SessionProps } from '../sessions.swagger';
+import { ISessionDevice } from '../interfaces/session-device.interface';
 
 @Entity()
 export class Session {
@@ -22,8 +22,8 @@ export class Session {
   refreshTokenHash: string;
 
   @ApiProperty(SessionProps.userAgent)
-  @Column({ type: 'json' })
-  userAgent: ISessionUserAgent;
+  @Column({ type: 'jsonb' })
+  device: ISessionDevice;
 
   @ApiProperty(SessionProps.ipAddress)
   @Column()

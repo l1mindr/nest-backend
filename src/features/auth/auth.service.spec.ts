@@ -1,5 +1,5 @@
 import { Session } from '@features/sessions/entities/session.entity';
-import { IUserAgent } from '@features/sessions/interfaces/session-user-agent.interface';
+import { IUserAgent } from '@features/sessions/interfaces/session-device.interface';
 import { ISessionsService } from '@features/sessions/interfaces/sessions.interface';
 import { User } from '@features/users/entities/user.entity';
 import { IUsersService } from '@features/users/interfaces/users.interface';

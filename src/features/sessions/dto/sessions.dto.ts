@@ -1,9 +1,9 @@
-import { ISessionUserAgent } from '../interfaces/session-user-agent.interface';
+import { ISessionDevice } from '../interfaces/session-device.interface';
 
 export class SessionsDto {
   readonly sessionId: string;
   readonly ipAddress: string;
-  readonly device: ISessionUserAgent;
+  readonly deviceInfo: ISessionDevice;
   readonly expiresAt: Date;
   readonly lastUsedAt: Date;
   readonly current?: boolean;

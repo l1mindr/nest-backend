@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { DataSource, MoreThan, Repository } from 'typeorm';
 import { Session } from './entities/session.entity';
-import { IUserAgent } from './interfaces/session-user-agent.interface';
+import { IUserAgent } from './interfaces/session-device.interface';
 import { SessionsService } from './sessions.service';
 
 describe('SessionsService', () => {

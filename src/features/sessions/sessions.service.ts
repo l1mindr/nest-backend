@@ -4,7 +4,7 @@ import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.inter
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { DataSource, MoreThan, Not, Repository } from 'typeorm';
-import { ISessionUserAgent } from './interfaces/session-user-agent.interface';
+import { ISessionDevice } from './interfaces/session-device.interface';
 import { ISessionsService } from './interfaces/sessions.interface';
 import { SessionListItem } from './types/session-list-item.type';
 
@@ -19,13 +19,13 @@ export class SessionsService implements ISessionsService {
   async issue(
     userId: string,
     ipAddress: string,
-    userAgent: ISessionUserAgent,
+    device: ISessionDevice,
     expiresAt: Date
   ) {
     return await this.sessionRepo.create({
       owner: { id: userId },
       ipAddress,
-      userAgent,
+      device,
       expiresAt,
       lastUsedAt: new Date(),
       refreshTokenHash: randomUUID()
@@ -56,7 +56,7 @@ export class SessionsService implements ISessionsService {
         expiresAt: MoreThan(new Date()),
         id: Not(session.id)
       },
-      select: ['userAgent', 'expiresAt', 'ipAddress']
+      select: ['device', 'expiresAt', 'ipAddress']
     });
 
     return [{ ...session, current: true }, ...sessions];

@@ -1,4 +1,4 @@
-export interface ISessionUserAgent {
+export interface ISessionDevice {
   browserName: string;
   browserVersion: string;
   osName: string;
