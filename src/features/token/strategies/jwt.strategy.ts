@@ -4,8 +4,8 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import jwtConfig from '../config/jwt.config';
-import { TokenService } from '../token.service';
 import { IJwtPayload } from '../interfaces/jwt-payload.interface';
+import { TokenService } from '../token.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -26,7 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(req: Request, jwtPayload: IJwtPayload) {
+  validate(_: Request, jwtPayload: IJwtPayload) {
     return this.tokenService.validatePayload(jwtPayload);
   }
 }

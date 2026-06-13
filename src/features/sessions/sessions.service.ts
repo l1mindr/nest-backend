@@ -22,14 +22,16 @@ export class SessionsService implements ISessionsService {
     device: ISessionDevice,
     expiresAt: Date
   ) {
-    return await this.sessionRepo.create({
-      owner: { id: userId },
-      ipAddress,
-      device,
-      expiresAt,
-      lastUsedAt: new Date(),
-      refreshTokenHash: randomUUID()
-    });
+    return await this.sessionRepo.save(
+      this.sessionRepo.create({
+        owner: { id: userId },
+        ipAddress,
+        device,
+        expiresAt,
+        lastUsedAt: new Date(),
+        refreshTokenHash: randomUUID()
+      })
+    );
   }
 
   async getActive(userId: string, sessionId: string): Promise<Session | null> {
@@ -56,7 +58,11 @@ export class SessionsService implements ISessionsService {
         expiresAt: MoreThan(new Date()),
         id: Not(session.id)
       },
-      select: ['device', 'expiresAt', 'ipAddress']
+      select: {
+        device: true,
+        expiresAt: true,
+        ipAddress: true
+      }
     });
 
     return [{ ...session, current: true }, ...sessions];

@@ -63,8 +63,7 @@ export class UsersService implements IUsersService {
 
   async register(createUserRequestDto: CreateUserRequestDto): Promise<void> {
     try {
-      const user = this.userRepo.create(createUserRequestDto);
-      await this.userRepo.save(user);
+      await this.userRepo.save(this.userRepo.create(createUserRequestDto));
     } catch (error: any) {
       this.handleUniqueConstraintError(error);
     }
