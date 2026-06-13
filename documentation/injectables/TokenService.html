@@ -155,9 +155,6 @@
                     <td class="col-md-4">
                         <ul class="index-list">
                             <li>
-                                <a href="#createExpirationDate" >createExpirationDate</a>
-                            </li>
-                            <li>
                                     <span class="modifier">Async</span>
                                 <a href="#issuePair" >issuePair</a>
                             </li>
@@ -196,7 +193,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="10" class="link-to-prism">src/features/token/token.service.ts:10</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="12" class="link-to-prism">src/features/token/token.service.ts:12</a></div>
                             </td>
                         </tr>
 
@@ -267,73 +264,6 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="createExpirationDate"></a>
-                    <span class="name">
-                        <span ><b>createExpirationDate</b></span>
-                        <a href="#createExpirationDate"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>createExpirationDate(now: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
-                </td>
-            </tr>
-
-
-                    <tr>
-                        <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="17"
-                                    class="link-to-prism">src/features/token/token.service.ts:17</a></div>
-                        </td>
-                    </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                            <div class="io-description">
-                                <b>Parameters :</b>
-                                
-                                <table class="params">
-                                    <thead>
-                                        <tr>
-                                            <td>Name</td>
-                                                <td>Type</td>
-                                            <td>Optional</td>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                                <td>now</td>
-                                            <td>
-                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <div class="io-description">
-                            <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date" target="_blank" >Date</a></code>
-
-                        </div>
-                            <div class="io-description">
-                                
-                            </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
                     <a name="issuePair"></a>
                     <span class="name">
                             <span class="modifier">Async</span>
@@ -352,8 +282,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="21"
-                                    class="link-to-prism">src/features/token/token.service.ts:21</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="19"
+                                    class="link-to-prism">src/features/token/token.service.ts:19</a></div>
                         </td>
                     </tr>
 
@@ -457,8 +387,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="58"
-                                    class="link-to-prism">src/features/token/token.service.ts:58</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="56"
+                                    class="link-to-prism">src/features/token/token.service.ts:56</a></div>
                         </td>
                     </tr>
 
@@ -525,8 +455,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="50"
-                                    class="link-to-prism">src/features/token/token.service.ts:50</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="48"
+                                    class="link-to-prism">src/features/token/token.service.ts:48</a></div>
                         </td>
                     </tr>
 
@@ -594,8 +524,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="54"
-                                    class="link-to-prism">src/features/token/token.service.ts:54</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="52"
+                                    class="link-to-prism">src/features/token/token.service.ts:52</a></div>
                         </td>
                     </tr>
 
@@ -647,11 +577,13 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { SessionsService } from &#x27;@features/sessions/sessions.service&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { SessionErrors } from &#x27;@features/sessions/errors/session-errors&#x27;;
+import { SessionsService } from &#x27;@features/sessions/sessions.service&#x27;;
 import { UsersService } from &#x27;@features/users/users.service&#x27;;
 import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
-import { Injectable, UnauthorizedException } from &#x27;@nestjs/common&#x27;;
+import { Injectable } from &#x27;@nestjs/common&#x27;;
 import { JwtService } from &#x27;@nestjs/jwt&#x27;;
+import { TokenErrors } from &#x27;./errors/token-errors&#x27;;
 import { IJwtPayload } from &#x27;./interfaces/jwt-payload.interface&#x27;;
 import { ITokenService } from &#x27;./interfaces/token.interface&#x27;;
 
@@ -662,10 +594,6 @@ export class TokenService implements ITokenService {
     private readonly usersService: UsersService,
     private readonly sessionsService: SessionsService
   ) {}
-
-  createExpirationDate(now: number): Date {
-    return new Date(now + 7 * 24 * 60 * 60 * 1000);
-  }
 
   async issuePair(
     userId: string,
@@ -707,11 +635,11 @@ export class TokenService implements ITokenService {
   async validatePayload({ sub, sessionId }: IJwtPayload): Promise&lt;CustomAuth&gt; {
     const user &#x3D; await this.usersService.findByIdForSessionValidation(sub);
 
-    if (!user) throw new UnauthorizedException(&#x27;invalid token&#x27;);
+    if (!user) throw TokenErrors.invalidToken();
 
     const session &#x3D; await this.sessionsService.getActive(user.id, sessionId);
 
-    if (!session) throw new UnauthorizedException(&#x27;session expired&#x27;);
+    if (!session) throw SessionErrors.sessionExpired(sessionId);
 
     return { user, session };
   }

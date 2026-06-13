@@ -155,6 +155,9 @@
                             <a href="#ApiTerminateOtherSessions" title="src/features/sessions/sessions.swagger.ts" ><b>ApiTerminateOtherSessions</b>&nbsp;&nbsp;&nbsp;(src/.../sessions.swagger.ts)</a>
                         </li>
                         <li>
+                            <a href="#Device" title="src/core/device/decorators/device.decorator.ts" ><b>Device</b>&nbsp;&nbsp;&nbsp;(src/.../device.decorator.ts)</a>
+                        </li>
+                        <li>
                             <a href="#ENV_VALIDATION_SCHEMA" title="src/infrastructure/config/env.constants.ts" ><b>ENV_VALIDATION_SCHEMA</b>&nbsp;&nbsp;&nbsp;(src/.../env.constants.ts)</a>
                         </li>
                         <li>
@@ -209,6 +212,9 @@
                             <a href="#SwaggerUserProperties" title="src/features/users/users.swagger.ts" ><b>SwaggerUserProperties</b>&nbsp;&nbsp;&nbsp;(src/.../users.swagger.ts)</a>
                         </li>
                         <li>
+                            <a href="#TimeConstants" title="src/core/clock/time.constants.ts" ><b>TimeConstants</b>&nbsp;&nbsp;&nbsp;(src/.../time.constants.ts)</a>
+                        </li>
+                        <li>
                             <a href="#toBoolean" title="src/core/transforms/utils/to-boolean.ts" ><b>toBoolean</b>&nbsp;&nbsp;&nbsp;(src/.../to-boolean.ts)</a>
                         </li>
                         <li>
@@ -216,9 +222,6 @@
                         </li>
                         <li>
                             <a href="#User" title="src/features/auth/decorators/user.decorator.ts" ><b>User</b>&nbsp;&nbsp;&nbsp;(src/.../user.decorator.ts)</a>
-                        </li>
-                        <li>
-                            <a href="#UserAgent" title="src/features/auth/decorators/userAgent.decorator.ts" ><b>UserAgent</b>&nbsp;&nbsp;&nbsp;(src/.../userAgent.decorator.ts)</a>
                         </li>
                         <li>
                             <a href="#USERNAME_MAX_LENGTH" title="src/core/validators/rules/username.rules.ts" ><b>USERNAME_MAX_LENGTH</b>&nbsp;&nbsp;&nbsp;(src/.../username.rules.ts)</a>
@@ -489,7 +492,7 @@
     ApiResponse({
       status: 200,
       description: &#x27;User profile retrieved successfully&#x27;,
-      type: UserProfileDto
+      type: UserProfileResponseDto
     }),
     ApiResponse({
       status: 404,
@@ -750,6 +753,41 @@
     type: () &#x3D;&gt; User
   }
 }</code>
+                    </td>
+                </tr>
+
+
+        </tbody>
+    </table>
+</section>
+    <h3>src/core/device/decorators/device.decorator.ts</h3>
+    <section data-compodoc="block-properties">
+    <h3></h3>    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="Device"></a>
+                    <span class="name">
+                        <span ><b>Device</b></span>
+                        <a href="#Device"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>unknown</code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>createParamDecorator(
+  (_: unknown, ctx: ExecutionContext): DeviceContext &#x3D;&gt; {
+    const request &#x3D; ctx.switchToHttp().getRequest();
+
+    return request.device;
+  }
+)</code>
                     </td>
                 </tr>
 
@@ -1272,6 +1310,40 @@
         </tbody>
     </table>
 </section>
+    <h3>src/core/clock/time.constants.ts</h3>
+    <section data-compodoc="block-properties">
+    <h3></h3>    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="TimeConstants"></a>
+                    <span class="name">
+                        <span ><b>TimeConstants</b></span>
+                        <a href="#TimeConstants"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>unknown</code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>{
+  MS_PER_SECOND: 1000,
+  MS_PER_MINUTE: 60 * 1000,
+  MS_PER_HOUR: 60 * 60 * 1000,
+  MS_PER_DAY: 24 * 60 * 60 * 1000
+} as const</code>
+                    </td>
+                </tr>
+
+
+        </tbody>
+    </table>
+</section>
     <h3>src/core/transforms/utils/to-boolean.ts</h3>
     <section data-compodoc="block-properties">
     <h3></h3>    <table class="table table-sm table-bordered">
@@ -1364,89 +1436,6 @@
   (data: &#x27;user&#x27; | &#x27;session&#x27;, ctx: ExecutionContext) &#x3D;&gt; {
     const request &#x3D; ctx.switchToHttp().getRequest&lt;CustomRequest&gt;();
     return data ? request.user?.[data] : request.user;
-  }
-)</code>
-                    </td>
-                </tr>
-
-
-        </tbody>
-    </table>
-</section>
-    <h3>src/features/auth/decorators/userAgent.decorator.ts</h3>
-    <section data-compodoc="block-properties">
-    <h3></h3>    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="UserAgent"></a>
-                    <span class="name">
-                        <span ><b>UserAgent</b></span>
-                        <a href="#UserAgent"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>    <code>unknown</code>
-
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Default value : </i><code>createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): IUserAgent &#x3D;&gt; {
-    const request &#x3D; ctx.switchToHttp().getRequest();
-    const userAgent &#x3D; request.headers[&#x27;user-agent&#x27;];
-
-    const defaultUserAgent: IUserAgent &#x3D; {
-      name: &#x27;unknown&#x27;
-    };
-
-    if (!userAgent) {
-      return defaultUserAgent;
-    }
-
-    const devicePatterns &#x3D; [
-      {
-        name: &#x27;iOS&#x27;,
-        regex: /like Mac OS X/,
-        versionRegex: /CPU( iPhone)? OS ([0-9\._]+) like Mac OS X/
-      },
-      {
-        name: &#x27;Android&#x27;,
-        regex: /Android/,
-        versionRegex: /Android ([0-9\.]+)[\);]/
-      },
-      {
-        name: &#x27;macOS&#x27;,
-        regex: /(Intel|PPC) Mac OS X/,
-        versionRegex: /(Intel|PPC) Mac OS X ?([0-9\._]*)[\)\;]/
-      },
-      {
-        name: &#x27;Windows&#x27;,
-        regex: /Windows NT/,
-        versionRegex: /Windows NT ([0-9\._]+)[\);]/
-      },
-      {
-        name: &#x27;Linux&#x27;,
-        regex: /Linux/i,
-        versionRegex: null
-      }
-    ];
-
-    for (const { name, regex, versionRegex } of devicePatterns) {
-      if (regex.test(userAgent)) {
-        return {
-          name,
-          version: versionRegex
-            ? userAgent.match(versionRegex)?.[1]?.replace(/_/g, &#x27;.&#x27;)
-            : undefined
-        };
-      }
-    }
-
-    return defaultUserAgent;
   }
 )</code>
                     </td>
@@ -1567,12 +1556,20 @@
   transformOptions: {
     enableImplicitConversion: true
   },
+  errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
   exceptionFactory: (errors) &#x3D;&gt; {
     const firstError &#x3D; errors[0];
     const firstConstraint &#x3D; firstError?.constraints
       ? Object.values(firstError.constraints)[0]
       : &#x27;Validation error&#x27;;
-    return new BadRequestException(firstConstraint);
+
+    return new AppError(
+      DomainErrorCode.VALIDATION,
+      ErrorDomain.VALIDATION,
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      { field: firstError.property },
+      firstConstraint
+    );
   }
 }</code>
                     </td>

@@ -280,8 +280,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="35"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:35</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="37"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:37</a></div>
                         </td>
                     </tr>
 
@@ -354,7 +354,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>issue(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ipAddress: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, userAgent: <a href="../interfaces/IUserAgent.html" target="_self">IUserAgent</a>, expiresAt: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date" target="_blank">Date</a>)</code>
+                    <code>issue(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ipAddress: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, device: <a href="../interfaces/ISessionDevice.html" target="_self">ISessionDevice</a>, expiresAt: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date" target="_blank">Date</a>)</code>
                 </td>
             </tr>
 
@@ -407,9 +407,9 @@
 
                                         </tr>
                                         <tr>
-                                                <td>userAgent</td>
+                                                <td>device</td>
                                             <td>
-                                                            <code><a href="../interfaces/IUserAgent.html" target="_self" >IUserAgent</a></code>
+                                                            <code><a href="../interfaces/ISessionDevice.html" target="_self" >ISessionDevice</a></code>
                                             </td>
 
                                             <td>
@@ -466,8 +466,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="48"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:48</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="50"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:50</a></div>
                         </td>
                     </tr>
 
@@ -502,7 +502,7 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../classes/SessionsDto.html" target="_self" >Promise&lt;SessionsDto[]&gt;</a></code>
+                            <b>Returns : </b>        <code><a href="../entitys/Session.html" target="_self" >Promise&lt;SessionListItem[]&gt;</a></code>
 
                         </div>
                             <div class="io-description">
@@ -534,8 +534,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="81"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:81</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="71"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:71</a></div>
                         </td>
                     </tr>
 
@@ -614,8 +614,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="93"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:93</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="83"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:83</a></div>
                         </td>
                     </tr>
 
@@ -694,8 +694,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="105"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:105</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="95"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:95</a></div>
                         </td>
                     </tr>
 
@@ -792,9 +792,9 @@ import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.
 import { Injectable } from &#x27;@nestjs/common&#x27;;
 import { randomUUID } from &#x27;crypto&#x27;;
 import { DataSource, MoreThan, Not, Repository } from &#x27;typeorm&#x27;;
-import { SessionsDto } from &#x27;./dto/sessions.dto&#x27;;
+import { ISessionDevice } from &#x27;./interfaces/session-device.interface&#x27;;
 import { ISessionsService } from &#x27;./interfaces/sessions.interface&#x27;;
-import { IUserAgent } from &#x27;./interfaces/user-agent.interface&#x27;;
+import { SessionListItem } from &#x27;./types/session-list-item.type&#x27;;
 
 @Injectable()
 export class SessionsService implements ISessionsService {
@@ -807,17 +807,19 @@ export class SessionsService implements ISessionsService {
   async issue(
     userId: string,
     ipAddress: string,
-    userAgent: IUserAgent,
+    device: ISessionDevice,
     expiresAt: Date
   ) {
-    return await this.sessionRepo.create({
-      owner: { id: userId },
-      ipAddress,
-      userAgent,
-      expiresAt,
-      lastUsedAt: new Date(),
-      refreshTokenHash: randomUUID()
-    });
+    return await this.sessionRepo.save(
+      this.sessionRepo.create({
+        owner: { id: userId },
+        ipAddress,
+        device,
+        expiresAt,
+        lastUsedAt: new Date(),
+        refreshTokenHash: randomUUID()
+      })
+    );
   }
 
   async getActive(userId: string, sessionId: string): Promise&lt;Session | null&gt; {
@@ -833,7 +835,10 @@ export class SessionsService implements ISessionsService {
     });
   }
 
-  async list({ user: { id }, session }: CustomAuth): Promise&lt;SessionsDto[]&gt; {
+  async list({
+    user: { id },
+    session
+  }: CustomAuth): Promise&lt;SessionListItem[]&gt; {
     const sessions &#x3D; await this.sessionRepo.find({
       where: {
         owner: { id },
@@ -841,29 +846,14 @@ export class SessionsService implements ISessionsService {
         expiresAt: MoreThan(new Date()),
         id: Not(session.id)
       },
-      select: [&#x27;userAgent&#x27;, &#x27;expiresAt&#x27;, &#x27;ipAddress&#x27;]
+      select: {
+        device: true,
+        expiresAt: true,
+        ipAddress: true
+      }
     });
 
-    const currentSession: SessionsDto &#x3D; {
-      sessionId: session.id,
-      ipAddress: session.ipAddress,
-      expiresAt: session.expiresAt,
-      device: session.userAgent,
-      lastUsedAt: session.lastUsedAt,
-      current: true
-    };
-
-    const sessionsMap &#x3D; sessions.map((item): SessionsDto &#x3D;&gt; {
-      return {
-        sessionId: item.id,
-        ipAddress: item.ipAddress,
-        expiresAt: item.expiresAt,
-        device: item.userAgent,
-        lastUsedAt: item.lastUsedAt
-      };
-    });
-
-    return [currentSession, ...sessionsMap];
+    return [{ ...session, current: true }, ...sessions];
   }
 
   async revoke({ id }: User, sessionId: string): Promise&lt;void&gt; {

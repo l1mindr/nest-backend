@@ -163,6 +163,7 @@
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
+                                    <span class="modifier"></span>
                                     <span class="modifier">Async</span>
                                 <a href="#refreshSession" >refreshSession</a>
                             </li>
@@ -181,6 +182,11 @@
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
                                 <a href="#signUpUser" >signUpUser</a>
+                            </li>
+                            <li>
+                                    <span class="modifier"></span>
+                                    <span class="modifier"></span>
+                                <a href="#test" >test</a>
                             </li>
                         </ul>
                     </td>
@@ -216,7 +222,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>changePassword(authData: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>, changePasswordDto: <a href="../classes/ChangePasswordDto.html" target="_self">ChangePasswordDto</a>)</code>
+                    <code>changePassword(authData: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>, dto: <a href="../classes/ChangePasswordRequestDto.html" target="_self">ChangePasswordRequestDto</a>)</code>
                 </td>
             </tr>
 
@@ -230,8 +236,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="67"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:67</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="74"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:74</a></div>
                         </td>
                     </tr>
 
@@ -264,9 +270,9 @@
 
                                         </tr>
                                         <tr>
-                                                <td>changePasswordDto</td>
+                                                <td>dto</td>
                                             <td>
-                                                            <code><a href="../classes/ChangePasswordDto.html" target="_self" >ChangePasswordDto</a></code>
+                                                            <code><a href="../classes/ChangePasswordRequestDto.html" target="_self" >ChangePasswordRequestDto</a></code>
                                             </td>
 
                                             <td>
@@ -299,6 +305,7 @@
                             <span class="modifier"></span>
                             <span class="modifier"></span>
                             <span class="modifier"></span>
+                            <span class="modifier"></span>
                             <span class="modifier">Async</span>
                         <span ><b>refreshSession</b></span>
                         <a href="#refreshSession"><span class="icon ion-ios-link"></span></a>
@@ -316,14 +323,14 @@
                 <td class="col-md-4">
                     <b>Decorators : </b>
                     <br />
-                    <code>@Public()<br />@Post(&#x27;refresh&#x27;)<br />@HttpCode(HttpStatus.OK)<br />@UseInterceptors(AuthCookieInterceptor)<br /></code>
+                    <code>@Public()<br />@Post(&#x27;refresh&#x27;)<br />@HttpCode(HttpStatus.OK)<br />@UseInterceptors(AuthCookieInterceptor)<br />@ApiLoginUser()<br /></code>
                 </td>
             </tr>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="60"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:60</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="67"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:67</a></div>
                         </td>
                     </tr>
 
@@ -389,7 +396,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>signInUser(loginUserDto: <a href="../classes/LoginUserDto.html" target="_self">LoginUserDto</a>, ipAddress: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, userAgent: <a href="../interfaces/IUserAgent.html" target="_self">IUserAgent</a>)</code>
+                    <code>signInUser(dto: <a href="../classes/LoginUserRequestDto.html" target="_self">LoginUserRequestDto</a>, ipAddress: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, device: <a href="../interfaces/DeviceContext.html" target="_self">DeviceContext</a>)</code>
                 </td>
             </tr>
 
@@ -403,8 +410,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="47"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:47</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="54"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:54</a></div>
                         </td>
                     </tr>
 
@@ -425,9 +432,9 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>loginUserDto</td>
+                                                <td>dto</td>
                                             <td>
-                                                            <code><a href="../classes/LoginUserDto.html" target="_self" >LoginUserDto</a></code>
+                                                            <code><a href="../classes/LoginUserRequestDto.html" target="_self" >LoginUserRequestDto</a></code>
                                             </td>
 
                                             <td>
@@ -449,9 +456,9 @@
 
                                         </tr>
                                         <tr>
-                                                <td>userAgent</td>
+                                                <td>device</td>
                                             <td>
-                                                            <code><a href="../interfaces/IUserAgent.html" target="_self" >IUserAgent</a></code>
+                                                            <code><a href="../interfaces/DeviceContext.html" target="_self" >DeviceContext</a></code>
                                             </td>
 
                                             <td>
@@ -492,7 +499,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>signUpUser(registerUserDto: <a href="../classes/RegisterUserDto.html" target="_self">RegisterUserDto</a>)</code>
+                    <code>signUpUser(dto: <a href="../classes/RegisterUserRequestDto.html" target="_self">RegisterUserRequestDto</a>)</code>
                 </td>
             </tr>
 
@@ -506,8 +513,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="38"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:38</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="45"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:45</a></div>
                         </td>
                     </tr>
 
@@ -528,9 +535,9 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>registerUserDto</td>
+                                                <td>dto</td>
                                             <td>
-                                                            <code><a href="../classes/RegisterUserDto.html" target="_self" >RegisterUserDto</a></code>
+                                                            <code><a href="../classes/RegisterUserRequestDto.html" target="_self" >RegisterUserRequestDto</a></code>
                                             </td>
 
                                             <td>
@@ -553,16 +560,95 @@
             </tr>
         </tbody>
     </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="test"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                            <span class="modifier"></span>
+                        <span ><b>test</b></span>
+                        <a href="#test"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>test(device: <a href="../interfaces/DeviceContext.html" target="_self">DeviceContext</a>)</code>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <b>Decorators : </b>
+                    <br />
+                    <code>@Public()<br />@Get(&#x27;test&#x27;)<br /></code>
+                </td>
+            </tr>
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="37"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:37</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>device</td>
+                                            <td>
+                                                            <code><a href="../interfaces/DeviceContext.html" target="_self" >DeviceContext</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>        <code><a href="../interfaces/DeviceContext.html" target="_self" >DeviceContext</a></code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 </section>    </div>
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Public } from &#x27;@features/security/decorators/public.decorator&#x27;;
-import { IUserAgent } from &#x27;@features/sessions/interfaces/user-agent.interface&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { DeviceContext } from &#x27;@core/device/context/device-context.interface&#x27;;
+import { Device } from &#x27;@core/device/decorators/device.decorator&#x27;;
+import { Public } from &#x27;@features/security/decorators/public.decorator&#x27;;
 import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -571,7 +657,6 @@ import {
 } from &#x27;@nestjs/common&#x27;;
 import { ApiTags } from &#x27;@nestjs/swagger&#x27;;
 import { Request } from &#x27;express&#x27;;
-import { ChangePasswordDto } from &#x27;../users/dto/change-password.dto&#x27;;
 import { AuthService } from &#x27;./auth.service&#x27;;
 import {
   ApiChangePassword,
@@ -580,9 +665,9 @@ import {
 } from &#x27;./auth.swagger&#x27;;
 import { IpAddress } from &#x27;./decorators/ipAddress.decorator&#x27;;
 import { User } from &#x27;./decorators/user.decorator&#x27;;
-import { UserAgent } from &#x27;./decorators/userAgent.decorator&#x27;;
-import { LoginUserDto } from &#x27;./dto/login-user.dto&#x27;;
-import { RegisterUserDto } from &#x27;./dto/register-user.dto&#x27;;
+import { ChangePasswordRequestDto } from &#x27;./dto/request/change-password.request.dto&#x27;;
+import { LoginUserRequestDto } from &#x27;./dto/request/login-user.request.dto&#x27;;
+import { RegisterUserRequestDto } from &#x27;./dto/request/register-user.request.dto&#x27;;
 import { AuthCookieInterceptor } from &#x27;./interceptors/auth-cookie.interceptor&#x27;;
 
 @Controller({ path: &#x27;auth&#x27;, version: &#x27;1&#x27; })
@@ -591,11 +676,17 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Get(&#x27;test&#x27;)
+  test(@Device() device: DeviceContext) {
+    return device;
+  }
+
+  @Public()
   @Post(&#x27;register&#x27;)
   @HttpCode(HttpStatus.CREATED)
   @ApiRegisterUser()
-  signUpUser(@Body() registerUserDto: RegisterUserDto) {
-    return this.authService.registerUser(registerUserDto);
+  signUpUser(@Body() dto: RegisterUserRequestDto) {
+    return this.authService.registerUser(dto);
   }
 
   @Public()
@@ -604,18 +695,18 @@ export class AuthController {
   @UseInterceptors(AuthCookieInterceptor)
   @ApiLoginUser()
   async signInUser(
-    @Body() loginUserDto: LoginUserDto,
+    @Body() dto: LoginUserRequestDto,
     @IpAddress() ipAddress: string,
-    @UserAgent() userAgent: IUserAgent
+    @Device() device: DeviceContext
   ) {
-    return await this.authService.loginUser(loginUserDto, ipAddress, userAgent);
+    return await this.authService.loginUser(dto, ipAddress, device);
   }
 
   @Public()
   @Post(&#x27;refresh&#x27;)
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(AuthCookieInterceptor)
-  // @ApiLoginUser()
+  @ApiLoginUser()
   async refreshSession(@Req() req: Request) {
     return await this.authService.refresh(req.cookies.refresh_token);
   }
@@ -625,9 +716,9 @@ export class AuthController {
   @ApiChangePassword()
   changePassword(
     @User() authData: CustomAuth,
-    @Body() changePasswordDto: ChangePasswordDto
+    @Body() dto: ChangePasswordRequestDto
   ) {
-    return this.authService.changeUserPassword(authData, changePasswordDto);
+    return this.authService.changeUserPassword(authData, dto);
   }
 }
 </code></pre>

@@ -254,7 +254,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>validate(req: Request, jwtPayload: <a href="../interfaces/IJwtPayload.html" target="_self">IJwtPayload</a>)</code>
+<code>validate(_: Request, jwtPayload: <a href="../interfaces/IJwtPayload.html" target="_self">IJwtPayload</a>)</code>
                 </td>
             </tr>
 
@@ -283,7 +283,7 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>req</td>
+                                                <td>_</td>
                                             <td>
                                                         <code>Request</code>
                                             </td>
@@ -332,8 +332,8 @@ import { PassportStrategy } from &#x27;@nestjs/passport&#x27;;
 import { Request } from &#x27;express&#x27;;
 import { ExtractJwt, Strategy } from &#x27;passport-jwt&#x27;;
 import jwtConfig from &#x27;../config/jwt.config&#x27;;
-import { TokenService } from &#x27;../token.service&#x27;;
 import { IJwtPayload } from &#x27;../interfaces/jwt-payload.interface&#x27;;
+import { TokenService } from &#x27;../token.service&#x27;;
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -354,7 +354,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(req: Request, jwtPayload: IJwtPayload) {
+  validate(_: Request, jwtPayload: IJwtPayload) {
     return this.tokenService.validatePayload(jwtPayload);
   }
 }

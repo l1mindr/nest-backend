@@ -299,7 +299,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>issue(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ipAddress: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, userAgent: <a href="../interfaces/IUserAgent.html" target="_self">IUserAgent</a>, expiresAt: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date" target="_blank">Date</a>)</code>
+<code>issue(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ipAddress: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, device: <a href="../interfaces/ISessionDevice.html" target="_self">ISessionDevice</a>, expiresAt: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date" target="_blank">Date</a>)</code>
                 </td>
             </tr>
 
@@ -352,9 +352,9 @@
 
                                         </tr>
                                         <tr>
-                                                <td>userAgent</td>
+                                                <td>device</td>
                                             <td>
-                                                            <code><a href="../interfaces/IUserAgent.html" target="_self" >IUserAgent</a></code>
+                                                            <code><a href="../interfaces/ISessionDevice.html" target="_self" >ISessionDevice</a></code>
                                             </td>
 
                                             <td>
@@ -446,7 +446,7 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../classes/SessionsDto.html" target="_self" >Promise&lt;SessionsDto[]&gt;</a></code>
+                            <b>Returns : </b>        <code><a href="../entitys/Session.html" target="_self" >Promise&lt;SessionListItem[]&gt;</a></code>
 
                         </div>
                             <div class="io-description">
@@ -701,19 +701,19 @@
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { User } from &#x27;@features/users/entities/user.entity&#x27;;
 import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
-import { SessionsDto } from &#x27;../dto/sessions.dto&#x27;;
 import { Session } from &#x27;../entities/session.entity&#x27;;
-import { IUserAgent } from &#x27;./user-agent.interface&#x27;;
+import { SessionListItem } from &#x27;../types/session-list-item.type&#x27;;
+import { ISessionDevice } from &#x27;./session-device.interface&#x27;;
 
 export interface ISessionsService {
   getActive(userId: string, sessionId: string): Promise&lt;Session | null&gt;;
   issue(
     userId: string,
     ipAddress: string,
-    userAgent: IUserAgent,
+    device: ISessionDevice,
     expiresAt: Date
   ): Promise&lt;Session&gt;;
-  list(customAuth: CustomAuth): Promise&lt;SessionsDto[]&gt;;
+  list(customAuth: CustomAuth): Promise&lt;SessionListItem[]&gt;;
   revoke(user: User, sessionId: string): Promise&lt;void&gt;;
   terminateOthers(user: User, sessionId: string): Promise&lt;void&gt;;
   updateRefreshState(

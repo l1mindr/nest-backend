@@ -86,11 +86,7 @@ export class TemplateEditorService {
 
   private registerHandlebarsLanguage() {
     // Register Handlebars language for Monaco Editor
-    if (
-      monaco.languages
-        .getLanguages()
-        .find((lang: any) => lang.id === 'handlebars')
-    ) {
+    if (monaco.languages.getLanguages().find((lang: any) => lang.id === 'handlebars')) {
       return; // Already registered
     }
 
@@ -134,24 +130,8 @@ export class TemplateEditorService {
 
         tag: [
           [/[ \t\r\n]+/, 'white'],
-          [
-            /(\w+)(\s*=\s*)("([^"]*)")/,
-            [
-              'attribute.name',
-              'delimiter',
-              'attribute.value',
-              'attribute.value'
-            ]
-          ],
-          [
-            /(\w+)(\s*=\s*)('([^']*)')/,
-            [
-              'attribute.name',
-              'delimiter',
-              'attribute.value',
-              'attribute.value'
-            ]
-          ],
+          [/(\w+)(\s*=\s*)("([^"]*)")/, ['attribute.name', 'delimiter', 'attribute.value', 'attribute.value']],
+          [/(\w+)(\s*=\s*)('([^']*)')/, ['attribute.name', 'delimiter', 'attribute.value', 'attribute.value']],
           [/\w+/, 'attribute.name'],
           [/>/, 'delimiter', '@pop']
         ]

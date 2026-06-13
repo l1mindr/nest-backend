@@ -470,7 +470,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>register(dto: <a href="../classes/CreateUserDto.html" target="_self">CreateUserDto</a>)</code>
+<code>register(dto: <a href="../classes/CreateUserRequestDto.html" target="_self">CreateUserRequestDto</a>)</code>
                 </td>
             </tr>
 
@@ -501,7 +501,7 @@
                                         <tr>
                                                 <td>dto</td>
                                             <td>
-                                                            <code><a href="../classes/CreateUserDto.html" target="_self" >CreateUserDto</a></code>
+                                                            <code><a href="../classes/CreateUserRequestDto.html" target="_self" >CreateUserRequestDto</a></code>
                                             </td>
 
                                             <td>
@@ -544,8 +544,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="13"
-                                    class="link-to-prism">src/features/users/interfaces/users.interface.ts:13</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="16"
+                                    class="link-to-prism">src/features/users/interfaces/users.interface.ts:16</a></div>
                         </td>
                     </tr>
 
@@ -611,8 +611,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="12"
-                                    class="link-to-prism">src/features/users/interfaces/users.interface.ts:12</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="15"
+                                    class="link-to-prism">src/features/users/interfaces/users.interface.ts:15</a></div>
                         </td>
                     </tr>
 
@@ -683,7 +683,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>updateProfile(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, updateUserDto: <a href="../classes/UpdateUserDto.html" target="_self">UpdateUserDto</a>)</code>
+<code>updateProfile(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, updateUserRequestDto: <a href="../classes/UpdateUserRequestDto.html" target="_self">UpdateUserRequestDto</a>)</code>
                 </td>
             </tr>
 
@@ -724,9 +724,9 @@
 
                                         </tr>
                                         <tr>
-                                                <td>updateUserDto</td>
+                                                <td>updateUserRequestDto</td>
                                             <td>
-                                                            <code><a href="../classes/UpdateUserDto.html" target="_self" >UpdateUserDto</a></code>
+                                                            <code><a href="../classes/UpdateUserRequestDto.html" target="_self" >UpdateUserRequestDto</a></code>
                                             </td>
 
                                             <td>
@@ -755,17 +755,20 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { CreateUserDto } from &#x27;../dto/create-user.dto&#x27;;
-import { UpdateUserDto } from &#x27;../dto/update-user.dto&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { CreateUserRequestDto } from &#x27;../dto/request/create-user.request.dto&#x27;;
+import { UpdateUserRequestDto } from &#x27;../dto/request/update-user.request.dto&#x27;;
 import { User } from &#x27;../entities/user.entity&#x27;;
 
 export interface IUsersService {
-  register(dto: CreateUserDto): Promise&lt;void&gt;;
+  register(dto: CreateUserRequestDto): Promise&lt;void&gt;;
   list(): Promise&lt;User[]&gt;;
   findByIdentifierForAuth(identifier: string): Promise&lt;User | null&gt;;
   findByIdForSessionValidation(userId: string): Promise&lt;User | null&gt;;
   findByIdWithPassword(userId: string): Promise&lt;User | null&gt;;
-  updateProfile(userId: string, updateUserDto: UpdateUserDto): Promise&lt;void&gt;;
+  updateProfile(
+    userId: string,
+    updateUserRequestDto: UpdateUserRequestDto
+  ): Promise&lt;void&gt;;
   setPassword(userid: string, hashPassword: string): Promise&lt;void&gt;;
   requestAccountDeletion(userId: string): Promise&lt;void&gt;;
 }

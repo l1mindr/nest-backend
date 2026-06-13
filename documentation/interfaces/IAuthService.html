@@ -287,7 +287,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>loginUser(loginUserDto: <a href="../classes/LoginUserDto.html" target="_self">LoginUserDto</a>, ipAddress: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, userAgent: <a href="../interfaces/IUserAgent.html" target="_self">IUserAgent</a>)</code>
+<code>loginUser(dto: <a href="../classes/LoginUserRequestDto.html" target="_self">LoginUserRequestDto</a>, ipAddress: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, device: <a href="../interfaces/DeviceContext.html" target="_self">DeviceContext</a>)</code>
                 </td>
             </tr>
 
@@ -316,9 +316,9 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>loginUserDto</td>
+                                                <td>dto</td>
                                             <td>
-                                                            <code><a href="../classes/LoginUserDto.html" target="_self" >LoginUserDto</a></code>
+                                                            <code><a href="../classes/LoginUserRequestDto.html" target="_self" >LoginUserRequestDto</a></code>
                                             </td>
 
                                             <td>
@@ -340,9 +340,9 @@
 
                                         </tr>
                                         <tr>
-                                                <td>userAgent</td>
+                                                <td>device</td>
                                             <td>
-                                                            <code><a href="../interfaces/IUserAgent.html" target="_self" >IUserAgent</a></code>
+                                                            <code><a href="../interfaces/DeviceContext.html" target="_self" >DeviceContext</a></code>
                                             </td>
 
                                             <td>
@@ -445,7 +445,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>registerUser(registerUserDto: <a href="../classes/RegisterUserDto.html" target="_self">RegisterUserDto</a>)</code>
+<code>registerUser(dto: <a href="../classes/RegisterUserRequestDto.html" target="_self">RegisterUserRequestDto</a>)</code>
                 </td>
             </tr>
 
@@ -474,9 +474,9 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>registerUserDto</td>
+                                                <td>dto</td>
                                             <td>
-                                                            <code><a href="../classes/RegisterUserDto.html" target="_self" >RegisterUserDto</a></code>
+                                                            <code><a href="../classes/RegisterUserRequestDto.html" target="_self" >RegisterUserRequestDto</a></code>
                                             </td>
 
                                             <td>
@@ -505,18 +505,18 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { IUserAgent } from &#x27;@features/sessions/interfaces/user-agent.interface&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { DeviceContext } from &#x27;@core/device/context/device-context.interface&#x27;;
 import { ChangePasswordDto } from &#x27;@features/users/dto/change-password.dto&#x27;;
 import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
-import { LoginUserDto } from &#x27;../dto/login-user.dto&#x27;;
-import { RegisterUserDto } from &#x27;../dto/register-user.dto&#x27;;
+import { LoginUserRequestDto } from &#x27;../dto/request/login-user.request.dto&#x27;;
+import { RegisterUserRequestDto } from &#x27;../dto/request/register-user.request.dto&#x27;;
 
 export interface IAuthService {
-  registerUser(registerUserDto: RegisterUserDto): Promise&lt;void&gt;;
+  registerUser(dto: RegisterUserRequestDto): Promise&lt;void&gt;;
   loginUser(
-    loginUserDto: LoginUserDto,
+    dto: LoginUserRequestDto,
     ipAddress: string,
-    userAgent: IUserAgent
+    device: DeviceContext
   ): Promise&lt;AuthTokens&gt;;
   changeUserPassword(
     customAuth: CustomAuth,

@@ -134,7 +134,7 @@
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>src/core/common/interceptors/data-response/data-response.interceptor.ts</code>
+            <code>src/core/common/interceptors/data-response.interceptor.ts</code>
         </p>
 
 
@@ -188,15 +188,15 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>intercept(context: ExecutionContext, next: CallHandler)</code>
+<code>intercept(_: ExecutionContext, next: CallHandler)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="11"
-                                    class="link-to-prism">src/core/common/interceptors/data-response/data-response.interceptor.ts:11</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="14"
+                                    class="link-to-prism">src/core/common/interceptors/data-response.interceptor.ts:14</a></div>
                         </td>
                     </tr>
 
@@ -217,7 +217,7 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>context</td>
+                                                <td>_</td>
                                             <td>
                                                         <code>ExecutionContext</code>
                                             </td>
@@ -244,7 +244,7 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>    <code>Observable&lt;any&gt;</code>
+                            <b>Returns : </b>    <code>Observable&lt;literal type&gt;</code>
 
                         </div>
                             <div class="io-description">
@@ -269,16 +269,12 @@
 import { map, Observable } from &#x27;rxjs&#x27;;
 
 @Injectable()
-export class DataResponseInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable&lt;any&gt; {
-    return next.handle().pipe(
-      map((data) &#x3D;&gt; {
-        if (data)
-          return {
-            data
-          };
-      })
-    );
+export class DataResponseInterceptor&lt;T&gt; implements NestInterceptor&lt;
+  T,
+  { data: T }
+&gt; {
+  intercept(_: ExecutionContext, next: CallHandler): Observable&lt;{ data: T }&gt; {
+    return next.handle().pipe(map((data) &#x3D;&gt; ({ data })));
   }
 }
 </code></pre>

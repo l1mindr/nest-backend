@@ -6,11 +6,12 @@ declare const JSZip: any;
   providedIn: 'root'
 })
 export class ZipExportService {
+
   exportTemplates(files: any[]) {
     const zip = new JSZip();
 
     // Add all template files to the ZIP
-    files.forEach((file) => {
+    files.forEach(file => {
       zip.file(file.path, file.content);
     });
 
@@ -19,9 +20,10 @@ export class ZipExportService {
     zip.file('README.md', readme);
 
     // Generate and download the ZIP file
-    zip.generateAsync({ type: 'blob' }).then((content: Blob) => {
-      this.downloadBlob(content, 'compodoc-templates.zip');
-    });
+    zip.generateAsync({ type: 'blob' })
+      .then((content: Blob) => {
+        this.downloadBlob(content, 'compodoc-templates.zip');
+      });
   }
 
   private generateReadme(): string {

@@ -168,6 +168,7 @@
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
+                                    <span class="modifier"></span>
                                 <a href="#getProfile" >getProfile</a>
                             </li>
                         </ul>
@@ -204,7 +205,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>changeProfile(user: <a href="../classes/User.html" target="_self">UserEntity</a>, updateUserDto: <a href="../classes/UpdateUserDto.html" target="_self">UpdateUserDto</a>)</code>
+                    <code>changeProfile(user: <a href="../classes/User.html" target="_self">UserEntity</a>, dto: <a href="../classes/UpdateUserRequestDto.html" target="_self">UpdateUserRequestDto</a>)</code>
                 </td>
             </tr>
 
@@ -218,8 +219,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="46"
-                                    class="link-to-prism">src/features/users/users.controller.ts:46</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="42"
+                                    class="link-to-prism">src/features/users/users.controller.ts:42</a></div>
                         </td>
                     </tr>
 
@@ -252,9 +253,9 @@
 
                                         </tr>
                                         <tr>
-                                                <td>updateUserDto</td>
+                                                <td>dto</td>
                                             <td>
-                                                            <code><a href="../classes/UpdateUserDto.html" target="_self" >UpdateUserDto</a></code>
+                                                            <code><a href="../classes/UpdateUserRequestDto.html" target="_self" >UpdateUserRequestDto</a></code>
                                             </td>
 
                                             <td>
@@ -308,8 +309,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="56"
-                                    class="link-to-prism">src/features/users/users.controller.ts:56</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="52"
+                                    class="link-to-prism">src/features/users/users.controller.ts:52</a></div>
                         </td>
                     </tr>
 
@@ -364,6 +365,7 @@
                             <span class="modifier"></span>
                             <span class="modifier"></span>
                             <span class="modifier"></span>
+                            <span class="modifier"></span>
                         <span ><b>getProfile</b></span>
                         <a href="#getProfile"><span class="icon ion-ios-link"></span></a>
                     </span>
@@ -380,14 +382,14 @@
                 <td class="col-md-4">
                     <b>Decorators : </b>
                     <br />
-                    <code>@Get(&#x27;me&#x27;)<br />@HttpCode(HttpStatus.OK)<br />@ApiGetProfile()<br /></code>
+                    <code>@Get(&#x27;me&#x27;)<br />@HttpCode(HttpStatus.OK)<br />@ApiGetProfile()<br />@Serialize(UserProfileResponseDto)<br /></code>
                 </td>
             </tr>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="33"
-                                    class="link-to-prism">src/features/users/users.controller.ts:33</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="35"
+                                    class="link-to-prism">src/features/users/users.controller.ts:35</a></div>
                         </td>
                     </tr>
 
@@ -423,7 +425,7 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >UserEntity</a></code>
 
                         </div>
                             <div class="io-description">
@@ -449,14 +451,15 @@ import {
   Put
 } from &#x27;@nestjs/common&#x27;;
 import { ApiTags } from &#x27;@nestjs/swagger&#x27;;
-import { UpdateUserDto } from &#x27;./dto/update-user.dto&#x27;;
-import { UserProfileDto } from &#x27;./dto/user-profile.dto&#x27;;
 import { UsersService } from &#x27;./users.service&#x27;;
 import {
   ApiChangeProfile,
   ApiDeleteAccount,
   ApiGetProfile
 } from &#x27;./users.swagger&#x27;;
+import { Serialize } from &#x27;@core/common/decorators/serialize.decorator&#x27;;
+import { UserProfileResponseDto } from &#x27;./dto/response/user-profile.response.dto&#x27;;
+import { UpdateUserRequestDto } from &#x27;./dto/request/update-user.request.dto&#x27;;
 
 @Controller({
   path: &#x27;user&#x27;,
@@ -469,14 +472,9 @@ export class UsersController {
   @Get(&#x27;me&#x27;)
   @HttpCode(HttpStatus.OK)
   @ApiGetProfile()
+  @Serialize(UserProfileResponseDto)
   getProfile(@User(&#x27;user&#x27;) user: UserEntity) {
-    return new UserProfileDto(
-      user.name,
-      user.username,
-      user.email,
-      user.role,
-      user.registryDates.createdAt
-    );
+    return user;
   }
 
   @Put()
@@ -484,9 +482,9 @@ export class UsersController {
   @ApiChangeProfile()
   changeProfile(
     @User(&#x27;user&#x27;) user: UserEntity,
-    @Body() updateUserDto: UpdateUserDto
+    @Body() dto: UpdateUserRequestDto
   ) {
-    return this.usersService.updateProfile(user.id, updateUserDto);
+    return this.usersService.updateProfile(user.id, dto);
   }
 
   @Delete(&#x27;delete-account&#x27;)

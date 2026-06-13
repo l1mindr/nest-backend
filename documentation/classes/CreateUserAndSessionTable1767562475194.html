@@ -268,8 +268,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="50"
-                                    class="link-to-prism">src/infrastructure/database/migrations/1767562475194-create-user-and-session-table.ts:50</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="102"
+                                    class="link-to-prism">src/infrastructure/database/migrations/1767562475194-create-user-and-session-table.ts:102</a></div>
                         </td>
                     </tr>
 
@@ -402,64 +402,118 @@ export class CreateUserAndSessionTable1767562475194 implements MigrationInterfac
 
   public async up(queryRunner: QueryRunner): Promise&lt;void&gt; {
     await queryRunner.query(&#x60;
-            CREATE TYPE &quot;public&quot;.&quot;user_status_enum&quot; AS ENUM(&#x27;ACTIVATE&#x27;, &#x27;DEACTIVATE&#x27;, &#x27;SUSPEND&#x27;)
-        &#x60;);
+        DO $$
+        BEGIN
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_type
+            WHERE typname &#x3D; &#x27;user_status_enum&#x27;
+        ) THEN
+            CREATE TYPE &quot;public&quot;.&quot;user_status_enum&quot;
+            AS ENUM (&#x27;ACTIVATE&#x27;, &#x27;DEACTIVATE&#x27;, &#x27;SUSPEND&#x27;);
+        END IF;
+        END $$;
+    &#x60;);
+
     await queryRunner.query(&#x60;
-            CREATE TYPE &quot;public&quot;.&quot;user_role_enum&quot; AS ENUM(&#x27;ADMIN&#x27;, &#x27;USER&#x27;)
-        &#x60;);
+        DO $$
+        BEGIN
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_type
+            WHERE typname &#x3D; &#x27;user_role_enum&#x27;
+        ) THEN
+            CREATE TYPE &quot;public&quot;.&quot;user_role_enum&quot;
+            AS ENUM (&#x27;ADMIN&#x27;, &#x27;USER&#x27;);
+        END IF;
+        END $$;
+    &#x60;);
+
     await queryRunner.query(&#x60;
-            CREATE TABLE &quot;user&quot; (
-                &quot;id&quot; uuid NOT NULL DEFAULT uuid_generate_v4(),
-                &quot;name&quot; character varying(50),
-                &quot;email&quot; character varying NOT NULL,
-                &quot;username&quot; character varying(30) NOT NULL,
-                &quot;password&quot; character varying NOT NULL,
-                &quot;status&quot; &quot;public&quot;.&quot;user_status_enum&quot; NOT NULL DEFAULT &#x27;DEACTIVATE&#x27;,
-                &quot;role&quot; &quot;public&quot;.&quot;user_role_enum&quot; NOT NULL DEFAULT &#x27;USER&#x27;,
-                &quot;createdAt&quot; TIMESTAMP NOT NULL DEFAULT now(),
-                &quot;updatedAt&quot; TIMESTAMP NOT NULL DEFAULT now(),
-                &quot;deleteAt&quot; TIMESTAMP,
-                CONSTRAINT &quot;UQ_e12875dfb3b1d92d7d7c5377e22&quot; UNIQUE (&quot;email&quot;),
-                CONSTRAINT &quot;UQ_78a916df40e02a9deb1c4b75edb&quot; UNIQUE (&quot;username&quot;),
-                CONSTRAINT &quot;users_username_unique&quot; UNIQUE (&quot;username&quot;),
-                CONSTRAINT &quot;users_email_unique&quot; UNIQUE (&quot;email&quot;),
-                CONSTRAINT &quot;PK_cace4a159ff9f2512dd42373760&quot; PRIMARY KEY (&quot;id&quot;)
-            )
-        &#x60;);
+        CREATE TABLE &quot;user&quot; (
+
+            &quot;id&quot; uuid NOT NULL DEFAULT uuid_generate_v4(),
+
+            &quot;name&quot; character varying(50),
+
+            &quot;email&quot; character varying NOT NULL,
+
+            &quot;username&quot; character varying(30) NOT NULL,
+
+            &quot;password&quot; character varying NOT NULL,
+
+            &quot;status&quot; &quot;public&quot;.&quot;user_status_enum&quot; NOT NULL DEFAULT &#x27;DEACTIVATE&#x27;,
+
+            &quot;role&quot; &quot;public&quot;.&quot;user_role_enum&quot; NOT NULL DEFAULT &#x27;USER&#x27;,
+
+            &quot;createdAt&quot; TIMESTAMP NOT NULL DEFAULT now(),
+
+            &quot;updatedAt&quot; TIMESTAMP NOT NULL DEFAULT now(),
+
+            &quot;deleteAt&quot; TIMESTAMP,
+
+            CONSTRAINT &quot;users_email_unique&quot;
+
+            UNIQUE (&quot;email&quot;),
+
+            CONSTRAINT &quot;users_username_unique&quot;
+
+            UNIQUE (&quot;username&quot;),
+
+            CONSTRAINT &quot;PK_cace4a159ff9f2512dd42373760&quot;
+
+            PRIMARY KEY (&quot;id&quot;)
+        )
+    &#x60;);
+
     await queryRunner.query(&#x60;
-            CREATE TABLE &quot;session&quot; (
-                &quot;id&quot; uuid NOT NULL DEFAULT uuid_generate_v4(),
-                &quot;token&quot; character varying NOT NULL,
-                &quot;device&quot; json NOT NULL,
-                &quot;ip&quot; character varying NOT NULL,
-                &quot;expiryDate&quot; TIMESTAMP NOT NULL,
-                &quot;ownerId&quot; uuid NOT NULL,
-                CONSTRAINT &quot;UQ_232f8e85d7633bd6ddfad421696&quot; UNIQUE (&quot;token&quot;),
-                CONSTRAINT &quot;PK_f55da76ac1c3ac420f444d2ff11&quot; PRIMARY KEY (&quot;id&quot;)
-            )
-        &#x60;);
+        CREATE TABLE &quot;session&quot; (
+
+            &quot;id&quot; uuid NOT NULL DEFAULT uuid_generate_v4(),
+
+            &quot;token&quot; character varying NOT NULL,
+
+            &quot;device&quot; json NOT NULL,
+
+            &quot;ip&quot; character varying NOT NULL,
+
+            &quot;expiryDate&quot; TIMESTAMP NOT NULL,
+
+            &quot;ownerId&quot; uuid NOT NULL,
+
+            CONSTRAINT &quot;UQ_232f8e85d7633bd6ddfad421696&quot;
+
+            UNIQUE (&quot;token&quot;),
+
+            CONSTRAINT &quot;PK_f55da76ac1c3ac420f444d2ff11&quot;
+            PRIMARY KEY (&quot;id&quot;)
+        )
+    &#x60;);
+
     await queryRunner.query(&#x60;
-            ALTER TABLE &quot;session&quot;
-            ADD CONSTRAINT &quot;FK_e1dde0bd0402cc9b1967c40a1b3&quot; FOREIGN KEY (&quot;ownerId&quot;) REFERENCES &quot;user&quot;(&quot;id&quot;) ON DELETE NO ACTION ON UPDATE NO ACTION
-        &#x60;);
+        ALTER TABLE &quot;session&quot;
+        ADD CONSTRAINT &quot;FK_e1dde0bd0402cc9b1967c40a1b3&quot; FOREIGN KEY (&quot;ownerId&quot;) REFERENCES &quot;user&quot;(&quot;id&quot;) ON DELETE NO ACTION ON UPDATE NO ACTION
+    &#x60;);
   }
 
   public async down(queryRunner: QueryRunner): Promise&lt;void&gt; {
     await queryRunner.query(&#x60;
-            ALTER TABLE &quot;session&quot; DROP CONSTRAINT &quot;FK_e1dde0bd0402cc9b1967c40a1b3&quot;
-        &#x60;);
+        ALTER TABLE &quot;session&quot; DROP CONSTRAINT &quot;FK_e1dde0bd0402cc9b1967c40a1b3&quot;
+    &#x60;);
     await queryRunner.query(&#x60;
-            DROP TABLE &quot;session&quot;
-        &#x60;);
+        DROP TABLE &quot;session&quot;
+    &#x60;);
     await queryRunner.query(&#x60;
-            DROP TABLE &quot;user&quot;
-        &#x60;);
+        DROP TABLE &quot;user&quot;
+    &#x60;);
+
     await queryRunner.query(&#x60;
-            DROP TYPE &quot;public&quot;.&quot;user_role_enum&quot;
-        &#x60;);
+        DROP TYPE IF EXISTS &quot;public&quot;.&quot;user_role_enum&quot;
+    &#x60;);
+
     await queryRunner.query(&#x60;
-            DROP TYPE &quot;public&quot;.&quot;user_status_enum&quot;
-        &#x60;);
+        DROP TYPE IF EXISTS &quot;public&quot;.&quot;user_status_enum&quot;
+    &#x60;);
   }
 }
 </code></pre>

@@ -221,12 +221,17 @@
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Module } from &#x27;@nestjs/common&#x27;;
-import { APP_GUARD } from &#x27;@nestjs/core&#x27;;
+import { APP_FILTER, APP_GUARD } from &#x27;@nestjs/core&#x27;;
+import { GlobalExceptionFilter } from &#x27;./filters/global-exception.filter&#x27;;
 import { JwtAuthGuard } from &#x27;./guards/jwt-auth.guard&#x27;;
 import { RolesGuard } from &#x27;./guards/roles.guard&#x27;;
 
 @Module({
   providers: [
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard
