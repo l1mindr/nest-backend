@@ -8,8 +8,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from 'typeorm';
-import { SwaggerSessionProperties as SessionProps } from '../sessions.swagger';
 import { ISessionDevice } from '../interfaces/session-device.interface';
+import { SwaggerSessionProperties as SessionProps } from '../sessions.swagger';
 
 @Entity()
 export class Session {
@@ -39,6 +39,9 @@ export class Session {
   @ApiProperty(SessionProps.lastUsedAt)
   @Column({ type: 'timestamp' })
   lastUsedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  rotatedAt: Date;
 
   @ApiProperty(SessionProps.createdAt)
   @CreateDateColumn()
