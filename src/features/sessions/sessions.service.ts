@@ -1,6 +1,4 @@
 import { Session } from '@features/sessions/entities/session.entity';
-import { User } from '@features/users/entities/user.entity';
-import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { DataSource, MoreThan, Not, Repository } from 'typeorm';
@@ -47,13 +45,10 @@ export class SessionsService implements ISessionsService {
     });
   }
 
-  async list({
-    user: { id },
-    session
-  }: CustomAuth): Promise<SessionListItem[]> {
+  async list(userId: string, session: Session): Promise<SessionListItem[]> {
     const sessions = await this.sessionRepo.find({
       where: {
-        owner: { id },
+        owner: { id: userId },
         isRevoked: false,
         expiresAt: MoreThan(new Date()),
         id: Not(session.id)
@@ -68,10 +63,10 @@ export class SessionsService implements ISessionsService {
     return [{ ...session, current: true }, ...sessions];
   }
 
-  async revoke({ id }: User, sessionId: string): Promise<void> {
+  async revoke(userId: string, sessionId: string): Promise<void> {
     await this.sessionRepo.update(
       {
-        owner: { id },
+        owner: { id: userId },
         id: sessionId
       },
       {
@@ -80,10 +75,10 @@ export class SessionsService implements ISessionsService {
     );
   }
 
-  async terminateOthers({ id }: User, sessionId: string): Promise<void> {
+  async terminateOthers(userId: string, sessionId: string): Promise<void> {
     await this.sessionRepo.update(
       {
-        owner: { id },
+        owner: { id: userId },
         id: Not(sessionId)
       },
       {

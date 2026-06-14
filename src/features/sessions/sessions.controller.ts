@@ -1,8 +1,10 @@
 import { Serialize } from '@core/common/decorators/serialize.decorator';
-import { User } from '@features/auth/decorators/user.decorator';
-import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
+import { Session } from '@features/security/decorators/session.decorator';
+import { User } from '@features/security/decorators/user.decorator';
+import { User as UserEntity } from '@features/users/entities/user.entity';
 import { Controller, Delete, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { SessionResponseDto } from './dto/response/session.response.dto';
+import { Session as SessionEntity } from './entities/session.entity';
 import { SessionsService } from './sessions.service';
 import {
   ApiGetSessions,
@@ -21,21 +23,21 @@ export class SessionsController {
   @HttpCode(HttpStatus.OK)
   @ApiGetSessions()
   @Serialize(SessionResponseDto)
-  getAll(@User() customAuth: CustomAuth) {
-    return this.sessionsService.list(customAuth);
+  getAll(@User() user: UserEntity, @Session() session: SessionEntity) {
+    return this.sessionsService.list(user.id, session);
   }
 
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiRevokeCurrentSession()
-  revoke(@User() { user, session }: CustomAuth) {
-    return this.sessionsService.revoke(user, session.id);
+  revoke(@User() user: UserEntity, @Session() session: SessionEntity) {
+    return this.sessionsService.revoke(user.id, session.id);
   }
 
   @Delete('others')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiTerminateOtherSessions()
-  terminateOthers(@User() { user, session }: CustomAuth) {
-    return this.sessionsService.terminateOthers(user, session.id);
+  terminateOthers(@User() user: UserEntity, @Session() session: SessionEntity) {
+    return this.sessionsService.terminateOthers(user.id, session.id);
   }
 }
