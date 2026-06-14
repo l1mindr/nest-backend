@@ -1,9 +1,9 @@
-import { CustomRequest } from '@infrastructure/http/interfaces/custom-request.interface';
+import { IRequest } from '@infrastructure/http/interfaces/custom-request.interface';
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export const IpAddress = createParamDecorator(
-  (data: string, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest<CustomRequest>();
+  (_: string, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest<IRequest>();
 
     const ip = request.headers['x-forwarded-for'] as string;
 

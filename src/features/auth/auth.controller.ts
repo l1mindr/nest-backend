@@ -1,11 +1,13 @@
 import { DeviceContext } from '@core/device/context/device-context.interface';
 import { Device } from '@core/device/decorators/device.decorator';
 import { Public } from '@features/security/decorators/public.decorator';
-import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
+import { Session } from '@features/security/decorators/session.decorator';
+import { User } from '@features/security/decorators/user.decorator';
+import { Session as SessionEntity } from '@features/sessions/entities/session.entity';
+import { User as UserEntity } from '@features/users/entities/user.entity';
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -21,7 +23,6 @@ import {
   ApiRegisterUser
 } from './auth.swagger';
 import { IpAddress } from './decorators/ipAddress.decorator';
-import { User } from './decorators/user.decorator';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
 import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
@@ -31,12 +32,6 @@ import { AuthCookieInterceptor } from './interceptors/auth-cookie.interceptor';
 @ApiTags('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
-  @Public()
-  @Get('test')
-  test(@Device() device: DeviceContext) {
-    return device;
-  }
 
   @Public()
   @Post('register')
@@ -72,9 +67,11 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiChangePassword()
   changePassword(
-    @User() authData: CustomAuth,
+    @User() user: UserEntity,
+    @Session() session: SessionEntity,
+
     @Body() dto: ChangePasswordRequestDto
   ) {
-    return this.authService.changeUserPassword(authData, dto);
+    return this.authService.changeUserPassword(user.id, session.id, dto);
   }
 }

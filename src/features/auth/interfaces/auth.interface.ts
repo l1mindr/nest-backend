@@ -1,6 +1,5 @@
 import { DeviceContext } from '@core/device/context/device-context.interface';
-import { ChangePasswordDto } from '@features/users/dto/change-password.dto';
-import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
+import { ChangePasswordRequestDto } from '../dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from '../dto/request/login-user.request.dto';
 import { RegisterUserRequestDto } from '../dto/request/register-user.request.dto';
 
@@ -12,8 +11,9 @@ export interface IAuthService {
     device: DeviceContext
   ): Promise<AuthTokens>;
   changeUserPassword(
-    customAuth: CustomAuth,
-    changePasswordDto: ChangePasswordDto
+    userId: string,
+    sessionId: string,
+    { currentPassword, newPassword }: ChangePasswordRequestDto
   ): Promise<void>;
   refresh(refreshToken: string): Promise<AuthTokens>;
 }

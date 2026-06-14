@@ -6,7 +6,6 @@ import { SessionsService } from '@features/sessions/sessions.service';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import { TokenService } from '@features/token/token.service';
 import { UsersService } from '@features/users/users.service';
-import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { Injectable } from '@nestjs/common';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
@@ -76,12 +75,12 @@ export class AuthService implements IAuthService {
   }
 
   async changeUserPassword(
-    { user, session }: CustomAuth,
+    userId: string,
+    sessionId: string,
     { currentPassword, newPassword }: ChangePasswordRequestDto
   ): Promise<void> {
-    const userWithPassword = await this.usersService.findByIdWithPassword(
-      user.id
-    );
+    const userWithPassword =
+      await this.usersService.findByIdWithPassword(userId);
 
     if (!userWithPassword) throw TokenErrors.invalidToken();
 
@@ -103,8 +102,8 @@ export class AuthService implements IAuthService {
 
     // Hash new password and update
     const password = await this.hashingProvider.hash(newPassword);
-    await this.usersService.setPassword(user.id, password);
-    await this.sessionsService.terminateOthers(user, session.id);
+    await this.usersService.setPassword(userId, password);
+    await this.sessionsService.terminateOthers(userId, sessionId);
   }
 
   async refresh(refreshToken: string) {
@@ -141,7 +140,8 @@ export class AuthService implements IAuthService {
     await this.sessionsService.updateRefreshState(session, {
       refreshTokenHash,
       lastUsedAt: new Date(now),
-      expiresAt
+      expiresAt,
+      rotatedAt: new Date(now)
     });
 
     return { ...tokens };
