@@ -1,3 +1,4 @@
+import { IRequest } from '@infrastructure/http/interfaces/custom-request.interface';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
@@ -17,7 +18,7 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest().user;
+    const { user } = context.switchToHttp().getRequest<IRequest>();
 
     if (!user?.role) {
       throw SecurityErrors.accessDenied();
