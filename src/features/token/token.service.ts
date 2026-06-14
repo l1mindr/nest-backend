@@ -1,8 +1,10 @@
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { SessionsService } from '@features/sessions/sessions.service';
 import { UsersService } from '@features/users/users.service';
+import jwtConfig from '@infrastructure/config/jwt/jwt.config';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { TokenErrors } from './errors/token-errors';
 import { IJwtPayload } from './interfaces/jwt-payload.interface';
@@ -11,6 +13,8 @@ import { ITokenService } from './interfaces/token.interface';
 @Injectable()
 export class TokenService implements ITokenService {
   constructor(
+    @Inject(jwtConfig.KEY)
+    private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
     private readonly sessionsService: SessionsService
@@ -31,26 +35,40 @@ export class TokenService implements ITokenService {
     const accessExp = Math.floor(now) / 1000 + 15 * 60;
     const refreshExp = Math.floor(expiresAt.getTime()) / 1000;
 
-    const accessToken = await this.jwtService.signAsync({
-      ...jwtPayload,
-      exp: accessExp
-      // role
-    });
+    const accessToken = await this.jwtService.signAsync(
+      {
+        ...jwtPayload,
+        exp: accessExp
+        // role
+      },
+      {
+        secret: this.jwtConfiguration.secret
+      }
+    );
 
-    const refreshToken = await this.jwtService.signAsync({
-      ...jwtPayload,
-      exp: refreshExp
-    });
+    const refreshToken = await this.jwtService.signAsync(
+      {
+        ...jwtPayload,
+        exp: refreshExp
+      },
+      {
+        secret: this.jwtConfiguration.secret
+      }
+    );
 
     return { accessToken, refreshToken };
   }
 
   async verifyAccessToken(token: string): Promise<IJwtPayload> {
-    return this.jwtService.verifyAsync<IJwtPayload>(token);
+    return this.jwtService.verifyAsync<IJwtPayload>(token, {
+      secret: this.jwtConfiguration.secret
+    });
   }
 
   async verifyRefreshToken(token: string): Promise<IJwtPayload> {
-    return this.jwtService.verifyAsync<IJwtPayload>(token);
+    return this.jwtService.verifyAsync<IJwtPayload>(token, {
+      secret: this.jwtConfiguration.secret
+    });
   }
 
   async validatePayload({ sub, sessionId }: IJwtPayload): Promise<CustomAuth> {
