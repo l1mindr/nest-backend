@@ -34,6 +34,20 @@ export class SessionErrors {
     );
   }
 
+  static refreshRateLimited(sessionId?: string) {
+    return new AppError(
+      SessionErrorCode.REFRESH_RATE_LIMITED,
+
+      ErrorDomain.SESSION,
+
+      HttpStatus.TOO_MANY_REQUESTS,
+
+      sessionId ? { sessionId } : undefined,
+
+      'Refresh token request is too frequent'
+    );
+  }
+
   static sessionReuseDetected(sessionId?: string) {
     return new AppError(
       SessionErrorCode.SESSION_REUSE_DETECTED,

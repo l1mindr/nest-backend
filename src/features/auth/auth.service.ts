@@ -25,6 +25,8 @@ export class AuthService implements IAuthService {
     private readonly tokenService: TokenService
   ) {}
 
+  private readonly MIN_REFRESH_INTERVAL_MS = 5000;
+
   async registerUser(dto: RegisterUserRequestDto): Promise<void> {
     const password = await this.hashingProvider.hash(dto.password);
 
@@ -114,6 +116,15 @@ export class AuthService implements IAuthService {
 
     if (!session) throw SessionErrors.sessionExpired();
 
+    const { now, expiresAt } = this.clockService.snapshot();
+
+    if (
+      session.rotatedAt &&
+      now - session.rotatedAt.getTime() < this.MIN_REFRESH_INTERVAL_MS
+    ) {
+      throw SessionErrors.refreshRateLimited(session.id);
+    }
+
     const isValidRefreshToken = await this.hashingProvider.compare(
       refreshToken,
       session.refreshTokenHash
@@ -125,8 +136,6 @@ export class AuthService implements IAuthService {
       });
       throw SessionErrors.sessionReuseDetected(sessionId);
     }
-
-    const { now, expiresAt } = this.clockService.snapshot();
 
     const tokens = await this.tokenService.issuePair(
       session.owner.id,
