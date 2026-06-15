@@ -144,14 +144,24 @@ export class AuthService implements IAuthService {
       expiresAt
     );
 
-    const refreshTokenHash = await this.hashingProvider.hash(refreshToken);
+    const newRefreshTokenHash = await this.hashingProvider.hash(
+      tokens.refreshToken
+    );
 
-    await this.sessionsService.updateRefreshState(session, {
-      refreshTokenHash,
-      lastUsedAt: new Date(now),
-      expiresAt,
-      rotatedAt: new Date(now)
-    });
+    const ok = await this.sessionsService.rotateRefreshToken(
+      session.id,
+      session.refreshTokenHash,
+      newRefreshTokenHash,
+      {
+        lastUsedAt: new Date(now),
+        expiresAt,
+        rotatedAt: new Date(now)
+      }
+    );
+
+    if (!ok) {
+      throw SessionErrors.sessionReuseDetected(sessionId);
+    }
 
     return { ...tokens };
   }

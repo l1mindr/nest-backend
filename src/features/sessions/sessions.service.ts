@@ -94,4 +94,39 @@ export class SessionsService implements ISessionsService {
     Object.assign(session, payload);
     await this.sessionRepo.save(session);
   }
+
+  async rotateRefreshToken(
+    sessionId: string,
+    oldHash: string,
+    newHash: string,
+    meta: {
+      lastUsedAt: Date;
+      expiresAt: Date;
+      rotatedAt: Date;
+    }
+  ) {
+    const result = await this.sessionRepo.query(
+      `
+        UPDATE session
+        SET
+          refresh_token_hash = $1,
+          rotated_at = $2,
+          last_used_at = $3,
+          expires_at = $4
+        WHERE id = $5
+          AND refresh_token_hash = $6
+        RETURNING id
+      `,
+      [
+        newHash,
+        meta.rotatedAt,
+        meta.lastUsedAt,
+        meta.expiresAt,
+        sessionId,
+        oldHash
+      ]
+    );
+
+    return result.length > 0;
+  }
 }
