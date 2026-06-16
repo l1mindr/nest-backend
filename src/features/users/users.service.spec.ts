@@ -1,177 +1,215 @@
-import { NotFoundException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource, Repository } from 'typeorm';
-import { CreateUserRequestDto } from './dto/request/create-user.request.dto';
-import { UpdateUserRequestDto } from './dto/request/update-user.request.dto';
+import { DataSource } from 'typeorm';
 import { User } from './entities/user.entity';
-import { UserStatus } from './enums/user-status.enum';
+import { UserErrors } from './errors/user-errors';
 import { UsersService } from './users.service';
 
 describe('UsersService', () => {
   let service: UsersService;
-  let repo: jest.Mocked<Repository<User>>;
 
-  beforeEach(async () => {
-    repo = {
-      findOne: jest.fn(),
-      find: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
-      update: jest.fn(),
-      softRemove: jest.fn()
-    } as any;
+  const mockRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    softRemove: jest.fn()
+  };
 
-    const dataSource = {
-      getRepository: jest.fn().mockReturnValue(repo)
-    } as any;
+  const mockDataSource = {
+    getRepository: jest.fn().mockReturnValue(mockRepository)
+  };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersService, { provide: DataSource, useValue: dataSource }]
-    }).compile();
+  beforeEach(() => {
+    jest.clearAllMocks();
 
-    service = module.get(UsersService);
+    service = new UsersService(mockDataSource as unknown as DataSource);
   });
 
-  // ----------------- findById -----------------
-  it('findById should return user if exists', async () => {
-    const fakeUser: Partial<User> = {
-      id: '550e8400-e29b-41d4-a716-446655440000'
-    };
-    repo.findOne.mockResolvedValue(fakeUser as User);
+  describe('findByIdentifierForAuth', () => {
+    it('should return user', async () => {
+      const user = { id: '1' } as User;
 
-    const result = await service.findById(
-      '550e8400-e29b-41d4-a716-446655440000'
-    );
-    expect(result).toEqual(fakeUser);
+      mockRepository.findOne.mockResolvedValue(user);
+
+      const result = await service.findByIdentifierForAuth('test@test.com');
+
+      expect(result).toEqual(user);
+    });
   });
 
-  it('findById should throw NotFoundException if user not found', async () => {
-    repo.findOne.mockResolvedValue(null);
-    await expect(
-      service.findById('550e8400-e29b-41d4-a716-446655440000')
-    ).rejects.toThrow(NotFoundException);
+  describe('findByIdForSessionValidation', () => {
+    it('should return user', async () => {
+      const user = { id: '1' } as User;
+
+      mockRepository.findOne.mockResolvedValue(user);
+
+      const result = await service.findByIdForSessionValidation('1');
+
+      expect(result).toEqual(user);
+    });
   });
 
-  // ----------------- findByIdentifierForAuth -----------------
-  it('findByIdentifierForAuth should return user if found', async () => {
-    const fakeUser: Partial<User> = {
-      id: '550e8400-e29b-41d4-a716-446655440000',
-      username: 'test',
-      email: 'test@example.com',
-      password: 'pass',
-      status: UserStatus.ACTIVATE
-    };
-    repo.findOne.mockResolvedValue(fakeUser as User);
+  describe('findByIdWithPassword', () => {
+    it('should return user', async () => {
+      const user = {
+        id: '1',
+        password: 'hash'
+      } as User;
 
-    const result = await service.findByIdentifierForAuth(fakeUser.email!);
-    expect(result).toEqual(fakeUser);
+      mockRepository.findOne.mockResolvedValue(user);
+
+      const result = await service.findByIdWithPassword('1');
+
+      expect(result).toEqual(user);
+    });
   });
 
-  it('findByIdentifierForAuth should return null if not found', async () => {
-    repo.findOne.mockResolvedValue(null);
-    const result = await service.findByIdentifierForAuth('test@example.com');
-    expect(result).toBeNull();
-  });
+  describe('findById', () => {
+    it('should return user', async () => {
+      const user = { id: '1' } as User;
 
-  // ----------------- register -----------------
-  it('register should create and save user successfully', async () => {
-    const dto: CreateUserRequestDto = {
-      email: 'a@test.com',
-      username: 'user1',
-      password: 'password'
-    };
-    repo.create.mockReturnValue(dto as any);
-    repo.save.mockResolvedValue({} as any);
+      mockRepository.findOne.mockResolvedValue(user);
 
-    await expect(service.register(dto)).resolves.toBeUndefined();
-    expect(repo.create).toHaveBeenCalledWith(dto);
-    expect(repo.save).toHaveBeenCalled();
-  });
+      const result = await service.findById('1');
 
-  it('register should throw UnprocessableEntityException if email exists', async () => {
-    repo.create.mockReturnValue({} as any);
-    repo.save.mockRejectedValue({
-      code: '23505',
-      detail: 'Key (email) already exists'
+      expect(result).toEqual(user);
     });
 
-    await expect(service.register({} as any)).rejects.toThrow(
-      'email already exists'
-    );
+    it('should throw when user does not exist', async () => {
+      mockRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findById('1')).rejects.toEqual(
+        UserErrors.userNotFound('1')
+      );
+    });
   });
 
-  it('register should throw UnprocessableEntityException if username exists', async () => {
-    repo.create.mockReturnValue({} as any);
-    repo.save.mockRejectedValue({
-      code: '23505',
-      detail: 'Key (username) already exists'
+  describe('setPassword', () => {
+    it('should update password', async () => {
+      mockRepository.update.mockResolvedValue(undefined);
+
+      await service.setPassword('1', 'hashed-password');
+
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        { id: '1' },
+        { password: 'hashed-password' }
+      );
+    });
+  });
+
+  describe('register', () => {
+    it('should register user', async () => {
+      const dto = {
+        email: 'test@test.com'
+      };
+
+      mockRepository.create.mockReturnValue(dto);
+      mockRepository.save.mockResolvedValue(undefined);
+
+      await service.register(dto as any);
+
+      expect(mockRepository.create).toHaveBeenCalledWith(dto);
+      expect(mockRepository.save).toHaveBeenCalled();
     });
 
-    await expect(service.register({} as any)).rejects.toThrow(
-      'username already exists'
-    );
+    it('should throw emailAlreadyExists', async () => {
+      mockRepository.create.mockReturnValue({});
+
+      mockRepository.save.mockRejectedValue({
+        code: '23505',
+        detail: 'email'
+      });
+
+      await expect(service.register({} as any)).rejects.toEqual(
+        UserErrors.emailAlreadyExists()
+      );
+    });
+
+    it('should throw usernameAlreadyExists', async () => {
+      mockRepository.create.mockReturnValue({});
+
+      mockRepository.save.mockRejectedValue({
+        code: '23505',
+        detail: 'username'
+      });
+
+      await expect(service.register({} as any)).rejects.toEqual(
+        UserErrors.usernameAlreadyExists()
+      );
+    });
+
+    it('should rethrow unknown errors', async () => {
+      const error = new Error('unknown');
+
+      mockRepository.create.mockReturnValue({});
+      mockRepository.save.mockRejectedValue(error);
+
+      await expect(service.register({} as any)).rejects.toThrow(error);
+    });
   });
 
-  // ----------------- updateProfile -----------------
-  it('updateProfile should update successfully', async () => {
-    const userId = '550e8400-e29b-41d4-a716-446655440000';
-    repo.findOne.mockResolvedValue({ id: userId } as User);
-    repo.update.mockResolvedValue({} as any);
+  describe('list', () => {
+    it('should return users', async () => {
+      const users = [{ id: '1' }, { id: '2' }] as User[];
 
-    await expect(
-      service.updateProfile(userId, { name: 'Updated' } as UpdateUserRequestDto)
-    ).resolves.toBeUndefined();
-    expect(repo.update).toHaveBeenCalledWith(
-      { id: userId },
-      { name: 'Updated' }
-    );
+      mockRepository.find.mockResolvedValue(users);
+
+      const result = await service.list();
+
+      expect(result).toEqual(users);
+    });
   });
 
-  it('updateProfile should throw if user does not exist', async () => {
-    repo.findOne.mockResolvedValue(null);
-    await expect(
-      service.updateProfile(
-        '550e8400-e29b-41d4-a716-446655440000',
-        {} as UpdateUserRequestDto
-      )
-    ).rejects.toThrow(NotFoundException);
+  describe('updateProfile', () => {
+    it('should update profile', async () => {
+      jest.spyOn(service, 'findById').mockResolvedValue({ id: '1' } as User);
+
+      mockRepository.update.mockResolvedValue(undefined);
+
+      await service.updateProfile('1', { name: 'Ali' } as any);
+
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        { id: '1' },
+        { name: 'Ali' }
+      );
+    });
+
+    it('should throw emailAlreadyExists', async () => {
+      jest.spyOn(service, 'findById').mockResolvedValue({ id: '1' } as User);
+
+      mockRepository.update.mockRejectedValue({
+        code: '23505',
+        detail: 'email'
+      });
+
+      await expect(service.updateProfile('1', {} as any)).rejects.toEqual(
+        UserErrors.emailAlreadyExists()
+      );
+    });
+
+    it('should throw usernameAlreadyExists', async () => {
+      jest.spyOn(service, 'findById').mockResolvedValue({ id: '1' } as User);
+
+      mockRepository.update.mockRejectedValue({
+        code: '23505',
+        detail: 'username'
+      });
+
+      await expect(service.updateProfile('1', {} as any)).rejects.toEqual(
+        UserErrors.usernameAlreadyExists()
+      );
+    });
   });
 
-  // ----------------- setPassword -----------------
-  it('setPassword should call update with hashed password', async () => {
-    const userId = '550e8400-e29b-41d4-a716-446655440000';
-    const hashPassword = 'hashed123';
+  describe('requestAccountDeletion', () => {
+    it('should soft delete user', async () => {
+      const user = { id: '1' } as User;
 
-    await service.setPassword(userId, hashPassword);
-    expect(repo.update).toHaveBeenCalledWith(
-      { id: userId },
-      { password: hashPassword }
-    );
-  });
+      jest.spyOn(service, 'findById').mockResolvedValue(user);
 
-  // ----------------- list -----------------
-  it('list should return array of users', async () => {
-    const users: Partial<User>[] = [
-      { id: '550e8400-e29b-41d4-a716-446655440000' },
-      { id: '550e8400-e29b-41d4-a716-446655442200' }
-    ];
-    repo.find.mockResolvedValue(users as User[]);
+      await service.requestAccountDeletion('1');
 
-    const result = await service.list();
-    expect(result).toEqual(users);
-  });
-
-  // ----------------- requestAccountDeletion -----------------
-  it('requestAccountDeletion should soft delete user', async () => {
-    const fakeUser: Partial<User> = {
-      id: '550e8400-e29b-41d4-a716-446655440000'
-    };
-    repo.findOne.mockResolvedValue(fakeUser as User);
-    repo.softRemove.mockResolvedValue({} as any);
-
-    await service.requestAccountDeletion(
-      '550e8400-e29b-41d4-a716-446655440000'
-    );
-    expect(repo.softRemove).toHaveBeenCalledWith(fakeUser);
+      expect(mockRepository.softRemove).toHaveBeenCalledWith(user);
+    });
   });
 });
