@@ -1,17 +1,18 @@
 import { Provider } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigType } from '@nestjs/config';
 import Redis from 'ioredis';
+import redisConfig from './config/redis.config';
 import { REDIS_CLIENT } from './redis.constants';
 
 export const redisProvider: Provider = {
   provide: REDIS_CLIENT,
-  inject: [ConfigService],
-  useFactory: (config: ConfigService) => {
+  inject: [redisConfig.KEY],
+  useFactory: (config: ConfigType<typeof redisConfig>) => {
     return new Redis({
-      host: config.get<string>('REDIS_HOST'),
-      port: Number(config.get('REDIS_PORT')),
-      password: config.get<string>('REDIS_PASSWORD'),
-      db: Number(config.get('REDIS_DB') ?? 0)
+      host: config.host,
+      port: config.port,
+      password: config.password,
+      db: config.db
     });
   }
 };
