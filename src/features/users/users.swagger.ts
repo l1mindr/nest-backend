@@ -1,4 +1,4 @@
-import { RegistryDatesOrm } from '@infrastructure/database/embedded/registry-dates.embedded';
+import { RegistryDatesOrm } from '@infrastructure/databases/postgres/embedded/registry-dates.embedded';
 import { ErrorResponseDto } from '@infrastructure/http/dto/error-response.dto';
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';

@@ -1,15 +1,15 @@
+import postgresConfig from '@infrastructure/config/postgres.config';
 import * as dotenv from 'dotenv';
 import * as dotenvExpand from 'dotenv-expand';
 import { DataSource } from 'typeorm';
-import databaseConfig from './config/database.config';
 
 dotenvExpand.expand(dotenv.config());
 
-const config = databaseConfig();
+const config = postgresConfig();
 
 export default new DataSource({
   type: 'postgres',
   url: config.url,
   entities: ['dist/features/**/*.entity{.ts,.js}'],
-  migrations: ['dist/infrastructure/database/migrations/*{.ts,.js}']
+  migrations: ['dist/infrastructure/databases/postgres/migrations/*{.ts,.js}']
 });

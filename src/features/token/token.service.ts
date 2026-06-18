@@ -1,7 +1,7 @@
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { SessionsService } from '@features/sessions/sessions.service';
 import { UsersService } from '@features/users/users.service';
-import jwtConfig from '@infrastructure/config/jwt/jwt.config';
+import jwtConfig from '@infrastructure/config/jwt.config';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';

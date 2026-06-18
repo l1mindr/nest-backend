@@ -1,11 +1,11 @@
 import { IJwtPayload } from '@features/token/interfaces/jwt-payload.interface';
 import { TokenService } from '@features/token/token.service';
+import jwtConfig from '@infrastructure/config/jwt.config';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { SecurityErrors } from '../errors/security-errors';
-import jwtConfig from '@infrastructure/config/jwt/jwt.config';
 
 @Injectable()
 export class JwtStrategy {
