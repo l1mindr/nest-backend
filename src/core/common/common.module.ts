@@ -2,7 +2,7 @@ import { Module, ValidationPipe } from '@nestjs/common';
 import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { DataResponseInterceptor } from './interceptors/data-response.interceptor';
 import { VALIDATION_PIPE_OPTIONS } from './validation/validation.constants';
-import { EnvModule } from '@infrastructure/config/env.module';
+import { EnvModule } from './env/env.module';
 
 @Module({
   imports: [EnvModule],
