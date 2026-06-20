@@ -6,8 +6,9 @@ import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.inter
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { randomUUID } from 'crypto';
 import { TokenErrors } from './errors/token-errors';
-import { IJwtPayload } from './interfaces/jwt-payload.interface';
+import { IJwtClaims, IJwtPayload } from './interfaces/jwt-payload.interface';
 import { ITokenService } from './interfaces/token.interface';
 
 @Injectable()
@@ -49,7 +50,8 @@ export class TokenService implements ITokenService {
     const refreshToken = await this.jwtService.signAsync(
       {
         ...jwtPayload,
-        exp: refreshExp
+        exp: refreshExp,
+        jti: randomUUID()
       },
       {
         secret: this.jwtConfiguration.secret
@@ -59,14 +61,14 @@ export class TokenService implements ITokenService {
     return { accessToken, refreshToken };
   }
 
-  async verifyAccessToken(token: string): Promise<IJwtPayload> {
-    return this.jwtService.verifyAsync<IJwtPayload>(token, {
+  async verifyAccessToken(token: string): Promise<IJwtClaims> {
+    return this.jwtService.verifyAsync<IJwtClaims>(token, {
       secret: this.jwtConfiguration.secret
     });
   }
 
-  async verifyRefreshToken(token: string): Promise<IJwtPayload> {
-    return this.jwtService.verifyAsync<IJwtPayload>(token, {
+  async verifyRefreshToken(token: string): Promise<IJwtClaims> {
+    return this.jwtService.verifyAsync<IJwtClaims>(token, {
       secret: this.jwtConfiguration.secret
     });
   }

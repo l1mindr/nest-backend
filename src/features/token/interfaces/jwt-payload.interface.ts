@@ -3,3 +3,8 @@ export interface IJwtPayload {
   readonly sessionId: string;
   readonly role?: string;
 }
+
+export interface IJwtClaims extends IJwtPayload {
+  iat: number;
+  exp: number;
+}
