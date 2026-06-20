@@ -18,11 +18,16 @@ export async function createTestApp(): Promise<ITextContext> {
   }).compile();
 
   const app = moduleFixture.createNestApplication();
+
   setupApp(app);
+
   await app.init();
+
+  app.enableShutdownHooks();
 
   const dataSource = app.get(DataSource);
 
   await runMigrations(dataSource);
+
   return { app, dataSource };
 }
