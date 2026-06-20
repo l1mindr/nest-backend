@@ -104,29 +104,36 @@ export class SessionsService implements ISessionsService {
       expiresAt: Date;
       rotatedAt: Date;
     }
-  ) {
-    const result = await this.sessionRepo.query(
-      `
-        UPDATE session
-        SET
-          refresh_token_hash = $1,
-          rotated_at = $2,
-          last_used_at = $3,
-          expires_at = $4
-        WHERE id = $5
-          AND refresh_token_hash = $6
-        RETURNING id
-      `,
-      [
-        newHash,
-        meta.rotatedAt,
-        meta.lastUsedAt,
-        meta.expiresAt,
-        sessionId,
-        oldHash
-      ]
-    );
+  ): Promise<boolean> {
+    return this.dataSource.transaction(async (manager) => {
+      const repo = manager.getRepository(Session);
 
-    return result.length > 0;
+      const session = await repo
+        .createQueryBuilder('session')
+        .setLock('pessimistic_write')
+        .where('session.id = :id', { id: sessionId })
+        .getOne();
+
+      if (!session) return false;
+
+      if (session.refreshTokenHash !== oldHash) {
+        return false;
+      }
+
+      const result = await repo.update(
+        {
+          id: sessionId,
+          refreshTokenHash: oldHash
+        },
+        {
+          refreshTokenHash: newHash,
+          rotatedAt: meta.rotatedAt,
+          lastUsedAt: meta.lastUsedAt,
+          expiresAt: meta.expiresAt
+        }
+      );
+
+      return result.affected === 1;
+    });
   }
 }
