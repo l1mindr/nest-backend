@@ -6,6 +6,7 @@ import { SessionsService } from '@features/sessions/sessions.service';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import { TokenService } from '@features/token/token.service';
 import { UsersService } from '@features/users/users.service';
+import { RedisService } from '@infrastructure/databases/redis/redis.service';
 import { Injectable } from '@nestjs/common';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
@@ -22,7 +23,8 @@ export class AuthService implements IAuthService {
     private readonly hashingProvider: HashingProvider,
     private readonly sessionsService: SessionsService,
     private readonly usersService: UsersService,
-    private readonly tokenService: TokenService
+    private readonly tokenService: TokenService,
+    private readonly redisService: RedisService
   ) {}
 
   private readonly MIN_REFRESH_INTERVAL_MS = 5000;
@@ -109,60 +111,76 @@ export class AuthService implements IAuthService {
   }
 
   async refresh(refreshToken: string) {
-    const { sub, sessionId } =
+    const { sub, sessionId, iat } =
       await this.tokenService.verifyRefreshToken(refreshToken);
 
-    const session = await this.sessionsService.getActive(sub, sessionId);
+    const lockKey = `refresh:lock:${sessionId}`;
 
-    if (!session) throw SessionErrors.sessionExpired();
+    const lock = await (this.redisService.client as any).set(
+      lockKey,
+      '1',
+      'NX',
+      'EX',
+      5
+    );
 
-    const { now, expiresAt } = this.clockService.snapshot();
-
-    if (
-      session.rotatedAt &&
-      now - session.rotatedAt.getTime() < this.MIN_REFRESH_INTERVAL_MS
-    ) {
-      throw SessionErrors.refreshRateLimited(session.id);
+    if (!lock) {
+      throw SessionErrors.refreshRateLimited(sessionId);
     }
 
-    const isValidRefreshToken = await this.hashingProvider.compare(
-      refreshToken,
-      session.refreshTokenHash
-    );
+    try {
+      const session = await this.sessionsService.getActive(sub, sessionId);
 
-    if (!isValidRefreshToken) {
-      await this.sessionsService.updateRefreshState(session, {
-        isRevoked: true
-      });
-      throw SessionErrors.sessionReuseDetected(sessionId);
-    }
-
-    const tokens = await this.tokenService.issuePair(
-      session.owner.id,
-      session.id,
-      now,
-      expiresAt
-    );
-
-    const newRefreshTokenHash = await this.hashingProvider.hash(
-      tokens.refreshToken
-    );
-
-    const ok = await this.sessionsService.rotateRefreshToken(
-      session.id,
-      session.refreshTokenHash,
-      newRefreshTokenHash,
-      {
-        lastUsedAt: new Date(now),
-        expiresAt,
-        rotatedAt: new Date(now)
+      if (!session) {
+        throw SessionErrors.sessionExpired();
       }
-    );
 
-    if (!ok) {
-      throw SessionErrors.sessionReuseDetected(sessionId);
+      const isValid = await this.hashingProvider.compare(
+        refreshToken,
+        session.refreshTokenHash
+      );
+
+      if (!isValid) {
+        await this.sessionsService.updateRefreshState(session, {
+          isRevoked: true
+        });
+
+        throw SessionErrors.sessionReuseDetected(sessionId);
+      }
+
+      if (session.rotatedAt && session.rotatedAt.getTime() >= iat * 1000) {
+        throw SessionErrors.sessionReuseDetected(sessionId);
+      }
+
+      const { now, expiresAt } = this.clockService.snapshot();
+
+      const tokens = await this.tokenService.issuePair(
+        sub,
+        session.id,
+        now,
+        expiresAt
+      );
+
+      const newHash = await this.hashingProvider.hash(tokens.refreshToken);
+
+      const ok = await this.sessionsService.rotateRefreshToken(
+        session.id,
+        session.refreshTokenHash,
+        newHash,
+        {
+          lastUsedAt: new Date(now),
+          expiresAt,
+          rotatedAt: new Date(now)
+        }
+      );
+
+      if (!ok) {
+        throw SessionErrors.sessionReuseDetected(sessionId);
+      }
+
+      return tokens;
+    } finally {
+      await this.redisService.client.del(lockKey);
     }
-
-    return { ...tokens };
   }
 }
