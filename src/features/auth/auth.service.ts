@@ -6,7 +6,8 @@ import { SessionsService } from '@features/sessions/sessions.service';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import { TokenService } from '@features/token/token.service';
 import { UsersService } from '@features/users/users.service';
-import { RedisService } from '@infrastructure/databases/redis/redis.service';
+import { RedisLockKey } from '@infrastructure/databases/redis/keys/redis-lock-key.enum';
+import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.service';
 import { Injectable } from '@nestjs/common';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
@@ -24,10 +25,8 @@ export class AuthService implements IAuthService {
     private readonly sessionsService: SessionsService,
     private readonly usersService: UsersService,
     private readonly tokenService: TokenService,
-    private readonly redisService: RedisService
+    private readonly redisLockService: RedisLockService
   ) {}
-
-  private readonly MIN_REFRESH_INTERVAL_MS = 5000;
 
   async registerUser(dto: RegisterUserRequestDto): Promise<void> {
     const password = await this.hashingProvider.hash(dto.password);
@@ -114,14 +113,9 @@ export class AuthService implements IAuthService {
     const { sub, sessionId, iat } =
       await this.tokenService.verifyRefreshToken(refreshToken);
 
-    const lockKey = `refresh:lock:${sessionId}`;
-
-    const lock = await (this.redisService.client as any).set(
-      lockKey,
-      '1',
-      'NX',
-      'EX',
-      5
+    const lock = await this.redisLockService.acquire(
+      RedisLockKey.REFRESH_LOCK,
+      sessionId
     );
 
     if (!lock) {
@@ -141,9 +135,7 @@ export class AuthService implements IAuthService {
       );
 
       if (!isValid) {
-        await this.sessionsService.updateRefreshState(session, {
-          isRevoked: true
-        });
+        await this.sessionsService.revoke(sub, sessionId);
 
         throw SessionErrors.sessionReuseDetected(sessionId);
       }
@@ -180,7 +172,7 @@ export class AuthService implements IAuthService {
 
       return tokens;
     } finally {
-      await this.redisService.client.del(lockKey);
+      await this.redisLockService.release(RedisLockKey.REFRESH_LOCK, sessionId);
     }
   }
 }
