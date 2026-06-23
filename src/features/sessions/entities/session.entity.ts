@@ -40,6 +40,9 @@ export class Session {
   @Column({ type: 'timestamp' })
   lastUsedAt: Date;
 
+  @Column({ default: 0 })
+  version: number;
+
   @Column({ type: 'timestamp', nullable: true })
   rotatedAt: Date;
 
