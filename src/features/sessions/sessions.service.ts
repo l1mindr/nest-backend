@@ -136,4 +136,29 @@ export class SessionsService implements ISessionsService {
       return result.affected === 1;
     });
   }
+
+  async rotateAtomic(
+    sessionId: string,
+    version: number,
+    oldHash: string,
+    newHash: string,
+    meta: { now: number; expiresAt: Date }
+  ): Promise<boolean> {
+    const result = await this.sessionRepo
+      .createQueryBuilder()
+      .update(Session)
+      .set({
+        refreshTokenHash: newHash,
+        rotatedAt: new Date(meta.now),
+        lastUsedAt: new Date(meta.now),
+        expiresAt: meta.expiresAt,
+        version: () => '"version" + 1'
+      })
+      .where('id = :id', { id: sessionId })
+      .andWhere('refreshTokenHash = :hash', { hash: oldHash })
+      .andWhere('version = :version', { version })
+      .execute();
+
+    return (result.affected ?? 0) === 1;
+  }
 }

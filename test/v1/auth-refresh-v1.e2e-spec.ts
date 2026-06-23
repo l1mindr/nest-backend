@@ -91,6 +91,6 @@ describe('Auth Refresh (e2e) version: 1', () => {
 
     const statuses = [first.status, second.status].sort();
 
-    expect(statuses).toEqual([200, 429]);
+    expect(statuses).toEqual([200, 401]);
   });
 });
