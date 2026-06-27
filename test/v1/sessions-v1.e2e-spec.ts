@@ -27,10 +27,7 @@ describe('Sessions (e2e) version: 1', () => {
   it('should return active sessions', async () => {
     const { client } = await UserFactory.authenticated(app, {});
 
-    const res = await client.request({
-      method: 'get',
-      url: '/v1/sessions'
-    });
+    const res = await client.get('/v1/sessions');
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.data)).toBe(true);
@@ -39,15 +36,9 @@ describe('Sessions (e2e) version: 1', () => {
   it('should return 204 when logout successfully', async () => {
     const { client } = await UserFactory.authenticated(app, {});
 
-    const logoutRes = await client.request({
-      method: 'delete',
-      url: '/v1/sessions'
-    });
+    const logoutRes = await client.delete('/v1/sessions');
 
-    const meRes = await client.request({
-      method: 'get',
-      url: '/v1/user/me'
-    });
+    const meRes = await client.get('/v1/user/me');
 
     expect(logoutRes.status).toBe(204);
     expect(meRes.status).toBe(401);
@@ -58,18 +49,14 @@ describe('Sessions (e2e) version: 1', () => {
 
     await UserFactory.authenticated(app, {});
 
-    const sessionsRes = await context1.client.request({
-      method: 'get',
-      url: '/v1/sessions'
-    });
+    const sessionsRes = await context1.client.get('/v1/sessions');
 
     expect(sessionsRes.status).toBe(200);
     expect(sessionsRes.body.data).toHaveLength(2);
 
-    const terminateOtherSessionsRes = await context1.client.request({
-      method: 'delete',
-      url: '/v1/sessions/others'
-    });
+    const terminateOtherSessionsRes = await context1.client.delete(
+      '/v1/sessions/others'
+    );
 
     expect(terminateOtherSessionsRes.status).toBe(204);
   });

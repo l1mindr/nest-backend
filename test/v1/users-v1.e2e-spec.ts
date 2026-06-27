@@ -27,10 +27,7 @@ describe('Users (e2e) version: 1', () => {
 
   it('should get current user profile', async () => {
     const { client } = await UserFactory.authenticated(app, {});
-    const res = await client.request({
-      method: 'get',
-      url: '/v1/user/me'
-    });
+    const res = await client.get('/v1/user/me');
 
     expect(res.status).toBe(200);
     expect(res.body.data.email).toBeDefined();
@@ -41,28 +38,20 @@ describe('Users (e2e) version: 1', () => {
 
   it('should fail if user is not authenticated', async () => {
     const client = new ApiClient(app);
-    const res = await client.request({
-      method: 'get',
-      url: '/v1/user/me'
-    });
+    const res = await client.get('/v1/user/me');
 
     expect(res.status).toBe(401);
   });
 
   it('should update profile', async () => {
     const { client } = await UserFactory.authenticated(app, {});
-    const res = await client.request({
-      method: 'put',
-      url: '/v1/user',
+    const res = await client.put('/v1/user', {
       body: {
         name: 'New name'
       }
     });
 
-    const updateUserDataRes = await client.request({
-      method: 'get',
-      url: '/v1/user/me'
-    });
+    const updateUserDataRes = await client.get('/v1/user/me');
 
     expect(res.status).toBe(204);
     expect(updateUserDataRes.body.data.name).toBe('New name');

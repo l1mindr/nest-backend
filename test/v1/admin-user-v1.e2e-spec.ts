@@ -34,14 +34,8 @@ describe('Admin Users (e2e) version: 1', () => {
       }
     });
 
-    const adminRes = await adminContext.client.request({
-      method: 'get',
-      url: '/v1/admin/users'
-    });
-    const userRes = await userContext.client.request({
-      method: 'get',
-      url: '/v1/admin/users'
-    });
+    const adminRes = await adminContext.client.get('/v1/admin/users');
+    const userRes = await userContext.client.get('/v1/admin/users');
     expect(adminRes.status).toBe(200);
     expect(userRes.status).toBe(403);
   });

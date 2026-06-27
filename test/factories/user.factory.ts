@@ -18,11 +18,7 @@ export class UserFactory {
     const user = createUserDto(overrides);
     const client = new ApiClient(app);
 
-    const register = await client.request({
-      method: 'post',
-      url: '/v1/auth/register',
-      body: user
-    });
+    const register = await client.post('/v1/auth/register', { body: user });
 
     return {
       user,
@@ -40,9 +36,7 @@ export class UserFactory {
     const context = await this.create(app, options.overrides);
     const identifier = options.loginBy ?? 'email';
 
-    const login = await context.client.request({
-      method: 'post',
-      url: '/v1/auth/login',
+    const login = await context.client.post('/v1/auth/login', {
       body: {
         email:
           identifier === 'email' ? context.user.email : context.user.username,

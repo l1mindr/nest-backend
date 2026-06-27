@@ -51,9 +51,7 @@ describe('Auth Login (e2e) version: 1', () => {
   it('should fail if email does not exist', async () => {
     const { user, client } = await UserFactory.create(app);
 
-    const res = await client.request({
-      method: 'post',
-      url: '/v1/auth/login',
+    const res = await client.post('/v1/auth/login', {
       body: { email: 'wrong@test.com', password: user.password }
     });
 
@@ -63,9 +61,7 @@ describe('Auth Login (e2e) version: 1', () => {
   it('should fail if password is wrong', async () => {
     const { user, client } = await UserFactory.create(app);
 
-    const res = await client.request({
-      method: 'post',
-      url: '/v1/auth/login',
+    const res = await client.post('/v1/auth/login', {
       body: { email: user.email, password: 'WrongPassword@123' }
     });
 
@@ -74,9 +70,7 @@ describe('Auth Login (e2e) version: 1', () => {
 
   it('should fail if password is empty', async () => {
     const { user, client } = await UserFactory.create(app);
-    const res = await client.request({
-      method: 'post',
-      url: '/v1/auth/login',
+    const res = await client.post('/v1/auth/login', {
       body: {
         email: user.email,
         password: null
@@ -89,9 +83,7 @@ describe('Auth Login (e2e) version: 1', () => {
   it('should fail if user not found by email or username', async () => {
     const { user, client } = await UserFactory.create(app);
 
-    const res = await client.request({
-      method: 'post',
-      url: '/v1/auth/login',
+    const res = await client.post('/v1/auth/login', {
       body: {
         email: 'unknown_value',
         password: user.password
