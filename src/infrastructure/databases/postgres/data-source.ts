@@ -10,6 +10,8 @@ const config = postgresConfig();
 export default new DataSource({
   type: 'postgres',
   url: config.url,
+  synchronize: false,
+  migrationsRun: false,
   entities: ['dist/features/**/*.entity{.ts,.js}'],
   migrations: ['dist/infrastructure/databases/postgres/migrations/*{.ts,.js}']
 });
