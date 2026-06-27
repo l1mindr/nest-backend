@@ -24,6 +24,7 @@
     "premigration:run": "yarn build",
     "migration:run": "yarn typeorm migration:run -d dist/infrastructure/databases/postgres/data-source",
     "migration:revert": "yarn typeorm migration:revert -d dist/infrastructure/databases/postgres/data-source",
+    "migration:show": "typeorm migration:show",
     "docs": "npx @compodoc/compodoc -p tsconfig.json -s --port 3333 -w --theme material",
     "prepare": "node .husky/install.mjs",
     "deprecated": "npx ts-node findDeprecatedFiles.ts"
