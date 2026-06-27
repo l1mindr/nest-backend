@@ -3,21 +3,22 @@ import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
 import { UserFactory } from '../factories/user.factory';
 import { ApiClient } from '../helpers/apiClient-helper';
-import { resetDatabase } from '../helpers/database.helper';
+import { runMigrations, truncateDatabase } from '../helpers/database.helper';
 
 describe('Users (e2e) version: 1', () => {
   let app: INestApplication;
   let dataSource: DataSource;
 
   beforeAll(async () => {
-    const testApp = await createTestApp();
+    const { app: testApp, dataSource: testDataSource } = await createTestApp();
+    await runMigrations(testDataSource);
 
-    app = testApp.app;
-    dataSource = testApp.dataSource;
+    app = testApp;
+    dataSource = testDataSource;
   });
 
   beforeEach(async () => {
-    await resetDatabase(dataSource);
+    await truncateDatabase(dataSource);
   });
 
   afterAll(async () => {
