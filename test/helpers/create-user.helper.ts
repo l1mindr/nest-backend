@@ -1,4 +1,4 @@
-export function createUser(overrides = {}) {
+export function createUserDto(overrides = {}) {
   return {
     email: 'test@test.com',
     username: 'testuser',

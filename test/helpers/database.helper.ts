@@ -1,11 +1,14 @@
 import { DataSource } from 'typeorm';
 
 export async function runMigrations(dataSource: DataSource) {
-  if (!dataSource.isInitialized) await dataSource.initialize();
-  await dataSource.synchronize(true);
+  if (!dataSource.isInitialized) {
+    await dataSource.initialize();
+  }
+
+  await dataSource.runMigrations();
 }
 
-export async function resetDatabase(dataSource: DataSource) {
+export async function truncateDatabase(dataSource: DataSource) {
   const entities = dataSource.entityMetadatas;
 
   for (const entity of entities) {

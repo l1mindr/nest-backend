@@ -3,7 +3,7 @@ import { UserRole } from '@features/users/enums/user-role.enum';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ApiClient } from '../helpers/apiClient-helper';
-import { createUser } from '../helpers/create-user.helper';
+import { createUserDto } from '../helpers/create-user.helper';
 import { AuthenticatedOptions } from '../utils/types/auth.types';
 import {
   AuthenticatedUserContext,
@@ -15,7 +15,7 @@ export class UserFactory {
     app: INestApplication,
     overrides = {}
   ): Promise<CreateUserContext> {
-    const user = createUser(overrides);
+    const user = createUserDto(overrides);
     const client = new ApiClient(app);
 
     const register = await client.request({
