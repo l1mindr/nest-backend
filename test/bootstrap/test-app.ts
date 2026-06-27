@@ -3,7 +3,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
 import { setupApp } from '../../src/bootstrap';
-import { runMigrations } from '../helpers/database.helper';
 
 export interface ITextContext {
   app: INestApplication;
@@ -26,8 +25,6 @@ export async function createTestApp(): Promise<ITextContext> {
   app.enableShutdownHooks();
 
   const dataSource = app.get(DataSource);
-
-  await runMigrations(dataSource);
 
   return { app, dataSource };
 }
