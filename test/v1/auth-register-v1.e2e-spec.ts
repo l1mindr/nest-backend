@@ -25,11 +25,13 @@ describe('Auth Register (e2e) version: 1', () => {
   });
 
   it('should fail if data is invalid', async () => {
-    const checkEmailUser = await UserFactory.create(app, { email: 'test.com' });
-    const checkUsernameUser = await UserFactory.create(app, {
+    const checkEmailUser = await UserFactory.register(app, {
+      email: 'test.com'
+    });
+    const checkUsernameUser = await UserFactory.register(app, {
       username: 'user@name'
     });
-    const checkPasswordUser = await UserFactory.create(app, {
+    const checkPasswordUser = await UserFactory.register(app, {
       password: 'password'
     });
 
@@ -41,22 +43,24 @@ describe('Auth Register (e2e) version: 1', () => {
   it('should register a new user', async () => {
     const {
       response: { register }
-    } = await UserFactory.create(app);
+    } = await UserFactory.register(app);
 
     expect(register.status).toBe(201);
   });
 
   it('should not register duplicate email', async () => {
-    const context1 = await UserFactory.create(app);
-    const context2 = await UserFactory.create(app);
+    const context1 = await UserFactory.register(app);
+    const context2 = await UserFactory.register(app);
 
     expect(context1.response.register.status).toBe(201);
     expect(context2.response.register.status).toBe(422);
   });
 
   it('should not register duplicate username', async () => {
-    const context1 = await UserFactory.create(app);
-    const context2 = await UserFactory.create(app, { email: 'test1@test.com' });
+    const context1 = await UserFactory.register(app);
+    const context2 = await UserFactory.register(app, {
+      email: 'test1@test.com'
+    });
 
     expect(context1.response.register.status).toBe(201);
     expect(context2.response.register.status).toBe(422);

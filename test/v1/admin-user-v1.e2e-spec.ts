@@ -1,7 +1,8 @@
+import { UserRole } from '@features/users/enums/user-role.enum';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
-import { UserFactory } from '../factories/user.factory';
+import { AuthFactory } from '../factories/auth.factory';
 import { runMigrations, truncateDatabase } from '../helpers/database.helper';
 
 describe('Admin Users (e2e) version: 1', () => {
@@ -25,8 +26,15 @@ describe('Admin Users (e2e) version: 1', () => {
   });
 
   it('admin should access to users list', async () => {
-    const adminContext = await UserFactory.admin(app, dataSource);
-    const userContext = await UserFactory.authenticated(app, {
+    const adminContext = await AuthFactory.authenticated(
+      app,
+      {
+        withRole: UserRole.ADMIN
+      },
+      dataSource
+    );
+
+    const userContext = await AuthFactory.authenticated(app, {
       overrides: {
         email: 'otherUser@test.com',
         username: 'otherUser',

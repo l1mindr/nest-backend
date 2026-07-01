@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
-import { UserFactory } from '../factories/user.factory';
+import { AuthFactory } from '../factories/auth.factory';
 import { runMigrations, truncateDatabase } from '../helpers/database.helper';
 
 describe('Sessions (e2e) version: 1', () => {
@@ -25,7 +25,7 @@ describe('Sessions (e2e) version: 1', () => {
   });
 
   it('should return active sessions', async () => {
-    const { client } = await UserFactory.authenticated(app, {});
+    const { client } = await AuthFactory.authenticated(app, {});
 
     const res = await client.get('/v1/sessions');
 
@@ -34,7 +34,7 @@ describe('Sessions (e2e) version: 1', () => {
   });
 
   it('should return 204 when logout successfully', async () => {
-    const { client } = await UserFactory.authenticated(app, {});
+    const { client } = await AuthFactory.authenticated(app, {});
 
     const logoutRes = await client.delete('/v1/sessions');
 
@@ -45,9 +45,9 @@ describe('Sessions (e2e) version: 1', () => {
   });
 
   it('should terminate other sessions', async () => {
-    const context1 = await UserFactory.authenticated(app, {});
+    const context1 = await AuthFactory.authenticated(app, {});
 
-    await UserFactory.authenticated(app, {});
+    await AuthFactory.authenticated(app, {});
 
     const sessionsRes = await context1.client.get('/v1/sessions');
 

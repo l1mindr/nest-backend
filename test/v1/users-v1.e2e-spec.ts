@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
-import { UserFactory } from '../factories/user.factory';
+import { AuthFactory } from '../factories/auth.factory';
 import { ApiClient } from '../helpers/apiClient-helper';
 import { runMigrations, truncateDatabase } from '../helpers/database.helper';
 
@@ -26,7 +26,7 @@ describe('Users (e2e) version: 1', () => {
   });
 
   it('should get current user profile', async () => {
-    const { client } = await UserFactory.authenticated(app, {});
+    const { client } = await AuthFactory.authenticated(app, {});
     const res = await client.get('/v1/user/me');
 
     expect(res.status).toBe(200);
@@ -44,7 +44,7 @@ describe('Users (e2e) version: 1', () => {
   });
 
   it('should update profile', async () => {
-    const { client } = await UserFactory.authenticated(app, {});
+    const { client } = await AuthFactory.authenticated(app, {});
     const res = await client.put('/v1/user', {
       body: {
         name: 'New name'

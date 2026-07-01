@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
-import { UserFactory } from '../factories/user.factory';
+import { AuthFactory } from '../factories/auth.factory';
 import { runMigrations, truncateDatabase } from '../helpers/database.helper';
 import { getCookie, normalizeHeader } from '../utils/cookie.util';
 
@@ -27,7 +27,7 @@ describe('Auth Refresh (e2e) version: 1', () => {
   });
 
   it('should refresh token successfully', async () => {
-    const { response } = await UserFactory.authenticated(app, {
+    const { response } = await AuthFactory.authenticated(app, {
       loginBy: 'email'
     });
 
@@ -47,7 +47,7 @@ describe('Auth Refresh (e2e) version: 1', () => {
   });
 
   it('should detect refresh token reuse', async () => {
-    const { response } = await UserFactory.authenticated(app, {
+    const { response } = await AuthFactory.authenticated(app, {
       loginBy: 'email'
     });
 
@@ -70,7 +70,7 @@ describe('Auth Refresh (e2e) version: 1', () => {
   });
 
   it('should block concurrent refresh requests', async () => {
-    const { response } = await UserFactory.authenticated(app, {
+    const { response } = await AuthFactory.authenticated(app, {
       loginBy: 'email'
     });
 
