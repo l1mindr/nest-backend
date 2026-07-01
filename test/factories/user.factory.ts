@@ -4,14 +4,10 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ApiClient } from '../helpers/apiClient-helper';
 import { createUserDto } from '../helpers/create-user.helper';
-import { AuthenticatedOptions } from '../utils/types/auth.types';
-import {
-  AuthenticatedUserContext,
-  CreateUserContext
-} from '../utils/types/factory.types';
+import { CreateUserContext } from '../utils/types/factory.types';
 
 export class UserFactory {
-  static async create(
+  static async register(
     app: INestApplication,
     overrides = {}
   ): Promise<CreateUserContext> {
@@ -29,36 +25,12 @@ export class UserFactory {
     };
   }
 
-  static async authenticated(
-    app: INestApplication,
-    options: AuthenticatedOptions
-  ): Promise<AuthenticatedUserContext> {
-    const context = await this.create(app, options.overrides);
-    const identifier = options.loginBy ?? 'email';
-
-    const login = await context.client.post('/v1/auth/login', {
-      body: {
-        email:
-          identifier === 'email' ? context.user.email : context.user.username,
-        password: context.user.password
-      }
-    });
-
-    return {
-      ...context,
-      response: {
-        ...context.response,
-        login
-      }
-    };
-  }
-
   static async admin(
     app: INestApplication,
     dataSource: DataSource,
     overrides = {}
-  ): Promise<AuthenticatedUserContext> {
-    const context = await this.authenticated(app, overrides);
+  ): Promise<CreateUserContext> {
+    const context = await this.register(app, overrides);
     const repo = dataSource.getRepository(User);
 
     await repo.update(
