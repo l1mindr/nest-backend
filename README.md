@@ -25,28 +25,29 @@ Enterprise-grade NestJS backend focused on scalability, maintainability and secu
 - Development
 - Scripts
 
-## Architecture
+## Documentation (docs)
 
-- Project Structure
-- Architecture
-- Providers
+- **Architecture**
+	- [Project Structure](docs/project-structure.md)
+	- [Architecture Overview](docs/architecture.md)
+	- [Providers](docs/providers.md)
 
-## Authentication
+- **Authentication & Sessions**
+	- [Authentication Flow](docs/authentication.md)
+	- [Sessions (Refresh & Rotation)](docs/sessions.md)
+	- [Security Model](docs/security.md)
 
-- Authentication Flow
-- Session Lifecycle
-- Security
+- **Infrastructure & Database**
+	- [Database Design](docs/database.md)
+	- [Redis Usage](docs/redis.md)
 
-## Infrastructure
+- **Testing & Development**
+	- [Testing Guide](docs/testing.md)
+	- [Developer Setup](docs/development.md)
 
-- PostgreSQL
-- Redis
+- **Project Conventions & Roadmap**
+	- [Conventions](docs/conventions.md)
+	- [Roadmap](docs/roadmap.md)
 
-## Testing
-
-- Testing Guide
-
-## Contributing
-
-- Conventions
-- Roadmap
+- **FAQ**
+	- [FAQ — Architecture Questions](docs/faq.md)
