@@ -146,19 +146,25 @@
                             <a href="#createTestApp" title="test/bootstrap/test-app.ts" ><b>createTestApp</b>&nbsp;&nbsp;&nbsp;(test/.../test-app.ts)</a>
                         </li>
                         <li>
-                            <a href="#createUser" title="test/helpers/create-user.helper.ts" ><b>createUser</b>&nbsp;&nbsp;&nbsp;(test/.../create-user.helper.ts)</a>
+                            <a href="#createUserDto" title="test/helpers/create-user.helper.ts" ><b>createUserDto</b>&nbsp;&nbsp;&nbsp;(test/.../create-user.helper.ts)</a>
                         </li>
                         <li>
                             <a href="#EmailField" title="src/core/common/decorators/fields/email-field.decorator.ts" ><b>EmailField</b>&nbsp;&nbsp;&nbsp;(src/.../email-field.decorator.ts)</a>
+                        </li>
+                        <li>
+                            <a href="#extractRefreshToken" title="test/utils/cookie.util.ts" ><b>extractRefreshToken</b>&nbsp;&nbsp;&nbsp;(test/.../cookie.util.ts)</a>
+                        </li>
+                        <li>
+                            <a href="#getCookie" title="test/utils/cookie.util.ts" ><b>getCookie</b>&nbsp;&nbsp;&nbsp;(test/.../cookie.util.ts)</a>
+                        </li>
+                        <li>
+                            <a href="#normalizeHeader" title="test/utils/cookie.util.ts" ><b>normalizeHeader</b>&nbsp;&nbsp;&nbsp;(test/.../cookie.util.ts)</a>
                         </li>
                         <li>
                             <a href="#normalizeUA" title="src/core/device/utils/normalize-ua.util.ts" ><b>normalizeUA</b>&nbsp;&nbsp;&nbsp;(src/.../normalize-ua.util.ts)</a>
                         </li>
                         <li>
                             <a href="#PasswordField" title="src/core/common/decorators/fields/password-field.decorator.ts" ><b>PasswordField</b>&nbsp;&nbsp;&nbsp;(src/.../password-field.decorator.ts)</a>
-                        </li>
-                        <li>
-                            <a href="#resetDatabase" title="test/helpers/database.helper.ts" ><b>resetDatabase</b>&nbsp;&nbsp;&nbsp;(test/.../database.helper.ts)</a>
                         </li>
                         <li>
                             <a href="#runMigrations" title="test/helpers/database.helper.ts" ><b>runMigrations</b>&nbsp;&nbsp;&nbsp;(test/.../database.helper.ts)</a>
@@ -168,6 +174,9 @@
                         </li>
                         <li>
                             <a href="#setupApp" title="src/bootstrap.ts" ><b>setupApp</b>&nbsp;&nbsp;&nbsp;(src/.../bootstrap.ts)</a>
+                        </li>
+                        <li>
+                            <a href="#truncateDatabase" title="test/helpers/database.helper.ts" ><b>truncateDatabase</b>&nbsp;&nbsp;&nbsp;(test/.../database.helper.ts)</a>
                         </li>
                         <li>
                             <a href="#UsernameField" title="src/core/common/decorators/fields/username-field.decorator.ts" ><b>UsernameField</b>&nbsp;&nbsp;&nbsp;(src/.../username-field.decorator.ts)</a>
@@ -310,16 +319,16 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="createUser"></a>
+                    <a name="createUserDto"></a>
                     <span class="name">
-                        <span ><b>createUser</b></span>
-                        <a href="#createUser"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>createUserDto</b></span>
+                        <a href="#createUserDto"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>createUser(overrides: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/object" target="_blank">object</a>)</code>
+<code>createUserDto(overrides: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/object" target="_blank">object</a>)</code>
                 </td>
             </tr>
 
@@ -386,6 +395,187 @@
 
 
 
+        </tbody>
+    </table>
+</section>    <h3>test/utils/cookie.util.ts</h3>
+    <section data-compodoc="block-methods">
+    <h3></h3>    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="extractRefreshToken"></a>
+                    <span class="name">
+                        <span ><b>extractRefreshToken</b></span>
+                        <a href="#extractRefreshToken"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>extractRefreshToken(setCookie)</code>
+                </td>
+            </tr>
+
+
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>setCookie</td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getCookie"></a>
+                    <span class="name">
+                        <span ><b>getCookie</b></span>
+                        <a href="#getCookie"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>getCookie(setCookies, name: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>setCookies</td>
+                                            <td>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>name</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="normalizeHeader"></a>
+                    <span class="name">
+                        <span ><b>normalizeHeader</b></span>
+                        <a href="#normalizeHeader"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>normalizeHeader(setCookieHeader)</code>
+                </td>
+            </tr>
+
+
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>setCookieHeader</td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>    <code>string[]</code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
         </tbody>
     </table>
 </section>    <h3>src/core/device/utils/normalize-ua.util.ts</h3>
@@ -513,16 +703,16 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="resetDatabase"></a>
+                    <a name="runMigrations"></a>
                     <span class="name">
-                        <span ><b>resetDatabase</b></span>
-                        <a href="#resetDatabase"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>runMigrations</b></span>
+                        <a href="#runMigrations"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>resetDatabase(dataSource: DataSource)</code>
+<code>runMigrations(dataSource: DataSource)</code>
                 </td>
             </tr>
 
@@ -567,16 +757,16 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="runMigrations"></a>
+                    <a name="truncateDatabase"></a>
                     <span class="name">
-                        <span ><b>runMigrations</b></span>
-                        <a href="#runMigrations"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>truncateDatabase</b></span>
+                        <a href="#truncateDatabase"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>runMigrations(dataSource: DataSource)</code>
+<code>truncateDatabase(dataSource: DataSource)</code>
                 </td>
             </tr>
 

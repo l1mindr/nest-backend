@@ -172,6 +172,14 @@
                             </li>
                             <li>
                                     <span class="modifier">Async</span>
+                                <a href="#rotateAtomic" >rotateAtomic</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Async</span>
+                                <a href="#rotateRefreshToken" >rotateRefreshToken</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Async</span>
                                 <a href="#terminateOthers" >terminateOthers</a>
                             </li>
                             <li>
@@ -215,7 +223,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="12" class="link-to-prism">src/features/sessions/sessions.service.ts:12</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="10" class="link-to-prism">src/features/sessions/sessions.service.ts:10</a></div>
                             </td>
                         </tr>
 
@@ -280,8 +288,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="37"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:37</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="35"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:35</a></div>
                         </td>
                     </tr>
 
@@ -361,8 +369,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="19"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:19</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="17"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:17</a></div>
                         </td>
                     </tr>
 
@@ -459,15 +467,15 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>list(: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>)</code>
+                    <code>list(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, session: <a href="../entitys/Session.html" target="_self">Session</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="50"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:50</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="48"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:48</a></div>
                         </td>
                     </tr>
 
@@ -488,8 +496,21 @@
                                     </thead>
                                     <tbody>
                                         <tr>
+                                                <td>userId</td>
                                             <td>
-                                                            <code><a href="../interfaces/CustomAuth.html" target="_self" >CustomAuth</a></code>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>session</td>
+                                            <td>
+                                                            <code><a href="../entitys/Session.html" target="_self" >Session</a></code>
                                             </td>
 
                                             <td>
@@ -527,15 +548,15 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>revoke(: <a href="../classes/User.html" target="_self">User</a>, sessionId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                    <code>revoke(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, sessionId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="71"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:71</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="66"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:66</a></div>
                         </td>
                     </tr>
 
@@ -556,8 +577,9 @@
                                     </thead>
                                     <tbody>
                                         <tr>
+                                                <td>userId</td>
                                             <td>
-                                                            <code><a href="../classes/User.html" target="_self" >User</a></code>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
 
                                             <td>
@@ -596,26 +618,26 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="terminateOthers"></a>
+                    <a name="rotateAtomic"></a>
                     <span class="name">
                             <span class="modifier">Async</span>
-                        <span ><b>terminateOthers</b></span>
-                        <a href="#terminateOthers"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>rotateAtomic</b></span>
+                        <a href="#rotateAtomic"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>terminateOthers(: <a href="../classes/User.html" target="_self">User</a>, sessionId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                    <code>rotateAtomic(sessionId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, version: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>, oldHash: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, newHash: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, meta: literal type)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="83"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:83</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="140"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:140</a></div>
                         </td>
                     </tr>
 
@@ -636,8 +658,231 @@
                                     </thead>
                                     <tbody>
                                         <tr>
+                                                <td>sessionId</td>
                                             <td>
-                                                            <code><a href="../classes/User.html" target="_self" >User</a></code>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>version</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>oldHash</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>newHash</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>meta</td>
+                                            <td>
+                                                        <code>literal type</code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>    <code>Promise&lt;boolean&gt;</code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="rotateRefreshToken"></a>
+                    <span class="name">
+                            <span class="modifier">Async</span>
+                        <span ><b>rotateRefreshToken</b></span>
+                        <a href="#rotateRefreshToken"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>rotateRefreshToken(sessionId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, oldHash: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, newHash: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, meta: literal type)</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="98"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:98</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>sessionId</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>oldHash</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>newHash</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>meta</td>
+                                            <td>
+                                                        <code>literal type</code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>    <code>Promise&lt;boolean&gt;</code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="terminateOthers"></a>
+                    <span class="name">
+                            <span class="modifier">Async</span>
+                        <span ><b>terminateOthers</b></span>
+                        <a href="#terminateOthers"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>terminateOthers(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, sessionId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="78"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:78</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>userId</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
 
                                             <td>
@@ -694,8 +939,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="95"
-                                    class="link-to-prism">src/features/sessions/sessions.service.ts:95</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="90"
+                                    class="link-to-prism">src/features/sessions/sessions.service.ts:90</a></div>
                         </td>
                     </tr>
 
@@ -775,7 +1020,7 @@
                 </tr>
                             <tr>
                                 <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="15" class="link-to-prism">src/features/sessions/sessions.service.ts:15</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="13" class="link-to-prism">src/features/sessions/sessions.service.ts:13</a></div>
                                 </td>
                             </tr>
 
@@ -787,8 +1032,6 @@
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Session } from &#x27;@features/sessions/entities/session.entity&#x27;;
-import { User } from &#x27;@features/users/entities/user.entity&#x27;;
-import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
 import { Injectable } from &#x27;@nestjs/common&#x27;;
 import { randomUUID } from &#x27;crypto&#x27;;
 import { DataSource, MoreThan, Not, Repository } from &#x27;typeorm&#x27;;
@@ -835,13 +1078,10 @@ export class SessionsService implements ISessionsService {
     });
   }
 
-  async list({
-    user: { id },
-    session
-  }: CustomAuth): Promise&lt;SessionListItem[]&gt; {
+  async list(userId: string, session: Session): Promise&lt;SessionListItem[]&gt; {
     const sessions &#x3D; await this.sessionRepo.find({
       where: {
-        owner: { id },
+        owner: { id: userId },
         isRevoked: false,
         expiresAt: MoreThan(new Date()),
         id: Not(session.id)
@@ -856,10 +1096,10 @@ export class SessionsService implements ISessionsService {
     return [{ ...session, current: true }, ...sessions];
   }
 
-  async revoke({ id }: User, sessionId: string): Promise&lt;void&gt; {
+  async revoke(userId: string, sessionId: string): Promise&lt;void&gt; {
     await this.sessionRepo.update(
       {
-        owner: { id },
+        owner: { id: userId },
         id: sessionId
       },
       {
@@ -868,10 +1108,10 @@ export class SessionsService implements ISessionsService {
     );
   }
 
-  async terminateOthers({ id }: User, sessionId: string): Promise&lt;void&gt; {
+  async terminateOthers(userId: string, sessionId: string): Promise&lt;void&gt; {
     await this.sessionRepo.update(
       {
-        owner: { id },
+        owner: { id: userId },
         id: Not(sessionId)
       },
       {
@@ -886,6 +1126,73 @@ export class SessionsService implements ISessionsService {
   ): Promise&lt;void&gt; {
     Object.assign(session, payload);
     await this.sessionRepo.save(session);
+  }
+
+  async rotateRefreshToken(
+    sessionId: string,
+    oldHash: string,
+    newHash: string,
+    meta: {
+      lastUsedAt: Date;
+      expiresAt: Date;
+      rotatedAt: Date;
+    }
+  ): Promise&lt;boolean&gt; {
+    return this.dataSource.transaction(async (manager) &#x3D;&gt; {
+      const repo &#x3D; manager.getRepository(Session);
+
+      const session &#x3D; await repo
+        .createQueryBuilder(&#x27;session&#x27;)
+        .setLock(&#x27;pessimistic_write&#x27;)
+        .where(&#x27;session.id &#x3D; :id&#x27;, { id: sessionId })
+        .getOne();
+
+      if (!session) return false;
+
+      if (session.refreshTokenHash !&#x3D;&#x3D; oldHash) {
+        return false;
+      }
+
+      const result &#x3D; await repo.update(
+        {
+          id: sessionId,
+          refreshTokenHash: oldHash
+        },
+        {
+          refreshTokenHash: newHash,
+          rotatedAt: meta.rotatedAt,
+          lastUsedAt: meta.lastUsedAt,
+          expiresAt: meta.expiresAt
+        }
+      );
+
+      return result.affected &#x3D;&#x3D;&#x3D; 1;
+    });
+  }
+
+  async rotateAtomic(
+    sessionId: string,
+    version: number,
+    oldHash: string,
+    newHash: string,
+    meta: { now: number; expiresAt: Date }
+  ): Promise&lt;boolean&gt; {
+    const result &#x3D; await this.sessionRepo
+      .createQueryBuilder()
+      .update(Session)
+      .set({
+        refreshTokenHash: newHash,
+        rotatedAt: new Date(meta.now),
+        lastUsedAt: new Date(meta.now),
+        expiresAt: meta.expiresAt,
+        version: () &#x3D;&gt; &#x27;&quot;version&quot; + 1&#x27;
+      })
+      .where(&#x27;id &#x3D; :id&#x27;, { id: sessionId })
+      .andWhere(&#x27;refreshTokenHash &#x3D; :hash&#x27;, { hash: oldHash })
+      .andWhere(&#x27;version &#x3D; :version&#x27;, { version })
+      .execute();
+
+    return (result.affected ?? 0) &#x3D;&#x3D;&#x3D; 1;
   }
 }
 </code></pre>

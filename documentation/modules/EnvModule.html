@@ -131,7 +131,7 @@
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>src/infrastructure/config/env.module.ts</code>
+            <code>src/core/common/env/env.module.ts</code>
         </p>
 
 
@@ -151,6 +151,8 @@
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Module } from &#x27;@nestjs/common&#x27;;
 import { ConfigModule } from &#x27;@nestjs/config&#x27;;
 import { ENV_VALIDATION_SCHEMA } from &#x27;./env.constants&#x27;;
+import redisConfig from &#x27;@infrastructure/config/redis.config&#x27;;
+import jwtConfig from &#x27;@infrastructure/config/jwt.config&#x27;;
 
 @Module({
   imports: [
@@ -158,7 +160,8 @@ import { ENV_VALIDATION_SCHEMA } from &#x27;./env.constants&#x27;;
       isGlobal: true,
       expandVariables: true,
       validationSchema: ENV_VALIDATION_SCHEMA,
-      envFilePath: [&#x60;.env.${process.env.NODE_ENV}&#x60;, &#x27;.env&#x27;]
+      envFilePath: [&#x60;.env.${process.env.NODE_ENV}&#x60;, &#x27;.env&#x27;],
+      load: [jwtConfig, redisConfig]
     })
   ]
 })

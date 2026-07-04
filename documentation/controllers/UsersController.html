@@ -309,8 +309,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="52"
-                                    class="link-to-prism">src/features/users/users.controller.ts:52</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="49"
+                                    class="link-to-prism">src/features/users/users.controller.ts:49</a></div>
                         </td>
                     </tr>
 
@@ -439,7 +439,8 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { User } from &#x27;@features/auth/decorators/user.decorator&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Serialize } from &#x27;@core/common/decorators/serialize.decorator&#x27;;
+import { User } from &#x27;@features/security/decorators/user.decorator&#x27;;
 import { User as UserEntity } from &#x27;@features/users/entities/user.entity&#x27;;
 import {
   Body,
@@ -451,15 +452,14 @@ import {
   Put
 } from &#x27;@nestjs/common&#x27;;
 import { ApiTags } from &#x27;@nestjs/swagger&#x27;;
+import { UpdateUserRequestDto } from &#x27;./dto/request/update-user.request.dto&#x27;;
+import { UserProfileResponseDto } from &#x27;./dto/response/user-profile.response.dto&#x27;;
 import { UsersService } from &#x27;./users.service&#x27;;
 import {
   ApiChangeProfile,
   ApiDeleteAccount,
   ApiGetProfile
 } from &#x27;./users.swagger&#x27;;
-import { Serialize } from &#x27;@core/common/decorators/serialize.decorator&#x27;;
-import { UserProfileResponseDto } from &#x27;./dto/response/user-profile.response.dto&#x27;;
-import { UpdateUserRequestDto } from &#x27;./dto/request/update-user.request.dto&#x27;;
 
 @Controller({
   path: &#x27;user&#x27;,
@@ -473,24 +473,21 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   @ApiGetProfile()
   @Serialize(UserProfileResponseDto)
-  getProfile(@User(&#x27;user&#x27;) user: UserEntity) {
+  getProfile(@User() user: UserEntity) {
     return user;
   }
 
   @Put()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiChangeProfile()
-  changeProfile(
-    @User(&#x27;user&#x27;) user: UserEntity,
-    @Body() dto: UpdateUserRequestDto
-  ) {
+  changeProfile(@User() user: UserEntity, @Body() dto: UpdateUserRequestDto) {
     return this.usersService.updateProfile(user.id, dto);
   }
 
   @Delete(&#x27;delete-account&#x27;)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteAccount()
-  deleteAccount(@User(&#x27;user&#x27;) user: UserEntity) {
+  deleteAccount(@User() user: UserEntity) {
     return this.usersService.requestAccountDeletion(user.id);
   }
 }

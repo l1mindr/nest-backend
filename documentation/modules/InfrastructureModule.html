@@ -138,13 +138,13 @@
 </g>
 <g id="clust3" class="cluster">
 <title>cluster_InfrastructureModule_imports</title>
-<polygon fill="none" stroke="black" points="185,-78 185,-130 311,-130 311,-78 185,-78"/>
+<polygon fill="none" stroke="black" points="182,-78 182,-130 314,-130 314,-78 182,-78"/>
 </g>
-<!-- DatabaseModule -->
+<!-- DatabasesModule -->
 <g id="node1" class="node">
-<title>DatabaseModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="303.35,-122 300.35,-126 279.35,-126 276.35,-122 192.65,-122 192.65,-86 303.35,-86 303.35,-122"/>
-<text text-anchor="middle" x="248" y="-99.8" font-family="Times,serif" font-size="14.00">DatabaseModule</text>
+<title>DatabasesModule</title>
+<polygon fill="#8dd3c7" stroke="black" points="306.29,-122 303.29,-126 282.29,-126 279.29,-122 189.71,-122 189.71,-86 306.29,-86 306.29,-122"/>
+<text text-anchor="middle" x="248" y="-99.8" font-family="Times,serif" font-size="14.00">DatabasesModule</text>
 </g>
 <!-- InfrastructureModule -->
 <g id="node2" class="node">
@@ -152,9 +152,9 @@
 <polygon fill="#8dd3c7" stroke="black" points="315.72,-187 312.72,-191 291.72,-191 288.72,-187 180.28,-187 180.28,-151 315.72,-151 315.72,-187"/>
 <text text-anchor="middle" x="248" y="-164.8" font-family="Times,serif" font-size="14.00">InfrastructureModule</text>
 </g>
-<!-- DatabaseModule&#45;&gt;InfrastructureModule -->
+<!-- DatabasesModule&#45;&gt;InfrastructureModule -->
 <g id="edge1" class="edge">
-<title>DatabaseModule&#45;&gt;InfrastructureModule</title>
+<title>DatabasesModule&#45;&gt;InfrastructureModule</title>
 <path fill="none" stroke="black" d="M248,-122.11C248,-122.11 248,-140.99 248,-140.99"/>
 <polygon fill="black" stroke="black" points="244.5,-140.99 248,-150.99 251.5,-140.99 244.5,-140.99"/>
 </g>
@@ -209,7 +209,7 @@
                                 class="icon ion-ios-information-circle-outline"></a></h3>
                     <ul class="list-group">
                         <li class="list-group-item">
-                            <a href="../modules/DatabaseModule.html">DatabaseModule</a>
+                            <a href="../modules/DatabasesModule.html">DatabasesModule</a>
                         </li>
                     </ul>
                 </div>
@@ -222,10 +222,10 @@
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Module } from &#x27;@nestjs/common&#x27;;
-import { DatabaseModule } from &#x27;./database/database.module&#x27;;
+import { DatabasesModule } from &#x27;./databases/databases.module&#x27;;
 
 @Module({
-  imports: [DatabaseModule]
+  imports: [DatabasesModule]
 })
 export class InfrastructureModule {}
 </code></pre>

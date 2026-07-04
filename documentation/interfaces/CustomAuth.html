@@ -253,17 +253,18 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Request } from &#x27;express&#x27;;
-import { Session } from &#x27;@features/sessions/entities/session.entity&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Session } from &#x27;@features/sessions/entities/session.entity&#x27;;
 import { User } from &#x27;@features/users/entities/user.entity&#x27;;
+import { Request } from &#x27;express&#x27;;
 
 export interface CustomAuth {
   readonly user: User;
   readonly session: Session;
 }
 
-export interface CustomRequest extends Request {
-  readonly auth: CustomAuth;
+export interface IRequest extends Request {
+  user: User;
+  session: Session;
 }
 </code></pre>
     </div>

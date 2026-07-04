@@ -258,7 +258,6 @@ import { Test, TestingModule } from &#x27;@nestjs/testing&#x27;;
 import { DataSource } from &#x27;typeorm&#x27;;
 import { AppModule } from &#x27;../../src/app.module&#x27;;
 import { setupApp } from &#x27;../../src/bootstrap&#x27;;
-import { runMigrations } from &#x27;../helpers/database.helper&#x27;;
 
 export interface ITextContext {
   app: INestApplication;
@@ -273,12 +272,15 @@ export async function createTestApp(): Promise&lt;ITextContext&gt; {
   }).compile();
 
   const app &#x3D; moduleFixture.createNestApplication();
+
   setupApp(app);
+
   await app.init();
+
+  app.enableShutdownHooks();
 
   const dataSource &#x3D; app.get(DataSource);
 
-  await runMigrations(dataSource);
   return { app, dataSource };
 }
 </code></pre>

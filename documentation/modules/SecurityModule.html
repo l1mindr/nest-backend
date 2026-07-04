@@ -134,29 +134,45 @@
 <text text-anchor="start" x="429.73" y="-15.4" font-family="Times-12" font-size="14.00"> &#160;Exports</text>
 <g id="clust1" class="cluster">
 <title>cluster_SecurityModule</title>
-<polygon fill="none" stroke="black" stroke-dasharray="1,5" points="164,-70 164,-195 332,-195 332,-70 164,-70"/>
+<polygon fill="none" stroke="black" stroke-dasharray="1,5" points="115,-70 115,-195 381,-195 381,-70 115,-70"/>
+</g>
+<g id="clust3" class="cluster">
+<title>cluster_SecurityModule_imports</title>
+<polygon fill="none" stroke="black" points="261,-78 261,-130 373,-130 373,-78 261,-78"/>
 </g>
 <g id="clust6" class="cluster">
 <title>cluster_SecurityModule_providers</title>
-<polygon fill="none" stroke="black" points="172,-78 172,-130 324,-130 324,-78 172,-78"/>
+<polygon fill="none" stroke="black" points="123,-78 123,-130 253,-130 253,-78 123,-78"/>
 </g>
-<!-- JwtAuthGuard -->
+<!-- TokenModule -->
 <g id="node1" class="node">
-<title>JwtAuthGuard</title>
-<ellipse fill="#fdb462" stroke="black" cx="248" cy="-104" rx="67.78" ry="18"/>
-<text text-anchor="middle" x="248" y="-99.8" font-family="Times,serif" font-size="14.00">JwtAuthGuard</text>
+<title>TokenModule</title>
+<polygon fill="#8dd3c7" stroke="black" points="364.82,-122 361.82,-126 340.82,-126 337.82,-122 269.18,-122 269.18,-86 364.82,-86 364.82,-122"/>
+<text text-anchor="middle" x="317" y="-99.8" font-family="Times,serif" font-size="14.00">TokenModule</text>
 </g>
 <!-- SecurityModule -->
 <g id="node2" class="node">
 <title>SecurityModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="301.2,-187 298.2,-191 277.2,-191 274.2,-187 194.8,-187 194.8,-151 301.2,-151 301.2,-187"/>
-<text text-anchor="middle" x="248" y="-164.8" font-family="Times,serif" font-size="14.00">SecurityModule</text>
+<polygon fill="#8dd3c7" stroke="black" points="305.2,-187 302.2,-191 281.2,-191 278.2,-187 198.8,-187 198.8,-151 305.2,-151 305.2,-187"/>
+<text text-anchor="middle" x="252" y="-164.8" font-family="Times,serif" font-size="14.00">SecurityModule</text>
 </g>
-<!-- JwtAuthGuard&#45;&gt;SecurityModule -->
+<!-- TokenModule&#45;&gt;SecurityModule -->
 <g id="edge1" class="edge">
-<title>JwtAuthGuard&#45;&gt;SecurityModule</title>
-<path fill="none" stroke="black" d="M248,-122.11C248,-122.11 248,-140.99 248,-140.99"/>
-<polygon fill="black" stroke="black" points="244.5,-140.99 248,-150.99 251.5,-140.99 244.5,-140.99"/>
+<title>TokenModule&#45;&gt;SecurityModule</title>
+<path fill="none" stroke="black" d="M287.22,-122.11C287.22,-122.11 287.22,-140.99 287.22,-140.99"/>
+<polygon fill="black" stroke="black" points="283.72,-140.99 287.22,-150.99 290.72,-140.99 283.72,-140.99"/>
+</g>
+<!-- JwtStrategy -->
+<g id="node3" class="node">
+<title>JwtStrategy</title>
+<ellipse fill="#fdb462" stroke="black" cx="188" cy="-104" rx="56.76" ry="18"/>
+<text text-anchor="middle" x="188" y="-99.8" font-family="Times,serif" font-size="14.00">JwtStrategy</text>
+</g>
+<!-- JwtStrategy&#45;&gt;SecurityModule -->
+<g id="edge2" class="edge">
+<title>JwtStrategy&#45;&gt;SecurityModule</title>
+<path fill="none" stroke="black" d="M221.76,-118.75C221.76,-118.75 221.76,-140.59 221.76,-140.59"/>
+<polygon fill="black" stroke="black" points="218.26,-140.59 221.76,-150.59 225.26,-140.59 218.26,-140.59"/>
 </g>
 </g>
 </svg>
@@ -208,7 +224,17 @@
                             title="Official documentation about module providers"><span class="icon ion-ios-information-circle-outline"></a></h3>
                     <ul class="list-group">
                         <li class="list-group-item">
-                            <a href="../injectables/JwtAuthGuard.html">JwtAuthGuard</a>
+                            <a href="../injectables/JwtStrategy.html">JwtStrategy</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-sm-3">
+                    <h3>Imports<a href="https://angular.io/api/core/NgModule#imports" target="_blank" rel="noopener noreferrer"
+                            title="Official documentation about module imports"><span
+                                class="icon ion-ios-information-circle-outline"></a></h3>
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            <a href="../modules/TokenModule.html">TokenModule</a>
                         </li>
                     </ul>
                 </div>
@@ -220,21 +246,27 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Module } from &#x27;@nestjs/common&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { TokenModule } from &#x27;@features/token/token.module&#x27;;
+import jwtConfig from &#x27;@infrastructure/config/jwt.config&#x27;;
+import { Module } from &#x27;@nestjs/common&#x27;;
 import { APP_FILTER, APP_GUARD } from &#x27;@nestjs/core&#x27;;
+import { JwtModule } from &#x27;@nestjs/jwt&#x27;;
 import { GlobalExceptionFilter } from &#x27;./filters/global-exception.filter&#x27;;
-import { JwtAuthGuard } from &#x27;./guards/jwt-auth.guard&#x27;;
+import { JwtGuard } from &#x27;./guards/jwt.guard&#x27;;
 import { RolesGuard } from &#x27;./guards/roles.guard&#x27;;
+import { JwtStrategy } from &#x27;./strategies/jwt.strategy&#x27;;
 
 @Module({
+  imports: [JwtModule.registerAsync(jwtConfig.asProvider()), TokenModule],
   providers: [
+    JwtStrategy,
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter
     },
     {
       provide: APP_GUARD,
-      useClass: JwtAuthGuard
+      useClass: JwtGuard
     },
     {
       provide: APP_GUARD,

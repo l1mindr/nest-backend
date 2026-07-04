@@ -208,15 +208,15 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>changeUserPassword(customAuth: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>, changePasswordDto: <a href="../classes/ChangePasswordDto.html" target="_self">ChangePasswordDto</a>)</code>
+<code>changeUserPassword(userId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, sessionId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, : <a href="../classes/ChangePasswordRequestDto.html" target="_self">ChangePasswordRequestDto</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="14"
-                                    class="link-to-prism">src/features/auth/interfaces/auth.interface.ts:14</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="13"
+                                    class="link-to-prism">src/features/auth/interfaces/auth.interface.ts:13</a></div>
                         </td>
                     </tr>
 
@@ -237,9 +237,9 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>customAuth</td>
+                                                <td>userId</td>
                                             <td>
-                                                            <code><a href="../interfaces/CustomAuth.html" target="_self" >CustomAuth</a></code>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
 
                                             <td>
@@ -249,9 +249,20 @@
 
                                         </tr>
                                         <tr>
-                                                <td>changePasswordDto</td>
+                                                <td>sessionId</td>
                                             <td>
-                                                            <code><a href="../classes/ChangePasswordDto.html" target="_self" >ChangePasswordDto</a></code>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                            <code><a href="../classes/ChangePasswordRequestDto.html" target="_self" >ChangePasswordRequestDto</a></code>
                                             </td>
 
                                             <td>
@@ -294,8 +305,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="9"
-                                    class="link-to-prism">src/features/auth/interfaces/auth.interface.ts:9</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="8"
+                                    class="link-to-prism">src/features/auth/interfaces/auth.interface.ts:8</a></div>
                         </td>
                     </tr>
 
@@ -452,8 +463,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="8"
-                                    class="link-to-prism">src/features/auth/interfaces/auth.interface.ts:8</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="7"
+                                    class="link-to-prism">src/features/auth/interfaces/auth.interface.ts:7</a></div>
                         </td>
                     </tr>
 
@@ -506,8 +517,7 @@
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { DeviceContext } from &#x27;@core/device/context/device-context.interface&#x27;;
-import { ChangePasswordDto } from &#x27;@features/users/dto/change-password.dto&#x27;;
-import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
+import { ChangePasswordRequestDto } from &#x27;../dto/request/change-password.request.dto&#x27;;
 import { LoginUserRequestDto } from &#x27;../dto/request/login-user.request.dto&#x27;;
 import { RegisterUserRequestDto } from &#x27;../dto/request/register-user.request.dto&#x27;;
 
@@ -519,8 +529,9 @@ export interface IAuthService {
     device: DeviceContext
   ): Promise&lt;AuthTokens&gt;;
   changeUserPassword(
-    customAuth: CustomAuth,
-    changePasswordDto: ChangePasswordDto
+    userId: string,
+    sessionId: string,
+    { currentPassword, newPassword }: ChangePasswordRequestDto
   ): Promise&lt;void&gt;;
   refresh(refreshToken: string): Promise&lt;AuthTokens&gt;;
 }

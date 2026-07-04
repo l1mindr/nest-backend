@@ -303,6 +303,11 @@
   readonly sessionId: string;
   readonly role?: string;
 }
+
+export interface IJwtClaims extends IJwtPayload {
+  iat: number;
+  exp: number;
+}
 </code></pre>
     </div>
 </div>

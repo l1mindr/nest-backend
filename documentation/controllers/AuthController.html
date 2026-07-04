@@ -183,11 +183,6 @@
                                     <span class="modifier"></span>
                                 <a href="#signUpUser" >signUpUser</a>
                             </li>
-                            <li>
-                                    <span class="modifier"></span>
-                                    <span class="modifier"></span>
-                                <a href="#test" >test</a>
-                            </li>
                         </ul>
                     </td>
                 </tr>
@@ -222,7 +217,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>changePassword(authData: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>, dto: <a href="../classes/ChangePasswordRequestDto.html" target="_self">ChangePasswordRequestDto</a>)</code>
+                    <code>changePassword(user: <a href="../classes/User.html" target="_self">UserEntity</a>, session: <a href="../entitys/Session.html" target="_self">SessionEntity</a>, dto: <a href="../classes/ChangePasswordRequestDto.html" target="_self">ChangePasswordRequestDto</a>)</code>
                 </td>
             </tr>
 
@@ -236,8 +231,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="74"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:74</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="69"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:69</a></div>
                         </td>
                     </tr>
 
@@ -258,9 +253,21 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>authData</td>
+                                                <td>user</td>
                                             <td>
-                                                            <code><a href="../interfaces/CustomAuth.html" target="_self" >CustomAuth</a></code>
+                                                            <code><a href="../classes/User.html" target="_self" >UserEntity</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>session</td>
+                                            <td>
+                                                            <code><a href="../entitys/Session.html" target="_self" >SessionEntity</a></code>
                                             </td>
 
                                             <td>
@@ -329,8 +336,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="67"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:67</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="62"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:62</a></div>
                         </td>
                     </tr>
 
@@ -410,8 +417,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="54"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:54</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="49"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:49</a></div>
                         </td>
                     </tr>
 
@@ -513,8 +520,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="45"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:45</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="40"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:40</a></div>
                         </td>
                     </tr>
 
@@ -560,83 +567,6 @@
             </tr>
         </tbody>
     </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="test"></a>
-                    <span class="name">
-                            <span class="modifier"></span>
-                            <span class="modifier"></span>
-                        <span ><b>test</b></span>
-                        <a href="#test"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>test(device: <a href="../interfaces/DeviceContext.html" target="_self">DeviceContext</a>)</code>
-                </td>
-            </tr>
-
-            <tr>
-                <td class="col-md-4">
-                    <b>Decorators : </b>
-                    <br />
-                    <code>@Public()<br />@Get(&#x27;test&#x27;)<br /></code>
-                </td>
-            </tr>
-
-                    <tr>
-                        <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="37"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:37</a></div>
-                        </td>
-                    </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                            <div class="io-description">
-                                <b>Parameters :</b>
-                                
-                                <table class="params">
-                                    <thead>
-                                        <tr>
-                                            <td>Name</td>
-                                                <td>Type</td>
-                                            <td>Optional</td>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                                <td>device</td>
-                                            <td>
-                                                            <code><a href="../interfaces/DeviceContext.html" target="_self" >DeviceContext</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../interfaces/DeviceContext.html" target="_self" >DeviceContext</a></code>
-
-                        </div>
-                            <div class="io-description">
-                                
-                            </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
 </section>    </div>
 
 
@@ -644,11 +574,13 @@
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { DeviceContext } from &#x27;@core/device/context/device-context.interface&#x27;;
 import { Device } from &#x27;@core/device/decorators/device.decorator&#x27;;
 import { Public } from &#x27;@features/security/decorators/public.decorator&#x27;;
-import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
+import { Session } from &#x27;@features/security/decorators/session.decorator&#x27;;
+import { User } from &#x27;@features/security/decorators/user.decorator&#x27;;
+import { Session as SessionEntity } from &#x27;@features/sessions/entities/session.entity&#x27;;
+import { User as UserEntity } from &#x27;@features/users/entities/user.entity&#x27;;
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -664,7 +596,6 @@ import {
   ApiRegisterUser
 } from &#x27;./auth.swagger&#x27;;
 import { IpAddress } from &#x27;./decorators/ipAddress.decorator&#x27;;
-import { User } from &#x27;./decorators/user.decorator&#x27;;
 import { ChangePasswordRequestDto } from &#x27;./dto/request/change-password.request.dto&#x27;;
 import { LoginUserRequestDto } from &#x27;./dto/request/login-user.request.dto&#x27;;
 import { RegisterUserRequestDto } from &#x27;./dto/request/register-user.request.dto&#x27;;
@@ -674,12 +605,6 @@ import { AuthCookieInterceptor } from &#x27;./interceptors/auth-cookie.intercept
 @ApiTags(&#x27;auth&#x27;)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
-  @Public()
-  @Get(&#x27;test&#x27;)
-  test(@Device() device: DeviceContext) {
-    return device;
-  }
 
   @Public()
   @Post(&#x27;register&#x27;)
@@ -715,10 +640,12 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiChangePassword()
   changePassword(
-    @User() authData: CustomAuth,
+    @User() user: UserEntity,
+    @Session() session: SessionEntity,
+
     @Body() dto: ChangePasswordRequestDto
   ) {
-    return this.authService.changeUserPassword(authData, dto);
+    return this.authService.changeUserPassword(user.id, session.id, dto);
   }
 }
 </code></pre>

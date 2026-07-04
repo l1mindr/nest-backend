@@ -21,30 +21,42 @@
 <polygon fill="#fb8072" stroke="transparent" points="406,-10 406,-30 426,-30 426,-10 406,-10"/>
 <text text-anchor="start" x="429.73" y="-15.4" font-family="Times-12" font-size="14.00"> &#160;Exports</text>
 <g id="clust1" class="cluster">
-<title>cluster_InfrastructureModule</title>
-<polygon fill="none" stroke="black" stroke-dasharray="1,5" points="172,-70 172,-195 324,-195 324,-70 172,-70"/>
+<title>cluster_DatabasesModule</title>
+<polygon fill="none" stroke="black" stroke-dasharray="1,5" points="124,-70 124,-195 372,-195 372,-70 124,-70"/>
 </g>
 <g id="clust3" class="cluster">
-<title>cluster_InfrastructureModule_imports</title>
-<polygon fill="none" stroke="black" points="182,-78 182,-130 314,-130 314,-78 182,-78"/>
+<title>cluster_DatabasesModule_imports</title>
+<polygon fill="none" stroke="black" points="132,-78 132,-130 364,-130 364,-78 132,-78"/>
+</g>
+<!-- PostgresModule -->
+<g id="node1" class="node">
+<title>PostgresModule</title>
+<polygon fill="#8dd3c7" stroke="black" points="356.49,-122 353.49,-126 332.49,-126 329.49,-122 249.51,-122 249.51,-86 356.49,-86 356.49,-122"/>
+<text text-anchor="middle" x="303" y="-99.8" font-family="Times,serif" font-size="14.00">PostgresModule</text>
 </g>
 <!-- DatabasesModule -->
-<g id="node1" class="node">
+<g id="node3" class="node">
 <title>DatabasesModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="306.29,-122 303.29,-126 282.29,-126 279.29,-122 189.71,-122 189.71,-86 306.29,-86 306.29,-122"/>
-<text text-anchor="middle" x="248" y="-99.8" font-family="Times,serif" font-size="14.00">DatabasesModule</text>
+<polygon fill="#8dd3c7" stroke="black" points="304.29,-187 301.29,-191 280.29,-191 277.29,-187 187.71,-187 187.71,-151 304.29,-151 304.29,-187"/>
+<text text-anchor="middle" x="246" y="-164.8" font-family="Times,serif" font-size="14.00">DatabasesModule</text>
 </g>
-<!-- InfrastructureModule -->
-<g id="node2" class="node">
-<title>InfrastructureModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="315.72,-187 312.72,-191 291.72,-191 288.72,-187 180.28,-187 180.28,-151 315.72,-151 315.72,-187"/>
-<text text-anchor="middle" x="248" y="-164.8" font-family="Times,serif" font-size="14.00">InfrastructureModule</text>
-</g>
-<!-- DatabasesModule&#45;&gt;InfrastructureModule -->
+<!-- PostgresModule&#45;&gt;DatabasesModule -->
 <g id="edge1" class="edge">
-<title>DatabasesModule&#45;&gt;InfrastructureModule</title>
-<path fill="none" stroke="black" d="M248,-122.11C248,-122.11 248,-140.99 248,-140.99"/>
-<polygon fill="black" stroke="black" points="244.5,-140.99 248,-150.99 251.5,-140.99 244.5,-140.99"/>
+<title>PostgresModule&#45;&gt;DatabasesModule</title>
+<path fill="none" stroke="black" d="M276.83,-122.11C276.83,-122.11 276.83,-140.99 276.83,-140.99"/>
+<polygon fill="black" stroke="black" points="273.33,-140.99 276.83,-150.99 280.33,-140.99 273.33,-140.99"/>
+</g>
+<!-- RedisModule -->
+<g id="node2" class="node">
+<title>RedisModule</title>
+<polygon fill="#8dd3c7" stroke="black" points="231.94,-122 228.94,-126 207.94,-126 204.94,-122 140.06,-122 140.06,-86 231.94,-86 231.94,-122"/>
+<text text-anchor="middle" x="186" y="-99.8" font-family="Times,serif" font-size="14.00">RedisModule</text>
+</g>
+<!-- RedisModule&#45;&gt;DatabasesModule -->
+<g id="edge2" class="edge">
+<title>RedisModule&#45;&gt;DatabasesModule</title>
+<path fill="none" stroke="black" d="M209.79,-122.11C209.79,-122.11 209.79,-140.99 209.79,-140.99"/>
+<polygon fill="black" stroke="black" points="206.29,-140.99 209.79,-150.99 213.29,-140.99 206.29,-140.99"/>
 </g>
 </g>
 </svg>

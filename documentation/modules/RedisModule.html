@@ -105,7 +105,7 @@
 
 <ol class="breadcrumb">
     <li class="breadcrumb-item">Modules</li>
-    <li class="breadcrumb-item" >SessionsModule</li>
+    <li class="breadcrumb-item" >RedisModule</li>
 </ol>
 
 <div class="text-center module-graph-container">
@@ -133,46 +133,58 @@
 <polygon fill="#fb8072" stroke="transparent" points="406,-10 406,-30 426,-30 426,-10 406,-10"/>
 <text text-anchor="start" x="429.73" y="-15.4" font-family="Times-12" font-size="14.00"> &#160;Exports</text>
 <g id="clust1" class="cluster">
-<title>cluster_SessionsModule</title>
-<polygon fill="none" stroke="black" stroke-dasharray="1,5" points="159,-70 159,-268 337,-268 337,-70 159,-70"/>
+<title>cluster_RedisModule</title>
+<polygon fill="none" stroke="black" stroke-dasharray="1,5" points="79,-70 79,-268 417,-268 417,-70 79,-70"/>
 </g>
 <g id="clust6" class="cluster">
-<title>cluster_SessionsModule_providers</title>
-<polygon fill="none" stroke="black" points="167,-78 167,-130 329,-130 329,-78 167,-78"/>
+<title>cluster_RedisModule_providers</title>
+<polygon fill="none" stroke="black" points="87,-78 87,-130 409,-130 409,-78 87,-78"/>
 </g>
 <g id="clust4" class="cluster">
-<title>cluster_SessionsModule_exports</title>
-<polygon fill="none" stroke="black" points="185,-208 185,-260 311,-260 311,-208 185,-208"/>
+<title>cluster_RedisModule_exports</title>
+<polygon fill="none" stroke="black" points="169,-208 169,-260 307,-260 307,-208 169,-208"/>
 </g>
-<!-- SessionsService  -->
+<!-- RedisLockService  -->
 <g id="node1" class="node">
-<title>SessionsService </title>
-<polygon fill="#fb8072" stroke="black" points="302.7,-252 193.3,-252 193.3,-216 302.7,-216 302.7,-252"/>
-<text text-anchor="middle" x="248" y="-229.8" font-family="Times,serif" font-size="14.00">SessionsService </text>
+<title>RedisLockService </title>
+<polygon fill="#fb8072" stroke="black" points="299.13,-252 176.87,-252 176.87,-216 299.13,-216 299.13,-252"/>
+<text text-anchor="middle" x="238" y="-229.8" font-family="Times,serif" font-size="14.00">RedisLockService </text>
 </g>
-<!-- SessionsModule -->
+<!-- RedisModule -->
 <g id="node2" class="node">
-<title>SessionsModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="301.77,-187 298.77,-191 277.77,-191 274.77,-187 194.23,-187 194.23,-151 301.77,-151 301.77,-187"/>
-<text text-anchor="middle" x="248" y="-164.8" font-family="Times,serif" font-size="14.00">SessionsModule</text>
+<title>RedisModule</title>
+<polygon fill="#8dd3c7" stroke="black" points="283.94,-187 280.94,-191 259.94,-191 256.94,-187 192.06,-187 192.06,-151 283.94,-151 283.94,-187"/>
+<text text-anchor="middle" x="238" y="-164.8" font-family="Times,serif" font-size="14.00">RedisModule</text>
 </g>
-<!-- SessionsModule&#45;&gt;SessionsService  -->
+<!-- RedisModule&#45;&gt;RedisLockService  -->
 <g id="edge1" class="edge">
-<title>SessionsModule&#45;&gt;SessionsService </title>
-<path fill="none" stroke="black" stroke-dasharray="5,2" d="M248,-187.11C248,-187.11 248,-205.99 248,-205.99"/>
-<polygon fill="black" stroke="black" points="244.5,-205.99 248,-215.99 251.5,-205.99 244.5,-205.99"/>
+<title>RedisModule&#45;&gt;RedisLockService </title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M238,-187.11C238,-187.11 238,-205.99 238,-205.99"/>
+<polygon fill="black" stroke="black" points="234.5,-205.99 238,-215.99 241.5,-205.99 234.5,-205.99"/>
 </g>
-<!-- SessionsService -->
+<!-- RedisLockService -->
 <g id="node3" class="node">
-<title>SessionsService</title>
-<ellipse fill="#fdb462" stroke="black" cx="248" cy="-104" rx="73.01" ry="18"/>
-<text text-anchor="middle" x="248" y="-99.8" font-family="Times,serif" font-size="14.00">SessionsService</text>
+<title>RedisLockService</title>
+<ellipse fill="#fdb462" stroke="black" cx="319" cy="-104" rx="81.66" ry="18"/>
+<text text-anchor="middle" x="319" y="-99.8" font-family="Times,serif" font-size="14.00">RedisLockService</text>
 </g>
-<!-- SessionsService&#45;&gt;SessionsModule -->
+<!-- RedisLockService&#45;&gt;RedisModule -->
 <g id="edge2" class="edge">
-<title>SessionsService&#45;&gt;SessionsModule</title>
-<path fill="none" stroke="black" d="M248,-122.11C248,-122.11 248,-140.99 248,-140.99"/>
-<polygon fill="black" stroke="black" points="244.5,-140.99 248,-150.99 251.5,-140.99 244.5,-140.99"/>
+<title>RedisLockService&#45;&gt;RedisModule</title>
+<path fill="none" stroke="black" d="M260.44,-116.84C260.44,-116.84 260.44,-140.52 260.44,-140.52"/>
+<polygon fill="black" stroke="black" points="256.94,-140.52 260.44,-150.52 263.94,-140.52 256.94,-140.52"/>
+</g>
+<!-- RedisService -->
+<g id="node4" class="node">
+<title>RedisService</title>
+<ellipse fill="#fdb462" stroke="black" cx="157" cy="-104" rx="61.97" ry="18"/>
+<text text-anchor="middle" x="157" y="-99.8" font-family="Times,serif" font-size="14.00">RedisService</text>
+</g>
+<!-- RedisService&#45;&gt;RedisModule -->
+<g id="edge3" class="edge">
+<title>RedisService&#45;&gt;RedisModule</title>
+<path fill="none" stroke="black" d="M205.63,-115.32C205.63,-115.32 205.63,-140.94 205.63,-140.94"/>
+<polygon fill="black" stroke="black" points="202.13,-140.94 205.63,-150.94 209.13,-140.94 202.13,-140.94"/>
 </g>
 </g>
 </svg>
@@ -210,7 +222,7 @@
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>src/features/sessions/sessions.module.ts</code>
+            <code>src/infrastructure/databases/redis/redis.module.ts</code>
         </p>
 
 
@@ -224,17 +236,10 @@
                             title="Official documentation about module providers"><span class="icon ion-ios-information-circle-outline"></a></h3>
                     <ul class="list-group">
                         <li class="list-group-item">
-                            <a href="../injectables/SessionsService.html">SessionsService</a>
+                            <a href="../injectables/RedisLockService.html">RedisLockService</a>
                         </li>
-                    </ul>
-                </div>
-                <div class="col-sm-3">
-                    <h3>Controllers<a href="https://docs.nestjs.com/controllers" target="_blank" rel="noopener noreferrer"
-                            title="Official documentation about module controllers"><span
-                                class="icon ion-ios-information-circle-outline"></a></h3>
-                    <ul class="list-group">
                         <li class="list-group-item">
-                            <a href="../controllers/SessionsController.html">SessionsController</a>
+                            <a href="../injectables/RedisService.html">RedisService</a>
                         </li>
                     </ul>
                 </div>
@@ -244,7 +249,7 @@
                                 class="icon ion-ios-information-circle-outline"></a></h3>
                     <ul class="list-group">
                         <li class="list-group-item">
-                            <a href="../injectables/SessionsService.html">SessionsService</a>
+                            <a href="../injectables/RedisLockService.html">RedisLockService</a>
                         </li>
                     </ul>
                 </div>
@@ -256,19 +261,19 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Module } from &#x27;@nestjs/common&#x27;;
-import { TypeOrmModule } from &#x27;@nestjs/typeorm&#x27;;
-import { Session } from &#x27;./entities/session.entity&#x27;;
-import { SessionsController } from &#x27;./sessions.controller&#x27;;
-import { SessionsService } from &#x27;./sessions.service&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Global, Module } from &#x27;@nestjs/common&#x27;;
+import { ConfigModule } from &#x27;@nestjs/config&#x27;;
+import { RedisLockService } from &#x27;./redis-lock.service&#x27;;
+import { redisProvider } from &#x27;./redis.provider&#x27;;
+import { RedisService } from &#x27;./redis.service&#x27;;
 
+@Global()
 @Module({
-  imports: [TypeOrmModule.forFeature([Session])],
-  providers: [SessionsService],
-  controllers: [SessionsController],
-  exports: [SessionsService]
+  imports: [ConfigModule],
+  providers: [redisProvider, RedisService, RedisLockService],
+  exports: [RedisLockService]
 })
-export class SessionsModule {}
+export class RedisModule {}
 </code></pre>
     </div>
 </div>
@@ -315,7 +320,7 @@ export class SessionsModule {}
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
             var COMPODOC_CURRENT_PAGE_CONTEXT = 'module';
-            var COMPODOC_CURRENT_PAGE_URL = 'SessionsModule.html';
+            var COMPODOC_CURRENT_PAGE_URL = 'RedisModule.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

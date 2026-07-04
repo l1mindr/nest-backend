@@ -94,7 +94,7 @@
                    <compodoc-menu mode="normal"></compodoc-menu>
                </div>
                <!-- START CONTENT -->
-               <div class="content guard">
+               <div class="content class">
                    <div class="content-data">
 
 
@@ -110,9 +110,11 @@
 
 
 
+
+
 <ol class="breadcrumb">
-    <li class="breadcrumb-item">Guards</li>
-    <li class="breadcrumb-item" >RolesGuard</li>
+  <li class="breadcrumb-item">Classes</li>
+  <li class="breadcrumb-item" >AuthFactory</li>
 </ol>
 
 <ul class="nav nav-tabs" role="tablist">
@@ -131,20 +133,20 @@
 </ul>
 
 <div class="tab-content">
-        <div class="tab-pane fade active in" id="info">
-            <p class="comment">
-                <h3>File</h3>
-            </p>
-            <p class="comment">
-                <code>src/features/security/guards/roles.guard.ts</code>
-            </p>
+    <div class="tab-pane fade active in" id="info">
+        <p class="comment">
+            <h3>File</h3>
+        </p>
+        <p class="comment">
+            <code>test/factories/auth.factory.ts</code>
+        </p>
 
 
 
 
 
 
-                <section data-compodoc="block-index">
+            <section data-compodoc="block-index">
     <h3 id="index">Index</h3>
     <table class="table table-sm table-bordered index-table">
         <tbody>
@@ -158,7 +160,14 @@
                     <td class="col-md-4">
                         <ul class="index-list">
                             <li>
-                                <a href="#canActivate" >canActivate</a>
+                                    <span class="modifier">Static</span>
+                                    <span class="modifier">Async</span>
+                                <a href="#authenticated" >authenticated</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Static</span>
+                                    <span class="modifier">Async</span>
+                                <a href="#login" >login</a>
                             </li>
                         </ul>
                     </td>
@@ -172,56 +181,9 @@
     </table>
 </section>
 
-                <section data-compodoc="block-constructor">
-    <h3 id="constructor">Constructor</h3>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-<code>constructor(reflector: Reflector)</code>
-                    </td>
-                </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="8" class="link-to-prism">src/features/security/guards/roles.guard.ts:8</a></div>
-                            </td>
-                        </tr>
 
-                <tr>
-                    <td class="col-md-4">
-                            <div>
-                                    <b>Parameters :</b>
-                                    <table class="params">
-                                        <thead>
-                                            <tr>
-                                                <td>Name</td>
-                                                    <td>Type</td>
-                                                <td>Optional</td>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                                <tr>
-                                                        <td>reflector</td>
-                                                  
-                                                        <td>
-                                                                    <code>Reflector</code>
-                                                        </td>
-                                                  
-                                                    <td>
-                                                            No
-                                                    </td>
-                                                    
-                                                </tr>
-                                        </tbody>
-                                    </table>
-                            </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-</section>
 
-                <section data-compodoc="block-methods">
+            <section data-compodoc="block-methods">
     
     <h3 id="methods">
         Methods
@@ -230,24 +192,27 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="canActivate"></a>
+                    <a name="authenticated"></a>
                     <span class="name">
-                        <span ><b>canActivate</b></span>
-                        <a href="#canActivate"><span class="icon ion-ios-link"></span></a>
+                            <span class="modifier">Static</span>
+                            <span class="modifier">Async</span>
+                        <span ><b>authenticated</b></span>
+                        <a href="#authenticated"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>canActivate(context: ExecutionContext)</code>
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>authenticated(app: INestApplication, options: <a href="../miscellaneous/typealiases.html#AuthenticatedOptions" target="_self">AuthenticatedOptions</a>, dataSource?: DataSource)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="11"
-                                    class="link-to-prism">src/features/security/guards/roles.guard.ts:11</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="35"
+                                    class="link-to-prism">test/factories/auth.factory.ts:35</a></div>
                         </td>
                     </tr>
 
@@ -264,26 +229,146 @@
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
+                                                <td>Default value</td>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>context</td>
+                                                <td>app</td>
                                             <td>
-                                                        <code>ExecutionContext</code>
+                                                        <code>INestApplication</code>
                                             </td>
 
                                             <td>
                                                     No
                                             </td>
 
+                                            <td>
+                                            </td>
+
+                                        </tr>
+                                        <tr>
+                                                <td>options</td>
+                                            <td>
+                                                            <code><a href="../miscellaneous/typealiases.html#AuthenticatedOptions" target="_self" >AuthenticatedOptions</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+                                            <td>
+                                                    <code>{}</code>
+                                            </td>
+
+                                        </tr>
+                                        <tr>
+                                                <td>dataSource</td>
+                                            <td>
+                                                        <code>DataSource</code>
+                                            </td>
+
+                                            <td>
+                                                    Yes
+                                            </td>
+
+                                            <td>
+                                            </td>
 
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;AuthenticatedUserContext&gt;</a></code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="login"></a>
+                    <span class="name">
+                            <span class="modifier">Static</span>
+                            <span class="modifier">Async</span>
+                        <span ><b>login</b></span>
+                        <a href="#login"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>login(context: <a href="../miscellaneous/typealiases.html#CreateUserContext" target="_self">CreateUserContext</a>, loginBy: "email" | "username")</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="12"
+                                    class="link-to-prism">test/factories/auth.factory.ts:12</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                                <td>Default value</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>context</td>
+                                            <td>
+                                                            <code><a href="../miscellaneous/typealiases.html#CreateUserContext" target="_self" >CreateUserContext</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+                                            <td>
+                                            </td>
+
+                                        </tr>
+                                        <tr>
+                                                <td>loginBy</td>
+                                            <td>
+                                                        <code>&quot;email&quot; | &quot;username&quot;</code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+                                            <td>
+                                                    <code>&#x27;email&#x27;</code>
+                                            </td>
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;AuthenticatedUserContext&gt;</a></code>
 
                         </div>
                             <div class="io-description">
@@ -294,48 +379,67 @@
         </tbody>
     </table>
 </section>
-        </div>
 
 
-        <div class="tab-pane fade  tab-source-code" id="source">
-            <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { IRequest } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
-import { CanActivate, ExecutionContext, Injectable } from &#x27;@nestjs/common&#x27;;
-import { Reflector } from &#x27;@nestjs/core&#x27;;
-import { ROLES_KEY } from &#x27;../decorators/roles.decorator&#x27;;
-import { SecurityErrors } from &#x27;../errors/security-errors&#x27;;
 
-@Injectable()
-export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
 
-  canActivate(context: ExecutionContext): boolean {
-    const requiredRoles &#x3D; this.reflector.getAllAndOverride&lt;string[]&gt;(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()]
-    );
 
-    if (!requiredRoles) {
-      return true;
-    }
+    </div>
 
-    const { user } &#x3D; context.switchToHttp().getRequest&lt;IRequest&gt;();
 
-    if (!user?.role) {
-      throw SecurityErrors.accessDenied();
-    }
+    <div class="tab-pane fade  tab-source-code" id="source">
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { UserRole } from &#x27;@features/users/enums/user-role.enum&#x27;;
+import { INestApplication } from &#x27;@nestjs/common&#x27;;
+import { DataSource } from &#x27;typeorm&#x27;;
+import { AuthenticatedOptions } from &#x27;../utils/types/auth.types&#x27;;
+import {
+  AuthenticatedUserContext,
+  CreateUserContext
+} from &#x27;../utils/types/factory.types&#x27;;
+import { UserFactory } from &#x27;./user.factory&#x27;;
 
-    if (!requiredRoles.includes(user.role)) {
-      throw SecurityErrors.accessDenied();
-    }
+export class AuthFactory {
+  static async login(
+    context: CreateUserContext,
+    loginBy: &#x27;email&#x27; | &#x27;username&#x27; &#x3D; &#x27;email&#x27;
+  ): Promise&lt;AuthenticatedUserContext&gt; {
+    const identifier &#x3D;
+      loginBy &#x3D;&#x3D;&#x3D; &#x27;email&#x27; ? context.user.email : context.user.username;
 
-    return true;
+    const login &#x3D; await context.client.post(&#x27;/v1/auth/login&#x27;, {
+      body: {
+        email: identifier,
+        password: context.user.password
+      }
+    });
+
+    return {
+      ...context,
+      response: {
+        ...context.response,
+        login
+      }
+    };
+  }
+
+  static async authenticated(
+    app: INestApplication,
+    options: AuthenticatedOptions &#x3D; {},
+    dataSource?: DataSource
+  ): Promise&lt;AuthenticatedUserContext&gt; {
+    let context;
+
+    if (options.withRole &#x3D;&#x3D;&#x3D; UserRole.ADMIN)
+      context &#x3D; await UserFactory.admin(app, dataSource, options.overrides);
+
+    context &#x3D; await UserFactory.register(app, options.overrides);
+
+    return this.login(context, options.loginBy);
   }
 }
 </code></pre>
-        </div>
+    </div>
 </div>
-
-
 
 
 
@@ -370,8 +474,8 @@ export class RolesGuard implements CanActivate {
 
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
-            var COMPODOC_CURRENT_PAGE_CONTEXT = 'guard';
-            var COMPODOC_CURRENT_PAGE_URL = 'RolesGuard.html';
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'class';
+            var COMPODOC_CURRENT_PAGE_URL = 'AuthFactory.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

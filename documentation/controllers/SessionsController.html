@@ -206,7 +206,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>getAll(customAuth: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>)</code>
+                    <code>getAll(user: <a href="../classes/User.html" target="_self">UserEntity</a>, session: <a href="../entitys/Session.html" target="_self">SessionEntity</a>)</code>
                 </td>
             </tr>
 
@@ -220,8 +220,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="24"
-                                    class="link-to-prism">src/features/sessions/sessions.controller.ts:24</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="26"
+                                    class="link-to-prism">src/features/sessions/sessions.controller.ts:26</a></div>
                         </td>
                     </tr>
 
@@ -242,9 +242,21 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>customAuth</td>
+                                                <td>user</td>
                                             <td>
-                                                            <code><a href="../interfaces/CustomAuth.html" target="_self" >CustomAuth</a></code>
+                                                            <code><a href="../classes/User.html" target="_self" >UserEntity</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>session</td>
+                                            <td>
+                                                            <code><a href="../entitys/Session.html" target="_self" >SessionEntity</a></code>
                                             </td>
 
                                             <td>
@@ -284,7 +296,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>revoke(: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>)</code>
+                    <code>revoke(user: <a href="../classes/User.html" target="_self">UserEntity</a>, session: <a href="../entitys/Session.html" target="_self">SessionEntity</a>)</code>
                 </td>
             </tr>
 
@@ -298,8 +310,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="31"
-                                    class="link-to-prism">src/features/sessions/sessions.controller.ts:31</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="33"
+                                    class="link-to-prism">src/features/sessions/sessions.controller.ts:33</a></div>
                         </td>
                     </tr>
 
@@ -320,8 +332,21 @@
                                     </thead>
                                     <tbody>
                                         <tr>
+                                                <td>user</td>
                                             <td>
-                                                            <code><a href="../interfaces/CustomAuth.html" target="_self" >CustomAuth</a></code>
+                                                            <code><a href="../classes/User.html" target="_self" >UserEntity</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>session</td>
+                                            <td>
+                                                            <code><a href="../entitys/Session.html" target="_self" >SessionEntity</a></code>
                                             </td>
 
                                             <td>
@@ -361,7 +386,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>terminateOthers(: <a href="../interfaces/CustomAuth.html" target="_self">CustomAuth</a>)</code>
+                    <code>terminateOthers(user: <a href="../classes/User.html" target="_self">UserEntity</a>, session: <a href="../entitys/Session.html" target="_self">SessionEntity</a>)</code>
                 </td>
             </tr>
 
@@ -375,8 +400,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="38"
-                                    class="link-to-prism">src/features/sessions/sessions.controller.ts:38</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="40"
+                                    class="link-to-prism">src/features/sessions/sessions.controller.ts:40</a></div>
                         </td>
                     </tr>
 
@@ -397,8 +422,21 @@
                                     </thead>
                                     <tbody>
                                         <tr>
+                                                <td>user</td>
                                             <td>
-                                                            <code><a href="../interfaces/CustomAuth.html" target="_self" >CustomAuth</a></code>
+                                                            <code><a href="../classes/User.html" target="_self" >UserEntity</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>session</td>
+                                            <td>
+                                                            <code><a href="../entitys/Session.html" target="_self" >SessionEntity</a></code>
                                             </td>
 
                                             <td>
@@ -426,10 +464,12 @@
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Serialize } from &#x27;@core/common/decorators/serialize.decorator&#x27;;
-import { User } from &#x27;@features/auth/decorators/user.decorator&#x27;;
-import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
+import { Session } from &#x27;@features/security/decorators/session.decorator&#x27;;
+import { User } from &#x27;@features/security/decorators/user.decorator&#x27;;
+import { User as UserEntity } from &#x27;@features/users/entities/user.entity&#x27;;
 import { Controller, Delete, Get, HttpCode, HttpStatus } from &#x27;@nestjs/common&#x27;;
 import { SessionResponseDto } from &#x27;./dto/response/session.response.dto&#x27;;
+import { Session as SessionEntity } from &#x27;./entities/session.entity&#x27;;
 import { SessionsService } from &#x27;./sessions.service&#x27;;
 import {
   ApiGetSessions,
@@ -448,22 +488,22 @@ export class SessionsController {
   @HttpCode(HttpStatus.OK)
   @ApiGetSessions()
   @Serialize(SessionResponseDto)
-  getAll(@User() customAuth: CustomAuth) {
-    return this.sessionsService.list(customAuth);
+  getAll(@User() user: UserEntity, @Session() session: SessionEntity) {
+    return this.sessionsService.list(user.id, session);
   }
 
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiRevokeCurrentSession()
-  revoke(@User() { user, session }: CustomAuth) {
-    return this.sessionsService.revoke(user, session.id);
+  revoke(@User() user: UserEntity, @Session() session: SessionEntity) {
+    return this.sessionsService.revoke(user.id, session.id);
   }
 
   @Delete(&#x27;others&#x27;)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiTerminateOtherSessions()
-  terminateOthers(@User() { user, session }: CustomAuth) {
-    return this.sessionsService.terminateOthers(user, session.id);
+  terminateOthers(@User() user: UserEntity, @Session() session: SessionEntity) {
+    return this.sessionsService.terminateOthers(user.id, session.id);
   }
 }
 </code></pre>

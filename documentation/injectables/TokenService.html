@@ -188,12 +188,12 @@
             <tbody>
                 <tr>
                     <td class="col-md-4">
-<code>constructor(jwtService: JwtService, usersService: <a href="../injectables/UsersService.html" target="_self">UsersService</a>, sessionsService: <a href="../injectables/SessionsService.html" target="_self">SessionsService</a>)</code>
+<code>constructor(jwtConfiguration: ConfigType<unknown>, jwtService: JwtService, usersService: <a href="../injectables/UsersService.html" target="_self">UsersService</a>, sessionsService: <a href="../injectables/SessionsService.html" target="_self">SessionsService</a>)</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="12" class="link-to-prism">src/features/token/token.service.ts:12</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="15" class="link-to-prism">src/features/token/token.service.ts:15</a></div>
                             </td>
                         </tr>
 
@@ -210,6 +210,18 @@
                                             </tr>
                                         </thead>
                                         <tbody>
+                                                <tr>
+                                                        <td>jwtConfiguration</td>
+                                                  
+                                                        <td>
+                                                                    <code>ConfigType&lt;unknown&gt;</code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
                                                 <tr>
                                                         <td>jwtService</td>
                                                   
@@ -282,8 +294,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="19"
-                                    class="link-to-prism">src/features/token/token.service.ts:19</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="24"
+                                    class="link-to-prism">src/features/token/token.service.ts:24</a></div>
                         </td>
                     </tr>
 
@@ -387,8 +399,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="56"
-                                    class="link-to-prism">src/features/token/token.service.ts:56</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="76"
+                                    class="link-to-prism">src/features/token/token.service.ts:76</a></div>
                         </td>
                     </tr>
 
@@ -455,8 +467,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="48"
-                                    class="link-to-prism">src/features/token/token.service.ts:48</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="64"
+                                    class="link-to-prism">src/features/token/token.service.ts:64</a></div>
                         </td>
                     </tr>
 
@@ -492,7 +504,7 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../interfaces/IJwtPayload.html" target="_self" >Promise&lt;IJwtPayload&gt;</a></code>
+                            <b>Returns : </b>        <code><a href="../interfaces/IJwtClaims.html" target="_self" >Promise&lt;IJwtClaims&gt;</a></code>
 
                         </div>
                             <div class="io-description">
@@ -524,8 +536,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="52"
-                                    class="link-to-prism">src/features/token/token.service.ts:52</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="70"
+                                    class="link-to-prism">src/features/token/token.service.ts:70</a></div>
                         </td>
                     </tr>
 
@@ -561,7 +573,7 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../interfaces/IJwtPayload.html" target="_self" >Promise&lt;IJwtPayload&gt;</a></code>
+                            <b>Returns : </b>        <code><a href="../interfaces/IJwtClaims.html" target="_self" >Promise&lt;IJwtClaims&gt;</a></code>
 
                         </div>
                             <div class="io-description">
@@ -580,16 +592,21 @@
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { SessionErrors } from &#x27;@features/sessions/errors/session-errors&#x27;;
 import { SessionsService } from &#x27;@features/sessions/sessions.service&#x27;;
 import { UsersService } from &#x27;@features/users/users.service&#x27;;
+import jwtConfig from &#x27;@infrastructure/config/jwt.config&#x27;;
 import { CustomAuth } from &#x27;@infrastructure/http/interfaces/custom-request.interface&#x27;;
-import { Injectable } from &#x27;@nestjs/common&#x27;;
+import { Inject, Injectable } from &#x27;@nestjs/common&#x27;;
+import { ConfigType } from &#x27;@nestjs/config&#x27;;
 import { JwtService } from &#x27;@nestjs/jwt&#x27;;
+import { randomUUID } from &#x27;crypto&#x27;;
 import { TokenErrors } from &#x27;./errors/token-errors&#x27;;
-import { IJwtPayload } from &#x27;./interfaces/jwt-payload.interface&#x27;;
+import { IJwtClaims, IJwtPayload } from &#x27;./interfaces/jwt-payload.interface&#x27;;
 import { ITokenService } from &#x27;./interfaces/token.interface&#x27;;
 
 @Injectable()
 export class TokenService implements ITokenService {
   constructor(
+    @Inject(jwtConfig.KEY)
+    private readonly jwtConfiguration: ConfigType&lt;typeof jwtConfig&gt;,
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
     private readonly sessionsService: SessionsService
@@ -610,26 +627,41 @@ export class TokenService implements ITokenService {
     const accessExp &#x3D; Math.floor(now) / 1000 + 15 * 60;
     const refreshExp &#x3D; Math.floor(expiresAt.getTime()) / 1000;
 
-    const accessToken &#x3D; await this.jwtService.signAsync({
-      ...jwtPayload,
-      exp: accessExp
-      // role
-    });
+    const accessToken &#x3D; await this.jwtService.signAsync(
+      {
+        ...jwtPayload,
+        exp: accessExp
+        // role
+      },
+      {
+        secret: this.jwtConfiguration.secret
+      }
+    );
 
-    const refreshToken &#x3D; await this.jwtService.signAsync({
-      ...jwtPayload,
-      exp: refreshExp
-    });
+    const refreshToken &#x3D; await this.jwtService.signAsync(
+      {
+        ...jwtPayload,
+        exp: refreshExp,
+        jti: randomUUID()
+      },
+      {
+        secret: this.jwtConfiguration.secret
+      }
+    );
 
     return { accessToken, refreshToken };
   }
 
-  async verifyAccessToken(token: string): Promise&lt;IJwtPayload&gt; {
-    return this.jwtService.verifyAsync&lt;IJwtPayload&gt;(token);
+  async verifyAccessToken(token: string): Promise&lt;IJwtClaims&gt; {
+    return this.jwtService.verifyAsync&lt;IJwtClaims&gt;(token, {
+      secret: this.jwtConfiguration.secret
+    });
   }
 
-  async verifyRefreshToken(token: string): Promise&lt;IJwtPayload&gt; {
-    return this.jwtService.verifyAsync&lt;IJwtPayload&gt;(token);
+  async verifyRefreshToken(token: string): Promise&lt;IJwtClaims&gt; {
+    return this.jwtService.verifyAsync&lt;IJwtClaims&gt;(token, {
+      secret: this.jwtConfiguration.secret
+    });
   }
 
   async validatePayload({ sub, sessionId }: IJwtPayload): Promise&lt;CustomAuth&gt; {

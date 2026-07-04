@@ -98,243 +98,69 @@
                    <div class="content-data">
 
 
-<h1>NestJS Backend - L1Mind</h1>
-<p>A full-featured NestJS TypeScript backend customized for <strong>L1Mind projects</strong>.</p>
-<p>This project follows a modular architecture and includes authentication, session management, role-based access control, soft-delete lifecycle, and full API documentation using Swagger.</p>
-<hr>
-<h2>Table of Contents</h2>
+<h1>Nest Backend</h1>
+<p>Enterprise-grade NestJS backend focused on scalability, maintainability and security.</p>
+<h2>Features</h2>
 <ul>
-<li><a href="#nestjs-backend---l1mind">NestJS Backend - L1Mind</a><ul>
-<li><a href="#table-of-contents">Table of Contents</a></li>
-<li><a href="#installation">Installation</a></li>
-<li><a href="#scripts">Scripts</a></li>
-<li><a href="#project-architecture">Project Architecture</a></li>
-<li><a href="#authentication--security">Authentication &amp; Security</a></li>
-<li><a href="#session-system">Session System</a></li>
-<li><a href="#user-lifecycle">User Lifecycle</a></li>
-<li><a href="#swagger--api-docs">Swagger &amp; API Docs</a><ul>
-<li><a href="#example-endpoints">Example endpoints:</a></li>
-</ul>
-</li>
-<li><a href="#testing">Testing</a></li>
-<li><a href="#support">Support</a></li>
-<li><a href="#license">License</a></li>
-</ul>
-</li>
-</ul>
-<hr>
-<h2>Installation</h2>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-bash">yarn install</code></pre></div><hr>
-<h2>Scripts</h2>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-bash"># Build
-yarn build
-
-# Format code
-yarn format
-
-# Start app
-yarn start
-
-# Development mode
-yarn start:dev
-
-# Debug mode
-yarn start:debug
-
-# Production
-yarn start:prod
-
-# Lint
-yarn lint
-
-# Unit tests
-yarn test
-
-# Watch tests
-yarn test:watch
-
-# Test coverage
-yarn test:cov
-
-# Debug tests
-yarn test:debug
-
-# End-to-end tests
-yarn test:e2e
-
-# Migrations
-yarn migration:create
-yarn migration:generate
-yarn premigration:run
-yarn migration:run
-yarn migration:revert
-
-# Documentation
-yarn docs
-
-# Husky
-yarn prepare
-
-# Deprecated files scan
-yarn deprecated</code></pre></div><hr>
-<h2>Project Architecture</h2>
-<p>Feature-based modular structure:</p>
-<ul>
-<li><p><strong>AuthModule</strong></p>
-<ul>
-<li>Registration</li>
-<li>Login</li>
-<li>JWT issuance</li>
-<li>Password change</li>
-<li>Guards &amp; strategies</li>
-<li>Cookie interceptor</li>
-</ul>
-</li>
-<li><p><strong>UsersModule</strong></p>
-<ul>
-<li>Profile management</li>
-<li>Password management</li>
-<li>Soft delete</li>
-<li>Hard delete</li>
-<li>Account lifecycle</li>
-</ul>
-</li>
-<li><p><strong>SessionsModule</strong></p>
-<ul>
-<li>Session issuing</li>
-<li>Multi-device login</li>
-<li>Session revocation</li>
-<li>Active session listing</li>
-<li>Device tracking</li>
-</ul>
-</li>
-<li><p><strong>AdminUsersModule</strong></p>
-<ul>
-<li>Admin-only user listing</li>
-<li>Admin-only user fetch</li>
-<li>Role-based access control</li>
-</ul>
-</li>
-</ul>
-<hr>
-<h2>Authentication &amp; Security</h2>
-<ul>
-<li><p>JWT-based authentication</p>
-</li>
-<li><p>Password hashing via <code>BcryptProvider</code></p>
-</li>
-<li><p>HttpOnly cookie support via interceptor</p>
-</li>
-<li><p>Role-based access control (RBAC)</p>
-</li>
-<li><p>Guard-based authorization</p>
-</li>
-<li><p>Token + Session validation</p>
-</li>
-<li><p>Separation of concerns:</p>
-<ul>
-<li>Auth → identity</li>
-<li>Users → domain</li>
-<li>Sessions → state</li>
-</ul>
-</li>
-</ul>
-<hr>
-<h2>Session System</h2>
-<p>Each login creates a session:</p>
-<ul>
-<li><p>Device info stored</p>
-</li>
-<li><p>IP stored</p>
-</li>
-<li><p>Token stored</p>
-</li>
-<li><p>Expiry date stored</p>
-</li>
-<li><p>Multi-session supported</p>
-</li>
-<li><p>Selective revocation:</p>
-<ul>
-<li>Revoke current</li>
-<li>Revoke others</li>
-<li>Revoke all</li>
-</ul>
-</li>
-</ul>
-<hr>
-<h2>User Lifecycle</h2>
-<p>User deletion flow:</p>
-<ol>
-<li>User requests account deletion</li>
-<li><code>softDelete</code> applied (<code>deletedAt</code> set)</li>
-<li>User remains in DB for 72 hours</li>
-<li>Scheduled cleanup checks <code>deletedAt</code></li>
-<li>After 72h → <code>hardDelete</code></li>
-<li>Data permanently removed</li>
-</ol>
-<p>This enables:</p>
-<ul>
-<li>Recovery window</li>
-<li>Legal compliance</li>
-<li>Data safety</li>
-<li>GDPR-style lifecycle</li>
-</ul>
-<hr>
-<h2>Swagger &amp; API Docs</h2>
-<p>Swagger is fully integrated.</p>
-<p>Run server and access:</p>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-txt">http://localhost:3000/api</code></pre></div><h3>Example endpoints:</h3>
-<p>Auth:</p>
-<ul>
-<li><code>POST /auth/register</code></li>
-<li><code>POST /auth/login</code></li>
-<li><code>POST /auth/change-password</code></li>
-</ul>
-<p>Sessions:</p>
-<ul>
-<li><code>GET /sessions</code></li>
-<li><code>DELETE /sessions</code></li>
-<li><code>DELETE /sessions/others</code></li>
-</ul>
-<p>Users:</p>
-<ul>
-<li><code>GET /user/me</code></li>
-<li><code>PUT /user</code></li>
-<li><code>DELETE /user</code></li>
-</ul>
-<p>Admin:</p>
-<ul>
-<li><code>GET /admin/users</code></li>
-<li><code>GET /admin/users/:id</code></li>
-</ul>
-<hr>
-<h2>Testing</h2>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-bash"># Unit tests
-yarn test
-
-# E2E tests
-yarn test:e2e
-
-# Coverage
-yarn test:cov</code></pre></div><p>Testing stack:</p>
-<ul>
+<li>JWT Authentication</li>
+<li>Refresh Token Rotation</li>
+<li>Session Versioning</li>
+<li>RBAC</li>
+<li>PostgreSQL</li>
+<li>Redis</li>
+<li>Swagger</li>
 <li>Jest</li>
-<li>Supertest</li>
-<li>Isolated modules</li>
-<li>E2E pipelines</li>
+<li>TypeORM</li>
+<li>Clean Architecture</li>
 </ul>
 <hr>
-<h2>Support</h2>
-<p>Maintained by <strong>L1Mindr</strong></p>
-<!-- * Website: [https://mintegs.com](https://mintegs.com) -->
+<h1>Documentation</h1>
+<h2>Getting Started</h2>
 <ul>
-<li>Telegram: <a href="https://t.me/l1mindr">https://t.me/l1Mindr</a></li>
-<li>Youtube: <a href="https://www.youtube.com/@l1mindr">https://www.youtube.com/@l1Mindr</a></li>
-<li>Tech content &amp; dev branding: <strong>L1Mindr</strong></li>
+<li>Installation</li>
+<li>Development</li>
+<li>Scripts</li>
 </ul>
-<hr>
-<h2>License</h2>
-<p>MIT License</p>
+<h2>Documentation (docs)</h2>
+<ul>
+<li><p><strong>Architecture</strong></p>
+<ul>
+<li><a href="docs/project-structure.md">Project Structure</a></li>
+<li><a href="docs/architecture.md">Architecture Overview</a></li>
+<li><a href="docs/providers.md">Providers</a></li>
+</ul>
+</li>
+<li><p><strong>Authentication &amp; Sessions</strong></p>
+<ul>
+<li><a href="docs/authentication.md">Authentication Flow</a></li>
+<li><a href="docs/sessions.md">Sessions (Refresh &amp; Rotation)</a></li>
+<li><a href="docs/security.md">Security Model</a></li>
+</ul>
+</li>
+<li><p><strong>Infrastructure &amp; Database</strong></p>
+<ul>
+<li><a href="docs/database.md">Database Design</a></li>
+<li><a href="docs/redis.md">Redis Usage</a></li>
+</ul>
+</li>
+<li><p><strong>Testing &amp; Development</strong></p>
+<ul>
+<li><a href="docs/testing.md">Testing Guide</a></li>
+<li><a href="docs/development.md">Developer Setup</a></li>
+</ul>
+</li>
+<li><p><strong>Project Conventions &amp; Roadmap</strong></p>
+<ul>
+<li><a href="docs/conventions.md">Conventions</a></li>
+<li><a href="docs/roadmap.md">Roadmap</a></li>
+</ul>
+</li>
+<li><p><strong>FAQ</strong></p>
+<ul>
+<li><a href="docs/faq.md">FAQ — Architecture Questions</a></li>
+</ul>
+</li>
+</ul>
 
 
 

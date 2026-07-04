@@ -167,12 +167,7 @@
                             <li>
                                     <span class="modifier">Static</span>
                                     <span class="modifier">Async</span>
-                                <a href="#authenticated" >authenticated</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Static</span>
-                                    <span class="modifier">Async</span>
-                                <a href="#create" >create</a>
+                                <a href="#register" >register</a>
                             </li>
                         </ul>
                     </td>
@@ -216,8 +211,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="62"
-                                    class="link-to-prism">test/factories/user.factory.ts:62</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="28"
+                                    class="link-to-prism">test/factories/user.factory.ts:28</a></div>
                         </td>
                     </tr>
 
@@ -285,7 +280,7 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;AuthenticatedUserContext&gt;</a></code>
+                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;CreateUserContext&gt;</a></code>
 
                         </div>
                             <div class="io-description">
@@ -299,109 +294,27 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="authenticated"></a>
+                    <a name="register"></a>
                     <span class="name">
                             <span class="modifier">Static</span>
                             <span class="modifier">Async</span>
-                        <span ><b>authenticated</b></span>
-                        <a href="#authenticated"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>register</b></span>
+                        <a href="#register"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>authenticated(app: INestApplication, options: <a href="../miscellaneous/typealiases.html#AuthenticatedOptions" target="_self">AuthenticatedOptions</a>)</code>
+                    <code>register(app: INestApplication, overrides: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/object" target="_blank">object</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="36"
-                                    class="link-to-prism">test/factories/user.factory.ts:36</a></div>
-                        </td>
-                    </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                            <div class="io-description">
-                                <b>Parameters :</b>
-                                
-                                <table class="params">
-                                    <thead>
-                                        <tr>
-                                            <td>Name</td>
-                                                <td>Type</td>
-                                            <td>Optional</td>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                                <td>app</td>
-                                            <td>
-                                                        <code>INestApplication</code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-
-                                        </tr>
-                                        <tr>
-                                                <td>options</td>
-                                            <td>
-                                                            <code><a href="../miscellaneous/typealiases.html#AuthenticatedOptions" target="_self" >AuthenticatedOptions</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;AuthenticatedUserContext&gt;</a></code>
-
-                        </div>
-                            <div class="io-description">
-                                
-                            </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="create"></a>
-                    <span class="name">
-                            <span class="modifier">Static</span>
-                            <span class="modifier">Async</span>
-                        <span ><b>create</b></span>
-                        <a href="#create"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>create(app: INestApplication, overrides: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/object" target="_blank">object</a>)</code>
-                </td>
-            </tr>
-
-
-                    <tr>
-                        <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="14"
-                                    class="link-to-prism">test/factories/user.factory.ts:14</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="10"
+                                    class="link-to-prism">test/factories/user.factory.ts:10</a></div>
                         </td>
                     </tr>
 
@@ -480,26 +393,18 @@ import { UserRole } from &#x27;@features/users/enums/user-role.enum&#x27;;
 import { INestApplication } from &#x27;@nestjs/common&#x27;;
 import { DataSource } from &#x27;typeorm&#x27;;
 import { ApiClient } from &#x27;../helpers/apiClient-helper&#x27;;
-import { createUser } from &#x27;../helpers/create-user.helper&#x27;;
-import { AuthenticatedOptions } from &#x27;../utils/types/auth.types&#x27;;
-import {
-  AuthenticatedUserContext,
-  CreateUserContext
-} from &#x27;../utils/types/factory.types&#x27;;
+import { createUserDto } from &#x27;../helpers/create-user.helper&#x27;;
+import { CreateUserContext } from &#x27;../utils/types/factory.types&#x27;;
 
 export class UserFactory {
-  static async create(
+  static async register(
     app: INestApplication,
     overrides &#x3D; {}
   ): Promise&lt;CreateUserContext&gt; {
-    const user &#x3D; createUser(overrides);
+    const user &#x3D; createUserDto(overrides);
     const client &#x3D; new ApiClient(app);
 
-    const register &#x3D; await client.request({
-      method: &#x27;post&#x27;,
-      url: &#x27;/v1/auth/register&#x27;,
-      body: user
-    });
+    const register &#x3D; await client.post(&#x27;/v1/auth/register&#x27;, { body: user });
 
     return {
       user,
@@ -510,38 +415,12 @@ export class UserFactory {
     };
   }
 
-  static async authenticated(
-    app: INestApplication,
-    options: AuthenticatedOptions
-  ): Promise&lt;AuthenticatedUserContext&gt; {
-    const context &#x3D; await this.create(app, options.overrides);
-    const identifier &#x3D; options.loginBy ?? &#x27;email&#x27;;
-
-    const login &#x3D; await context.client.request({
-      method: &#x27;post&#x27;,
-      url: &#x27;/v1/auth/login&#x27;,
-      body: {
-        email:
-          identifier &#x3D;&#x3D;&#x3D; &#x27;email&#x27; ? context.user.email : context.user.username,
-        password: context.user.password
-      }
-    });
-
-    return {
-      ...context,
-      response: {
-        ...context.response,
-        login
-      }
-    };
-  }
-
   static async admin(
     app: INestApplication,
     dataSource: DataSource,
     overrides &#x3D; {}
-  ): Promise&lt;AuthenticatedUserContext&gt; {
-    const context &#x3D; await this.authenticated(app, overrides);
+  ): Promise&lt;CreateUserContext&gt; {
+    const context &#x3D; await this.register(app, overrides);
     const repo &#x3D; dataSource.getRepository(User);
 
     await repo.update(
