@@ -1,5 +1,5 @@
-import { AppError } from '@core/common/errors/app.error';
-import { ErrorDomain } from '@core/common/errors/error-domain.enum';
+import { AppError } from '@core/errors/app.error';
+import { ErrorDomain } from '@core/errors/error-domain.enum';
 import { HttpStatus } from '@nestjs/common';
 import { SessionErrorCode } from './session-error-code.enum';
 

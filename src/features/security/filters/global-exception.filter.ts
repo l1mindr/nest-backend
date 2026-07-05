@@ -1,5 +1,5 @@
-import { AppError } from '@core/common/errors/app.error';
-import { ErrorMapper } from '@core/common/errors/error-mapper';
+import { AppError } from '@core/errors/app.error';
+import { ErrorMapper } from '@core/errors/error-mapper';
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 
 @Catch()

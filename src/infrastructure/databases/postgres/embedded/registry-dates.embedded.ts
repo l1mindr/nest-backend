@@ -1,4 +1,4 @@
-import { RegistryDates } from '@core/common/registry-dates';
+import { RegistryDates } from '@core/registry-dates';
 import { CreateDateColumn, DeleteDateColumn, UpdateDateColumn } from 'typeorm';
 
 export class RegistryDatesOrm extends RegistryDates {
