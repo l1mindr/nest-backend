@@ -1,6 +1,6 @@
 import { ClockService } from '@core/clock/clock.service';
-import { DeviceContext } from '@core/device/context/device-context.interface';
-import { DeviceMapper } from '@core/device/mappers/device.mapper';
+import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
+import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { SessionsService } from '@features/sessions/sessions.service';
 import { TokenErrors } from '@features/token/errors/token-errors';

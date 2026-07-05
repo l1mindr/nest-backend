@@ -1,5 +1,5 @@
-import { DeviceContext } from '@core/device/context/device-context.interface';
-import { Device } from '@core/device/decorators/device.decorator';
+import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
+import { Device } from '@features/security/device-detection/decorators/device.decorator';
 import { Public } from '@features/security/decorators/public.decorator';
 import { Session } from '@features/security/decorators/session.decorator';
 import { User } from '@features/security/decorators/user.decorator';

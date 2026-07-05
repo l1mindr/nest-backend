@@ -1,4 +1,4 @@
-import { DeviceModule } from '@core/device/device.module';
+import { DeviceDetectionModule } from '@features/security/device-detection/device-detection.module';
 import { SessionsModule } from '@features/sessions/sessions.module';
 import { TokenModule } from '@features/token/token.module';
 import { Module } from '@nestjs/common';
@@ -9,7 +9,7 @@ import { BcryptProvider } from './providers/bcrypt.provider';
 import { HashingProvider } from './providers/hashing.provider';
 
 @Module({
-  imports: [UsersModule, SessionsModule, TokenModule, DeviceModule],
+  imports: [UsersModule, SessionsModule, TokenModule, DeviceDetectionModule],
   controllers: [AuthController],
   providers: [
     AuthService,

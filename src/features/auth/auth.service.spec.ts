@@ -1,5 +1,5 @@
 import { ClockService } from '@core/clock/clock.service';
-import { DeviceMapper } from '@core/device/mappers/device.mapper';
+import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { SessionsService } from '@features/sessions/sessions.service';
 import { TokenErrors } from '@features/token/errors/token-errors';
