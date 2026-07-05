@@ -1,7 +1,7 @@
 import { HttpStatus, ValidationPipeOptions } from '@nestjs/common';
-import { AppError } from '../errors/app.error';
-import { DomainErrorCode } from '../errors/domain-error-code.enum';
-import { ErrorDomain } from '../errors/error-domain.enum';
+import { AppError } from '../../../../core/common/errors/app.error';
+import { DomainErrorCode } from '../../../../core/common/errors/domain-error-code.enum';
+import { ErrorDomain } from '../../../../core/common/errors/error-domain.enum';
 
 export const VALIDATION_PIPE_OPTIONS: ValidationPipeOptions = {
   whitelist: true,
