@@ -1,7 +1,7 @@
-import { Serialize } from '@core/common/decorators/serialize.decorator';
 import { Session } from '@features/security/decorators/session.decorator';
 import { User } from '@features/security/decorators/user.decorator';
 import { User as UserEntity } from '@features/users/entities/user.entity';
+import { Serialize } from '@infrastructure/http/interceptors/decorators/serialize.decorator';
 import { Controller, Delete, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { SessionResponseDto } from './dto/response/session.response.dto';
 import { Session as SessionEntity } from './entities/session.entity';

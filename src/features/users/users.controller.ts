@@ -1,6 +1,6 @@
-import { Serialize } from '@core/common/decorators/serialize.decorator';
 import { User } from '@features/security/decorators/user.decorator';
 import { User as UserEntity } from '@features/users/entities/user.entity';
+import { Serialize } from '@infrastructure/http/interceptors/decorators/serialize.decorator';
 import {
   Body,
   Controller,

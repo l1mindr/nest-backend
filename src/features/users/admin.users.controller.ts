@@ -1,7 +1,7 @@
-import { Serialize } from '@core/common/decorators/serialize.decorator';
 import { Roles } from '@features/security/decorators/roles.decorator';
 import { RolesGuard } from '@features/security/guards/roles.guard';
 import { IdDto } from '@infrastructure/http/dto/id.dto';
+import { Serialize } from '@infrastructure/http/interceptors/decorators/serialize.decorator';
 import {
   Controller,
   Get,

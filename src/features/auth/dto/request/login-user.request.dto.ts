@@ -1,4 +1,4 @@
-import { PasswordField } from '@core/common/decorators/fields/password-field.decorator';
+import { PasswordField } from '@infrastructure/http/validation/fields/password-field.decorator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString } from 'class-validator';
