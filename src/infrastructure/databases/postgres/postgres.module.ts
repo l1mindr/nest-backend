@@ -1,4 +1,4 @@
-import postgresConfig from '@infrastructure/config/postgres.config';
+import postgresConfig from '@infrastructure/config/databases/postgres.config';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 

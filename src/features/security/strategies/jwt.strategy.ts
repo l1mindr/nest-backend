@@ -1,6 +1,6 @@
 import { IJwtPayload } from '@features/token/interfaces/jwt-payload.interface';
 import { TokenService } from '@features/token/token.service';
-import jwtConfig from '@infrastructure/config/jwt.config';
+import jwtConfig from '@infrastructure/config/jsonwebtoken/jwt.config';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';

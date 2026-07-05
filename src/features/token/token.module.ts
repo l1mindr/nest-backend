@@ -1,6 +1,6 @@
 import { SessionsModule } from '@features/sessions/sessions.module';
 import { UsersModule } from '@features/users/users.module';
-import jwtConfig from '@infrastructure/config/jwt.config';
+import jwtConfig from '@infrastructure/config/jsonwebtoken/jwt.config';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { TokenService } from './token.service';

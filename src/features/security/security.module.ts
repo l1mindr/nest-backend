@@ -1,5 +1,5 @@
 import { TokenModule } from '@features/token/token.module';
-import jwtConfig from '@infrastructure/config/jwt.config';
+import jwtConfig from '@infrastructure/config/jsonwebtoken/jwt.config';
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';

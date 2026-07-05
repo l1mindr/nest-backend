@@ -1,4 +1,4 @@
-import postgresConfig from '@infrastructure/config/postgres.config';
+import postgresConfig from '@infrastructure/config/databases/postgres.config';
 import * as dotenv from 'dotenv';
 import * as dotenvExpand from 'dotenv-expand';
 import { DataSource } from 'typeorm';
