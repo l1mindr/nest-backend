@@ -1,8 +1,8 @@
+import jwtConfig from '@infrastructure/config/jwt.config';
+import redisConfig from '@infrastructure/config/redis.config';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ENV_VALIDATION_SCHEMA } from './env.constants';
-import redisConfig from '@infrastructure/config/redis.config';
-import jwtConfig from '@infrastructure/config/jwt.config';
+import { ENV_VALIDATION_SCHEMA } from './env.schema';
 
 @Module({
   imports: [
