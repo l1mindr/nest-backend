@@ -1,10 +1,10 @@
+import { PASSWORD_REGEX } from '@core/validation/rules/password.rules';
 import {
   buildMessage,
   matches,
   ValidateBy,
   ValidationOptions
 } from 'class-validator';
-import { PASSWORD_REGEX } from '../rules/password.rules';
 
 const IS_PASSWORD_KEY = 'isPassword';
 

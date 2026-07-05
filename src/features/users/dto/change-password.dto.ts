@@ -1,18 +1,15 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsPassword } from '@core/validators/decorators/is-password.decorator';
+import { PasswordField } from '@infrastructure/http/validation/fields/password-field.decorator';
 
 export class ChangePasswordDto {
-  @ApiProperty({
+  @PasswordField({
     description: 'The current password must meet security standards.',
     example: 'StrongPassword@1234'
   })
-  @IsPassword()
   readonly currentPassword: string;
 
-  @ApiProperty({
+  @PasswordField({
     description: 'The new password must also meet security standards.',
     example: 'NewStrongPassword@5678'
   })
-  @IsPassword()
   readonly newPassword: string;
 }

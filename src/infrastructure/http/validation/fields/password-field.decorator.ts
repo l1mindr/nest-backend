@@ -1,6 +1,6 @@
-import { IsPassword } from '@core/validators/decorators/is-password.decorator';
 import { applyDecorators } from '@nestjs/common';
 import { ApiProperty, ApiPropertyOptions } from '@nestjs/swagger';
+import { IsPassword } from '../decorators/is-password.decorator';
 
 export function PasswordField(options?: ApiPropertyOptions) {
   return applyDecorators(

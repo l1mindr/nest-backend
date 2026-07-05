@@ -1,7 +1,7 @@
-import { IsUsername } from '@core/validators/decorators/is-username.decorator';
 import { applyDecorators } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
+import { IsUsername } from '../decorators/is-username.decorator';
 
 export function UsernameField() {
   return applyDecorators(
