@@ -1,4 +1,4 @@
-import { TimestampResponseDto } from '@core/common/dto/timestamp-response.dto';
+import { TimestampResponseDto } from '@infrastructure/http/serialization/dto/timestamp-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
 import { UserRole } from '../../enums/user-role.enum';
