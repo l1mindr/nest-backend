@@ -23,14 +23,14 @@ export interface ISessionsService {
     payload: Partial<Session>
   ): Promise<void>;
 
-  rotateRefreshToken(
+  rotateAtomic(
     sessionId: string,
-    oldRefreshTokenHash: string,
-    newRefreshTokenHash: string,
+    version: number,
+    oldHash: string,
+    newHash: string,
     meta: {
-      lastUsedAt: Date;
+      now: number;
       expiresAt: Date;
-      rotatedAt: Date;
     }
   ): Promise<boolean>;
 }

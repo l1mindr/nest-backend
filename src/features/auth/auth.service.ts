@@ -24,7 +24,7 @@ export class AuthService implements IAuthService {
     private readonly sessionsService: SessionsService,
     private readonly usersService: UsersService,
     private readonly tokenService: TokenService,
-    private readonly redisLockService: RedisLockService
+    // private readonly redisLockService: RedisLockService
   ) {}
 
   async registerUser(dto: RegisterUserRequestDto): Promise<void> {

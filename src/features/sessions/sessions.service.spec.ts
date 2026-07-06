@@ -5,13 +5,21 @@ import { SessionsService } from './sessions.service';
 describe('SessionsService', () => {
   let service: SessionsService;
 
+  const mockQueryBuilder = {
+    update: jest.fn().mockReturnThis(),
+    set: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    execute: jest.fn()
+  };
+
   const mockRepository = {
     create: jest.fn(),
     save: jest.fn(),
     findOne: jest.fn(),
     find: jest.fn(),
     update: jest.fn(),
-    query: jest.fn()
+    createQueryBuilder: jest.fn(() => mockQueryBuilder)
   };
 
   const mockDataSource = {
@@ -20,6 +28,8 @@ describe('SessionsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
     service = new SessionsService(mockDataSource as unknown as DataSource);
   });
@@ -146,35 +156,37 @@ describe('SessionsService', () => {
 
   describe('rotateRefreshToken', () => {
     it('should return true when update succeeds', async () => {
-      mockRepository.query.mockResolvedValue([{ id: 'session-id' }]);
+      mockQueryBuilder.execute.mockResolvedValue({
+        affected: 1
+      });
 
-      const result = await service.rotateRefreshToken(
+      const result = await service.rotateAtomic(
         'session-id',
+        1,
         'old-hash',
         'new-hash',
         {
-          lastUsedAt: new Date(),
-          expiresAt: new Date(),
-          rotatedAt: new Date()
+          now: Date.now(),
+          expiresAt: new Date()
         }
       );
 
       expect(result).toBe(true);
-
-      expect(mockRepository.query).toHaveBeenCalled();
     });
 
     it('should return false when update affects no rows', async () => {
-      mockRepository.query.mockResolvedValue([]);
+      mockQueryBuilder.execute.mockResolvedValue({
+        affected: 0
+      });
 
-      const result = await service.rotateRefreshToken(
+      const result = await service.rotateAtomic(
         'session-id',
+        1,
         'old-hash',
         'new-hash',
         {
-          lastUsedAt: new Date(),
-          expiresAt: new Date(),
-          rotatedAt: new Date()
+          now: Date.now(),
+          expiresAt: new Date()
         }
       );
 
