@@ -1,0 +1,55 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+  pull_request:
+
+jobs:
+  test:
+    name: Lint • Unit • E2E
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Build
+        run: yarn build
+
+      - name: Unit Tests
+        run: yarn test:unit
+
+      - name: E2E Tests (Docker)
+        run: |
+          docker compose \
+            -f docker/test/e2e/docker-compose.yml \
+            up \
+            --build \
+            --abort-on-container-exit \
+            --exit-code-from app
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose \
+            -f docker/test/docker-compose.yml \
+            down -v
