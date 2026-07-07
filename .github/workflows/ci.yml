@@ -47,5 +47,5 @@ jobs:
         if: always()
         run: |
           docker compose \
-            -f docker/test/docker-compose.yml \
+            -f docker/test/e2e/docker-compose.yml \
             down -v
