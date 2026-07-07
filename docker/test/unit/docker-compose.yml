@@ -1,0 +1,12 @@
+services:
+  app:
+    build:
+      context: ../../..
+      target: test
+
+    environment:
+      NODE_ENV: test
+
+      JWT_SECRET_KEY: test-secret
+
+    command: yarn test:unit
