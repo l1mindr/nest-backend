@@ -6,7 +6,6 @@ import { SessionsService } from '@features/sessions/sessions.service';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import { TokenService } from '@features/token/token.service';
 import { UsersService } from '@features/users/users.service';
-import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.service';
 import { Injectable } from '@nestjs/common';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
@@ -23,7 +22,7 @@ export class AuthService implements IAuthService {
     private readonly hashingProvider: HashingProvider,
     private readonly sessionsService: SessionsService,
     private readonly usersService: UsersService,
-    private readonly tokenService: TokenService,
+    private readonly tokenService: TokenService
     // private readonly redisLockService: RedisLockService
   ) {}
 
