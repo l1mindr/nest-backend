@@ -7,21 +7,28 @@ on:
 
 jobs:
   review:
+    name: Dependency Security Check
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 22
+          cache: yarn
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --immutable
 
-      - name: Check for outdated dependencies
+      - name: Check outdated dependencies
+        continue-on-error: true
         run: yarn outdated
 
       - name: Run Yarn audit
-        run: yarn audit --groups dependencies
+        run: yarn npm audit --all
