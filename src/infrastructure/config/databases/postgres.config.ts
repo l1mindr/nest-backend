@@ -5,7 +5,7 @@ export default registerAs('database', () => {
   const config = {
     type: 'postgres',
     autoLoadEntities: true,
-    url: process.env.DATA_SOURCE_URL
+    url: `postgresql://${process.env.DATA_SOURCE_USERNAME}:${process.env.DATA_SOURCE_PASSWORD}@${process.env.DATA_SOURCE_HOST}:${process.env.DATA_SOURCE_PORT}/${process.env.DATA_SOURCE_DATABASE}`
   } as const satisfies TypeOrmModuleOptions;
 
   return config;
