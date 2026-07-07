@@ -85,7 +85,14 @@
         </div>
 
         <div class="xs-menu menu" id="mobile-menu">
-                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+                <div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search">
+    <button type="button"
+        class="search-input-clear"
+        aria-label="Clear search"
+        data-search-input-clear>&times;</button>
+</div>
+            <compodoc-menu></compodoc-menu>
         </div>
 
         <div class="container-fluid main">
@@ -107,6 +114,11 @@
     <li class="breadcrumb-item">Modules</li>
     <li class="breadcrumb-item" >RedisModule</li>
 </ol>
+
+<div class="io-file io-file-path" data-compodoc="entity-file-path">
+    <span class="icon ion-ios-document" aria-hidden="true"></span>
+    <code>src/infrastructure/databases/redis/redis.module.ts</code>
+</div>
 
 <div class="text-center module-graph-container">
     <div id="module-graph-svg">
@@ -136,26 +148,26 @@
 <title>cluster_RedisModule</title>
 <polygon fill="none" stroke="black" stroke-dasharray="1,5" points="79,-70 79,-268 417,-268 417,-70 79,-70"/>
 </g>
-<g id="clust6" class="cluster">
-<title>cluster_RedisModule_providers</title>
-<polygon fill="none" stroke="black" points="87,-78 87,-130 409,-130 409,-78 87,-78"/>
-</g>
 <g id="clust4" class="cluster">
 <title>cluster_RedisModule_exports</title>
 <polygon fill="none" stroke="black" points="169,-208 169,-260 307,-260 307,-208 169,-208"/>
 </g>
+<g id="clust6" class="cluster">
+<title>cluster_RedisModule_providers</title>
+<polygon fill="none" stroke="black" points="87,-78 87,-130 409,-130 409,-78 87,-78"/>
+</g>
 <!-- RedisLockService  -->
-<g id="node1" class="node">
+<g id="node1" class="node"><a xlink:href="../injectables/RedisLockService.html" href="../injectables/RedisLockService.html" target="_top">
 <title>RedisLockService </title>
 <polygon fill="#fb8072" stroke="black" points="299.13,-252 176.87,-252 176.87,-216 299.13,-216 299.13,-252"/>
 <text text-anchor="middle" x="238" y="-229.8" font-family="Times,serif" font-size="14.00">RedisLockService </text>
-</g>
+</a></g>
 <!-- RedisModule -->
-<g id="node2" class="node">
+<g id="node2" class="node"><a xlink:href="../modules/RedisModule.html" href="../modules/RedisModule.html" target="_top">
 <title>RedisModule</title>
 <polygon fill="#8dd3c7" stroke="black" points="283.94,-187 280.94,-191 259.94,-191 256.94,-187 192.06,-187 192.06,-151 283.94,-151 283.94,-187"/>
 <text text-anchor="middle" x="238" y="-164.8" font-family="Times,serif" font-size="14.00">RedisModule</text>
-</g>
+</a></g>
 <!-- RedisModule&#45;&gt;RedisLockService  -->
 <g id="edge1" class="edge">
 <title>RedisModule&#45;&gt;RedisLockService </title>
@@ -163,11 +175,11 @@
 <polygon fill="black" stroke="black" points="234.5,-205.99 238,-215.99 241.5,-205.99 234.5,-205.99"/>
 </g>
 <!-- RedisLockService -->
-<g id="node3" class="node">
+<g id="node3" class="node"><a xlink:href="../injectables/RedisLockService.html" href="../injectables/RedisLockService.html" target="_top">
 <title>RedisLockService</title>
 <ellipse fill="#fdb462" stroke="black" cx="319" cy="-104" rx="81.66" ry="18"/>
 <text text-anchor="middle" x="319" y="-99.8" font-family="Times,serif" font-size="14.00">RedisLockService</text>
-</g>
+</a></g>
 <!-- RedisLockService&#45;&gt;RedisModule -->
 <g id="edge2" class="edge">
 <title>RedisLockService&#45;&gt;RedisModule</title>
@@ -175,11 +187,11 @@
 <polygon fill="black" stroke="black" points="256.94,-140.52 260.44,-150.52 263.94,-140.52 256.94,-140.52"/>
 </g>
 <!-- RedisService -->
-<g id="node4" class="node">
+<g id="node4" class="node"><a xlink:href="../injectables/RedisService.html" href="../injectables/RedisService.html" target="_top">
 <title>RedisService</title>
 <ellipse fill="#fdb462" stroke="black" cx="157" cy="-104" rx="61.97" ry="18"/>
 <text text-anchor="middle" x="157" y="-99.8" font-family="Times,serif" font-size="14.00">RedisService</text>
-</g>
+</a></g>
 <!-- RedisService&#45;&gt;RedisModule -->
 <g id="edge3" class="edge">
 <title>RedisService&#45;&gt;RedisModule</title>
@@ -218,13 +230,6 @@
 <div class="tab-content">
     <div class="tab-pane fade active in" id="info">
 
-        <p class="comment">
-            <h3>File</h3>
-        </p>
-        <p class="comment">
-            <code>src/infrastructure/databases/redis/redis.module.ts</code>
-        </p>
-
 
 
 
@@ -256,6 +261,33 @@
             </div>
         </div>
 
+                <section data-compodoc="block-relationships">
+            <h3>Relationships</h3>
+
+            <div class="row pt-3">
+                <div class="col-sm-6">
+                    <h4>Used by</h4>
+                        <ul class="list-unstyled relationships-list">
+                                <li>
+                                            <code><a href="../modules/DatabasesModule.html" target="_self" >DatabasesModule</a></code>
+                                </li>
+                        </ul>
+                </div>
+
+                <div class="col-sm-6">
+                    <h4>Depends on</h4>
+                        <ul class="list-unstyled relationships-list">
+                                <li>
+                                            <code><a href="../injectables/RedisLockService.html" target="_self" >RedisLockService</a></code>
+                                </li>
+                                <li>
+                                            <code><a href="../injectables/RedisService.html" target="_self" >RedisService</a></code>
+                                </li>
+                        </ul>
+                </div>
+            </div>
+        </section>
+
 
     </div>
 
@@ -277,6 +309,7 @@ export class RedisModule {}
 </code></pre>
     </div>
 </div>
+
 
 
 
@@ -326,6 +359,24 @@ export class RedisModule {}
 
        <script>
                $darkModeToggleSwitchers = document.querySelectorAll('.dark-mode-switch input');
+               var updateDarkModeSwitchOffset = function () {
+                    var content = document.querySelector('.content');
+                    var scrollbarWidth = 0;
+
+                    if (content) {
+                         scrollbarWidth = Math.max(0, content.offsetWidth - content.clientWidth);
+                    }
+
+                    document.documentElement.style.setProperty(
+                         '--content-scrollbar-width',
+                         scrollbarWidth + 'px'
+                    );
+               };
+
+               updateDarkModeSwitchOffset();
+               requestAnimationFrame(updateDarkModeSwitchOffset);
+               window.addEventListener('resize', updateDarkModeSwitchOffset);
+
                checkToggle(darkModeState);
                if ($darkModeToggleSwitchers.length > 0) {
                     for (var i = 0; i < $darkModeToggleSwitchers.length; i++) {
@@ -341,7 +392,6 @@ export class RedisModule {}
        <script src="../js/libs/lit-html.js"></script>
 
        <script src="../js/menu-wc.js" defer></script>
-       <script nomodule src="../js/menu-wc_es5.js" defer></script>
 
        <script src="../js/libs/bootstrap-native.js"></script>
 

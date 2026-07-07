@@ -5,5 +5,5 @@ import { TemplatePlaygroundModule } from './template-playground.module';
 document.addEventListener('DOMContentLoaded', () => {
   platformBrowserDynamic()
     .bootstrapModule(TemplatePlaygroundModule)
-    .catch(err => console.error('Error starting template playground:', err));
+    .catch((err) => console.error('Error starting template playground:', err));
 });

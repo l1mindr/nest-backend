@@ -85,7 +85,14 @@
         </div>
 
         <div class="xs-menu menu" id="mobile-menu">
-                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+                <div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search">
+    <button type="button"
+        class="search-input-clear"
+        aria-label="Clear search"
+        data-search-input-clear>&times;</button>
+</div>
+            <compodoc-menu></compodoc-menu>
         </div>
 
         <div class="container-fluid main">
@@ -118,68 +125,114 @@
     <ol class="breadcrumb">
         <li class="breadcrumb-item">Dependencies</li>
     </ol>
-    <ul class="dependencies-list">
-        <li>
-            <b>@faker-js/faker</b> : 5</li>
-        <li>
-            <b>@nestjs/common</b> : ^11.1.9</li>
-        <li>
-            <b>@nestjs/config</b> : ^4.0.2</li>
-        <li>
-            <b>@nestjs/core</b> : ^11.1.9</li>
-        <li>
-            <b>@nestjs/jwt</b> : ^11.0.2</li>
-        <li>
-            <b>@nestjs/mapped-types</b> : *</li>
-        <li>
-            <b>@nestjs/passport</b> : ^11.0.5</li>
-        <li>
-            <b>@nestjs/platform-express</b> : ^11.1.9</li>
-        <li>
-            <b>@nestjs/swagger</b> : ^11.2.3</li>
-        <li>
-            <b>@nestjs/typeorm</b> : ^11.0.1</li>
-        <li>
-            <b>@types/bcrypt</b> : ^6.0.0</li>
-        <li>
-            <b>@types/ioredis</b> : ^5.0.0</li>
-        <li>
-            <b>@types/passport</b> : ^1.0.17</li>
-        <li>
-            <b>@types/passport-jwt</b> : ^4.0.1</li>
-        <li>
-            <b>bcrypt</b> : ^6.0.0</li>
-        <li>
-            <b>chalk</b> : 4.1.2</li>
-        <li>
-            <b>class-transformer</b> : ^0.5.1</li>
-        <li>
-            <b>class-validator</b> : ^0.14.3</li>
-        <li>
-            <b>compression</b> : ^1.8.1</li>
-        <li>
-            <b>cookie-parser</b> : ^1.4.7</li>
-        <li>
-            <b>ioredis</b> : ^5.11.1</li>
-        <li>
-            <b>joi</b> : ^18.0.2</li>
-        <li>
-            <b>passport</b> : ^0.7.0</li>
-        <li>
-            <b>passport-jwt</b> : ^4.0.1</li>
-        <li>
-            <b>passport-local</b> : ^1.0.0</li>
-        <li>
-            <b>pg</b> : ^8.16.3</li>
-        <li>
-            <b>reflect-metadata</b> : ^0.2.2</li>
-        <li>
-            <b>rxjs</b> : ^7.8.2</li>
-        <li>
-            <b>typeorm</b> : ^1.0.0</li>
-        <li>
-            <b>ua-parser-js</b> : ^2.0.10</li>
-    </ul>
+    <div class="dependencies-table-wrapper">
+        <table class="table table-sm table-bordered dependencies-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Version</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><b>@faker-js/faker</b></td>
+                    <td>5</td>
+                </tr>
+                <tr>
+                    <td><b>@nestjs/common</b></td>
+                    <td>^11.1.27</td>
+                </tr>
+                <tr>
+                    <td><b>@nestjs/config</b></td>
+                    <td>^4.0.4</td>
+                </tr>
+                <tr>
+                    <td><b>@nestjs/core</b></td>
+                    <td>^11.1.27</td>
+                </tr>
+                <tr>
+                    <td><b>@nestjs/jwt</b></td>
+                    <td>^11.0.2</td>
+                </tr>
+                <tr>
+                    <td><b>@nestjs/mapped-types</b></td>
+                    <td>^2.1.1</td>
+                </tr>
+                <tr>
+                    <td><b>@nestjs/platform-express</b></td>
+                    <td>^11.1.27</td>
+                </tr>
+                <tr>
+                    <td><b>@nestjs/swagger</b></td>
+                    <td>^11.4.5</td>
+                </tr>
+                <tr>
+                    <td><b>@nestjs/typeorm</b></td>
+                    <td>^11.0.3</td>
+                </tr>
+                <tr>
+                    <td><b>@types/bcrypt</b></td>
+                    <td>^6.0.0</td>
+                </tr>
+                <tr>
+                    <td><b>@types/ioredis</b></td>
+                    <td>^5.0.0</td>
+                </tr>
+                <tr>
+                    <td><b>bcrypt</b></td>
+                    <td>^6.0.0</td>
+                </tr>
+                <tr>
+                    <td><b>chalk</b></td>
+                    <td>4.1.2</td>
+                </tr>
+                <tr>
+                    <td><b>class-transformer</b></td>
+                    <td>^0.5.1</td>
+                </tr>
+                <tr>
+                    <td><b>class-validator</b></td>
+                    <td>^0.15.1</td>
+                </tr>
+                <tr>
+                    <td><b>compression</b></td>
+                    <td>^1.8.1</td>
+                </tr>
+                <tr>
+                    <td><b>cookie-parser</b></td>
+                    <td>^1.4.7</td>
+                </tr>
+                <tr>
+                    <td><b>ioredis</b></td>
+                    <td>^5.11.1</td>
+                </tr>
+                <tr>
+                    <td><b>joi</b></td>
+                    <td>^18.2.3</td>
+                </tr>
+                <tr>
+                    <td><b>pg</b></td>
+                    <td>^8.22.0</td>
+                </tr>
+                <tr>
+                    <td><b>reflect-metadata</b></td>
+                    <td>^0.2.2</td>
+                </tr>
+                <tr>
+                    <td><b>rxjs</b></td>
+                    <td>^7.8.2</td>
+                </tr>
+                <tr>
+                    <td><b>typeorm</b></td>
+                    <td>^1.0.0</td>
+                </tr>
+                <tr>
+                    <td><b>ua-parser-js</b></td>
+                    <td>^2.0.10</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
 
 
@@ -219,6 +272,24 @@
 
        <script>
                $darkModeToggleSwitchers = document.querySelectorAll('.dark-mode-switch input');
+               var updateDarkModeSwitchOffset = function () {
+                    var content = document.querySelector('.content');
+                    var scrollbarWidth = 0;
+
+                    if (content) {
+                         scrollbarWidth = Math.max(0, content.offsetWidth - content.clientWidth);
+                    }
+
+                    document.documentElement.style.setProperty(
+                         '--content-scrollbar-width',
+                         scrollbarWidth + 'px'
+                    );
+               };
+
+               updateDarkModeSwitchOffset();
+               requestAnimationFrame(updateDarkModeSwitchOffset);
+               window.addEventListener('resize', updateDarkModeSwitchOffset);
+
                checkToggle(darkModeState);
                if ($darkModeToggleSwitchers.length > 0) {
                     for (var i = 0; i < $darkModeToggleSwitchers.length; i++) {
@@ -234,7 +305,6 @@
        <script src="./js/libs/lit-html.js"></script>
 
        <script src="./js/menu-wc.js" defer></script>
-       <script nomodule src="./js/menu-wc_es5.js" defer></script>
 
        <script src="./js/libs/bootstrap-native.js"></script>
 

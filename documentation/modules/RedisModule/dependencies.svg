@@ -24,13 +24,13 @@
 <title>cluster_RedisModule</title>
 <polygon fill="none" stroke="black" stroke-dasharray="1,5" points="79,-70 79,-268 417,-268 417,-70 79,-70"/>
 </g>
-<g id="clust6" class="cluster">
-<title>cluster_RedisModule_providers</title>
-<polygon fill="none" stroke="black" points="87,-78 87,-130 409,-130 409,-78 87,-78"/>
-</g>
 <g id="clust4" class="cluster">
 <title>cluster_RedisModule_exports</title>
 <polygon fill="none" stroke="black" points="169,-208 169,-260 307,-260 307,-208 169,-208"/>
+</g>
+<g id="clust6" class="cluster">
+<title>cluster_RedisModule_providers</title>
+<polygon fill="none" stroke="black" points="87,-78 87,-130 409,-130 409,-78 87,-78"/>
 </g>
 <!-- RedisLockService  -->
 <g id="node1" class="node">

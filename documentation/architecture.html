@@ -101,7 +101,7 @@
                    <compodoc-menu mode="normal"></compodoc-menu>
                </div>
                <!-- START CONTENT -->
-               <div class="content package-properties">
+               <div class="content architecture">
                    <div class="content-data">
 
 
@@ -109,6 +109,42 @@
 
 
 
+<ol class="breadcrumb">
+    <li class="breadcrumb-item">Architecture</li>
+</ol>
+
+    <div class="architecture-legend">
+        <button type="button" class="architecture-legend-item" data-architecture-filter="component" aria-pressed="true">
+            <span class="architecture-legend-color architecture-component"></span>Component
+        </button>
+        <button type="button" class="architecture-legend-item" data-architecture-filter="directive" aria-pressed="true">
+            <span class="architecture-legend-color architecture-directive"></span>Directive
+        </button>
+        <button type="button" class="architecture-legend-item" data-architecture-filter="pipe" aria-pressed="true">
+            <span class="architecture-legend-color architecture-pipe"></span>Pipe
+        </button>
+        <button type="button" class="architecture-legend-item" data-architecture-filter="module" aria-pressed="true">
+            <span class="architecture-legend-color architecture-module"></span>Module
+        </button>
+        <button type="button" class="architecture-legend-item" data-architecture-filter="injectable" aria-pressed="true">
+            <span class="architecture-legend-color architecture-injectable"></span>Injectable
+        </button>
+    </div>
+
+    <div class="text-center module-graph-container architecture-graph-wrapper">
+        <div id="architecture-graph"></div>
+        <div class="btn-group size-buttons">
+            <button id="architecture-zoom-in" class="btn btn-default btn-sm">Zoom in</button>
+            <button id="architecture-reset" class="btn btn-default btn-sm">Reset</button>
+            <button id="architecture-zoom-out" class="btn btn-default btn-sm">Zoom out</button>
+        </div>
+    </div>
+
+    <script>
+        var ARCHITECTURE_DEP_GRAPH = {"nodes":[{"id":"module:AppModule","name":"AppModule","type":"module","url":"./modules/AppModule.html"},{"id":"module:CoreModule","name":"CoreModule","type":"module","url":"./modules/CoreModule.html"},{"id":"module:FeaturesModule","name":"FeaturesModule","type":"module","url":"./modules/FeaturesModule.html"},{"id":"module:InfrastructureModule","name":"InfrastructureModule","type":"module","url":"./modules/InfrastructureModule.html"},{"id":"module:AuthModule","name":"AuthModule","type":"module","url":"./modules/AuthModule.html"},{"id":"module:DeviceDetectionModule","name":"DeviceDetectionModule","type":"module","url":"./modules/DeviceDetectionModule.html"},{"id":"module:SessionsModule","name":"SessionsModule","type":"module","url":"./modules/SessionsModule.html"},{"id":"module:TokenModule","name":"TokenModule","type":"module","url":"./modules/TokenModule.html"},{"id":"module:UsersModule","name":"UsersModule","type":"module","url":"./modules/UsersModule.html"},{"id":"injectable:AuthService","name":"AuthService","type":"injectable","url":"./injectables/AuthService.html"},{"id":"injectable:BcryptProvider","name":"BcryptProvider","type":"injectable","url":"./injectables/BcryptProvider.html"},{"id":"module:ClockModule","name":"ClockModule","type":"module","url":"./modules/ClockModule.html"},{"id":"injectable:ClockService","name":"ClockService","type":"injectable","url":"./injectables/ClockService.html"},{"id":"module:DatabasesModule","name":"DatabasesModule","type":"module","url":"./modules/DatabasesModule.html"},{"id":"module:PostgresModule","name":"PostgresModule","type":"module","url":"./modules/PostgresModule.html"},{"id":"module:RedisModule","name":"RedisModule","type":"module","url":"./modules/RedisModule.html"},{"id":"injectable:DeviceDetectorService","name":"DeviceDetectorService","type":"injectable","url":"./injectables/DeviceDetectorService.html"},{"id":"injectable:DeviceMapper","name":"DeviceMapper","type":"injectable","url":"./injectables/DeviceMapper.html"},{"id":"injectable:FingerprintService","name":"FingerprintService","type":"injectable","url":"./injectables/FingerprintService.html"},{"id":"injectable:UserAgentParser","name":"UserAgentParser","type":"injectable","url":"./injectables/UserAgentParser.html"},{"id":"module:SecurityModule","name":"SecurityModule","type":"module","url":"./modules/SecurityModule.html"},{"id":"module:EnvModule","name":"EnvModule","type":"module","url":"./modules/EnvModule.html"},{"id":"injectable:DataResponseInterceptor","name":"DataResponseInterceptor","type":"injectable","url":"./injectables/DataResponseInterceptor.html"},{"id":"injectable:RedisLockService","name":"RedisLockService","type":"injectable","url":"./injectables/RedisLockService.html"},{"id":"injectable:RedisService","name":"RedisService","type":"injectable","url":"./injectables/RedisService.html"},{"id":"injectable:JwtStrategy","name":"JwtStrategy","type":"injectable","url":"./injectables/JwtStrategy.html"},{"id":"injectable:SessionsService","name":"SessionsService","type":"injectable","url":"./injectables/SessionsService.html"},{"id":"injectable:TokenService","name":"TokenService","type":"injectable","url":"./injectables/TokenService.html"},{"id":"injectable:UsersService","name":"UsersService","type":"injectable","url":"./injectables/UsersService.html"}],"edges":[{"source":"module:AppModule","target":"module:CoreModule"},{"source":"module:AppModule","target":"module:FeaturesModule"},{"source":"module:AppModule","target":"module:InfrastructureModule"},{"source":"module:AuthModule","target":"module:DeviceDetectionModule"},{"source":"module:AuthModule","target":"module:SessionsModule"},{"source":"module:AuthModule","target":"module:TokenModule"},{"source":"module:AuthModule","target":"module:UsersModule"},{"source":"module:AuthModule","target":"injectable:AuthService"},{"source":"module:AuthModule","target":"injectable:BcryptProvider"},{"source":"module:ClockModule","target":"injectable:ClockService"},{"source":"module:CoreModule","target":"module:ClockModule"},{"source":"module:DatabasesModule","target":"module:PostgresModule"},{"source":"module:DatabasesModule","target":"module:RedisModule"},{"source":"module:DeviceDetectionModule","target":"injectable:DeviceDetectorService"},{"source":"module:DeviceDetectionModule","target":"injectable:DeviceMapper"},{"source":"module:DeviceDetectionModule","target":"injectable:FingerprintService"},{"source":"module:DeviceDetectionModule","target":"injectable:UserAgentParser"},{"source":"module:FeaturesModule","target":"module:AuthModule"},{"source":"module:FeaturesModule","target":"module:SecurityModule"},{"source":"module:FeaturesModule","target":"module:SessionsModule"},{"source":"module:FeaturesModule","target":"module:TokenModule"},{"source":"module:FeaturesModule","target":"module:UsersModule"},{"source":"module:InfrastructureModule","target":"module:DatabasesModule"},{"source":"module:InfrastructureModule","target":"module:EnvModule"},{"source":"module:InfrastructureModule","target":"injectable:DataResponseInterceptor"},{"source":"module:RedisModule","target":"injectable:RedisLockService"},{"source":"module:RedisModule","target":"injectable:RedisService"},{"source":"module:SecurityModule","target":"module:DeviceDetectionModule"},{"source":"module:SecurityModule","target":"module:TokenModule"},{"source":"module:SecurityModule","target":"injectable:JwtStrategy"},{"source":"module:SessionsModule","target":"injectable:SessionsService"},{"source":"module:TokenModule","target":"module:SessionsModule"},{"source":"module:TokenModule","target":"module:UsersModule"},{"source":"module:TokenModule","target":"injectable:TokenService"},{"source":"module:UsersModule","target":"injectable:UsersService"}]};
+    </script>
+    <script src="./js/libs/vis-network.min.js"></script>
+    <script src="./js/architecture-graph.js"></script>
 
 
 
@@ -123,19 +159,6 @@
 
 
 
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item">Properties</li>
-    </ol>
-    <ul class="properties-list">
-        <li>
-            <b>Version</b> : 0.0.1</li>
-        <li>
-            <b>Description</b> : </li>
-        <li>
-            <b>License</b> : UNLICENSED</li>
-        <li>
-            <b>Author</b> : Mohamadreza Irick</li>
-    </ul>
 
 
 
@@ -166,8 +189,8 @@
 
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 0;
-            var COMPODOC_CURRENT_PAGE_CONTEXT = 'package-properties';
-            var COMPODOC_CURRENT_PAGE_URL = 'properties.html';
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'architecture';
+            var COMPODOC_CURRENT_PAGE_URL = 'architecture.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

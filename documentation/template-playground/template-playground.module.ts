@@ -10,20 +10,9 @@ import { ZipExportService } from './zip-export.service';
 import { HbsRenderService } from './hbs-render.service';
 
 @NgModule({
-  declarations: [
-    TemplatePlaygroundComponent
-  ],
-  imports: [
-    BrowserModule,
-    CommonModule,
-    FormsModule,
-    HttpClientModule
-  ],
-  providers: [
-    TemplateEditorService,
-    ZipExportService,
-    HbsRenderService
-  ],
+  declarations: [TemplatePlaygroundComponent],
+  imports: [BrowserModule, CommonModule, FormsModule, HttpClientModule],
+  providers: [TemplateEditorService, ZipExportService, HbsRenderService],
   bootstrap: [TemplatePlaygroundComponent]
 })
-export class TemplatePlaygroundModule { }
+export class TemplatePlaygroundModule {}

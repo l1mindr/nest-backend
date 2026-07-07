@@ -85,7 +85,14 @@
         </div>
 
         <div class="xs-menu menu" id="mobile-menu">
-                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+                <div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search">
+    <button type="button"
+        class="search-input-clear"
+        aria-label="Clear search"
+        data-search-input-clear>&times;</button>
+</div>
+            <compodoc-menu></compodoc-menu>
         </div>
 
         <div class="container-fluid main">
@@ -120,12 +127,23 @@
   ISessionsService</li>
 </ol>
 
+<div class="io-file io-file-path" data-compodoc="entity-file-path">
+    <span class="icon ion-ios-document" aria-hidden="true"></span>
+    <code>src/features/sessions/interfaces/sessions.interface.ts</code>
+</div>
+
 <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item">
             <a href="#info" 
                 class="nav-link"
                 class="nav-link active"
                 role="tab" id="info-tab" data-bs-toggle="tab" data-link="info">Info</a>
+        </li>
+        <li class="nav-item">
+            <a href="#api" 
+                class="nav-link"
+                
+                role="tab" id="api-tab" data-bs-toggle="tab" data-link="api">API</a>
         </li>
         <li class="nav-item">
             <a href="#source" 
@@ -137,78 +155,64 @@
 
 <div class="tab-content">
     <div class="tab-pane fade active in" id="info">
-        <p class="comment">
-            <h3>File</h3>
-        </p>
-        <p class="comment">
-            <code>src/features/sessions/interfaces/sessions.interface.ts</code>
-        </p>
 
 
 
+            </div>
 
-        <section data-compodoc="block-index">
-            <h3 id="index">Index</h3>
-            <table class="table table-sm table-bordered index-table">
-                <tbody>
-                    <tr>
-                        <td class="col-md-4">
-                            <h6><b>Methods</b></h6>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="col-md-4">
-                            <ul class="index-list">
-                                <li>
-                                    <a href="#getActive" 
->
-                                        getActive
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#issue" 
->
-                                        issue
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#list" 
->
-                                        list
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#revoke" 
->
-                                        revoke
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#rotateRefreshToken" 
->
-                                        rotateRefreshToken
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#terminateOthers" 
->
-                                        terminateOthers
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#updateRefreshState" 
->
-                                        updateRefreshState
-                                    </a>
-                                </li>
-                            </ul>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+    <div class="tab-pane fade " id="api"><section data-compodoc="block-index">
+    <h3 id="index">Index</h3>
+    <table class="table table-sm table-bordered index-table">
+        <tbody>
+            <tr>
+                <td class="col-md-3">
+                    <h6><b>Methods</b></h6>
+                </td>
+                <td class="col-md-9">
+                    <ul class="index-list">
+                        <li>
+                            <a href="#getActive" class="reference-link ">
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span><span class="reference-link-label">getActive</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#issue" class="reference-link ">
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span><span class="reference-link-label">issue</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#list" class="reference-link ">
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span><span class="reference-link-label">list</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#revoke" class="reference-link ">
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span><span class="reference-link-label">revoke</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#rotateAtomic" class="reference-link ">
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span><span class="reference-link-label">rotateAtomic</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#terminateOthers" class="reference-link ">
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span><span class="reference-link-label">terminateOthers</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#updateRefreshState" class="reference-link ">
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span><span class="reference-link-label">updateRefreshState</span>
+                            </a>
+                        </li>
+                    </ul>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</section>
 
-            <section data-compodoc="block-methods">
+    <section data-compodoc="block-methods">
     
     <h3 id="methods">
         Methods
@@ -557,16 +561,16 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="rotateRefreshToken"></a>
+                    <a name="rotateAtomic"></a>
                     <span class="name">
-                        <span ><b>rotateRefreshToken</b></span>
-                        <a href="#rotateRefreshToken"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>rotateAtomic</b></span>
+                        <a href="#rotateAtomic"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>rotateRefreshToken(sessionId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, oldRefreshTokenHash: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, newRefreshTokenHash: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, meta: literal type)</code>
+<code>rotateAtomic(sessionId: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, version: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>, oldHash: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, newHash: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, meta: { now: number; expiresAt: Date })</code>
                 </td>
             </tr>
 
@@ -607,7 +611,19 @@
 
                                         </tr>
                                         <tr>
-                                                <td>oldRefreshTokenHash</td>
+                                                <td>version</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>oldHash</td>
                                             <td>
                                                             <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
@@ -619,7 +635,7 @@
 
                                         </tr>
                                         <tr>
-                                                <td>newRefreshTokenHash</td>
+                                                <td>newHash</td>
                                             <td>
                                                             <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
@@ -633,7 +649,7 @@
                                         <tr>
                                                 <td>meta</td>
                                             <td>
-                                                        <code>literal type</code>
+                                                        <code>{ now: number; expiresAt: Date }</code>
                                             </td>
 
                                             <td>
@@ -816,7 +832,8 @@
     </table>
 </section>
 
-    </div>
+
+</div>
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
@@ -845,14 +862,14 @@ export interface ISessionsService {
     payload: Partial&lt;Session&gt;
   ): Promise&lt;void&gt;;
 
-  rotateRefreshToken(
+  rotateAtomic(
     sessionId: string,
-    oldRefreshTokenHash: string,
-    newRefreshTokenHash: string,
+    version: number,
+    oldHash: string,
+    newHash: string,
     meta: {
-      lastUsedAt: Date;
+      now: number;
       expiresAt: Date;
-      rotatedAt: Date;
     }
   ): Promise&lt;boolean&gt;;
 }
@@ -899,6 +916,24 @@ export interface ISessionsService {
 
        <script>
                $darkModeToggleSwitchers = document.querySelectorAll('.dark-mode-switch input');
+               var updateDarkModeSwitchOffset = function () {
+                    var content = document.querySelector('.content');
+                    var scrollbarWidth = 0;
+
+                    if (content) {
+                         scrollbarWidth = Math.max(0, content.offsetWidth - content.clientWidth);
+                    }
+
+                    document.documentElement.style.setProperty(
+                         '--content-scrollbar-width',
+                         scrollbarWidth + 'px'
+                    );
+               };
+
+               updateDarkModeSwitchOffset();
+               requestAnimationFrame(updateDarkModeSwitchOffset);
+               window.addEventListener('resize', updateDarkModeSwitchOffset);
+
                checkToggle(darkModeState);
                if ($darkModeToggleSwitchers.length > 0) {
                     for (var i = 0; i < $darkModeToggleSwitchers.length; i++) {
@@ -914,7 +949,6 @@ export interface ISessionsService {
        <script src="../js/libs/lit-html.js"></script>
 
        <script src="../js/menu-wc.js" defer></script>
-       <script nomodule src="../js/menu-wc_es5.js" defer></script>
 
        <script src="../js/libs/bootstrap-native.js"></script>
 

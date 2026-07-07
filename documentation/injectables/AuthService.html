@@ -85,7 +85,14 @@
         </div>
 
         <div class="xs-menu menu" id="mobile-menu">
-                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+                <div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search">
+    <button type="button"
+        class="search-input-clear"
+        aria-label="Clear search"
+        data-search-input-clear>&times;</button>
+</div>
+            <compodoc-menu></compodoc-menu>
         </div>
 
         <div class="container-fluid main">
@@ -113,12 +120,23 @@
   <li class="breadcrumb-item" >AuthService</li>
 </ol>
 
+<div class="io-file io-file-path" data-compodoc="entity-file-path">
+    <span class="icon ion-ios-document" aria-hidden="true"></span>
+    <code>src/features/auth/auth.service.ts</code>
+</div>
+
 <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item">
             <a href="#info" 
                 class="nav-link"
                 class="nav-link active"
                 role="tab" id="info-tab" data-bs-toggle="tab" data-link="info">Info</a>
+        </li>
+        <li class="nav-item">
+            <a href="#api" 
+                class="nav-link"
+                
+                role="tab" id="api-tab" data-bs-toggle="tab" data-link="api">API</a>
         </li>
         <li class="nav-item">
             <a href="#source" 
@@ -130,56 +148,74 @@
 
 <div class="tab-content">
     <div class="tab-pane fade active in" id="info">
-        <p class="comment">
-            <h3>File</h3>
-        </p>
-        <p class="comment">
-            <code>src/features/auth/auth.service.ts</code>
-        </p>
 
 
 
 
 
+                <section data-compodoc="block-relationships">
+            <h3>Relationships</h3>
+
+            <div class="row pt-3">
+                <div class="col-sm-6">
+                    <h4>Used by</h4>
+                        <ul class="list-unstyled relationships-list">
+                                <li>
+                                            <code><a href="../modules/AuthModule.html" target="_self" >AuthModule</a></code>
+                                </li>
+                        </ul>
+                </div>
+
+                <div class="col-sm-6">
+                    <h4>Depends on</h4>
+                        <p class="comment"><i>No results matching.</i></p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="tab-pane fade " id="api">
             <section data-compodoc="block-index">
     <h3 id="index">Index</h3>
-    <table class="table table-sm table-bordered index-table">
-        <tbody>
 
+        <table class="table table-sm table-bordered index-table">
+            <tbody>
                 <tr>
-                    <td class="col-md-4">
+                    <td class="col-md-3">
                         <h6><b>Methods</b></h6>
                     </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
+                    <td class="col-md-9">
                         <ul class="index-list">
                             <li>
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
                                     <span class="modifier">Async</span>
                                 <a href="#changeUserPassword" >changeUserPassword</a>
                             </li>
                             <li>
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
                                     <span class="modifier">Async</span>
                                 <a href="#loginUser" >loginUser</a>
                             </li>
                             <li>
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
                                     <span class="modifier">Async</span>
                                 <a href="#refresh" >refresh</a>
                             </li>
                             <li>
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
                                     <span class="modifier">Async</span>
                                 <a href="#registerUser" >registerUser</a>
                             </li>
                         </ul>
                     </td>
                 </tr>
+            </tbody>
+        </table>
 
 
 
 
 
-        </tbody>
-    </table>
 </section>
 
             <section data-compodoc="block-constructor">
@@ -188,12 +224,12 @@
             <tbody>
                 <tr>
                     <td class="col-md-4">
-<code>constructor(deviceMapper: <a href="../injectables/DeviceMapper.html" target="_self">DeviceMapper</a>, clockService: <a href="../injectables/ClockService.html" target="_self">ClockService</a>, hashingProvider: <a href="../injectables/HashingProvider.html" target="_self">HashingProvider</a>, sessionsService: <a href="../injectables/SessionsService.html" target="_self">SessionsService</a>, usersService: <a href="../injectables/UsersService.html" target="_self">UsersService</a>, tokenService: <a href="../injectables/TokenService.html" target="_self">TokenService</a>, redisLockService: <a href="../injectables/RedisLockService.html" target="_self">RedisLockService</a>)</code>
+<code>constructor(deviceMapper: <a href="../injectables/DeviceMapper.html" target="_self">DeviceMapper</a>, clockService: <a href="../injectables/ClockService.html" target="_self">ClockService</a>, hashingProvider: <a href="../injectables/HashingProvider.html" target="_self">HashingProvider</a>, sessionsService: <a href="../injectables/SessionsService.html" target="_self">SessionsService</a>, usersService: <a href="../injectables/UsersService.html" target="_self">UsersService</a>, tokenService: <a href="../injectables/TokenService.html" target="_self">TokenService</a>)</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="19" class="link-to-prism">src/features/auth/auth.service.ts:19</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="18" class="link-to-prism">src/features/auth/auth.service.ts:18</a></div>
                             </td>
                         </tr>
 
@@ -282,18 +318,6 @@
                                                     </td>
                                                     
                                                 </tr>
-                                                <tr>
-                                                        <td>redisLockService</td>
-                                                  
-                                                        <td>
-                                                                        <code><a href="../injectables/RedisLockService.html" target="_self" >RedisLockService</a></code>
-                                                        </td>
-                                                  
-                                                    <td>
-                                                            No
-                                                    </td>
-                                                    
-                                                </tr>
                                         </tbody>
                                     </table>
                             </div>
@@ -330,8 +354,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="79"
-                                    class="link-to-prism">src/features/auth/auth.service.ts:79</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="78"
+                                    class="link-to-prism">src/features/auth/auth.service.ts:78</a></div>
                         </td>
                     </tr>
 
@@ -422,8 +446,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="39"
-                                    class="link-to-prism">src/features/auth/auth.service.ts:39</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="38"
+                                    class="link-to-prism">src/features/auth/auth.service.ts:38</a></div>
                         </td>
                     </tr>
 
@@ -514,8 +538,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="111"
-                                    class="link-to-prism">src/features/auth/auth.service.ts:111</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="110"
+                                    class="link-to-prism">src/features/auth/auth.service.ts:110</a></div>
                         </td>
                     </tr>
 
@@ -583,8 +607,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="30"
-                                    class="link-to-prism">src/features/auth/auth.service.ts:30</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="29"
+                                    class="link-to-prism">src/features/auth/auth.service.ts:29</a></div>
                         </td>
                     </tr>
 
@@ -632,19 +656,19 @@
     </table>
 </section>
 
+
     </div>
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { ClockService } from &#x27;@core/clock/clock.service&#x27;;
-import { DeviceContext } from &#x27;@core/device/context/device-context.interface&#x27;;
-import { DeviceMapper } from &#x27;@core/device/mappers/device.mapper&#x27;;
+import { DeviceContext } from &#x27;@features/security/device-detection/context/device-context.interface&#x27;;
+import { DeviceMapper } from &#x27;@features/security/device-detection/mappers/device.mapper&#x27;;
 import { SessionErrors } from &#x27;@features/sessions/errors/session-errors&#x27;;
 import { SessionsService } from &#x27;@features/sessions/sessions.service&#x27;;
 import { TokenErrors } from &#x27;@features/token/errors/token-errors&#x27;;
 import { TokenService } from &#x27;@features/token/token.service&#x27;;
 import { UsersService } from &#x27;@features/users/users.service&#x27;;
-import { RedisLockService } from &#x27;@infrastructure/databases/redis/redis-lock.service&#x27;;
 import { Injectable } from &#x27;@nestjs/common&#x27;;
 import { ChangePasswordRequestDto } from &#x27;./dto/request/change-password.request.dto&#x27;;
 import { LoginUserRequestDto } from &#x27;./dto/request/login-user.request.dto&#x27;;
@@ -661,8 +685,8 @@ export class AuthService implements IAuthService {
     private readonly hashingProvider: HashingProvider,
     private readonly sessionsService: SessionsService,
     private readonly usersService: UsersService,
-    private readonly tokenService: TokenService,
-    private readonly redisLockService: RedisLockService
+    private readonly tokenService: TokenService
+    // private readonly redisLockService: RedisLockService
   ) {}
 
   async registerUser(dto: RegisterUserRequestDto): Promise&lt;void&gt; {
@@ -858,6 +882,24 @@ export class AuthService implements IAuthService {
 
        <script>
                $darkModeToggleSwitchers = document.querySelectorAll('.dark-mode-switch input');
+               var updateDarkModeSwitchOffset = function () {
+                    var content = document.querySelector('.content');
+                    var scrollbarWidth = 0;
+
+                    if (content) {
+                         scrollbarWidth = Math.max(0, content.offsetWidth - content.clientWidth);
+                    }
+
+                    document.documentElement.style.setProperty(
+                         '--content-scrollbar-width',
+                         scrollbarWidth + 'px'
+                    );
+               };
+
+               updateDarkModeSwitchOffset();
+               requestAnimationFrame(updateDarkModeSwitchOffset);
+               window.addEventListener('resize', updateDarkModeSwitchOffset);
+
                checkToggle(darkModeState);
                if ($darkModeToggleSwitchers.length > 0) {
                     for (var i = 0; i < $darkModeToggleSwitchers.length; i++) {
@@ -873,7 +915,6 @@ export class AuthService implements IAuthService {
        <script src="../js/libs/lit-html.js"></script>
 
        <script src="../js/menu-wc.js" defer></script>
-       <script nomodule src="../js/menu-wc_es5.js" defer></script>
 
        <script src="../js/libs/bootstrap-native.js"></script>
 

@@ -85,7 +85,14 @@
         </div>
 
         <div class="xs-menu menu" id="mobile-menu">
-                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+                <div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search">
+    <button type="button"
+        class="search-input-clear"
+        aria-label="Clear search"
+        data-search-input-clear>&times;</button>
+</div>
+            <compodoc-menu></compodoc-menu>
         </div>
 
         <div class="container-fluid main">
@@ -125,6 +132,20 @@
 
 <div>
     <img src="./images/coverage-badge-documentation.svg">
+</div>
+
+<div class="coverage-summary" data-coverage-summary></div>
+
+<div class="coverage-filter">
+    <input type="text"
+        class="coverage-filter-input"
+        placeholder="Filter entities..."
+        aria-label="Filter coverage results"
+        data-coverage-filter>
+    <button type="button"
+        class="coverage-filter-clear"
+        aria-label="Clear filter"
+        data-coverage-filter-clear>&times;</button>
 </div>
 
 <table class="table table-bordered coverage" id="coverage-table">
@@ -176,79 +197,7 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
-                        <a href="./miscellaneous/functions.html#EmailField">src/core/common/decorators/fields/email-field.decorator.ts</a>
-            </td>
-            <td>function</td>
-            <td>EmailField</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/functions.html#PasswordField">src/core/common/decorators/fields/password-field.decorator.ts</a>
-            </td>
-            <td>function</td>
-            <td>PasswordField</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/functions.html#UsernameField">src/core/common/decorators/fields/username-field.decorator.ts</a>
-            </td>
-            <td>function</td>
-            <td>UsernameField</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/functions.html#Serialize">src/core/common/decorators/serialize.decorator.ts</a>
-            </td>
-            <td>function</td>
-            <td>Serialize</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./classes/TimestampResponseDto.html">src/core/common/dto/timestamp-response.dto.ts</a>
-            </td>
-            <td>class</td>
-            <td>TimestampResponseDto</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/4)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#ENV_VALIDATION_SCHEMA">src/core/common/env/env.constants.ts</a>
-            </td>
-            <td>variable</td>
-            <td>ENV_VALIDATION_SCHEMA</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./classes/AppError.html">src/core/common/errors/app.error.ts</a>
+                        <a href="./classes/AppError.html">src/core/errors/app.error.ts</a>
             </td>
             <td>class</td>
             <td>AppError</td>
@@ -260,7 +209,7 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
-                        <a href="./classes/ErrorMapper.html">src/core/common/errors/error-mapper.ts</a>
+                        <a href="./classes/ErrorMapper.html">src/core/errors/error-mapper.ts</a>
             </td>
             <td>class</td>
             <td>ErrorMapper</td>
@@ -272,31 +221,7 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
-                        <a href="./injectables/DataResponseInterceptor.html">src/core/common/interceptors/data-response.interceptor.ts</a>
-            </td>
-            <td>injectable</td>
-            <td>DataResponseInterceptor</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/2)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./injectables/SerializeInterceptor.html">src/core/common/interceptors/serialize.interceptor.ts</a>
-            </td>
-            <td>injectable</td>
-            <td>SerializeInterceptor</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/3)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./classes/RegistryDates.html">src/core/common/registry-dates.ts</a>
+                        <a href="./classes/RegistryDates.html">src/core/registry-dates.ts</a>
             </td>
             <td>class</td>
             <td>RegistryDates</td>
@@ -308,151 +233,7 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#VALIDATION_PIPE_OPTIONS">src/core/common/validation/validation.constants.ts</a>
-            </td>
-            <td>variable</td>
-            <td>VALIDATION_PIPE_OPTIONS</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./interfaces/DeviceContext.html">src/core/device/context/device-context.interface.ts</a>
-            </td>
-            <td>interface</td>
-            <td>DeviceContext</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/4)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#Device">src/core/device/decorators/device.decorator.ts</a>
-            </td>
-            <td>variable</td>
-            <td>Device</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./injectables/DeviceDetectorService.html">src/core/device/detector/device-detector.service.ts</a>
-            </td>
-            <td>injectable</td>
-            <td>DeviceDetectorService</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/3)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./injectables/DeviceMiddleware.html">src/core/device/device.middleware.ts</a>
-            </td>
-            <td>injectable</td>
-            <td>DeviceMiddleware</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/3)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./interfaces/IDeviceFingerprintInput.html">src/core/device/fingerprint/fingerpint.interface.ts</a>
-            </td>
-            <td>interface</td>
-            <td>IDeviceFingerprintInput</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/6)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./injectables/FingerprintService.html">src/core/device/fingerprint/fingerprint.service.ts</a>
-            </td>
-            <td>injectable</td>
-            <td>FingerprintService</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/2)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./injectables/DeviceMapper.html">src/core/device/mappers/device.mapper.ts</a>
-            </td>
-            <td>injectable</td>
-            <td>DeviceMapper</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/2)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./interfaces/IUserAgent.html">src/core/device/user-agent/user-agent.interface.ts</a>
-            </td>
-            <td>interface</td>
-            <td>IUserAgent</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/7)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./injectables/UserAgentParser.html">src/core/device/user-agent/user-agent.parser.ts</a>
-            </td>
-            <td>injectable</td>
-            <td>UserAgentParser</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/3)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/functions.html#normalizeUA">src/core/device/utils/normalize-ua.util.ts</a>
-            </td>
-            <td>function</td>
-            <td>normalizeUA</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#ToBoolean">src/core/transforms/decorators/to-boolean.decorator.ts</a>
-            </td>
-            <td>variable</td>
-            <td>ToBoolean</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#toBoolean">src/core/transforms/utils/to-boolean.ts</a>
+                        <a href="./miscellaneous/variables.html#toBoolean">src/core/utils/to-boolean.ts</a>
             </td>
             <td>variable</td>
             <td>toBoolean</td>
@@ -464,79 +245,7 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#IS_PASSWORD_KEY">src/core/validators/decorators/is-password.decorator.ts</a>
-            </td>
-            <td>variable</td>
-            <td>IS_PASSWORD_KEY</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#isPassword">src/core/validators/decorators/is-password.decorator.ts</a>
-            </td>
-            <td>variable</td>
-            <td>isPassword</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#IsPassword">src/core/validators/decorators/is-password.decorator.ts</a>
-            </td>
-            <td>variable</td>
-            <td>IsPassword</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#IS_USERNAME_KEY">src/core/validators/decorators/is-username.decorator.ts</a>
-            </td>
-            <td>variable</td>
-            <td>IS_USERNAME_KEY</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#isUsername">src/core/validators/decorators/is-username.decorator.ts</a>
-            </td>
-            <td>variable</td>
-            <td>isUsername</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#IsUsername">src/core/validators/decorators/is-username.decorator.ts</a>
-            </td>
-            <td>variable</td>
-            <td>IsUsername</td>
-            <td align="right" data-sort="0">
-                <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/1)</span>
-            </td>
-        </tr>
-        <tr class="low">
-            <td>
-                <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#PASSWORD_MAX_LENGTH">src/core/validators/rules/password.rules.ts</a>
+                        <a href="./miscellaneous/variables.html#PASSWORD_MAX_LENGTH">src/core/validation/rules/password.rules.ts</a>
             </td>
             <td>variable</td>
             <td>PASSWORD_MAX_LENGTH</td>
@@ -548,7 +257,7 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#PASSWORD_MIN_LENGTH">src/core/validators/rules/password.rules.ts</a>
+                        <a href="./miscellaneous/variables.html#PASSWORD_MIN_LENGTH">src/core/validation/rules/password.rules.ts</a>
             </td>
             <td>variable</td>
             <td>PASSWORD_MIN_LENGTH</td>
@@ -560,7 +269,7 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#PASSWORD_REGEX">src/core/validators/rules/password.rules.ts</a>
+                        <a href="./miscellaneous/variables.html#PASSWORD_REGEX">src/core/validation/rules/password.rules.ts</a>
             </td>
             <td>variable</td>
             <td>PASSWORD_REGEX</td>
@@ -572,7 +281,7 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#USERNAME_MAX_LENGTH">src/core/validators/rules/username.rules.ts</a>
+                        <a href="./miscellaneous/variables.html#USERNAME_MAX_LENGTH">src/core/validation/rules/username.rules.ts</a>
             </td>
             <td>variable</td>
             <td>USERNAME_MAX_LENGTH</td>
@@ -584,7 +293,7 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#USERNAME_MIN_LENGTH">src/core/validators/rules/username.rules.ts</a>
+                        <a href="./miscellaneous/variables.html#USERNAME_MIN_LENGTH">src/core/validation/rules/username.rules.ts</a>
             </td>
             <td>variable</td>
             <td>USERNAME_MIN_LENGTH</td>
@@ -596,7 +305,7 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
-                        <a href="./miscellaneous/variables.html#USERNAME_REGEX">src/core/validators/rules/username.rules.ts</a>
+                        <a href="./miscellaneous/variables.html#USERNAME_REGEX">src/core/validation/rules/username.rules.ts</a>
             </td>
             <td>variable</td>
             <td>USERNAME_REGEX</td>
@@ -872,6 +581,126 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
+                        <a href="./interfaces/DeviceContext.html">src/features/security/device-detection/context/device-context.interface.ts</a>
+            </td>
+            <td>interface</td>
+            <td>DeviceContext</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/10)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/variables.html#Device">src/features/security/device-detection/decorators/device.decorator.ts</a>
+            </td>
+            <td>variable</td>
+            <td>Device</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./injectables/DeviceDetectorService.html">src/features/security/device-detection/detector/device-detector.service.ts</a>
+            </td>
+            <td>injectable</td>
+            <td>DeviceDetectorService</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/3)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./injectables/DeviceMiddleware.html">src/features/security/device-detection/device.middleware.ts</a>
+            </td>
+            <td>injectable</td>
+            <td>DeviceMiddleware</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/3)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./interfaces/IDeviceFingerprintInput.html">src/features/security/device-detection/fingerprint/fingerpint.interface.ts</a>
+            </td>
+            <td>interface</td>
+            <td>IDeviceFingerprintInput</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/6)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./injectables/FingerprintService.html">src/features/security/device-detection/fingerprint/fingerprint.service.ts</a>
+            </td>
+            <td>injectable</td>
+            <td>FingerprintService</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/2)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./injectables/DeviceMapper.html">src/features/security/device-detection/mappers/device.mapper.ts</a>
+            </td>
+            <td>injectable</td>
+            <td>DeviceMapper</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/2)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./interfaces/IUserAgent.html">src/features/security/device-detection/user-agent/user-agent.interface.ts</a>
+            </td>
+            <td>interface</td>
+            <td>IUserAgent</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/7)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./injectables/UserAgentParser.html">src/features/security/device-detection/user-agent/user-agent.parser.ts</a>
+            </td>
+            <td>injectable</td>
+            <td>UserAgentParser</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/3)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/functions.html#normalizeUA">src/features/security/device-detection/utils/normalize-ua.util.ts</a>
+            </td>
+            <td>function</td>
+            <td>normalizeUA</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
                         <a href="./classes/SecurityErrors.html">src/features/security/errors/security-errors.ts</a>
             </td>
             <td>class</td>
@@ -1106,7 +935,7 @@
             <td>IJwtClaims</td>
             <td align="right" data-sort="0">
                 <span class="coverage-percent">0 %</span>
-                <span class="coverage-count">(0/3)</span>
+                <span class="coverage-count">(0/6)</span>
             </td>
         </tr>
         <tr class="low">
@@ -1376,7 +1205,19 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
-                        <a href="./interfaces/IJwtConfig.html">src/infrastructure/config/jwt.config.ts</a>
+                        <a href="./miscellaneous/variables.html#ENV_VALIDATION_SCHEMA">src/infrastructure/config/env/env.schema.ts</a>
+            </td>
+            <td>variable</td>
+            <td>ENV_VALIDATION_SCHEMA</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./interfaces/IJwtConfig.html">src/infrastructure/config/jsonwebtoken/jwt.config.ts</a>
             </td>
             <td>interface</td>
             <td>IJwtConfig</td>
@@ -1568,6 +1409,42 @@
         <tr class="low">
             <td>
                 <!-- miscellaneous -->
+                        <a href="./injectables/DataResponseInterceptor.html">src/infrastructure/http/interceptors/data-response.interceptor.ts</a>
+            </td>
+            <td>injectable</td>
+            <td>DataResponseInterceptor</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/2)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/functions.html#Serialize">src/infrastructure/http/interceptors/decorators/serialize.decorator.ts</a>
+            </td>
+            <td>function</td>
+            <td>Serialize</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./injectables/SerializeInterceptor.html">src/infrastructure/http/interceptors/serialize.interceptor.ts</a>
+            </td>
+            <td>injectable</td>
+            <td>SerializeInterceptor</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/3)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
                         <a href="./interfaces/CustomAuth.html">src/infrastructure/http/interfaces/custom-request.interface.ts</a>
             </td>
             <td>interface</td>
@@ -1587,6 +1464,150 @@
             <td align="right" data-sort="0">
                 <span class="coverage-percent">0 %</span>
                 <span class="coverage-count">(0/3)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./classes/TimestampResponseDto.html">src/infrastructure/http/serialization/dto/timestamp-response.dto.ts</a>
+            </td>
+            <td>class</td>
+            <td>TimestampResponseDto</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/4)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/variables.html#IS_PASSWORD_KEY">src/infrastructure/http/validation/decorators/is-password.decorator.ts</a>
+            </td>
+            <td>variable</td>
+            <td>IS_PASSWORD_KEY</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/variables.html#isPassword">src/infrastructure/http/validation/decorators/is-password.decorator.ts</a>
+            </td>
+            <td>variable</td>
+            <td>isPassword</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/variables.html#IsPassword">src/infrastructure/http/validation/decorators/is-password.decorator.ts</a>
+            </td>
+            <td>variable</td>
+            <td>IsPassword</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/variables.html#IS_USERNAME_KEY">src/infrastructure/http/validation/decorators/is-username.decorator.ts</a>
+            </td>
+            <td>variable</td>
+            <td>IS_USERNAME_KEY</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/variables.html#isUsername">src/infrastructure/http/validation/decorators/is-username.decorator.ts</a>
+            </td>
+            <td>variable</td>
+            <td>isUsername</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/variables.html#IsUsername">src/infrastructure/http/validation/decorators/is-username.decorator.ts</a>
+            </td>
+            <td>variable</td>
+            <td>IsUsername</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/variables.html#ToBoolean">src/infrastructure/http/validation/decorators/to-boolean.decorator.ts</a>
+            </td>
+            <td>variable</td>
+            <td>ToBoolean</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/functions.html#EmailField">src/infrastructure/http/validation/fields/email-field.decorator.ts</a>
+            </td>
+            <td>function</td>
+            <td>EmailField</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/functions.html#PasswordField">src/infrastructure/http/validation/fields/password-field.decorator.ts</a>
+            </td>
+            <td>function</td>
+            <td>PasswordField</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/functions.html#UsernameField">src/infrastructure/http/validation/fields/username-field.decorator.ts</a>
+            </td>
+            <td>function</td>
+            <td>UsernameField</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
+            </td>
+        </tr>
+        <tr class="low">
+            <td>
+                <!-- miscellaneous -->
+                        <a href="./miscellaneous/variables.html#VALIDATION_PIPE_OPTIONS">src/infrastructure/http/validation/pipe/validation.constants.ts</a>
+            </td>
+            <td>variable</td>
+            <td>VALIDATION_PIPE_OPTIONS</td>
+            <td align="right" data-sort="0">
+                <span class="coverage-percent">0 %</span>
+                <span class="coverage-count">(0/1)</span>
             </td>
         </tr>
         <tr class="low">
@@ -1872,7 +1893,188 @@
 <script src="js/libs/tablesort.number.min.js"></script>
 <script>
     new Tablesort(document.getElementById('coverage-table'));
+
+    (function () {
+        var table = document.getElementById('coverage-table');
+        if (!table) {
+            return;
+        }
+
+        var tableBody = table.querySelector('tbody');
+        if (!tableBody) {
+            return;
+        }
+
+        var rows = Array.prototype.slice.call(tableBody.querySelectorAll('tr'));
+        var summaryContainer = document.querySelector('[data-coverage-summary]');
+        var filterInput = document.querySelector('[data-coverage-filter]');
+        var filterClearButton = document.querySelector('[data-coverage-filter-clear]');
+
+        function toPercent(value, total) {
+            if (!total) {
+                return 0;
+            }
+            return Math.round((value / total) * 100);
+        }
+
+        function getRowCoverageBucket(row) {
+            var className = (row.className || '').toLowerCase();
+            if (className.indexOf('low') !== -1) {
+                return 'undocumented';
+            }
+            if (className.indexOf('medium') !== -1) {
+                return 'partial';
+            }
+            if (className.indexOf('very-good') !== -1 || className.indexOf('good') !== -1) {
+                return 'documented';
+            }
+            return 'partial';
+        }
+
+        function getCoverageStats() {
+            var documented = 0;
+            var partial = 0;
+            var undocumented = 0;
+
+            rows.forEach(function (row) {
+                var bucket = getRowCoverageBucket(row);
+                if (bucket === 'documented') {
+                    documented += 1;
+                } else if (bucket === 'partial') {
+                    partial += 1;
+                } else {
+                    undocumented += 1;
+                }
+            });
+
+            var total = rows.length;
+            var totalCoveragePercent = rows.reduce(function (sum, row) {
+                var scoreCell = row.querySelector('td[data-sort]');
+                var rowScore = scoreCell ? parseFloat(scoreCell.getAttribute('data-sort') || '0') : 0;
+                return sum + (isNaN(rowScore) ? 0 : rowScore);
+            }, 0);
+            var score = total ? Math.floor(totalCoveragePercent / total) : 0;
+
+            return {
+                total: total,
+                documented: documented,
+                partial: partial,
+                undocumented: undocumented,
+                score: score
+            };
+        }
+
+        function buildDonutSegment(title, color, count, total, offset, circumference) {
+            var percent = toPercent(count, total);
+            if (!count) {
+                return '';
+            }
+
+            var arcLength = (count / total) * circumference;
+            var remaining = circumference - arcLength;
+
+            return '<circle cx="60" cy="60" r="50" fill="none" stroke="' + color + '" stroke-width="10" ' +
+                'style="stroke-dasharray: ' + arcLength + ', ' + remaining + '; stroke-dashoffset: ' + (-offset) + ';" ' +
+                'transform="rotate(-90 60 60)" class="coverage-donut-segment">' +
+                '<title>' + title + ': ' + count + ' (' + percent + '%)</title>' +
+                '</circle>';
+        }
+
+        function renderSummary(stats) {
+            if (!summaryContainer) {
+                return;
+            }
+
+            var total = stats.total;
+            var documentedPercent = toPercent(stats.documented, total);
+            var partialPercent = toPercent(stats.partial, total);
+            var undocumentedPercent = toPercent(stats.undocumented, total);
+            var circumference = 2 * Math.PI * 50;
+            var offset = 0;
+
+            var documentedSegment = buildDonutSegment('Documented', '#4dc71f', stats.documented, total, offset, circumference);
+            offset += total ? (stats.documented / total) * circumference : 0;
+
+            var partialSegment = buildDonutSegment('Partial', '#dab226', stats.partial, total, offset, circumference);
+            offset += total ? (stats.partial / total) * circumference : 0;
+
+            var undocumentedSegment = buildDonutSegment('Undocumented', '#d8624c', stats.undocumented, total, offset, circumference);
+
+            summaryContainer.innerHTML =
+                '<svg viewBox="0 0 120 120" class="coverage-donut" role="img" aria-label="Documentation coverage: ' + stats.score + '%">' +
+                    '<title>Documentation coverage: ' + stats.score + '%</title>' +
+                    '<desc>' + stats.documented + ' documented, ' + stats.partial + ' partial, ' + stats.undocumented + ' undocumented of ' + stats.total + ' entities</desc>' +
+                    '<circle cx="60" cy="60" r="50" fill="none" stroke="var(--bs-border-color, #dee2e6)" stroke-width="10" class="coverage-donut-ring"></circle>' +
+                    documentedSegment +
+                    partialSegment +
+                    undocumentedSegment +
+                    '<text x="60" y="60" text-anchor="middle" dominant-baseline="central" class="coverage-donut-pct">' + stats.score + '%</text>' +
+                '</svg>' +
+                '<div class="coverage-stats">' +
+                    '<div>' +
+                        '<div class="coverage-stat-value">' + stats.total + '</div>' +
+                        '<div class="coverage-stat-label">Total</div>' +
+                        '<div class="coverage-stat-sub">' + stats.total + ' entities</div>' +
+                    '</div>' +
+                    '<div>' +
+                        '<div class="coverage-stat-value coverage-stat-value--documented">' + stats.documented + '</div>' +
+                        '<div class="coverage-stat-label">Documented</div>' +
+                        '<div class="coverage-stat-sub">' + documentedPercent + '%</div>' +
+                    '</div>' +
+                    '<div>' +
+                        '<div class="coverage-stat-value coverage-stat-value--partial">' + stats.partial + '</div>' +
+                        '<div class="coverage-stat-label">Partial</div>' +
+                        '<div class="coverage-stat-sub">' + partialPercent + '%</div>' +
+                    '</div>' +
+                    '<div>' +
+                        '<div class="coverage-stat-value coverage-stat-value--undocumented">' + stats.undocumented + '</div>' +
+                        '<div class="coverage-stat-label">Undocumented</div>' +
+                        '<div class="coverage-stat-sub">' + undocumentedPercent + '%</div>' +
+                    '</div>' +
+                '</div>';
+        }
+
+        function applyFilter() {
+            if (!filterInput) {
+                return;
+            }
+
+            var query = filterInput.value.toLowerCase().trim();
+            rows.forEach(function (row) {
+                var text = (row.textContent || '').toLowerCase();
+                row.style.display = query.length === 0 || text.indexOf(query) !== -1 ? '' : 'none';
+            });
+
+            if (filterClearButton) {
+                filterClearButton.classList.toggle('is-visible', query.length > 0);
+            }
+        }
+
+        if (filterInput) {
+            filterInput.addEventListener('input', applyFilter);
+            filterInput.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    filterInput.value = '';
+                    applyFilter();
+                }
+            });
+        }
+
+        if (filterClearButton) {
+            filterClearButton.addEventListener('click', function () {
+                if (filterInput) {
+                    filterInput.value = '';
+                    applyFilter();
+                    filterInput.focus();
+                }
+            });
+        }
+
+        renderSummary(getCoverageStats());
+        applyFilter();
+    })();
 </script>
+
 
                    </div><div class="search-results">
     <div class="has-results">
@@ -1906,6 +2108,24 @@
 
        <script>
                $darkModeToggleSwitchers = document.querySelectorAll('.dark-mode-switch input');
+               var updateDarkModeSwitchOffset = function () {
+                    var content = document.querySelector('.content');
+                    var scrollbarWidth = 0;
+
+                    if (content) {
+                         scrollbarWidth = Math.max(0, content.offsetWidth - content.clientWidth);
+                    }
+
+                    document.documentElement.style.setProperty(
+                         '--content-scrollbar-width',
+                         scrollbarWidth + 'px'
+                    );
+               };
+
+               updateDarkModeSwitchOffset();
+               requestAnimationFrame(updateDarkModeSwitchOffset);
+               window.addEventListener('resize', updateDarkModeSwitchOffset);
+
                checkToggle(darkModeState);
                if ($darkModeToggleSwitchers.length > 0) {
                     for (var i = 0; i < $darkModeToggleSwitchers.length; i++) {
@@ -1921,7 +2141,6 @@
        <script src="./js/libs/lit-html.js"></script>
 
        <script src="./js/menu-wc.js" defer></script>
-       <script nomodule src="./js/menu-wc_es5.js" defer></script>
 
        <script src="./js/libs/bootstrap-native.js"></script>
 
