@@ -1111,13 +1111,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@faker-js/faker@npm:5":
-  version: 5.5.3
-  resolution: "@faker-js/faker@npm:5.5.3"
-  checksum: 10c0/3f7fbf0b0cfe23c7750ab79b123be8f845e5f376ec28bf43b7b017983b6fc3a9dc22543c4eea52e30cc119699c0f47f62a2c02e9eae9b6a20b75955e9c3eb887
-  languageName: node
-  linkType: hard
-
 "@hapi/address@npm:^5.1.1":
   version: 5.1.1
   resolution: "@hapi/address@npm:5.1.1"
@@ -6942,7 +6935,6 @@ __metadata:
     "@compodoc/compodoc": "npm:^2.0.0"
     "@eslint/eslintrc": "npm:^3.3.5"
     "@eslint/js": "npm:^10.0.1"
-    "@faker-js/faker": "npm:5"
     "@nestjs/cli": "npm:^11.0.23"
     "@nestjs/common": "npm:^11.1.27"
     "@nestjs/config": "npm:^4.0.4"
