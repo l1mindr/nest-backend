@@ -6,6 +6,7 @@ import { SessionsService } from '@features/sessions/sessions.service';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import { TokenService } from '@features/token/token.service';
 import { UsersService } from '@features/users/users.service';
+import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.service';
 import { Injectable } from '@nestjs/common';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
@@ -13,6 +14,7 @@ import { RegisterUserRequestDto } from './dto/request/register-user.request.dto'
 import { AuthErrors } from './errors/auth-errors';
 import { AuthTokens, IAuthService } from './interfaces/auth.interface';
 import { HashingProvider } from './providers/hashing.provider';
+import { RedisLockKey } from '@infrastructure/databases/redis/keys/redis-lock-key.enum';
 
 @Injectable()
 export class AuthService implements IAuthService {
@@ -22,8 +24,8 @@ export class AuthService implements IAuthService {
     private readonly hashingProvider: HashingProvider,
     private readonly sessionsService: SessionsService,
     private readonly usersService: UsersService,
-    private readonly tokenService: TokenService
-    // private readonly redisLockService: RedisLockService
+    private readonly tokenService: TokenService,
+    private readonly redisLockService: RedisLockService
   ) {}
 
   async registerUser(dto: RegisterUserRequestDto): Promise<void> {
@@ -111,62 +113,65 @@ export class AuthService implements IAuthService {
     const { sub, sessionId, iat } =
       await this.tokenService.verifyRefreshToken(refreshToken);
 
-    // const lock = await this.redisLockService.acquire(
-    //   RedisLockKey.REFRESH_LOCK,
-    //   sessionId
-    // );
-
-    // if (!lock) {
-    //   throw SessionErrors.refreshRateLimited(sessionId);
-    // }
-
-    const session = await this.sessionsService.getActive(sub, sessionId);
-
-    if (!session) {
-      throw SessionErrors.sessionExpired();
-    }
-
-    const isValid = await this.hashingProvider.compare(
-      refreshToken,
-      session.refreshTokenHash
+    const lock = await this.redisLockService.acquire(
+      RedisLockKey.REFRESH_LOCK,
+      sessionId
     );
 
-    if (!isValid) {
-      await this.sessionsService.revoke(sub, sessionId);
-
-      throw SessionErrors.sessionReuseDetected(sessionId);
+    if (!lock) {
+      throw SessionErrors.refreshRateLimited(sessionId);
     }
 
-    if (session.rotatedAt && session.rotatedAt.getTime() >= iat * 1000) {
-      throw SessionErrors.sessionReuseDetected(sessionId);
-    }
+    try {
+      const session = await this.sessionsService.getActive(sub, sessionId);
 
-    const { now, expiresAt } = this.clockService.snapshot();
+      if (!session) {
+        throw SessionErrors.sessionExpired();
+      }
 
-    const tokens = await this.tokenService.issuePair(
-      sub,
-      session.id,
-      now,
-      expiresAt
-    );
+      const isValid = await this.hashingProvider.compare(
+        refreshToken,
+        session.refreshTokenHash
+      );
 
-    const newHash = await this.hashingProvider.hash(tokens.refreshToken);
+      if (!isValid) {
+        await this.sessionsService.revoke(sub, sessionId);
+        throw SessionErrors.sessionReuseDetected(sessionId);
+      }
 
-    const ok = await this.sessionsService.rotateAtomic(
-      session.id,
-      session.version,
-      session.refreshTokenHash,
-      newHash,
-      {
+      if (session.rotatedAt && session.rotatedAt.getTime() >= iat * 1000) {
+        throw SessionErrors.sessionReuseDetected(sessionId);
+      }
+
+      const { now, expiresAt } = this.clockService.snapshot();
+
+      const tokens = await this.tokenService.issuePair(
+        sub,
+        session.id,
         now,
         expiresAt
+      );
+
+      const newHash = await this.hashingProvider.hash(tokens.refreshToken);
+
+      const ok = await this.sessionsService.rotateAtomic(
+        session.id,
+        session.version,
+        session.refreshTokenHash,
+        newHash,
+        {
+          now,
+          expiresAt
+        }
+      );
+
+      if (!ok) {
+        throw SessionErrors.sessionReuseDetected(sessionId);
       }
-    );
 
-    if (!ok) {
-      throw SessionErrors.sessionReuseDetected(sessionId);
+      return tokens;
+    } finally {
+      await this.redisLockService.release(RedisLockKey.REFRESH_LOCK, sessionId);
     }
-
-    return tokens;
   }
 }
