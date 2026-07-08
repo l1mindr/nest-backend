@@ -5,6 +5,7 @@ import { SessionsService } from '@features/sessions/sessions.service';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import { TokenService } from '@features/token/token.service';
 import { UsersService } from '@features/users/users.service';
+import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { AuthErrors } from './errors/auth-errors';
@@ -47,6 +48,12 @@ describe('AuthService', () => {
     verifyRefreshToken: jest.fn()
   };
 
+  const mockRedisLockService = {
+    acquire: jest.fn(),
+
+    release: jest.fn()
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -76,6 +83,10 @@ describe('AuthService', () => {
         {
           provide: TokenService,
           useValue: mockTokenService
+        },
+        {
+          provide: RedisLockService,
+          useValue: mockRedisLockService
         }
       ]
     }).compile();
@@ -268,6 +279,14 @@ describe('AuthService', () => {
         sessionId: 'session-id'
       });
 
+      mockRedisLockService.acquire.mockResolvedValue({
+        key: 'lock-key',
+
+        token: 'lock-token'
+      });
+
+      mockRedisLockService.release.mockResolvedValue(undefined);
+
       mockSessionsService.getActive.mockResolvedValue({
         id: 'session-id',
         refreshTokenHash: 'old-hash',
@@ -306,6 +325,14 @@ describe('AuthService', () => {
         sessionId: 'session-id'
       });
 
+      mockRedisLockService.acquire.mockResolvedValue({
+        key: 'lock-key',
+
+        token: 'lock-token'
+      });
+
+      mockRedisLockService.release.mockResolvedValue(undefined);
+
       mockSessionsService.getActive.mockResolvedValue(null);
 
       await expect(service.refresh('token')).rejects.toEqual(
@@ -313,28 +340,19 @@ describe('AuthService', () => {
       );
     });
 
-    // it('should throw refreshRateLimited', async () => {
-    //   const now = Date.now();
+    it('should throw refreshRateLimited', async () => {
+      mockTokenService.verifyRefreshToken.mockResolvedValue({
+        sub: 'user-id',
 
-    //   mockTokenService.verifyRefreshToken.mockResolvedValue({
-    //     sub: 'user-id',
-    //     sessionId: 'session-id'
-    //   });
+        sessionId: 'session-id'
+      });
 
-    //   mockSessionsService.getActive.mockResolvedValue({
-    //     id: 'session-id',
-    //     rotatedAt: new Date(now)
-    //   });
+      mockRedisLockService.acquire.mockResolvedValue(null);
 
-    //   mockClockService.snapshot.mockReturnValue({
-    //     now,
-    //     expiresAt: new Date(now + 1000)
-    //   });
-
-    //   await expect(service.refresh('token')).rejects.toEqual(
-    //     SessionErrors.refreshRateLimited('session-id')
-    //   );
-    // });
+      await expect(service.refresh('token')).rejects.toEqual(
+        SessionErrors.refreshRateLimited('session-id')
+      );
+    });
 
     it('should revoke session on token reuse', async () => {
       const now = Date.now();
@@ -351,6 +369,14 @@ describe('AuthService', () => {
         sub: 'user-id',
         sessionId: 'session-id'
       });
+
+      mockRedisLockService.acquire.mockResolvedValue({
+        key: 'lock-key',
+
+        token: 'lock-token'
+      });
+
+      mockRedisLockService.release.mockResolvedValue(undefined);
 
       mockSessionsService.getActive.mockResolvedValue(session);
 
@@ -378,6 +404,13 @@ describe('AuthService', () => {
         sub: 'user-id',
         sessionId: 'session-id'
       });
+
+      mockRedisLockService.acquire.mockResolvedValue({
+        key: 'lock-key',
+        token: 'lock-token'
+      });
+
+      mockRedisLockService.release.mockResolvedValue(undefined);
 
       mockSessionsService.getActive.mockResolvedValue({
         id: 'session-id',
