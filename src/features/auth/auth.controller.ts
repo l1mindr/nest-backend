@@ -3,6 +3,7 @@ import { Session } from '@features/security/decorators/session.decorator';
 import { User } from '@features/security/decorators/user.decorator';
 import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
 import { Device } from '@features/security/device-detection/decorators/device.decorator';
+import { RateLimit } from '@features/security/rate-limit/decorators/rate-limit.decorator';
 import { Session as SessionEntity } from '@features/sessions/entities/session.entity';
 import { User as UserEntity } from '@features/users/entities/user.entity';
 import {
@@ -36,7 +37,7 @@ export class AuthController {
   @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  // @RateLimit({ limit: 5, ttl: 60 })
+  @RateLimit({ limit: 5, ttl: 60 })
   @ApiRegisterUser()
   signUpUser(@Body() dto: RegisterUserRequestDto) {
     return this.authService.registerUser(dto);
@@ -46,7 +47,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(AuthCookieInterceptor)
-  // @RateLimit({ limit: 5, ttl: 60 })
+  @RateLimit({ limit: 5, ttl: 60 })
   @ApiLoginUser()
   async signInUser(
     @Body() dto: LoginUserRequestDto,
@@ -60,7 +61,7 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(AuthCookieInterceptor)
-  // @RateLimit({ limit: 20, ttl: 60 })
+  @RateLimit({ limit: 20, ttl: 60 })
   @ApiLoginUser()
   async refreshSession(@Req() req: Request) {
     return await this.authService.refresh(req.cookies.refresh_token);
@@ -68,10 +69,10 @@ export class AuthController {
 
   @Post('change-password')
   @HttpCode(HttpStatus.NO_CONTENT)
-  // @RateLimit({
-  //   limit: 3,
-  //   ttl: 300
-  // })
+  @RateLimit({
+    limit: 3,
+    ttl: 300
+  })
   @ApiChangePassword()
   changePassword(
     @User() user: UserEntity,

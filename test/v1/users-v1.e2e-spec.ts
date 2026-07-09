@@ -4,6 +4,7 @@ import { createTestApp } from '../bootstrap/test-app';
 import { AuthFactory } from '../factories/auth.factory';
 import { ApiClient } from '../helpers/apiClient-helper';
 import { runMigrations, truncateDatabase } from '../helpers/database.helper';
+import { clearRedis } from '../helpers/redis.helper';
 
 describe('Users (e2e) version: 1', () => {
   let app: INestApplication;
@@ -19,6 +20,7 @@ describe('Users (e2e) version: 1', () => {
 
   beforeEach(async () => {
     await truncateDatabase(dataSource);
+    await clearRedis(app);
   });
 
   afterAll(async () => {

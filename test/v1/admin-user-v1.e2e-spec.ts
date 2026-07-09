@@ -4,6 +4,7 @@ import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
 import { AuthFactory } from '../factories/auth.factory';
 import { runMigrations, truncateDatabase } from '../helpers/database.helper';
+import { clearRedis } from '../helpers/redis.helper';
 
 describe('Admin Users (e2e) version: 1', () => {
   let app: INestApplication;
@@ -19,6 +20,7 @@ describe('Admin Users (e2e) version: 1', () => {
 
   beforeEach(async () => {
     await truncateDatabase(dataSource);
+    await clearRedis(app);
   });
 
   afterAll(async () => {
