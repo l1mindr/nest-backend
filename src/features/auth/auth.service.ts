@@ -6,6 +6,7 @@ import { SessionsService } from '@features/sessions/sessions.service';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import { TokenService } from '@features/token/token.service';
 import { UsersService } from '@features/users/users.service';
+import { RedisKey } from '@infrastructure/databases/redis/keys/redis-key.enum';
 import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.service';
 import { Injectable } from '@nestjs/common';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
@@ -14,7 +15,6 @@ import { RegisterUserRequestDto } from './dto/request/register-user.request.dto'
 import { AuthErrors } from './errors/auth-errors';
 import { AuthTokens, IAuthService } from './interfaces/auth.interface';
 import { HashingProvider } from './providers/hashing.provider';
-import { RedisLockKey } from '@infrastructure/databases/redis/keys/redis-lock-key.enum';
 
 @Injectable()
 export class AuthService implements IAuthService {
@@ -114,7 +114,7 @@ export class AuthService implements IAuthService {
       await this.tokenService.verifyRefreshToken(refreshToken);
 
     const lock = await this.redisLockService.acquire(
-      RedisLockKey.REFRESH_LOCK,
+      RedisKey.REFRESH_LOCK,
       sessionId
     );
 
@@ -171,7 +171,7 @@ export class AuthService implements IAuthService {
 
       return tokens;
     } finally {
-      await this.redisLockService.release(RedisLockKey.REFRESH_LOCK, sessionId);
+      await this.redisLockService.release(RedisKey.REFRESH_LOCK, sessionId);
     }
   }
 }
