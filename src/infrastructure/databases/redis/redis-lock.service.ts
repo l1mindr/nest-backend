@@ -11,13 +11,23 @@ export class RedisLockService {
   }
 
   async acquire(
-    key: RedisLockKey,
-    value: string,
+    lockKey: RedisLockKey,
+    lockIdentifier: string,
     ttlSeconds = 5
   ): Promise<boolean> {
+    const redisClient = this.redisService as unknown as {
+      set(
+        key: string,
+        value: string,
+        mode: 'NX',
+        expireMode: 'EX',
+        ttl: number
+      ): Promise<'OK' | null>;
+    };
+
     return (
-      (await (this.redisService as any).set(
-        this.getFullKey(key, value),
+      (await redisClient.set(
+        this.getFullKey(lockKey, lockIdentifier),
         '1',
         'NX',
         'EX',
