@@ -23,4 +23,14 @@ export class SecurityErrors {
       'Access denied'
     );
   }
+
+  static rateLimitExceeded() {
+    return new AppError(
+      SecurityErrorCode.RATE_LIMIT_EXCEEDED,
+      ErrorDomain.SECURITY,
+      HttpStatus.TOO_MANY_REQUESTS,
+      undefined,
+      'Too many requests. Please try again later.'
+    );
+  }
 }
