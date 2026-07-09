@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { RedisLockKey } from './keys/redis-lock-key.enum';
+import { RedisKey } from './keys/redis-key.enum';
 import { RedisService } from './redis.service';
 
 @Injectable()
 export class RedisLockService {
   constructor(private readonly redisService: RedisService) {}
 
-  private getFullKey(key: RedisLockKey, value: string) {
+  private getFullKey(key: RedisKey, value: string) {
     return `${key}:${value}`;
   }
 
   async acquire(
-    lockKey: RedisLockKey,
+    lockKey: RedisKey,
     lockIdentifier: string,
     ttlSeconds = 5
   ): Promise<boolean> {
@@ -24,7 +24,7 @@ export class RedisLockService {
     );
   }
 
-  async release(key: RedisLockKey, value: string) {
+  async release(key: RedisKey, value: string) {
     await this.redisService.del(this.getFullKey(key, value));
   }
 }

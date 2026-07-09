@@ -1,4 +1,4 @@
-import { RedisLockKey } from './keys/redis-lock-key.enum';
+import { RedisKey } from './keys/redis-key.enum';
 import { RedisLockService } from './redis-lock.service';
 import { RedisService } from './redis.service';
 
@@ -21,7 +21,7 @@ describe('RedisLockService', () => {
       mockRedisService.setWithExpiry.mockResolvedValue('OK');
 
       const result = await service.acquire(
-        RedisLockKey.REFRESH_LOCK,
+        RedisKey.REFRESH_LOCK,
         'session-id',
         5
       );
@@ -38,10 +38,7 @@ describe('RedisLockService', () => {
     it('should return false when lock already exists', async () => {
       mockRedisService.setWithExpiry.mockResolvedValue(null);
 
-      const result = await service.acquire(
-        RedisLockKey.REFRESH_LOCK,
-        'session-id'
-      );
+      const result = await service.acquire(RedisKey.REFRESH_LOCK, 'session-id');
 
       expect(result).toBe(false);
 
@@ -57,7 +54,7 @@ describe('RedisLockService', () => {
     it('should release lock successfully', async () => {
       mockRedisService.del.mockResolvedValue(1);
 
-      await service.release(RedisLockKey.REFRESH_LOCK, 'session-id');
+      await service.release(RedisKey.REFRESH_LOCK, 'session-id');
 
       expect(mockRedisService.del).toHaveBeenCalledWith(
         'refresh:lock:session-id'
