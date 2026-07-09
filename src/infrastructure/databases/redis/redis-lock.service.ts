@@ -15,22 +15,10 @@ export class RedisLockService {
     lockIdentifier: string,
     ttlSeconds = 5
   ): Promise<boolean> {
-    const redisClient = this.redisService as unknown as {
-      set(
-        key: string,
-        value: string,
-        mode: 'NX',
-        expireMode: 'EX',
-        ttl: number
-      ): Promise<'OK' | null>;
-    };
-
     return (
-      (await redisClient.set(
+      (await this.redisService.setWithExpiry(
         this.getFullKey(lockKey, lockIdentifier),
         '1',
-        'NX',
-        'EX',
         ttlSeconds
       )) === 'OK'
     );
