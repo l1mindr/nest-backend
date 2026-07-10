@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
 import { AuthFactory } from '../factories/auth.factory';
 import { UserFactory } from '../factories/user.factory';
-import { runMigrations, truncateDatabase } from '../helpers/database.helper';
+import { runMigrations, truncateDatabase } from '../helpers/postgresql.helper';
 import { clearRedis } from '../helpers/redis.helper';
 
 describe('Auth Login (e2e) version: 1', () => {

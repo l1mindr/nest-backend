@@ -1,5 +1,5 @@
 import { Response } from 'supertest';
-import { ApiClient } from '../../helpers/apiClient-helper';
+import { ApiClient } from '../../helpers/api-client.helper';
 import { TestUser } from './user.types';
 
 export type FactoryContext<TUser, TResponse> = {

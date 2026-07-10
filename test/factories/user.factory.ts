@@ -2,7 +2,7 @@ import { User } from '@features/users/entities/user.entity';
 import { UserRole } from '@features/users/enums/user-role.enum';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { ApiClient } from '../helpers/apiClient-helper';
+import { ApiClient } from '../helpers/api-client.helper';
 import { createUserDto } from '../helpers/create-user.helper';
 import { CreateUserContext } from '../utils/types/factory.types';
 
