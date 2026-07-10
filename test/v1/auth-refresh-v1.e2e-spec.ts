@@ -5,7 +5,7 @@ import { createTestApp } from '../bootstrap/test-app';
 import { AuthFactory } from '../factories/auth.factory';
 import { runMigrations, truncateDatabase } from '../helpers/postgresql.helper';
 import { clearRedis } from '../helpers/redis.helper';
-import { getCookie, normalizeHeader } from '../utils/cookie.util';
+// import { getCookie, normalizeHeader } from '../utils/cookie.util';
 
 describe('Auth Refresh (e2e) version: 1', () => {
   let app: INestApplication;
@@ -29,66 +29,72 @@ describe('Auth Refresh (e2e) version: 1', () => {
   });
 
   it('should refresh token successfully', async () => {
-    const { response } = await AuthFactory.authenticated(app, {
+    const {
+      response: {
+        cookies: { refreshToken, csrfToken },
+        headers: { xCsrfToken }
+      }
+    } = await AuthFactory.authenticated(app, {
       loginBy: 'email'
     });
 
-    const refreshCookie = getCookie(
-      normalizeHeader(response.login.headers['set-cookie']),
-      'refresh_token'
-    );
-
     const res = await request(app.getHttpServer())
       .post('/v1/auth/refresh')
-      .set('Cookie', refreshCookie);
+      .set('Cookie', `${refreshToken}; ${csrfToken}`)
+      .set('X-CSRF-Token', xCsrfToken);
 
     expect(res.status).toBe(200);
     expect(res.headers['set-cookie']).toBeDefined();
     expect(res.headers['set-cookie'][0]).toContain('access_token');
     expect(res.headers['set-cookie'][1]).toContain('refresh_token');
+    expect(res.headers['set-cookie'][2]).toContain('csrf_token');
   });
 
   it('should detect refresh token reuse', async () => {
-    const { response } = await AuthFactory.authenticated(app, {
+    const {
+      response: {
+        cookies: { refreshToken, csrfToken },
+        headers: { xCsrfToken }
+      }
+    } = await AuthFactory.authenticated(app, {
       loginBy: 'email'
     });
 
-    const refreshCookie = getCookie(
-      normalizeHeader(response.login.headers['set-cookie']),
-      'refresh_token'
-    );
-
     const firstRefresh = await request(app.getHttpServer())
       .post('/v1/auth/refresh')
-      .set('Cookie', refreshCookie);
+      .set('Cookie', `${refreshToken}; ${csrfToken}`)
+      .set('X-CSRF-Token', xCsrfToken);
 
     expect(firstRefresh.status).toBe(200);
 
     const reuseAttempt = await request(app.getHttpServer())
       .post('/v1/auth/refresh')
-      .set('Cookie', refreshCookie);
+      .set('Cookie', `${refreshToken}; ${csrfToken}`)
+      .set('X-CSRF-Token', xCsrfToken);
 
     expect(reuseAttempt.status).toBe(401);
   });
 
   it('should block concurrent refresh requests', async () => {
-    const { response } = await AuthFactory.authenticated(app, {
+    const {
+      response: {
+        cookies: { refreshToken, csrfToken },
+        headers: { xCsrfToken }
+      }
+    } = await AuthFactory.authenticated(app, {
       loginBy: 'email'
     });
-
-    const refreshCookie = getCookie(
-      normalizeHeader(response.login.headers['set-cookie']),
-      'refresh_token'
-    );
 
     const [first, second] = await Promise.all([
       request(app.getHttpServer())
         .post('/v1/auth/refresh')
-        .set('Cookie', refreshCookie),
+        .set('Cookie', `${refreshToken}; ${csrfToken}`)
+        .set('X-CSRF-Token', xCsrfToken),
 
       request(app.getHttpServer())
         .post('/v1/auth/refresh')
-        .set('Cookie', refreshCookie)
+        .set('Cookie', `${refreshToken}; ${csrfToken}`)
+        .set('X-CSRF-Token', xCsrfToken)
     ]);
 
     const statuses = [first.status, second.status].sort((a, b) => a - b);

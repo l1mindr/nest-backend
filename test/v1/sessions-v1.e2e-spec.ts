@@ -36,9 +36,18 @@ describe('Sessions (e2e) version: 1', () => {
   });
 
   it('should return 204 when logout successfully', async () => {
-    const { client } = await AuthFactory.authenticated(app, {});
+    const {
+      client,
+      response: {
+        cookies: { refreshToken, csrfToken },
+        headers: { xCsrfToken }
+      }
+    } = await AuthFactory.authenticated(app, {});
 
-    const logoutRes = await client.delete('/v1/sessions');
+    const logoutRes = await client
+      .delete('/v1/sessions')
+      .set('Cookie', `${refreshToken}; ${csrfToken}`)
+      .set('X-CSRF-Token', xCsrfToken);
 
     const meRes = await client.get('/v1/user/me');
 
@@ -47,18 +56,25 @@ describe('Sessions (e2e) version: 1', () => {
   });
 
   it('should terminate other sessions', async () => {
-    const context1 = await AuthFactory.authenticated(app, {});
+    const {
+      client,
+      response: {
+        cookies: { refreshToken, csrfToken },
+        headers: { xCsrfToken }
+      }
+    } = await AuthFactory.authenticated(app, {});
 
     await AuthFactory.authenticated(app, {});
 
-    const sessionsRes = await context1.client.get('/v1/sessions');
+    const sessionsRes = await client.get('/v1/sessions');
 
     expect(sessionsRes.status).toBe(200);
     expect(sessionsRes.body.data).toHaveLength(2);
 
-    const terminateOtherSessionsRes = await context1.client.delete(
-      '/v1/sessions/others'
-    );
+    const terminateOtherSessionsRes = await client
+      .delete('/v1/sessions/others')
+      .set('Cookie', `${refreshToken}; ${csrfToken}`)
+      .set('X-CSRF-Token', xCsrfToken);
 
     expect(terminateOtherSessionsRes.status).toBe(204);
   });

@@ -14,6 +14,11 @@ export type CreateUserResponse = {
 
 export type AuthenticatedUserResponse = CreateUserResponse & {
   login: Response;
+  cookies: {
+    refreshToken: string;
+    csrfToken: string;
+  };
+  headers: { xCsrfToken: string };
 };
 
 export type CreateUserContext = FactoryContext<TestUser, CreateUserResponse>;

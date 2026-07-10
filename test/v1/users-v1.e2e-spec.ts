@@ -46,12 +46,21 @@ describe('Users (e2e) version: 1', () => {
   });
 
   it('should update profile', async () => {
-    const { client } = await AuthFactory.authenticated(app, {});
-    const res = await client.put('/v1/user', {
-      body: {
-        name: 'New name'
+    const {
+      client,
+      response: {
+        cookies: { refreshToken, csrfToken },
+        headers: { xCsrfToken }
       }
-    });
+    } = await AuthFactory.authenticated(app, {});
+    const res = await client
+      .put('/v1/user', {
+        body: {
+          name: 'New name'
+        }
+      })
+      .set('Cookie', `${refreshToken}; ${csrfToken}`)
+      .set('X-CSRF-Token', xCsrfToken);
 
     const updateUserDataRes = await client.get('/v1/user/me');
 

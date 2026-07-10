@@ -15,6 +15,14 @@ export function getCookie(setCookies: string[], name: string): string {
   return cookie.split(';')[0];
 }
 
+export function getCookieValue(
+  headers: string[],
+
+  name: string
+) {
+  return getCookie(headers, name).split('=')[1];
+}
+
 export function extractRefreshToken(setCookie: string[]) {
   const cookie = setCookie.find((c) => c.startsWith('refresh_token='));
 

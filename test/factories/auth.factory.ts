@@ -1,6 +1,11 @@
 import { UserRole } from '@features/users/enums/user-role.enum';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import {
+  getCookie,
+  getCookieValue,
+  normalizeHeader
+} from '../utils/cookie.util';
 import { AuthenticatedOptions } from '../utils/types/auth.types';
 import {
   AuthenticatedUserContext,
@@ -23,11 +28,20 @@ export class AuthFactory {
       }
     });
 
+    const cookies = normalizeHeader(login.headers['set-cookie']);
+
+    const refreshToken = getCookie(cookies, 'refresh_token');
+
+    const csrfToken = getCookie(cookies, 'csrf_token');
+    const xCsrfToken = getCookieValue(cookies, 'csrf_token');
+
     return {
       ...context,
       response: {
         ...context.response,
-        login
+        login,
+        cookies: { refreshToken, csrfToken },
+        headers: { xCsrfToken }
       }
     };
   }
