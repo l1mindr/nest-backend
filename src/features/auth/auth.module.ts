@@ -1,3 +1,4 @@
+import { CsrfModule } from '@features/security/csrf/csrf.module';
 import { DeviceDetectionModule } from '@features/security/device-detection/device-detection.module';
 import { SessionsModule } from '@features/sessions/sessions.module';
 import { TokenModule } from '@features/token/token.module';
@@ -9,7 +10,13 @@ import { BcryptProvider } from './providers/bcrypt.provider';
 import { HashingProvider } from './providers/hashing.provider';
 
 @Module({
-  imports: [UsersModule, SessionsModule, TokenModule, DeviceDetectionModule],
+  imports: [
+    UsersModule,
+    SessionsModule,
+    TokenModule,
+    DeviceDetectionModule,
+    CsrfModule
+  ],
   controllers: [AuthController],
   providers: [
     AuthService,

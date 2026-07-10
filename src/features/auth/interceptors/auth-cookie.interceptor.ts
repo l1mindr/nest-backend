@@ -16,7 +16,7 @@ export class AuthCookieInterceptor implements NestInterceptor {
     const isProduction = process.env.NODE_ENV === 'production';
 
     return next.handle().pipe(
-      tap(({ accessToken, refreshToken }: AuthTokens) => {
+      tap(({ accessToken, refreshToken, csrfToken }: AuthTokens) => {
         if (accessToken && refreshToken) {
           res.cookie('access_token', accessToken, {
             httpOnly: true,
@@ -30,6 +30,12 @@ export class AuthCookieInterceptor implements NestInterceptor {
             secure: isProduction,
             sameSite: isProduction ? 'strict' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+          });
+
+          res.cookie('csrf_token', csrfToken, {
+            httpOnly: false,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax'
           });
         }
       })

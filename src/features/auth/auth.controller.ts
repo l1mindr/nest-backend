@@ -1,3 +1,4 @@
+import { SkipCsrf } from '@features/security/csrf/decorators/skip-csrf.decorator';
 import { Public } from '@features/security/decorators/public.decorator';
 import { Session } from '@features/security/decorators/session.decorator';
 import { User } from '@features/security/decorators/user.decorator';
@@ -38,6 +39,7 @@ export class AuthController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @RateLimit({ limit: 5, ttl: 60 })
+  @SkipCsrf()
   @ApiRegisterUser()
   signUpUser(@Body() dto: RegisterUserRequestDto) {
     return this.authService.registerUser(dto);
@@ -48,6 +50,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(AuthCookieInterceptor)
   @RateLimit({ limit: 5, ttl: 60 })
+  @SkipCsrf()
   @ApiLoginUser()
   async signInUser(
     @Body() dto: LoginUserRequestDto,

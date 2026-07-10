@@ -3,6 +3,7 @@ import jwtConfig from '@infrastructure/config/jsonwebtoken/jwt.config';
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
+import { CsrfModule } from './csrf/csrf.module';
 import { DeviceDetectionModule } from './device-detection/device-detection.module';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { JwtGuard } from './guards/jwt.guard';
@@ -15,7 +16,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtModule.registerAsync(jwtConfig.asProvider()),
     TokenModule,
     DeviceDetectionModule,
-    RateLimitModule
+    RateLimitModule,
+    CsrfModule
   ],
   providers: [
     JwtStrategy,

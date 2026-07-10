@@ -33,4 +33,14 @@ export class SecurityErrors {
       'Too many requests. Please try again later.'
     );
   }
+
+  static invalidCsrfToken() {
+    return new AppError(
+      SecurityErrorCode.INVALID_CSRF_TOKEN,
+      ErrorDomain.SECURITY,
+      HttpStatus.FORBIDDEN,
+      undefined,
+      'Invalid CSRF token.'
+    );
+  }
 }

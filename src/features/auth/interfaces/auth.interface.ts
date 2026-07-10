@@ -20,4 +20,5 @@ export interface IAuthService {
 export type AuthTokens = {
   accessToken: string;
   refreshToken: string;
+  csrfToken: string;
 };
