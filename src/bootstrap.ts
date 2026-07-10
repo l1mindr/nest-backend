@@ -1,3 +1,4 @@
+import { helmetConfig } from '@infrastructure/http/helmet.config';
 import { INestApplication, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import compression from 'compression';
@@ -17,6 +18,8 @@ export async function setupApp(app: INestApplication) {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api', app, document);
   }
+
+  app.use(helmetConfig);
 
   app.use(
     compression({
