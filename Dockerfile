@@ -4,22 +4,22 @@ WORKDIR /app
 
 RUN corepack enable
 
-COPY package.json yarn.lock .yarnrc.yml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 FROM base AS deps
-RUN yarn install --immutable
+RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN yarn build
+RUN pnpm run build
 
 FROM base AS dev
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-CMD ["yarn", "start:dev"]
+CMD ["pnpm", "run", "start:dev"]
 
 FROM base AS test
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-CMD ["yarn", "test"]
+CMD ["pnpm", "run", "test"]
