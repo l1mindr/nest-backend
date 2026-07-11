@@ -1,242 +1,168 @@
-# Sessions Architecture — Safe Refresh Design
+# Sessions
 
-This document is the authoritative reference for session and refresh-token handling in this project. It explains the evolution of the refresh design, the concurrency (race) problems encountered, why naive locking is insufficient, and the final safe architecture based on versioning and atomic updates. It includes lifecycle explanations, step-by-step flows, reuse detection logic, and an illustrative sequence diagram.
+This document describes session persistence, session endpoints, and refresh-token rotation.
 
----
+## Relevant Files
 
-## Goals
+- [src/features/sessions/entities/session.entity.ts](../src/features/sessions/entities/session.entity.ts)
+- [src/features/sessions/sessions.service.ts](../src/features/sessions/sessions.service.ts)
+- [src/features/sessions/sessions.controller.ts](../src/features/sessions/sessions.controller.ts)
+- [src/features/sessions/sessions.module.ts](../src/features/sessions/sessions.module.ts)
+- [src/features/sessions/dto/response/session.response.dto.ts](../src/features/sessions/dto/response/session.response.dto.ts)
+- [src/features/auth/auth.service.ts](../src/features/auth/auth.service.ts)
+- [src/features/token/token.service.ts](../src/features/token/token.service.ts)
 
-- Allow long-lived user sessions with the ability to silently obtain short-lived access tokens.
-- Prevent refresh-token replay/reuse attacks and race conditions that can create multiple valid refresh tokens.
-- Provide clear revocation semantics so users can revoke single-device sessions.
-- Keep the design auditable, testable, and operationally simple.
+## Session Entity
 
----
+The `Session` entity maps to the `session` table.
 
-## Glossary
+Fields:
 
-- Refresh token: a long-lived, opaque credential used to obtain new access tokens.
-- Session: server-side record representing a device or login session, storing metadata and refresh-related state.
-- Rotation counter / Version: a numeric version associated with the session that increments on each refresh rotation.
-- Rotation (or token rotation): replacing an issued refresh token with a new one during a refresh operation.
+| Field | Type | Purpose |
+| --- | --- | --- |
+| `id` | UUID | Primary key. |
+| `refreshTokenHash` | string | Bcrypt hash of the current refresh token. |
+| `device` | JSONB | Browser, OS, and device type snapshot. |
+| `ipAddress` | string | IP address recorded at login. |
+| `isRevoked` | boolean | Revocation flag. Defaults to `false`. |
+| `expiresAt` | timestamp | Session expiry. |
+| `lastUsedAt` | timestamp | Last auth/refresh activity timestamp. |
+| `version` | number | Optimistic concurrency counter for refresh rotation. Defaults to `0`. |
+| `rotatedAt` | timestamp nullable | Last refresh-token rotation timestamp. |
+| `createdAt` | timestamp | TypeORM create timestamp. |
+| `updatedAt` | timestamp | TypeORM update timestamp. |
+| `owner` | `User` | Many-to-one relation to the user. |
 
----
+## Session Creation
 
-## 1) Old Refresh Approach (stateless / simple server-backed)
+Sessions are created during login:
 
-Typical initial design used one of two patterns:
+1. `AuthService.loginUser()` calls `ClockService.snapshot()` to get `now` and `expiresAt`.
+2. Device data is mapped through `DeviceMapper.toSessionUserAgent()`.
+3. `SessionsService.issue()` saves a new `Session`.
+4. `TokenService.issuePair()` creates access and refresh JWTs.
+5. The refresh token is hashed and stored through `SessionsService.updateRefreshState()`.
 
-A. Stateless signed refresh JWTs: issue long-lived signed tokens and validate signature & exp without server-side storage.
+`SessionsService.issue()` initially stores a random UUID in `refreshTokenHash`; this is replaced by the real refresh token hash after tokens are issued.
 
-B. Server-backed single refresh token: store a single refresh token per session (token value or its hash), accept it at `/auth/refresh`, then replace with a new refresh token on each use.
+## Active Session Lookup
 
-Both approaches can work functionally, but B (server-backed) was preferred since it allowed immediate revocation.
+`SessionsService.getActive(userId, sessionId)` requires:
 
----
+- Matching session ID.
+- Matching owner user ID.
+- `isRevoked: false`.
+- `expiresAt > new Date()`.
 
-## 2) The Problem: Race Conditions
+This lookup is used during access-token validation and refresh.
 
-Scenario:
+## Session Endpoints
 
-- Client makes two concurrent refresh requests (e.g., due to network retry, multiple tabs, or race between background refresh and manual action).
-- Both requests present the same current refresh token (R0) to the server.
-- Naive server logic: validate R0, generate new tokens R1 and R2, persist the latest token state, return tokens to both requests.
+Base path: `/v1/sessions`
 
-Result:
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/v1/sessions` | List active sessions for the current user. |
+| `DELETE` | `/v1/sessions` | Revoke the current session. |
+| `DELETE` | `/v1/sessions/others` | Revoke all sessions except the current one. |
 
-- Both R1 and R2 become valid concurrently (or one overwrites the other unpredictably), allowing token reuse or inconsistent session state.
-- Attacker who obtains one of the rotated tokens can still use another issued token. Reuse detection and revocation are complicated.
+All session endpoints require authentication. `DELETE` endpoints also require CSRF validation.
 
-This is the classic refresh race: two legitimate refreshes cause duplicate valid tokens.
+## Listing Sessions
 
----
+`SessionsService.list(userId, session)` returns:
 
-## 3) Why Redis Lock Alone Is NOT Enough
+- Current session first, with `current: true`.
+- Other active non-revoked sessions for the same user.
 
-A common mitigation is to use a distributed lock (Redis) keyed by `sessionId` during refresh processing. However, locks alone have drawbacks:
+The query selects only `device`, `expiresAt`, and `ipAddress` for other sessions. Because `SessionResponseDto` maps `sessionId` from `obj.id` and `lastActivityAt` from `obj.lastUsedAt`, other-session responses may lack these fields based on the current select list. This is a current implementation detail to review before relying on full session metadata in clients.
 
-- Lock expiration: if the server handling the refresh is slow or crashes, the lock may expire and a concurrent request can start processing, recreating the race window.
-- Deadlocks and availability: misuse of locks can reduce availability and increase operational complexity.
-- Lock granularity and latency: extra round-trips and contention on hot sessions (popular accounts) cause performance issues.
-- Complexity of recovery: ensuring strict ordering and handling lock failures adds code paths to test.
+## Revocation
 
-In short: locks can reduce but not eliminate edge cases, and they add complexity.
+`SessionsService.revoke(userId, sessionId)` sets:
 
----
-
-## 4) Versioning Introduction (Rotation Counter)
-
-Solution principle:
-
-- Associate a `version` (rotation counter) with each session in the database.
-- Embed the version in the refresh token (or include a reference that implies a version in the server-side entry).
-- On refresh, require that the persisted session `version` matches the token `version` presented by the client.
-
-This enables optimistic concurrency: only one refresh operation that sees the correct expected version should be able to succeed in swapping in the next version.
-
----
-
-## 5) Atomic Update Strategy (Optimistic Concurrency)
-
-Use an atomic, conditional update in the data store to replace refresh-related state only if the stored version equals the presented version.
-
-Example SQL (pseudocode):
-
-```sql
--- parameters: :session_id, :expected_version, :new_refresh_hash, :new_version
-UPDATE sessions
-SET refresh_hash = :new_refresh_hash,
-    version = :new_version,
-    last_activity_at = now()
-WHERE id = :session_id AND version = :expected_version;
+```ts
+isRevoked: true
 ```
 
-After this update, check affected rows: if `rows_affected == 1`, the rotation succeeded; if `rows_affected == 0`, another process rotated first (concurrent refresh) — treat this as a reuse/race.
+`SessionsService.terminateOthers(userId, sessionId)` revokes all sessions for the user except the current session.
 
-Why atomic DB update:
+Revoked sessions fail future `getActive()` checks. Existing access tokens become unusable once `JwtGuard` validates the payload and session.
 
-- The DB enforces the single-winner property: only one concurrent request can transition the session from version N to version N+1.
-- Avoids separate check-then-write windows where two processes both pass validation.
-- Simpler and more reliable than external locking mechanisms — leverages proven DB isolation primitives.
+Current limitation: revocation endpoints do not clear `access_token`, `refresh_token`, or `csrf_token` cookies in the HTTP response.
 
-Notes:
+## Refresh Rotation
 
-- Use a single statement update if possible. If multiple tables must change, perform changes in a transaction with the same optimistic concurrency check.
-- Row-level locks (SELECT ... FOR UPDATE) can also be used but optimistic updates are simpler and scale better for this use-case.
+Refresh rotation happens in `AuthService.refresh()`.
 
----
+Important checks:
 
-## 6) Refresh Token Format & Storage (recommended)
+1. Verify refresh JWT signature and expiry.
+2. Load active session by `sub` and `sessionId`.
+3. Compare presented refresh token with `session.refreshTokenHash`.
+4. Reject if `session.rotatedAt` is at or after the refresh token `iat`.
+5. Issue a new token pair.
+6. Hash the new refresh token.
+7. Atomically update the session if the old hash and version still match.
 
-- Issue opaque refresh tokens (random, unguessable) and store only a hashed value in the DB (bcrypt/sha256 with salt for storage protection).
-- The token payload sent to the client can include `sessionId` and `version` or the token can be purely random and mapped to the session in the DB.
+The database update in `SessionsService.rotateAtomic()` is the key concurrency protection:
 
-A recommended design:
+```ts
+.where('id = :id', { id: sessionId })
+.andWhere('refreshTokenHash = :hash', { hash: oldHash })
+.andWhere('version = :version', { version })
+```
 
-- Refresh token: `base64(random_bytes || sessionId || version || HMAC)` OR: simply a high-entropy random string with DB mapping to `sessionId` and `version`.
-- Store: `sessions.refresh_hash` (hash of latest refresh token), `sessions.version`.
+It also increments the version:
 
-When rotating, compute `new_refresh_hash` for the new token, and perform the atomic update using the expected `version` (or expected `refresh_hash`), then return the new refresh token to the client.
+```ts
+version: () => '"version" + 1'
+```
 
----
+If no row is affected, refresh fails with `SESSION_REUSE_DETECTED`.
 
-## 7) Reuse Detection Logic
+## Redis Refresh Lock Helper
 
-If a refresh request fails the atomic update check (0 rows affected), there are two main causes:
+`AuthService.refresh()` also calls:
 
-A. A concurrent legitimate refresh already succeeded (race); the current request now holds a stale token.
-B. A malicious replay: the refresh token was stolen and used elsewhere earlier, and now this (stale) request is using the same token.
+- `RedisLockService.acquire(RedisKey.REFRESH_LOCK, sessionId)`
+- `RedisLockService.release(RedisKey.REFRESH_LOCK, sessionId)`
 
-To distinguish, implement these checks:
+Current limitation: `RedisLockService.acquire()` calls `SET key value EX ttl` through `RedisService.setWithExpiry()`. It does not use `NX`, so concurrent callers can all set the key and receive `OK`. It should not be documented or treated as a strict distributed lock until this behavior changes.
 
-1. If the presented refresh token's hash matches the session's *previous* value (if you store the last N used hashes), then this is token reuse — revoke session and alert.
-2. If the presented refresh token does not match current or recent stored hashes, treat as invalid token.
-
-Actions on reuse detection:
-
-- Immediately revoke the session: set `revoked_at`, delete refresh_hash, notify the user, log the event, and optionally revoke other sessions.
-- Invalidate any issued access tokens for that session (depending on revocation strategy — e.g., mark session revoked and ensure access checks include session validity).
-
-Store a small denylist or reuse-detection table when implementing rotation detection: store the previous token hash for one rotation window to detect replay.
-
----
-
-## 8) Final Safe Refresh Architecture (step-by-step)
-
-High-level summary:
-
-- Use server-backed opaque refresh tokens.
-- Bind each refresh token to a `session` with a numeric `version`.
-- On refresh, perform a single atomic update conditional on `version` (optimistic concurrency).
-- On success: return new access token and rotated refresh token (with new version).
-- On atomic-update failure: treat as reuse/race; detect reuse using stored previous-hash; revoke session on confirmed reuse.
-
-Step-by-step flow (detailed):
-
-1. Login: create `session` record: `id`, `userId`, `refresh_hash` (hash of R0), `version = 0`, `deviceInfo`, `createdAt`.
-2. Server returns `access_token (short-lived)` and `refresh_token R0` (opaque, contains or maps to `sessionId` and version 0).
-3. Client stores `refresh_token` securely (HttpOnly cookie or secure storage).
-4. When access token expires, client sends `POST /auth/refresh` with `refresh_token`.
-5. Server receives token, extracts `sessionId` and `presented_version` (or looks up session by token), and validates token integrity.
-6. Server computes `new_refresh_token` and `new_refresh_hash`, sets `new_version = presented_version + 1`.
-7. Perform atomic update:
-   - `UPDATE sessions SET refresh_hash = :new_refresh_hash, version = :new_version WHERE id = :sessionId AND version = :presented_version`.
-8. If update affected 1 row → SUCCESS:
-   - Issue new access token and return `new_refresh_token` to client.
-   - Optionally store `previous_refresh_hash` for one rotation window to detect reuse.
-9. If update affected 0 rows → FAILURE:
-   - Fetch current session record to compare hashes.
-   - If presented token matches `previous_refresh_hash` → token reuse detected: revoke session and alert.
-   - Otherwise, treat as invalid/stale token -> respond with 401 and optionally revoke.
-
----
-
-## 9) Sequence Diagram (final safe refresh)
+## Refresh Sequence
 
 ```mermaid
 sequenceDiagram
-    participant C as Client
-    participant A as Auth API
-    participant DB as Database
+  participant Client
+  participant AuthService
+  participant TokenService
+  participant RedisLockService
+  participant SessionsService
+  participant Postgres
 
-    Note over C,A: Access token expired; client has `refresh_token:R0` (version N)
-    C->>A: POST /auth/refresh (send R0)
-    A->>DB: SELECT session WHERE id = sessionId
-    DB-->>A: session(version=N, refresh_hash=H0)
-    A->>A: validate R0 matches H0
-    A->>DB: UPDATE sessions SET refresh_hash=H1, version=N+1 WHERE id=sessionId AND version=N
-    alt rows_affected == 1
-        DB-->>A: success
-        A->>C: 200 { access_token, refresh_token:R1 (version N+1) }
-    else rows_affected == 0
-        DB-->>A: 0 rows (concurrent rotation)
-        A->>DB: SELECT session WHERE id=sessionId
-        DB-->>A: session(version=M, refresh_hash=HM, previous_hash=Hprev)
-        alt presented matches previous_hash
-            A->>DB: mark session revoked
-            A->>C: 401 (token reuse detected, session revoked)
-        else
-            A->>C: 401 (stale or invalid refresh token)
-        end
-    end
+  Client->>AuthService: refresh(refreshToken)
+  AuthService->>TokenService: verifyRefreshToken(refreshToken)
+  TokenService-->>AuthService: sub, sessionId, iat, exp
+  AuthService->>RedisLockService: acquire(refresh:lock, sessionId)
+  AuthService->>SessionsService: getActive(sub, sessionId)
+  SessionsService->>Postgres: SELECT active session
+  Postgres-->>SessionsService: session
+  AuthService->>AuthService: compare refresh token with stored hash
+  AuthService->>TokenService: issuePair(sub, session.id, now, expiresAt)
+  AuthService->>SessionsService: rotateAtomic(...)
+  SessionsService->>Postgres: UPDATE WHERE id + hash + version
+  Postgres-->>SessionsService: affected rows
+  AuthService->>RedisLockService: release(refresh:lock, sessionId)
+  AuthService-->>Client: new tokens
 ```
 
----
+## Session Errors
 
-## 10) Why Versioning Solves Concurrency
+Defined in [src/features/sessions/errors/session-errors.ts](../src/features/sessions/errors/session-errors.ts):
 
-- Versioning gives each refresh attempt a unique expected state; the DB guarantees that only one update from version N → N+1 can succeed.
-- It transforms the race from "who writes last" into an atomic winner-loser decision enforced by the data store.
-- Combined with storing `previous_hash`, it also allows detection of token replay after rotation (an attacker using an already-rotated token).
-
----
-
-## 11) Why Atomic DB Update is Required
-
-- Without atomic update, two-step check-then-write opens a race window: both requests can validate the same token before either persists the rotation.
-- Atomic update (conditional WHERE version = expected) ensures a single-writer semantics without global locks and fits well with standard DB capabilities.
-
----
-
-## 12) Operational Notes & Hardening
-
-- Keep access tokens short-lived (e.g., 5–15 minutes) to reduce reliance on refresh operations.
-- Rotate signing keys, and make refresh token rotation a high-priority security incident response.
-- Monitor refresh endpoint metrics: spike in failures or reuse detections indicate compromise.
-- For extremely high-security flows, consider multi-factor re-authentication on certain refresh conditions (e.g., new IP or device change).
-- Store only hashed refresh token values in DB; never store plaintext tokens.
-
----
-
-## 13) Tests to Implement
-
-- Concurrent refresh test: simulate two simultaneous refresh requests and assert only one succeeds and the other receives 401 or reuse handling.
-- Reuse detection test: simulate a stolen token replay after rotation.
-- Revocation test: ensure revoked sessions reject refresh and access.
-- Recovery tests: DB failover, partial transaction failures, and detection of stale previous hash.
-
----
-
-## Summary
-
-The recommended, production-safe approach uses server-backed opaque refresh tokens combined with a session `version` counter and an atomic conditional update in the database to rotate tokens. This eliminates refresh races, enables deterministic reuse detection, and provides clean revocation semantics without brittle distributed locks.
+- `SESSION_NOT_FOUND`
+- `SESSION_EXPIRED`
+- `SESSION_REVOKED`
+- `REFRESH_RATE_LIMITED`
+- `SESSION_REUSE_DETECTED`

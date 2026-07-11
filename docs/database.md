@@ -1,205 +1,161 @@
-# Database Design
+# Database
 
-This document describes database design and operational decisions for the project: how we use TypeORM, migration practices, soft-delete strategy, indexing guidance, and the `session.version` column design used for safe refresh rotation.
+This document describes the PostgreSQL and TypeORM implementation.
 
----
+## Relevant Files
 
-## TypeORM Usage
+- [src/infrastructure/config/databases/postgres.config.ts](../src/infrastructure/config/databases/postgres.config.ts)
+- [src/infrastructure/databases/postgres/postgres.module.ts](../src/infrastructure/databases/postgres/postgres.module.ts)
+- [src/infrastructure/databases/postgres/data-source.ts](../src/infrastructure/databases/postgres/data-source.ts)
+- [src/infrastructure/databases/postgres/migrations](../src/infrastructure/databases/postgres/migrations)
+- [src/features/users/entities/user.entity.ts](../src/features/users/entities/user.entity.ts)
+- [src/features/sessions/entities/session.entity.ts](../src/features/sessions/entities/session.entity.ts)
 
-- DataSource: the project uses a single Postgres `DataSource` configured under `infrastructure/databases/postgres` with environment-aware connection options.
-- Entities: map domain models to TypeORM `@Entity()` classes. Keep entities focused on persistence concerns only; complex domain logic belongs in `features/*` services.
-- Repositories: prefer TypeORM `Repository<T>` or `DataSource.getRepository()` for simple CRUD. For complex queries, use `QueryBuilder` and explicit SQL when necessary for performance.
-- Transactions: use `manager.transaction(...)` for multi-step updates that must be atomic. Keep transactions short to reduce lock contention.
-- Build-time vs runtime: migrations and runtime data source code live in `src/infrastructure/databases/postgres`. The `package.json` migration scripts run compiled JS under `dist/` (see `migration:generate`, `migration:run`).
+## Runtime Configuration
 
-Best practices:
-- Keep entity columns explicit (non-nullable where possible) and document assumptions in entity JSDoc.
-- Avoid `synchronize: true` in production — use migrations instead.
+`postgres.config.ts` builds a PostgreSQL URL from environment variables:
 
----
-
-## Migrations Strategy
-
-Goals:
-- Reliable, auditable schema changes
-- Repeatable execution across environments
-- Safe incremental rollouts and rollbacks where supported
-
-Practices:
-- Use TypeORM migrations (CLI or programmatic) to generate schema changes: `yarn typeorm migration:generate` and `yarn typeorm migration:run` as reflected in `package.json` scripts.
-- Migration files live in `prisma` or `migrations` folder as configured; follow the existing project convention under `infrastructure/databases/postgres/migrations`.
-- Always review generated SQL from `migration:generate` before committing.
-- Migration flow:
-  1. Branch + develop changes locally.
-  2. `yarn build` then `yarn migration:generate -n descriptive_name` to create migration under `dist` mapping.
-  3. Commit migration file with code changes.
-  4. In CI/Deploy, run `yarn migration:run` during deployment (before application start) with DB backups in place.
-- Rollback: `migration:revert` can be used in development; in production, prefer forward-only migrations or careful rollback plans.
-
-Operational notes:
-- Run migrations with a lock or single-run deploy step to avoid multiple instances running migrations concurrently.
-- Have a rollback strategy (backups, reversible migrations) for destructive changes.
-
----
-
-## Soft Delete System
-
-Options:
-1. TypeORM `softRemove()` / `@DeleteDateColumn()` — built-in soft delete where soft-deleted rows get a `deletedAt` timestamp and queries can exclude them by default if using repository helpers.
-2. Manual boolean flag (`is_deleted`) + `deleted_at` timestamp — more explicit and can support partial indexes and custom semantics.
-
-Recommendation:
-- Use explicit `deleted_at` timestamp column (e.g., `deleted_at TIMESTAMP WITH TIME ZONE NULL`) and a companion boolean `is_deleted` only if you need fast boolean checks; otherwise `deleted_at` is sufficient.
-- Add a `@Index` on `deleted_at` if you query non-deleted rows frequently.
-- Implement a repository-level helper or a TypeORM global scope (via custom repository or QueryBuilder wrapper) that excludes rows where `deleted_at IS NOT NULL` by default.
-
-Example entity snippet (TypeORM):
-
-```ts
-@Entity('users')
-export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column({ type: 'text' })
-  email: string;
-
-  @Column({ type: 'timestamp with time zone', nullable: true })
-  deletedAt?: Date | null;
-}
+```text
+postgresql://{DATA_SOURCE_USERNAME}:{DATA_SOURCE_PASSWORD}@{DATA_SOURCE_HOST}:{DATA_SOURCE_PORT}/{DATA_SOURCE_DATABASE}
 ```
 
-Cleanup & archival:
-- Periodically archive or purge old soft-deleted rows if retention is required.
+Runtime TypeORM options:
 
----
+- `type: 'postgres'`
+- `autoLoadEntities: true`
+- `url: ...`
 
-## Indexing Strategy
+`PostgresModule` registers this through `TypeOrmModule.forRootAsync()`.
 
-Goals:
-- Speed up common queries (authentication lookups, session lookups, list endpoints)
-- Keep write amplification reasonable
-- Avoid over-indexing which increases storage and slows writes
+## Migration Data Source
 
-Recommendations:
-- Index columns used in `WHERE` clauses and joins.
-- Use unique indexes for constrained columns (`email` unique index).
-- Add composite indexes for common multi-column queries (e.g., `(user_id, created_at)` for recent user activity queries).
-- Partial indexes for soft-delete: index only non-deleted rows to speed reads and reduce index size. Example:
+[data-source.ts](../src/infrastructure/databases/postgres/data-source.ts) is used by TypeORM migration scripts. It:
+
+- Loads `.env` with `dotenv` and `dotenv-expand`.
+- Uses the same PostgreSQL config factory.
+- Sets `synchronize: false`.
+- Sets `migrationsRun: false`.
+- Loads entities from `dist/features/**/*.entity{.ts,.js}`.
+- Loads migrations from `dist/infrastructure/databases/postgres/migrations/*{.ts,.js}`.
+
+Because migration scripts point at `dist`, run `yarn build` before `yarn migration:run`.
+
+## Schema Overview
+
+```mermaid
+erDiagram
+  USER ||--o{ SESSION : owns
+
+  USER {
+    uuid id PK
+    varchar name
+    varchar email UK
+    varchar username UK
+    varchar password
+    enum status
+    enum role
+    timestamp createdAt
+    timestamp updatedAt
+    timestamp deleteAt
+  }
+
+  SESSION {
+    uuid id PK
+    varchar refreshTokenHash
+    jsonb device
+    varchar ipAddress
+    boolean isRevoked
+    timestamp expiresAt
+    timestamp lastUsedAt
+    integer version
+    timestamp rotatedAt
+    timestamp createdAt
+    timestamp updatedAt
+    uuid ownerId FK
+  }
+```
+
+## User Table
+
+Defined by [User entity](../src/features/users/entities/user.entity.ts) and migrations.
+
+Important constraints:
+
+- Primary key: `id` UUID.
+- Unique constraint: `users_email_unique` on `email`.
+- Unique constraint: `users_username_unique` on `username`.
+- `status` enum values: `ACTIVATE`, `DEACTIVATE`, `SUSPEND`.
+- `role` enum values: `ADMIN`, `USER`.
+- Soft delete timestamp: `deleteAt`.
+
+Default values:
+
+- `status`: `DEACTIVATE`.
+- `role`: `USER`.
+
+## Session Table
+
+Defined by [Session entity](../src/features/sessions/entities/session.entity.ts) and migrations.
+
+Important fields:
+
+- `refreshTokenHash`: current hashed refresh token.
+- `device`: JSONB session device snapshot.
+- `ipAddress`: login IP address.
+- `isRevoked`: server-side revocation flag.
+- `expiresAt`: active-session expiry.
+- `lastUsedAt`: latest usage timestamp.
+- `version`: optimistic concurrency field for refresh rotation.
+- `rotatedAt`: latest refresh-token rotation timestamp.
+- `ownerId`: foreign key to `user.id`.
+
+The entity defines `ManyToOne(() => User, (user) => user.sessions, { nullable: false })`.
+
+## Migrations
+
+Existing migration files:
+
+| Migration | Purpose |
+| --- | --- |
+| `1767562475194-create-user-and-session-table.ts` | Creates user/session tables and user enums. |
+| `1778584733796-AddSessionFields.ts` | Replaces initial token/device/IP/expiry columns with refresh/session lifecycle fields. |
+| `1781203122645-RenameUserAgentToDevice.ts` | Renames/recreates session device column as JSONB. |
+| `1781430797078-AddRotatedAtFieldOnSessionEntity.ts` | Adds `rotatedAt`. |
+| `1782233299217-AddVersionFieldToSessionEntity.ts` | Adds `version` and index `IDX_session_id_version`. |
+
+Migration commands:
+
+```bash
+yarn migration:create
+yarn migration:generate
+yarn migration:run
+yarn migration:revert
+yarn migration:show
+```
+
+## Important Migration Note
+
+The first migration uses:
 
 ```sql
-CREATE INDEX idx_users_email_active ON users (email) WHERE deleted_at IS NULL;
+uuid_generate_v4()
 ```
 
-- Index for sessions: include `(id)` primary key, and index `(user_id)` for queries listing sessions per user.
-- For the `sessions.version` concurrency check, add an index on `id` (PK) and consider an index on `(user_id, revoked_at)` for session listing and revocation queries.
+No migration was found that enables the PostgreSQL `uuid-ossp` extension. Databases without that extension may fail when running the initial migration. Add an extension migration or enable the extension manually before running migrations.
 
-Monitoring:
-- Use `pg_stat_statements` and slow-query logs to identify missing indexes.
-- Track index usage and drop unused indexes periodically.
+## Repository Access Pattern
 
----
+Services use `DataSource.getRepository()`:
 
-## `session.version` Column Design
+- `UsersService.userRepo`
+- `SessionsService.sessionRepo`
 
-Purpose:
-- Provide an optimistic concurrency control field used during refresh token rotation (see `docs/sessions.md`).
+The modules import `TypeOrmModule.forFeature([User])` and `TypeOrmModule.forFeature([Session])`, but the services do not inject `Repository<T>` with `@InjectRepository()`.
 
-Design:
-- Column type: `integer` (or `bigint` if you expect extremely frequent rotations). Default `0`.
-- Usage: incremented on each successful refresh rotation.
-- Constraints:
-  - Non-nullable with default `0`.
-  - Consider a check constraint to keep it non-negative.
-- Storage: keep `refresh_hash` (hashed current token) and optionally `previous_refresh_hash` to enable reuse detection.
+## Current Database Gaps
 
-Example TypeORM entity snippet:
-
-```ts
-@Entity('sessions')
-export class Session {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column({ type: 'uuid' })
-  userId: string;
-
-  @Column({ type: 'integer', default: 0 })
-  version: number;
-
-  @Column({ type: 'text', nullable: true })
-  refreshHash?: string | null;
-
-  @Column({ type: 'text', nullable: true })
-  previousRefreshHash?: string | null;
-
-  @Column({ type: 'timestamp with time zone', nullable: true })
-  revokedAt?: Date | null;
-}
-```
-
-Atomic update pattern (SQL):
-
-```sql
-UPDATE sessions
-SET refresh_hash = :new_hash,
-    previous_refresh_hash = :old_hash,
-    version = :new_version,
-    last_activity_at = now()
-WHERE id = :session_id
-  AND version = :expected_version
-  AND revoked_at IS NULL;
-```
-
-- This conditional update guarantees a single successful rotation from `expected_version` to `new_version`.
-- Ensure this statement is executed within a transaction if other tables need updating concurrently.
-
----
-
-## Operational Recommendations
-
-- Backup database before major migrations.
-- Run migrations in a single, controlled deployment step; avoid concurrent migrators.
-- Add observability around slow queries and migration failures.
-- Use connection pooling and configure reasonable pool sizes for TypeORM/pg to avoid connection storms.
-
----
-
-## Example Migration Snippets
-
-Create sessions table (simplified):
-
-```sql
-CREATE TABLE sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL,
-  refresh_hash TEXT,
-  previous_refresh_hash TEXT,
-  version INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  last_activity_at TIMESTAMP WITH TIME ZONE,
-  revoked_at TIMESTAMP WITH TIME ZONE
-);
-CREATE INDEX idx_sessions_user_id ON sessions (user_id);
-CREATE INDEX idx_sessions_user_active ON sessions (user_id) WHERE revoked_at IS NULL;
-```
-
-Add partial index on users.email for active users:
-
-```sql
-CREATE UNIQUE INDEX ux_users_email_active ON users (lower(email)) WHERE deleted_at IS NULL;
-```
-
----
-
-## Summary
-
-- Use TypeORM with explicit migrations and `DataSource` configuration for production safety.
-- Prefer explicit `deleted_at` soft-delete semantics and repository defaults to exclude deleted rows.
-- Index thoughtfully with partial indexes for non-deleted rows, composite indexes for common queries, and monitor usage.
-- Implement `session.version` as an integer optimistic-concurrency field and perform conditional atomic updates during token rotation to avoid races.
-
----
-
-Next steps:
-- Create a TypeORM entity interface files and migration templates under `infrastructure/databases/postgres` if you want me to scaffold them.
+- No migration creates the UUID extension.
+- No explicit index was found for `session.ownerId`, although the foreign key exists.
+- No pagination or filtering queries are implemented for admin user listing.
+- No database-level checks were found for non-negative session version.
+- TypeORM `synchronize` is not enabled in the migration data source, which is appropriate for migration-based schema management.

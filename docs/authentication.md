@@ -1,171 +1,217 @@
-# Authentication Architecture
+# Authentication
 
-This document explains the end-to-end authentication architecture and the reasoning behind design choices. It focuses on lifecycle flows (register, login, JWT issuance, refresh flow, logout) and security considerations rather than feature-level details.
+This document explains the authentication implementation in the current project.
 
----
+## Relevant Files
 
-## Goals
+- [src/features/auth/auth.controller.ts](../src/features/auth/auth.controller.ts)
+- [src/features/auth/auth.service.ts](../src/features/auth/auth.service.ts)
+- [src/features/auth/auth.module.ts](../src/features/auth/auth.module.ts)
+- [src/features/auth/interceptors/auth-cookie.interceptor.ts](../src/features/auth/interceptors/auth-cookie.interceptor.ts)
+- [src/features/auth/providers/bcrypt.provider.ts](../src/features/auth/providers/bcrypt.provider.ts)
+- [src/features/auth/providers/hashing.provider.ts](../src/features/auth/providers/hashing.provider.ts)
+- [src/features/token/token.service.ts](../src/features/token/token.service.ts)
+- [src/features/security/strategies/jwt.strategy.ts](../src/features/security/strategies/jwt.strategy.ts)
+- [src/features/security/guards/jwt.guard.ts](../src/features/security/guards/jwt.guard.ts)
+- [src/features/sessions/sessions.service.ts](../src/features/sessions/sessions.service.ts)
+- [src/features/users/users.service.ts](../src/features/users/users.service.ts)
 
-- Provide secure, auditable authentication flows
-- Minimize attack surface for tokens and credentials
-- Support multi-device sessions and revocation
-- Keep flows testable and observable
+## Authentication Model
 
----
+The API uses cookie-based JWT authentication:
 
-## 1. Register
+- `access_token`: short-lived JWT stored in an HTTP-only cookie.
+- `refresh_token`: JWT stored in an HTTP-only cookie and also stored server-side as a bcrypt hash on the `Session` entity.
+- `csrf_token`: readable cookie generated on login/refresh and expected in the `x-csrf-token` header for unsafe methods.
 
-Purpose:
-- Create a new user identity in the system and an initial credential.
-- Validate user-provided data to prevent malformed records.
+Access token lifetime is configured in code as 15 minutes in `TokenService.issuePair()`.
 
-Flow:
-1. Client sends registration request with required fields (email, password, display name, etc.).
-2. Server validates input (format, password strength, email uniqueness).
-3. Password is salted and hashed using a strong algorithm (bcrypt, Argon2) before storage.
-4. Create user record and optionally initialize default profile data.
-5. Optionally create an initial session and issue tokens (depends on UX choices).
+Refresh/session lifetime is 7 days from the current clock snapshot in `ClockService.snapshot()`.
 
-Why this step exists:
-- Prevents duplicate accounts and ensures credentials are stored securely.
-- Centralizes validation and normalizes user data.
+JWT signing uses the symmetric `JWT_SECRET_KEY` environment variable through [src/infrastructure/config/jsonwebtoken/jwt.config.ts](../src/infrastructure/config/jsonwebtoken/jwt.config.ts). No issuer, audience, key rotation, or asymmetric signing configuration exists in the current code.
 
-Security considerations:
-- Enforce strong password rules and rate-limit registration endpoints to prevent abuse.
-- Do not reveal whether an email is already registered in error messages — use generic responses where appropriate.
-- Store only hashed passwords; never log plain passwords.
+## Token Payloads
 
----
+`TokenService.issuePair()` creates payloads with:
 
-## 2. Login
+- `sub`: user ID.
+- `sessionId`: session ID.
+- `exp`: token expiration.
+- `jti`: refresh token only.
 
-Purpose:
-- Authenticate a user and establish a session (stateless or stateful depending on strategy).
+`IJwtPayload` includes an optional `role`, but role is not currently written into issued tokens.
 
-Flow:
-1. Client submits credentials (email/username + password) to an authentication endpoint.
-2. Server retrieves user by email and compares the hashed password using a constant-time comparison.
-3. If valid, proceed to token issuance and session tracking; otherwise return a generic authentication failure response.
-4. On success, record audit info (IP, device, timestamp) and optionally create a session record.
+Authorization uses the loaded database user, not a JWT role claim.
 
-Why this step exists:
-- Verifies the identity of the requester and initiates a controlled session lifecycle.
+## Registration Flow
 
-Security considerations:
-- Throttle failed login attempts per IP and per account.
-- Use constant-time comparisons to avoid timing attacks.
-- Log auditable events for suspicious activity detection.
-- Use CAPTCHA or progressive delays for repeated failures.
+Endpoint: `POST /v1/auth/register`
 
----
+Decorators:
 
-## 3. JWT Issuance (Access Tokens)
+- `@Public()`
+- `@RateLimit({ limit: 5, ttl: 60 })`
+- `@SkipCsrf()`
 
-Purpose:
-- Provide a short-lived, signed token that proves authentication and carries minimal claims for authorization.
+Request DTO: [RegisterUserRequestDto](../src/features/auth/dto/request/register-user.request.dto.ts)
+
+Fields:
+
+- `email`: normalized to lowercase and validated as email.
+- `username`: normalized to lowercase and validated by the username regex.
+- `password`: validated by the password regex.
 
 Flow:
-1. After successful login (or refresh), the server generates an access token (JWT) with a short expiry (e.g., 5–15 minutes).
-2. The token includes necessary claims: subject (`sub`), issued at (`iat`), expiration (`exp`), and minimal authorization claims (roles, scopes).
-3. The JWT is signed using an asymmetric (RS256) or symmetric (HS256) algorithm based on key management policies.
-4. The access token is returned to the client and used for subsequent API requests in the `Authorization: Bearer <token>` header.
 
-Why short-lived access tokens:
-- Limits the time window for token misuse if leaked.
-- Simplifies revocation semantics when combined with refresh tokens and session state.
+```mermaid
+sequenceDiagram
+  participant Client
+  participant AuthController
+  participant AuthService
+  participant BcryptProvider
+  participant UsersService
+  participant Postgres
 
-Security considerations:
-- Prefer asymmetric signing (RS256) if multiple services need to verify tokens without sharing secrets.
-- Keep token payloads small and avoid sensitive data in JWT claims.
-- Validate tokens on every request: signature, expiration, issuer, audience.
-- Use secure TLS for all transport of tokens.
+  Client->>AuthController: POST /v1/auth/register
+  AuthController->>AuthService: registerUser(dto)
+  AuthService->>BcryptProvider: hash(dto.password)
+  BcryptProvider-->>AuthService: passwordHash
+  AuthService->>UsersService: register(dto with passwordHash)
+  UsersService->>Postgres: INSERT user
+  Postgres-->>UsersService: ok or unique violation
+  UsersService-->>AuthService: void or AppError
+  AuthService-->>AuthController: void
+  AuthController-->>Client: 201 with data wrapper
+```
 
----
+Duplicate email and username database errors are mapped to domain errors in `UsersService.handleUniqueConstraintError()`.
 
-## 4. Refresh Token Flow
+## Login Flow
 
-Purpose:
-- Allow clients to obtain new access tokens without re-entering credentials, while enabling long-lived sessions with revocation control.
+Endpoint: `POST /v1/auth/login`
 
-Design choices:
-- Use opaque refresh tokens stored server-side (recommended) or long-lived signed tokens (less recommended).
-- Bind refresh tokens to devices/sessions so revocation can target specific devices.
+Decorators:
 
-Flow (recommended: opaque, server-backed refresh tokens):
-1. On login, server issues an access token (short-lived JWT) and a refresh token (opaque, long-lived) tied to a session record.
-2. Refresh token is stored in a secure, HttpOnly cookie or secure storage on the client depending on client type.
-3. When the access token expires, client sends `POST /auth/refresh` with the refresh token (cookie will be sent automatically for same-site cookies).
-4. Server validates the refresh token: exists, not revoked, matches session and device, and not expired.
-5. On validation, server issues a new access token and optionally rotates the refresh token (issue a new refresh token and invalidate the old one).
-6. Update session metadata (lastActivityAt, rotation counters, IP/device) and return new tokens to the client.
+- `@Public()`
+- `@UseInterceptors(AuthCookieInterceptor)`
+- `@RateLimit({ limit: 5, ttl: 60 })`
+- `@SkipCsrf()`
 
-Why rotation and server-backed refresh tokens:
-- Rotation prevents offline token replay: a stolen refresh token becomes invalid after rotation.
-- Server-backed tokens allow immediate revocation by removing the session.
-- Binding to device/session lets users revoke a single device without logging out everywhere.
+Request DTO: [LoginUserRequestDto](../src/features/auth/dto/request/login-user.request.dto.ts)
 
-Security considerations:
-- Store refresh tokens as `HttpOnly`, `Secure`, `SameSite=Strict` cookies for browser clients when possible.
-- Implement refresh token rotation: issue a new refresh token on each use and invalidate the previous one; detect reuse to block compromised tokens.
-- Limit refresh token lifetime (e.g., days to weeks) and use sliding expiration for active sessions.
-- Use conservative rate limits for refresh endpoints and monitor anomalous patterns.
-- Tie refresh tokens to session identifiers and device fingerprints to detect token misuse.
+Fields:
 
----
-
-## 5. Logout and Revocation
-
-Purpose:
-- End a session and ensure tokens can no longer be used.
+- `email`: accepts email or username, trims and lowercases.
+- `password`: validated by `PasswordField()`.
 
 Flow:
-1. Client requests logout (endpoint or client-side cookie clear).
-2. Server invalidates the session and associated refresh tokens (delete from DB or mark revoked).
-3. For immediate access token invalidation, one of these strategies may be used:
-   - Rely on short-lived access tokens and let them expire (simple, common)
-   - Maintain an access token blacklist/denylist keyed by token ID (`jti`) or session ID (adds storage/lookup cost)
-   - Use a short-lived cookie-based session for high-security apps
-4. Clear cookies on the client (set expired cookie values) and confirm logout.
 
-Why server-side revocation:
-- Allows immediate termination of sessions, especially for stolen refresh tokens.
-- Provides auditability and user controls (logout from device X).
+```mermaid
+sequenceDiagram
+  participant Client
+  participant AuthController
+  participant AuthService
+  participant UsersService
+  participant HashingProvider
+  participant SessionsService
+  participant TokenService
+  participant AuthCookieInterceptor
 
-Security considerations:
-- Ensure logout endpoint is protected from CSRF for cookie-based tokens (use same-site, anti-CSRF tokens where needed).
-- When using denylist, set appropriate TTLs aligned with access token expiry to avoid unbounded storage growth.
-- Record logout events for audit trails and user notifications.
+  Client->>AuthController: POST /v1/auth/login
+  AuthController->>AuthService: loginUser(dto, ip, device)
+  AuthService->>UsersService: findByIdentifierForAuth(emailOrUsername)
+  UsersService-->>AuthService: user with password hash
+  AuthService->>HashingProvider: compare(password, hash)
+  HashingProvider-->>AuthService: boolean
+  AuthService->>SessionsService: issue(userId, ip, device, expiresAt)
+  SessionsService-->>AuthService: session
+  AuthService->>TokenService: issuePair(userId, sessionId, now, expiresAt)
+  TokenService-->>AuthService: accessToken, refreshToken
+  AuthService->>HashingProvider: hash(refreshToken)
+  AuthService->>SessionsService: updateRefreshState(session, hash + lastUsedAt)
+  AuthService-->>AuthController: tokens
+  AuthCookieInterceptor-->>Client: Set-Cookie access_token, refresh_token, csrf_token
+```
 
----
+Cookies are set in `AuthCookieInterceptor`:
 
-## Additional Security Notes
+| Cookie | HttpOnly | Secure | SameSite | Max Age |
+| --- | --- | --- | --- | --- |
+| `access_token` | Yes | `true` in production | `strict` in production, `lax` otherwise | 15 minutes |
+| `refresh_token` | Yes | `true` in production | `strict` in production, `lax` otherwise | 7 days |
+| `csrf_token` | No | `true` in production | `strict` in production, `lax` otherwise | Not explicitly set |
 
-- Transport: Require TLS for all endpoints; never transmit tokens over plaintext.
-- Storage: Avoid storing plaintext tokens in logs or databases; store only hashed/opaque tokens where possible.
-- Token Claims: Keep claims minimal; do not include PII or sensitive data.
-- Key Management: Rotate signing keys periodically and support key identifiers (`kid`) in JWT headers.
-- Monitoring: Log authentication events, track anomalies (failed login spikes, refresh reuse), and alert on suspicious patterns.
-- MFA: Design the architecture to support Multi-Factor Authentication (MFA) by adding additional verification steps during login and refresh flows.
+## Authenticated Request Flow
 
----
+For routes without `@Public()`:
 
-## Session and Device Modeling
+1. `JwtGuard` reads the `access_token` cookie.
+2. `JwtStrategy.authenticate()` verifies the token.
+3. `TokenService.validatePayload()` loads the user through `UsersService.findByIdForSessionValidation()`.
+4. `TokenService.validatePayload()` loads an active session through `SessionsService.getActive()`.
+5. The guard attaches `request.user` and `request.session`.
+6. `@User()` and `@Session()` decorators read those values in controllers.
 
-- Each refresh token is associated with a `session` record containing:
-  - `userId`, `sessionId`, `deviceInfo`, `ip`, `createdAt`, `lastActivityAt`, `revokedAt`, `rotationCounter`.
-- UI exposes active sessions per user and allows revocation of individual sessions.
-- Device fingerprinting should be conservative and privacy-aware; prefer explicit device names where possible.
+If the token is missing, invalid, or the session is not active, a domain error is thrown and handled by `GlobalExceptionFilter`.
 
----
+## Refresh Flow
 
-## Observability & Testing
+Endpoint: `POST /v1/auth/refresh`
 
-- Emit events for register/login/refresh/logout for audit and metrics pipelines.
-- Add end-to-end tests for token issuance, refresh rotation, and revocation handling.
-- Test attack scenarios: replay, stolen token reuse, expired token handling, concurrent refresh requests.
+Decorators:
 
----
+- `@Public()`
+- `@UseInterceptors(AuthCookieInterceptor)`
+- `@RateLimit({ limit: 20, ttl: 60 })`
 
-## Summary
+CSRF is not skipped for this endpoint. Because it is a `POST`, clients must send:
 
-This architecture favors short-lived JWT access tokens paired with server-backed, rotating refresh tokens bound to sessions/devices. The design balances usability (silent refresh, multi-device) and security (rotation, revocation, monitoring). The document recommends conservative defaults (short access expiry, rotation, HttpOnly cookies for browsers) and emphasizes observability and testing.
+- `csrf_token` cookie
+- matching `x-csrf-token` header
+
+Flow:
+
+1. Controller reads `req.cookies.refresh_token`.
+2. `AuthService.refresh()` verifies the refresh JWT.
+3. Auth attempts to acquire a Redis refresh key by session ID.
+4. The active session is loaded from PostgreSQL.
+5. The presented refresh token is compared with `session.refreshTokenHash`.
+6. If the hash does not match, the session is revoked and `SESSION_REUSE_DETECTED` is thrown.
+7. If `session.rotatedAt >= refreshToken.iat`, reuse is detected and an error is thrown.
+8. New access and refresh tokens are issued.
+9. The new refresh token is hashed.
+10. `SessionsService.rotateAtomic()` conditionally updates the session by `id`, current `refreshTokenHash`, and `version`.
+11. If the update affects no rows, `SESSION_REUSE_DETECTED` is thrown.
+12. `AuthCookieInterceptor` sets the new cookies.
+
+Important implementation note: `RedisLockService.acquire()` does not currently use Redis `NX`, so it does not guarantee mutual exclusion. The database conditional update in `rotateAtomic()` is the stronger concurrency control in the current code.
+
+## Change Password Flow
+
+Endpoint: `POST /v1/auth/change-password`
+
+Decorators:
+
+- Authenticated by global `JwtGuard`.
+- `@RateLimit({ limit: 3, ttl: 300 })`.
+- CSRF required because the method is `POST` and the route does not use `@SkipCsrf()`.
+
+Flow:
+
+1. Current user and session come from `@User()` and `@Session()`.
+2. `AuthService.changeUserPassword()` loads the user with password hash.
+3. Current password is verified.
+4. New password is compared against the old hash and must be different.
+5. New password is hashed and stored.
+6. All other sessions for the user are revoked through `SessionsService.terminateOthers()`.
+
+The current session remains active.
+
+## Authentication Gaps and Observations
+
+- No logout endpoint exists under `auth`; session revocation is handled by `DELETE /v1/sessions`.
+- Session revocation does not clear cookies in the current implementation.
+- User `status` is selected during auth lookup but no status check is enforced in `AuthService.loginUser()`.
+- Access tokens are invalidated by session lookup; a revoked session causes future access-token validation to fail.
+- Refresh tokens are JWTs, not opaque random strings.
+- Refresh token hashes use bcrypt, which is also used for passwords.

@@ -1,154 +1,159 @@
-# Architecture Overview
+# Architecture
 
-This project follows a **modular feature-based architecture** inspired by Clean Architecture and Domain-Driven Design (DDD) principles.
+This document describes the architecture that exists in the current codebase. It is based on `src/`, configuration files, tests, Docker files, and package metadata.
 
-The main goal is to ensure:
+## High-Level Shape
 
-- Separation of concerns
-- High testability
-- Scalability
-- Infrastructure independence
-- Predictable dependency flow
+The application is a NestJS HTTP API with a feature-oriented source layout:
 
----
+- `src/core`: shared primitives that are not tied to one feature.
+- `src/infrastructure`: configuration, database connections, Redis, HTTP validation, serialization, response wrapping, and security headers.
+- `src/features`: business modules for authentication, authorization/security, sessions, token handling, and users.
 
-# Core Principles
-
-## 1. Feature-First Design
-
-Instead of grouping code by technical layer (controller/service/repository), the system is organized by **business features**.
-
-This improves:
-
-- Maintainability
-- Isolation
-- Team scalability
-- Feature ownership
-
----
-
-## 2. Layer Separation
-
-The system is divided into 3 main layers:
-
-- Core
-- Features
-- Infrastructure
-
----
-
-# Core Layer
-
-The `core` layer contains **framework-independent logic**.
-
-It has no knowledge of database, HTTP, or external systems.
-
-### Contains:
-
-- DTOs
-- Validation system
-- Interceptors
-- Device detection system
-- Transforms
-- Clock service
-
----
-
-## Why Core exists?
-
-We isolate reusable logic that should NOT depend on NestJS features or infrastructure.
-
-### Example: ClockService
-Instead of calling `Date.now()` directly in business logic, prefer a centralized time abstraction such as `ClockService`.
+The root module is [src/app.module.ts](../src/app.module.ts):
 
 ```ts
-// Example: use ClockService in application code
-const now = clockService.now(); // returns Date or timestamp
+@Module({
+  imports: [CoreModule, InfrastructureModule, FeaturesModule]
+})
+export class AppModule {}
 ```
 
-This approach improves testability and ensures consistent time handling across the application.
----
+## Module Graph
 
-# Features Layer
+```mermaid
+flowchart TD
+  Main[src/main.ts] --> Bootstrap[src/bootstrap.ts]
+  Main --> App[AppModule]
 
-The `features` layer contains all business logic modules.
+  App --> Core[CoreModule]
+  App --> Infrastructure[InfrastructureModule]
+  App --> Features[FeaturesModule]
 
-Each module represents a bounded context.
+  Core --> Clock[ClockModule]
 
-- `auth`
-- `users`
-- `sessions`
-- `token`
-- `security`
+  Infrastructure --> Env[EnvModule]
+  Infrastructure --> Databases[DatabasesModule]
+  Infrastructure --> Validation[Global ValidationPipe]
+  Infrastructure --> DataResponse[DataResponseInterceptor]
+  Databases --> Postgres[PostgresModule]
+  Databases --> Redis[RedisModule]
 
----
+  Features --> Auth[AuthModule]
+  Features --> Security[SecurityModule]
+  Features --> Sessions[SessionsModule]
+  Features --> Token[TokenModule]
+  Features --> Users[UsersModule]
 
-## Why Features Layer exists?
+  Auth --> Users
+  Auth --> Sessions
+  Auth --> Token
+  Auth --> DeviceDetection[DeviceDetectionModule]
+  Auth --> Csrf[CsrfModule]
 
-Business logic should be isolated per domain to avoid coupling.
+  Security --> Token
+  Security --> DeviceDetection
+  Security --> RateLimit[RateLimitModule]
+  Security --> Csrf
+```
 
-This allows:
+## Bootstrap and Runtime Setup
 
-- Independent development of features
-- Easier testing
-- Clear ownership boundaries
+Application startup begins in [src/main.ts](../src/main.ts):
 
----
+- Creates a Nest application from `AppModule`.
+- Calls `setupApp(app)` from [src/bootstrap.ts](../src/bootstrap.ts).
+- Listens on port `8080`.
 
-## Example Responsibility Split
+`setupApp()` configures:
 
-### Auth Module
-- Login / Register
-- JWT issuance
-- Authentication flow
+- Swagger UI at `/api` only when `NODE_ENV === 'development'`.
+- `helmetConfig` from [src/infrastructure/http/helmet.config.ts](../src/infrastructure/http/helmet.config.ts).
+- Gzip compression through `compression`.
+- URI-based versioning through `app.enableVersioning({ type: VersioningType.URI })`.
+- Cookie parsing through `cookie-parser`.
 
-### Users Module
-- User lifecycle
-- Profile management
-- Soft delete / hard delete
+There is no CORS setup in the current bootstrap code.
 
-### Sessions Module
-- Session tracking
-- Multi-device sessions
-- Session rotation
-- Session revocation
+## Layer Responsibilities
 
----
+### Core Layer
 
-## Why Sessions is NOT inside Auth?
+Files under [src/core](../src/core) provide small shared primitives:
 
-Because:
+- `ClockService`: time snapshot and date arithmetic for auth/session expiry.
+- `TimeConstants`: millisecond constants.
+- `AppError`, `ErrorMapper`, `ErrorDomain`, and domain error codes.
+- Password and username validation regex rules.
+- `RegistryDates`: base timestamp shape.
 
-- Auth = identity verification
-- Sessions = state management
+The current core layer is not fully framework-free because it includes Nest provider classes, but it is small and dependency-light.
 
-They evolve independently.
+### Infrastructure Layer
 
----
+Files under [src/infrastructure](../src/infrastructure) provide application-wide adapters and HTTP infrastructure:
 
-# Infrastructure Layer
+- `EnvModule`: global Nest Config setup with Joi validation.
+- PostgreSQL TypeORM setup and migrations.
+- Redis provider, service, counter service, and lock helper.
+- Global `ValidationPipe` options.
+- Global success response wrapping.
+- Serialization interceptor and `@Serialize()` decorator.
+- HTTP DTOs and validation field decorators.
 
-The `infrastructure` layer contains all external systems.
+`InfrastructureModule` registers:
 
-- `databases/`
-- `redis/`
-- `config/`
-- `http/`
----
+- `APP_PIPE`: global `ValidationPipe`.
+- `APP_INTERCEPTOR`: global `DataResponseInterceptor`.
 
-## Responsibility
+### Features Layer
 
-- PostgreSQL (TypeORM)
-- Redis (locking, caching)
-- HTTP adapters
-- Config management
+Files under [src/features](../src/features) contain user-facing behavior:
 
----
+- `auth`: registration, login, refresh, password change, token cookies, password hashing provider.
+- `security`: global guards, exception filter, CSRF, rate limiting, device detection.
+- `sessions`: session persistence and session endpoints.
+- `token`: JWT issuance, verification, payload validation.
+- `users`: user persistence and profile/admin endpoints.
 
-## Why Infrastructure is isolated?
+Feature modules communicate through Nest dependency injection. For example:
 
-To ensure:
+- `AuthService` depends on `UsersService`, `SessionsService`, `TokenService`, `ClockService`, `DeviceMapper`, `HashingProvider`, and `RedisLockService`.
+- `TokenService` depends on `UsersService` and `SessionsService` to validate JWT payloads against current database state.
+- `JwtGuard` depends on `JwtStrategy`, which delegates payload validation to `TokenService`.
 
-- Business logic is ORM-agnostic
-- External tools can be replaced
-- No framework lock-in
+## Cross-Cutting Request Behavior
+
+Several behaviors are global:
+
+- `DeviceMiddleware` attaches `request.device` for every route.
+- `JwtGuard` protects all non-public routes.
+- `RolesGuard` enforces `@Roles()` metadata where present.
+- `RateLimitGuard` enforces `@RateLimit()` metadata where present.
+- `CsrfGuard` validates unsafe methods unless `@SkipCsrf()` is present or the method is safe (`GET`, `HEAD`, `OPTIONS`).
+- `ValidationPipe` validates and transforms DTOs.
+- `DataResponseInterceptor` wraps successful responses as `{ data: ... }`.
+- `GlobalExceptionFilter` wraps failures as `{ error: ... }`.
+
+## Persistence Architecture
+
+The application uses PostgreSQL through TypeORM:
+
+- Runtime connection: [src/infrastructure/databases/postgres/postgres.module.ts](../src/infrastructure/databases/postgres/postgres.module.ts).
+- Data source for migrations: [src/infrastructure/databases/postgres/data-source.ts](../src/infrastructure/databases/postgres/data-source.ts).
+- Entities: `User` and `Session`.
+- Migrations: [src/infrastructure/databases/postgres/migrations](../src/infrastructure/databases/postgres/migrations).
+
+Redis is configured globally through [src/infrastructure/databases/redis/redis.module.ts](../src/infrastructure/databases/redis/redis.module.ts). It is used for rate-limit counters and a refresh-flow lock helper.
+
+## Current Architectural Gaps
+
+These are not assumptions; they are items not found or not fully implemented in the current code:
+
+- No CORS configuration was found.
+- No health, readiness, or metrics endpoints were found.
+- No structured logging or audit-event module was found.
+- No production Docker runtime stage was found.
+- The development Docker Compose file does not currently match the application port or database host/name configuration.
+- `RedisLockService.acquire()` uses `SET key value EX ttl` without `NX`, so it does not provide strict mutual exclusion.
+- JWT verification does not configure issuer, audience, key rotation, or asymmetric signing.

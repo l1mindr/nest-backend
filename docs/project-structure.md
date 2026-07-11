@@ -1,124 +1,117 @@
 # Project Structure
 
-This document explains the repository layout and where to find major parts of the application.
+This document explains the repository layout and where to find the main implementation details.
 
----
+## Top-Level Layout
 
-## Purpose
+```text
+.
+├── src/                         # Application source
+├── test/                        # E2E test bootstrap, helpers, factories, and scenarios
+├── docs/                        # Handwritten project documentation
+├── documentation/               # Generated Compodoc output
+├── docker/                      # Development and test Docker Compose files
+├── Dockerfile                   # Multi-stage image definition
+├── package.json                 # Scripts, dependencies, package metadata
+├── tsconfig.json                # TypeScript compiler options and path aliases
+├── tsconfig.build.json          # Build-specific TypeScript config
+├── nest-cli.json                # Nest CLI config
+├── jest.config.ts               # General Jest config
+├── jest.unit.config.ts          # Unit-test Jest config
+├── jest.e2e.config.ts           # E2E-test Jest config
+├── eslint.config.mjs            # ESLint flat config
+├── commitlint.config.ts         # Conventional commit rules
+├── docker-entrypoint.sh         # Migration + app start script
+└── docker-entrypoint-test.sh    # Build + migration + e2e test script
+```
 
-- Provide a quick orientation for contributors
-- Show where to find source, tests, docs, and infrastructure code
-- Document common scripts and run/test commands
+## Source Layout
 
----
+```text
+src/
+├── main.ts
+├── bootstrap.ts
+├── app.module.ts
+├── core/
+├── features/
+└── infrastructure/
+```
 
-## Top-level files
+### Entry Points
 
-- `package.json` — project scripts and dependencies
-- `tsconfig.json`, `tsconfig.build.json` — TypeScript configuration
-- `nest-cli.json` — Nest CLI configuration
-- `README.md` — project overview
-- `docs/` — hand-written architecture and design docs
-- `documentation/` — generated API docs (Compodoc)
-- `test/` — test bootstrap, helpers, factories
-- `jest.*.config.ts` — Jest configurations
-- `commitlint.config.ts`, `eslint.config.mjs` — linting and commit rules
+- [src/main.ts](../src/main.ts): creates the Nest app and listens on port `8080`.
+- [src/bootstrap.ts](../src/bootstrap.ts): applies Swagger in development, Helmet, compression, URI versioning, and cookie parsing.
+- [src/app.module.ts](../src/app.module.ts): imports `CoreModule`, `InfrastructureModule`, and `FeaturesModule`.
 
----
+### Core
 
-## Source layout (`src/`)
+[src/core](../src/core) contains:
 
-Main entry points:
+- `clock/`: `ClockService`, `ClockModule`, and time constants.
+- `errors/`: `AppError`, error domains, general error codes, and `ErrorMapper`.
+- `validation/rules/`: username and password regex rules.
+- `registry-dates.ts`: shared timestamp shape.
+- `utils/to-boolean.ts`: boolean coercion utility.
 
-- `app.module.ts` — root module
-- `bootstrap.ts`, `main.ts` — application bootstrap
+### Features
 
----
+[src/features](../src/features) contains domain modules:
 
-### Primary directories
+- `auth/`: registration, login, refresh, password change, auth cookies, hashing provider.
+- `security/`: guards, decorators, exception filter, CSRF, rate limiting, device detection.
+- `sessions/`: session entity, service, controller, DTOs, errors.
+- `token/`: token service, JWT payload types, token errors.
+- `users/`: user entity, service, controllers, DTOs, enums, errors.
 
-- `core/`  
-	Framework-agnostic utilities and shared abstractions  
-	(DTOs, validation, `ClockService`, interceptors, transforms)
+### Infrastructure
 
-- `features/`  
-	Feature-first business modules (auth, users, sessions, token, security)
+[src/infrastructure](../src/infrastructure) contains external integrations and HTTP infrastructure:
 
-- `infrastructure/`  
-	External adapters and integrations (databases, Redis, HTTP, config)
-
----
-
-## Infrastructure details
-
-- `infrastructure/databases/postgres` — TypeORM setup, migrations, entities
-- `infrastructure/databases/redis` — Redis service, locking, caching
-- `infrastructure/config` — environment and configuration providers
-- `infrastructure/http` — HTTP adapters and transport layer utilities
-
----
+- `config/`: Joi env validation and typed config factories for JWT and Redis; PostgreSQL config factory.
+- `databases/postgres/`: TypeORM module, data source, migrations, embedded timestamp entity.
+- `databases/redis/`: Redis provider, Redis wrapper service, counter service, lock helper.
+- `http/`: shared DTOs, validation decorators, interceptors, request interfaces, Helmet config.
+- `infrastructure.module.ts`: registers environment/database modules plus global validation and response wrapping.
 
 ## Tests
 
-- Unit tests: `yarn test` (`jest.unit.config.ts`)
-- E2E tests: `yarn test:e2e` (`jest.e2e.config.ts`)
-- Test utilities and factories: `test/`
+```text
+test/
+├── bootstrap/test-app.ts
+├── factories/
+├── helpers/
+├── utils/
+└── v1/
+```
 
----
+- Unit tests live beside their implementation files as `*.spec.ts`.
+- E2E tests live under [test/v1](../test/v1).
+- `test/bootstrap/test-app.ts` creates an in-process `INestApplication`.
+- Helpers manage migrations, database truncation, Redis cleanup, cookies, and API clients.
 
-## Common scripts
+## Documentation
 
-### Development
+- [docs](.) contains source-derived Markdown documentation.
+- [documentation](../documentation) contains generated Compodoc HTML output and assets.
 
-- `yarn start:dev` — development mode with watch
-- `yarn build` — compile TypeScript to `dist/`
-- `yarn start:prod` — run production build
+## Docker
 
-### Code quality
+```text
+docker/
+├── development/docker-compose.yml
+└── test/
+    ├── e2e/docker-compose.yml
+    └── unit/docker-compose.yml
+```
 
-- `yarn lint` — ESLint
-- `yarn format` — Prettier
+The e2e Compose file is used by CI. The development Compose file currently needs configuration alignment before it can run the application unchanged; see [deployment.md](deployment.md).
 
-### Testing
+## Path Aliases
 
-- `yarn test` — unit tests
-- `yarn test:e2e` — e2e tests
+[tsconfig.json](../tsconfig.json) defines:
 
-### Migrations
+- `@features/*` -> `src/features/*`
+- `@infrastructure/*` -> `src/infrastructure/*`
+- `@core/*` -> `src/core/*`
 
-- `yarn migration:generate`
-- `yarn migration:run`
-- `yarn migration:revert`
-
-### Docs
-
-- `yarn docs` — Compodoc UI
-
----
-
-## Architecture conventions
-
-- Feature-first structure (business logic grouped by domain)
-- Strict separation:
-	- `core` → framework-independent logic
-	- `features` → business logic
-	- `infrastructure` → external systems
-- No direct dependency from features → infrastructure
-- Business logic stays ORM-agnostic
-
----
-
-## Where to start
-
-1. Read `docs/architecture.md`
-2. Explore `src/features/*`
-3. Run `yarn start:dev`
-4. Check logs and follow feature flow
-
----
-
-## Notes
-
-- Core logic is reusable and framework-agnostic
-- Infrastructure is replaceable by design
-- Features are the main unit of development
+Jest maps these aliases through `pathsToModuleNameMapper` in the Jest config files.

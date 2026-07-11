@@ -1,149 +1,172 @@
-# Testing Architecture
+# Testing
 
-This document describes the project's testing architecture: the `ApiClient` abstraction, test factories (UserFactory / AuthFactory separation), database reset strategies, migration runner usage, and the end-to-end (E2E) testing flow.
+This document describes the test setup that exists in the repository.
 
----
+## Test Tooling
 
-## Goals
+Packages:
 
-- Make tests fast, reliable, and easy to reason about.
-- Keep unit tests isolated with fast fakes; exercise integration and E2E tests against realistic stacks.
-- Provide deterministic setup/teardown for database state and external dependencies.
+- `jest`
+- `ts-jest`
+- `@nestjs/testing`
+- `supertest`
+- `@types/jest`
+- `@types/supertest`
 
----
+Configs:
 
-## ApiClient Abstraction
+- [jest.config.ts](../jest.config.ts): general Jest config.
+- [jest.unit.config.ts](../jest.unit.config.ts): unit specs, `**/*.spec.ts`.
+- [jest.e2e.config.ts](../jest.e2e.config.ts): e2e specs, `**/*.e2e-spec.ts`.
 
-Purpose:
-- Centralize HTTP calls used by tests and provide helpers for auth, cookies, headers, and replayable request patterns.
+All Jest configs use:
 
-Why use it:
-- Keeps tests concise: tests call `apiClient.post('/login', body)` rather than duplicating header/cookie parsing logic.
-- Encapsulates authentication steps (attach access token or send cookie), CSRF token handling, and expected response normalization.
-- Makes switching between in-process request drivers (`supertest`/Nest `INestApplication`) and external HTTP (spun server) transparent.
+- `preset: 'ts-jest'`
+- `testEnvironment: 'node'`
+- TypeScript path alias mapping from `tsconfig.json`
 
-Typical responsibilities:
-- `post(path, body, opts)`, `get(path, opts)`, `put`, `delete` helpers.
-- `loginAs(user)` helper that performs login and stores returned tokens/cookies for subsequent calls.
-- Automatic JSON parsing and error normalization.
-- Optional retry/backoff for flaky external calls during CI.
+## Test Scripts
 
-Implementation notes:
-- Built on top of `supertest` for in-process tests or `axios`/`node-fetch` for external server tests.
-- Keep ApiClient lightweight and provide per-test instances to avoid shared mutable state.
+From [package.json](../package.json):
 
----
+| Script | Purpose |
+| --- | --- |
+| `yarn test` | Unit tests through `jest.unit.config.ts`. |
+| `yarn test:unit` | Unit tests through `jest.unit.config.ts`. |
+| `yarn test:watch` | Jest watch mode through `jest.config.ts`. |
+| `yarn test:cov` | Jest coverage. |
+| `yarn test:debug` | Jest with Node inspector. |
+| `yarn test:e2e` | E2E tests through `jest.e2e.config.ts`. |
 
-## Factories (UserFactory, AuthFactory)
+## Unit Tests
 
-Separation:
-- `UserFactory` is responsible for creating user data records (persisted to DB) and any domain-first defaults (roles, sample profile).
-- `AuthFactory` focuses on authentication-related artifacts: creating sessions, issuing tokens, or returning pre-signed tokens for tests.
+Current unit specs:
 
-Why separate:
-- Clear responsibilities: user data vs authentication state (sessions/tokens).
-- Tests that only need a user record don't need to also create sessions; keep setup minimal and explicit.
+- [src/core/clock/clock.service.spec.ts](../src/core/clock/clock.service.spec.ts)
+- [src/features/auth/auth.service.spec.ts](../src/features/auth/auth.service.spec.ts)
+- [src/features/token/token.service.spec.ts](../src/features/token/token.service.spec.ts)
+- [src/features/users/users.service.spec.ts](../src/features/users/users.service.spec.ts)
+- [src/features/sessions/sessions.service.spec.ts](../src/features/sessions/sessions.service.spec.ts)
+- [src/infrastructure/databases/redis/redis.service.spec.ts](../src/infrastructure/databases/redis/redis.service.spec.ts)
+- [src/infrastructure/databases/redis/redis-lock.service.spec.ts](../src/infrastructure/databases/redis/redis-lock.service.spec.ts)
 
-Factory features:
-- Deterministic defaults with overrides: `UserFactory.create({ email: 'x' })`.
-- Support `build()` (in-memory object) and `create()` (persisted to test DB) semantics.
-- Use lightweight fixtures or fixtures + faker for randomization.
-- Factories should be async-friendly and use the project's repositories/services to create records (so creation paths match real app behavior).
+Unit tests focus on service behavior and use mocks/fakes rather than booting the full app.
 
----
+## E2E Tests
 
-## Database Reset Strategy
+Current e2e specs:
 
-Principles:
-- Unit tests: use fast fakes/mocks where possible and avoid touching DB.
-- Integration/E2E tests: run against an isolated test database and reset state between tests to ensure determinism.
+- [test/v1/auth-register-v1.e2e-spec.ts](../test/v1/auth-register-v1.e2e-spec.ts)
+- [test/v1/auth-login-v1.e2e-spec.ts](../test/v1/auth-login-v1.e2e-spec.ts)
+- [test/v1/auth-refresh-v1.e2e-spec.ts](../test/v1/auth-refresh-v1.e2e-spec.ts)
+- [test/v1/users-v1.e2e-spec.ts](../test/v1/users-v1.e2e-spec.ts)
+- [test/v1/sessions-v1.e2e-spec.ts](../test/v1/sessions-v1.e2e-spec.ts)
+- [test/v1/admin-user-v1.e2e-spec.ts](../test/v1/admin-user-v1.e2e-spec.ts)
 
-Approaches:
-1. Transactional tests (fastest where supported):
-   - Start a DB transaction at test start and rollback at test end. Works well for single-process unit/integration tests.
-   - Caveat: doesn’t work for multi-process tests (e.g., when server runs in a separate process) unless you use savepoints carefully.
+E2E tests cover:
 
-2. Truncate/clean tables between tests (recommended for E2E):
-   - Use `TRUNCATE TABLE ... CASCADE` on known tables in a clean-up step.
-   - Faster if you disable and re-enable triggers where necessary and use `TRUNCATE` rather than `DELETE`.
+- Registration validation and uniqueness.
+- Login by email and username.
+- Invalid login attempts.
+- Refresh success, refresh reuse detection, and concurrent refresh behavior.
+- Current profile retrieval and profile updates.
+- Session listing, current-session revocation, and terminating other sessions.
+- Admin-only user listing.
 
-3. Recreate schema per test suite (safe, slower):
-   - Drop and recreate schema or restore from a prepared snapshot for full isolation in CI.
+## Test Application Bootstrap
 
-Recommendations for this project:
-- Use migrations to create schema in CI/local once.
-- For Jest unit/integration tests running in-process: use transactions where possible and rollback after each test.
-- For Jest E2E tests that run against a server process: use a `truncate`-based reset between test cases or spin up ephemeral DB instances (e.g., Testcontainers or container-per-suite) for maximal isolation.
-- Keep a `test/helpers/db-reset.ts` helper shared by tests to perform resets reliably.
+File: [test/bootstrap/test-app.ts](../test/bootstrap/test-app.ts)
 
----
+`createTestApp()`:
 
-## Migration Runner Usage in Tests/CI
+1. Sets `process.env.NODE_ENV = 'test'`.
+2. Creates a testing module with `AppModule`.
+3. Creates a Nest application.
+4. Calls `setupApp(app)`.
+5. Calls `app.init()`.
+6. Enables shutdown hooks.
+7. Returns the app and TypeORM `DataSource`.
 
-- Ensure the database schema is current before running integration and E2E tests.
-- Use the existing npm scripts (`yarn build && yarn migration:run`) in CI pipeline to apply migrations to the test DB.
-- In local development, provide a script `yarn test:migrate` that builds and runs migrations against a local test database.
+## Test Helpers
 
-CI flow example:
+### ApiClient
 
-1. Start test DB (service or container).
-2. `yarn build` (compile TS)
-3. `yarn migration:run` (apply migrations)
-4. Start application or test runner.
-5. Run tests.
+File: [test/helpers/api-client.helper.ts](../test/helpers/api-client.helper.ts)
 
-Notes:
-- Keep migrations deterministic and review generated SQL before committing.
-- For speed, use a DB snapshot or template DB where possible to avoid running all migrations on every CI job.
+Wraps `supertest.agent(app.getHttpServer())` and provides:
 
----
+- `get`
+- `post`
+- `patch`
+- `put`
+- `delete`
 
-## E2E Testing Flow
+Each method accepts optional headers, query, and body.
 
-Goals:
-- Validate the full stack: HTTP, controllers, services, infrastructure integrations (DB, Redis), and auth flows.
+### PostgreSQL Helpers
 
-Typical E2E steps:
-1. Build the project: `yarn build`.
-2. Start dependencies: Postgres, Redis (use docker-compose or Testcontainers in CI).
-3. Apply migrations: `yarn migration:run`.
-4. Start the app in test mode: `NODE_ENV=test node dist/main.js` or use Nest's testing utilities to bootstrap an in-process `INestApplication`.
-5. Use `ApiClient` to run test scenarios: register, login, token flow, session rotation, protected endpoints, revocation.
-6. Reset DB between test suites or cases as per strategy (truncate or recreate schema).
-7. Collect coverage and teardown containers.
+File: [test/helpers/postgresql.helper.ts](../test/helpers/postgresql.helper.ts)
 
-Parallelization:
-- Tests can be parallelized by running multiple isolated DB instances (CI matrix) or by using testcontainers to spin DB per worker.
-- Avoid running multiple test workers against a single shared DB unless tests guarantee isolation.
+Functions:
 
-Best practices:
-- Seed minimal required data per test; prefer factories over global seeds.
-- Keep E2E scenarios focused and deterministic.
-- Add explicit timeouts and retries for flaky external dependencies (service start, migrations).
+- `runMigrations(dataSource)`
+- `truncateDatabase(dataSource)`
 
----
+`truncateDatabase()` truncates all TypeORM entity tables with `RESTART IDENTITY CASCADE`.
 
-## Utilities and Helpers
+### Redis Helper
 
-- `test/helpers/api-client.ts` — ApiClient implementation used across tests.
-- `test/factories/*` — factory implementations for `UserFactory`, `AuthFactory`, `SessionFactory`.
-- `test/helpers/db-reset.ts` — DB reset helper used by Jest `beforeEach`/`afterEach` hooks.
-- `test/bootstrap/` — common test setup and global fixtures.
+File: [test/helpers/redis.helper.ts](../test/helpers/redis.helper.ts)
 
----
+`clearRedis(app)` gets `RedisService` from Nest and calls `flushdb()`.
 
-## Observability and Flakiness
+### Factories
 
-- Log test-specific diagnostics (query times, slow endpoints) when failures occur.
-- When flakiness appears, capture stack traces, recent DB state, and request/response pairs to diagnose.
-- Provide CI artifacts (logs, DB dump) for failed E2E runs.
+Files:
 
----
+- [test/factories/user.factory.ts](../test/factories/user.factory.ts)
+- [test/factories/auth.factory.ts](../test/factories/auth.factory.ts)
 
-## Summary
+`UserFactory` registers users through the real API. `UserFactory.admin()` registers a user and updates the database role to `ADMIN`.
 
-- Use `ApiClient` to keep tests concise and consistent.
-- Separate data creation (`UserFactory`) from authentication/session setup (`AuthFactory`).
-- Prefer transactions for fast in-process tests and truncate or ephemeral DBs for E2E isolation.
-- Run migrations before tests in CI and consider DB template/snapshots for speed.
-- Keep E2E tests deterministic and isolated; instrument for flaky test diagnostics.
+`AuthFactory` registers and logs in users, then extracts refresh and CSRF cookies for subsequent requests.
+
+## Dockerized E2E Tests
+
+File: [docker/test/e2e/docker-compose.yml](../docker/test/e2e/docker-compose.yml)
+
+Services:
+
+- `app`: Docker `test` target.
+- `postgres`: `postgres:17-alpine`, exposed as host port `5433`.
+- `redis`: `redis:7-alpine`, exposed as host port `6380`.
+
+The app container runs [docker-entrypoint-test.sh](../docker-entrypoint-test.sh):
+
+1. `yarn build`
+2. `yarn migration:run`
+3. `yarn test:e2e`
+
+## CI
+
+File: [.github/workflows/ci.yml](../.github/workflows/ci.yml)
+
+CI runs:
+
+1. Enable Corepack.
+2. Setup Node 22.
+3. `yarn install --immutable`.
+4. `yarn lint`.
+5. `yarn build`.
+6. `yarn test:unit`.
+7. Dockerized e2e tests.
+8. Docker Compose cleanup.
+
+## Current Testing Gaps
+
+- No tests were found for CSRF guard behavior directly.
+- No tests were found for role guard internals directly.
+- No tests were found for device-detection middleware.
+- No tests were found for `GlobalExceptionFilter`.
+- No tests were found for Swagger output.
+- Coverage thresholds are not configured.

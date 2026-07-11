@@ -1,105 +1,157 @@
-# Security Model
+# Security
 
-This document describes the system-wide security model: password hashing, JWT design, cookie handling, guards and decorators, validation, and exception handling strategies. It's focused on architecture and reasoning for maintainers and reviewers.
+This document lists security controls that are implemented in the current code and the gaps that were not found in the repository.
 
----
+## Implemented Controls
 
-## Password Hashing Strategy
+### Password Hashing
 
-- Use a memory-hard, adaptive algorithm such as Argon2id (preferred) or bcrypt as fallback.
-- Apply a per-password salt (handled by Argon2/bcrypt libraries) before hashing.
-- Use cost parameters appropriate for environment (test/dev lower, production higher) and document them in configuration.
-- Store only the resulting hash and associated salt/cost metadata when required (most libs embed salt/cost in the hash string).
-- When verifying, use the library's verify function which safely handles timing and salt extraction.
-- Rotate hashing scheme by storing version metadata alongside the hash and re-hash on the next successful login if needed.
+Files:
 
-Security rationale:
-- Adaptive cost slows brute-force attacks, and memory hardness defends against GPU/ASIC cracking.
-- Storing only hashes and salts prevents plaintext exposure on DB compromise.
+- [src/features/auth/providers/hashing.provider.ts](../src/features/auth/providers/hashing.provider.ts)
+- [src/features/auth/providers/bcrypt.provider.ts](../src/features/auth/providers/bcrypt.provider.ts)
 
----
+`HashingProvider` is an abstract provider. `AuthModule` binds it to `BcryptProvider`.
 
-## JWT Design
+`BcryptProvider.hash()`:
 
-- Use short-lived access tokens (e.g., 5–15 minutes) and server-backed refresh tokens for session longevity.
-- Token payloads should be minimal: `sub` (user id), `iat`, `exp`, `jti` (optional token id), `roles` or `scopes` if needed.
-- Prefer RS256 (asymmetric) signing if verifying across services without sharing secrets; HS256 is acceptable if key management is simpler and centralized.
-- Include `kid` header to rotate keys safely.
-- Never include PII or sensitive data in JWT claims.
-- Validate issuer, audience, signature, and expiration on every request.
+- Generates a salt with default rounds `10`.
+- Hashes passwords and refresh tokens.
 
-Key management:
-- Use a secure secrets manager for private keys (KMS, Vault). Do not check private keys into source control.
-- Rotate keys periodically; support multiple keys during rollover with `kid`.
+`BcryptProvider.compare()` uses `bcrypt.compare()`.
 
----
+### JWT Cookies
 
-## Cookie Handling
+Files:
 
-- Use `HttpOnly` and `Secure` flags for cookies that carry tokens to protect from XSS and to require TLS.
-- Use `SameSite=Lax` or `Strict` depending on cross-site integration needs; Lax is a reasonable default to allow top-level POST navigations.
-- For refresh tokens, prefer `HttpOnly` cookies so JavaScript cannot access them; access tokens may be stored in memory (not persistent storage) for SPAs.
-- Set an appropriate `path` and `domain` scoping for cookies; prefer narrow scope.
-- Implement CSRF protection for cookie-based auth: either rely on `SameSite` with strict policies and/or use double-submit tokens or server-side anti-CSRF tokens for sensitive endpoints.
+- [src/features/token/token.service.ts](../src/features/token/token.service.ts)
+- [src/features/auth/interceptors/auth-cookie.interceptor.ts](../src/features/auth/interceptors/auth-cookie.interceptor.ts)
 
----
+Access and refresh tokens are signed JWTs and are set as HTTP-only cookies:
 
-## Guards System (Authorization)
+- `access_token`: 15 minutes.
+- `refresh_token`: 7 days.
 
-- Use NestJS Guards to implement auth checks at route or controller level.
-- Provide an `AuthGuard` that verifies access JWTs, checks `sub` claim, and attaches a `request.user` principal.
-- Implement `RolesGuard` and/or `ScopesGuard` that read claims (roles/scopes) and compare with required metadata.
-- Protect sensitive endpoints with composition: `@UseGuards(AuthGuard, RolesGuard)`.
-- Ensure guard failures return appropriate HTTP statuses (401 for unauthenticated, 403 for unauthorized).
+In production, cookies are `secure: true` and `sameSite: 'strict'`. In other environments, `secure: false` and `sameSite: 'lax'`.
 
-Performance note:
-- Keep guards lightweight: verification should be O(1) per request (signature check, expiration, optional lookup for session revocation).
+### CSRF Protection
 
----
+Files:
 
-## Decorators (Authorization/Extraction Helpers)
+- [src/features/security/csrf/csrf.module.ts](../src/features/security/csrf/csrf.module.ts)
+- [src/features/security/csrf/guards/csrf.guard.ts](../src/features/security/csrf/guards/csrf.guard.ts)
+- [src/features/security/csrf/csrf.service.ts](../src/features/security/csrf/csrf.service.ts)
+- [src/features/security/csrf/decorators/skip-csrf.decorator.ts](../src/features/security/csrf/decorators/skip-csrf.decorator.ts)
 
-- Provide parameter decorators: `@CurrentUser()` to inject `request.user`, `@UserId()` to inject `request.user.id`, `@RequiredRoles(...roles)` to annotate roles metadata.
-- Use decorators to keep controllers declarative and thin.
-- Attach metadata via `Reflector` for Guards to read required permissions.
+`CsrfGuard` is global. It allows:
 
----
+- Routes decorated with `@SkipCsrf()`.
+- Safe methods: `GET`, `HEAD`, `OPTIONS`.
 
-## Validation Layer
+For unsafe methods it requires:
 
-- Centralize validation using DTOs with `class-validator` and `class-transformer`.
-- Use NestJS `ValidationPipe` globally to enforce DTO validation and transformation.
-- Employ explicit `whitelist` and `forbidNonWhitelisted` options to reject unexpected payload fields.
-- Normalize inputs (e.g., trim emails, lowercase where appropriate) in DTO transformers.
-- Validate at the edge: every inbound request that touches business logic should pass through validation.
+- `csrf_token` cookie.
+- Matching `x-csrf-token` header.
 
-Security rationale:
-- Prevents injection of unexpected fields and enforces schema guarantees at the boundary.
+The token is generated with `randomBytes(32).toString('hex')`.
 
----
+### Rate Limiting
 
-## Exception Handling Strategy
+Files:
 
-- Use a global exception filter to standardize error responses and avoid leaking internal details.
-- Map known exception types to proper HTTP statuses (ValidationError -> 400, Unauthorized -> 401, Forbidden -> 403, NotFound -> 404, etc.).
-- Log exceptions with correlation ids, but avoid logging sensitive information (passwords, tokens).
-- For authentication errors, return generic messages to avoid user enumeration (e.g., "Invalid credentials" rather than "user not found").
-- For critical security events (token reuse detection, multiple failed logins), emit structured audit events to the security monitoring pipeline.
+- [src/features/security/rate-limit/rate-limit.module.ts](../src/features/security/rate-limit/rate-limit.module.ts)
+- [src/features/security/rate-limit/guards/rate-limit.guard.ts](../src/features/security/rate-limit/guards/rate-limit.guard.ts)
+- [src/features/security/rate-limit/rate-limit.service.ts](../src/features/security/rate-limit/rate-limit.service.ts)
+- [src/features/security/rate-limit/decorators/rate-limit.decorator.ts](../src/features/security/rate-limit/decorators/rate-limit.decorator.ts)
 
----
+`RateLimitGuard` is global but only acts on routes decorated with `@RateLimit()`.
 
-## Additional Hardening
+Redis keys use:
 
-- Rate-limit authentication endpoints and sensitive flows.
-- Employ Content Security Policy (CSP) and other HTTP security headers.
-- Regularly run dependency vulnerability scans and keep core security libraries up-to-date.
-- Conduct periodic key rotation and password-hash cost reviews.
+```text
+rate:limit:{route}:{ip}
+```
 
----
+Current decorated routes:
 
-## Next Steps
+- Register: 5 requests / 60 seconds.
+- Login: 5 requests / 60 seconds.
+- Refresh: 20 requests / 60 seconds.
+- Change password: 3 requests / 300 seconds.
 
-- Add example configs for Argon2 parameters and JWT key management in `docs/security-config.md`.
-- Add unit and integration tests around guards, decorators, and exception handling.
+### Authentication and Authorization Guards
 
-***
+Files:
+
+- [src/features/security/guards/jwt.guard.ts](../src/features/security/guards/jwt.guard.ts)
+- [src/features/security/guards/roles.guard.ts](../src/features/security/guards/roles.guard.ts)
+
+`JwtGuard` and `RolesGuard` are global. Authentication is skipped only for `@Public()` routes. Role checks are based on `@Roles()` metadata and the database-loaded user.
+
+### HTTP Headers
+
+File: [src/infrastructure/http/helmet.config.ts](../src/infrastructure/http/helmet.config.ts)
+
+Helmet is enabled with:
+
+- `contentSecurityPolicy: false`
+- `crossOriginEmbedderPolicy: false`
+
+### Request Validation
+
+Files:
+
+- [src/infrastructure/http/validation/pipe/validation.constants.ts](../src/infrastructure/http/validation/pipe/validation.constants.ts)
+- [src/infrastructure/http/validation/fields](../src/infrastructure/http/validation/fields)
+- [src/infrastructure/http/validation/decorators](../src/infrastructure/http/validation/decorators)
+
+The global validation pipe:
+
+- Enables `whitelist`.
+- Enables `forbidNonWhitelisted`.
+- Enables transformation and implicit conversion.
+- Returns HTTP `422` for validation failures.
+- Converts validation errors to `AppError`.
+
+### Error Normalization
+
+Files:
+
+- [src/features/security/filters/global-exception.filter.ts](../src/features/security/filters/global-exception.filter.ts)
+- [src/core/errors/error-mapper.ts](../src/core/errors/error-mapper.ts)
+
+Known `AppError` instances are returned as structured errors. Unknown errors are mapped to a generic internal error message: `Unexpected error`.
+
+## Device Detection
+
+Files:
+
+- [src/features/security/device-detection](../src/features/security/device-detection)
+
+The application parses the `User-Agent` header and attaches `request.device`. Device data is stored on sessions. A simple trust/risk flag is computed, but it is not currently used to block or challenge requests.
+
+## Security Gaps and Limitations
+
+These items were not found or are incomplete in the current implementation:
+
+- No CORS configuration.
+- No audit logging for login, refresh, password change, revocation, or reuse detection.
+- No account lockout or per-account failed-login tracking.
+- No MFA or second-factor implementation.
+- No JWT issuer/audience validation.
+- No JWT key rotation or asymmetric signing.
+- No refresh-token denylist beyond the active session hash/rotation checks.
+- `RedisLockService.acquire()` does not use `NX`, so it is not a strict lock.
+- Session revocation endpoints do not clear cookies.
+- `UserStatus` exists, but login/authorization does not enforce active/suspended/deactivated status.
+- No health/readiness endpoints for deployment security checks.
+- No secrets manager integration; secrets are read from environment variables.
+
+## Dependency Security
+
+GitHub Actions include [dependency-review.yml](../.github/workflows/dependency-review.yml), which runs:
+
+- `yarn outdated` with `continue-on-error: true`.
+- `yarn npm audit --all`.
+
+Dependabot is configured in [.github/dependabot.yml](../.github/dependabot.yml).
