@@ -1,0 +1,5 @@
+allowBuilds:
+  '@scarf/scarf': false
+  bcrypt: true
+overrides:
+  '@compodoc/compodoc>@angular-devkit/schematics': 21.2.13
