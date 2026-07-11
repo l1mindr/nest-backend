@@ -1,5 +1,4 @@
 import { ClockService } from '@core/clock/clock.service';
-import { CsrfService } from '@features/security/csrf/csrf.service';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { SessionsService } from '@features/sessions/sessions.service';
@@ -54,10 +53,6 @@ describe('AuthService', () => {
     release: jest.fn()
   };
 
-  const mockCsrfService = {
-    generateToken: jest.fn()
-  };
-
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -91,10 +86,6 @@ describe('AuthService', () => {
         {
           provide: RedisLockService,
           useValue: mockRedisLockService
-        },
-        {
-          provide: CsrfService,
-          useValue: mockCsrfService
         }
       ]
     }).compile();
@@ -151,8 +142,6 @@ describe('AuthService', () => {
         refreshToken: 'refresh-token'
       });
 
-      mockCsrfService.generateToken.mockReturnValue('csrf-token');
-
       mockHashingProvider.hash.mockResolvedValue('refresh-token-hash');
 
       const result = await service.loginUser(
@@ -166,8 +155,7 @@ describe('AuthService', () => {
 
       expect(result).toEqual({
         accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-        csrfToken: 'csrf-token'
+        refreshToken: 'refresh-token'
       });
     });
 
@@ -317,8 +305,6 @@ describe('AuthService', () => {
         refreshToken: 'new-refresh'
       });
 
-      mockCsrfService.generateToken.mockReturnValue('new-csrf-token');
-
       mockHashingProvider.hash.mockResolvedValue('new-refresh-hash');
 
       mockSessionsService.rotateAtomic.mockResolvedValue(true);
@@ -327,8 +313,7 @@ describe('AuthService', () => {
 
       expect(result).toEqual({
         accessToken: 'new-access',
-        refreshToken: 'new-refresh',
-        csrfToken: 'new-csrf-token'
+        refreshToken: 'new-refresh'
       });
     });
 

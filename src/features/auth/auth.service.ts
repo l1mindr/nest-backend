@@ -1,5 +1,4 @@
 import { ClockService } from '@core/clock/clock.service';
-import { CsrfService } from '@features/security/csrf/csrf.service';
 import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
@@ -26,8 +25,7 @@ export class AuthService implements IAuthService {
     private readonly sessionsService: SessionsService,
     private readonly usersService: UsersService,
     private readonly tokenService: TokenService,
-    private readonly redisLockService: RedisLockService,
-    private readonly csrfService: CsrfService
+    private readonly redisLockService: RedisLockService
   ) {}
 
   async registerUser(dto: RegisterUserRequestDto): Promise<void> {
@@ -69,8 +67,6 @@ export class AuthService implements IAuthService {
       expiresAt
     );
 
-    const csrfToken = this.csrfService.generateToken();
-
     const refreshTokenHash = await this.hashingProvider.hash(refreshToken);
 
     await this.sessionsService.updateRefreshState(session, {
@@ -78,7 +74,7 @@ export class AuthService implements IAuthService {
       lastUsedAt: new Date(now)
     });
 
-    return { accessToken, refreshToken, csrfToken };
+    return { accessToken, refreshToken };
   }
 
   async changeUserPassword(
@@ -156,15 +152,15 @@ export class AuthService implements IAuthService {
         expiresAt
       );
 
-      const csrfToken = this.csrfService.generateToken();
-
-      const newHash = await this.hashingProvider.hash(tokens.refreshToken);
+      const newRefreshTokenHash = await this.hashingProvider.hash(
+        tokens.refreshToken
+      );
 
       const ok = await this.sessionsService.rotateAtomic(
         session.id,
         session.version,
         session.refreshTokenHash,
-        newHash,
+        newRefreshTokenHash,
         {
           now,
           expiresAt
@@ -175,7 +171,7 @@ export class AuthService implements IAuthService {
         throw SessionErrors.sessionReuseDetected(sessionId);
       }
 
-      return { ...tokens, csrfToken };
+      return tokens;
     } finally {
       await this.redisLockService.release(RedisKey.REFRESH_LOCK, sessionId);
     }

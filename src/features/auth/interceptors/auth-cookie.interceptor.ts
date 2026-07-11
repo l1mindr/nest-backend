@@ -7,16 +7,19 @@ import {
 import { Response } from 'express';
 import { Observable, tap } from 'rxjs';
 import { AuthTokens } from '../interfaces/auth.interface';
+import { CsrfService } from '@features/security/csrf/csrf.service';
 
 @Injectable()
 export class AuthCookieInterceptor implements NestInterceptor {
+  constructor(private readonly csrfService: CsrfService) {}
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp();
     const res = ctx.getResponse<Response>();
     const isProduction = process.env.NODE_ENV === 'production';
 
     return next.handle().pipe(
-      tap(({ accessToken, refreshToken, csrfToken }: AuthTokens) => {
+      tap(({ accessToken, refreshToken }: AuthTokens) => {
         if (accessToken && refreshToken) {
           res.cookie('access_token', accessToken, {
             httpOnly: true,
@@ -31,6 +34,8 @@ export class AuthCookieInterceptor implements NestInterceptor {
             sameSite: isProduction ? 'strict' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
           });
+
+          const csrfToken = this.csrfService.generateToken();
 
           res.cookie('csrf_token', csrfToken, {
             httpOnly: false,
