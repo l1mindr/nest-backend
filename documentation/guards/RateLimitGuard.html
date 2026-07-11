@@ -101,7 +101,7 @@
                    <compodoc-menu mode="normal"></compodoc-menu>
                </div>
                <!-- START CONTENT -->
-               <div class="content class">
+               <div class="content guard">
                    <div class="content-data">
 
 
@@ -117,16 +117,14 @@
 
 
 
-
-
 <ol class="breadcrumb">
-  <li class="breadcrumb-item">Classes</li>
-  <li class="breadcrumb-item" >AuthFactory</li>
+    <li class="breadcrumb-item">Guards</li>
+    <li class="breadcrumb-item" >RateLimitGuard</li>
 </ol>
 
 <div class="io-file io-file-path" data-compodoc="entity-file-path">
     <span class="icon ion-ios-document" aria-hidden="true"></span>
-    <code>test/factories/auth.factory.ts</code>
+    <code>src/features/security/rate-limit/guards/rate-limit.guard.ts</code>
 </div>
 
 <ul class="nav nav-tabs" role="tablist">
@@ -151,16 +149,16 @@
 </ul>
 
 <div class="tab-content">
-    <div class="tab-pane fade active in" id="info">
+        <div class="tab-pane fade active in" id="info">
 
 
 
 
 
-            </div>
+                    </div>
 
-    <div class="tab-pane fade " id="api">
-            <section data-compodoc="block-index">
+        <div class="tab-pane fade " id="api">
+                <section data-compodoc="block-index">
     <h3 id="index">Index</h3>
 
         <table class="table table-sm table-bordered index-table">
@@ -173,15 +171,8 @@
                         <ul class="index-list">
                             <li>
                                 <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
-                                    <span class="modifier">Static</span>
                                     <span class="modifier">Async</span>
-                                <a href="#authenticated" >authenticated</a>
-                            </li>
-                            <li>
-                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
-                                    <span class="modifier">Static</span>
-                                    <span class="modifier">Async</span>
-                                <a href="#login" >login</a>
+                                <a href="#canActivate" >canActivate</a>
                             </li>
                         </ul>
                     </td>
@@ -195,9 +186,68 @@
 
 </section>
 
+                <section data-compodoc="block-constructor">
+    <h3 id="constructor">Constructor</h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+<code>constructor(reflector: Reflector, rateLimitService: <a href="../injectables/RateLimitService.html" target="_self">RateLimitService</a>)</code>
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="11" class="link-to-prism">src/features/security/rate-limit/guards/rate-limit.guard.ts:11</a></div>
+                            </td>
+                        </tr>
 
+                <tr>
+                    <td class="col-md-4">
+                            <div>
+                                    <b>Parameters :</b>
+                                    <table class="params">
+                                        <thead>
+                                            <tr>
+                                                <td>Name</td>
+                                                    <td>Type</td>
+                                                <td>Optional</td>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                                <tr>
+                                                        <td>reflector</td>
+                                                  
+                                                        <td>
+                                                                    <code>Reflector</code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>rateLimitService</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/RateLimitService.html" target="_self" >RateLimitService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                        </tbody>
+                                    </table>
+                            </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+</section>
 
-            <section data-compodoc="block-methods">
+                <section data-compodoc="block-methods">
     
     <h3 id="methods">
         Methods
@@ -206,121 +256,18 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="authenticated"></a>
+                    <a name="canActivate"></a>
                     <span class="name">
-                            <span class="modifier">Static</span>
                             <span class="modifier">Async</span>
-                        <span ><b>authenticated</b></span>
-                        <a href="#authenticated"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>canActivate</b></span>
+                        <a href="#canActivate"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>authenticated(app: INestApplication, options: <a href="../miscellaneous/typealiases.html#AuthenticatedOptions" target="_self">AuthenticatedOptions</a>, dataSource?: DataSource)</code>
-                </td>
-            </tr>
-
-
-                    <tr>
-                        <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="49"
-                                    class="link-to-prism">test/factories/auth.factory.ts:49</a></div>
-                        </td>
-                    </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                            <div class="io-description">
-                                <b>Parameters :</b>
-                                
-                                <table class="params">
-                                    <thead>
-                                        <tr>
-                                            <td>Name</td>
-                                                <td>Type</td>
-                                            <td>Optional</td>
-                                                <td>Default value</td>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                                <td>app</td>
-                                            <td>
-                                                        <code>INestApplication</code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-                                            <td>
-                                            </td>
-
-                                        </tr>
-                                        <tr>
-                                                <td>options</td>
-                                            <td>
-                                                            <code><a href="../miscellaneous/typealiases.html#AuthenticatedOptions" target="_self" >AuthenticatedOptions</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-                                            <td>
-                                                    <code>{}</code>
-                                            </td>
-
-                                        </tr>
-                                        <tr>
-                                                <td>dataSource</td>
-                                            <td>
-                                                        <code>DataSource</code>
-                                            </td>
-
-                                            <td>
-                                                    Yes
-                                            </td>
-
-                                            <td>
-                                            </td>
-
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;AuthenticatedUserContext&gt;</a></code>
-
-                        </div>
-                            <div class="io-description">
-                                
-                            </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="login"></a>
-                    <span class="name">
-                            <span class="modifier">Static</span>
-                            <span class="modifier">Async</span>
-                        <span ><b>login</b></span>
-                        <a href="#login"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>login(context: <a href="../miscellaneous/typealiases.html#CreateUserContext" target="_self">CreateUserContext</a>, loginBy: "email" | "username")</code>
+                    <code>canActivate(context: ExecutionContext)</code>
                 </td>
             </tr>
 
@@ -328,7 +275,7 @@
                     <tr>
                         <td class="col-md-4">
                             <div class="io-line">Defined in <a href="" data-line="17"
-                                    class="link-to-prism">test/factories/auth.factory.ts:17</a></div>
+                                    class="link-to-prism">src/features/security/rate-limit/guards/rate-limit.guard.ts:17</a></div>
                         </td>
                     </tr>
 
@@ -345,44 +292,26 @@
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
-                                                <td>Default value</td>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
                                                 <td>context</td>
                                             <td>
-                                                            <code><a href="../miscellaneous/typealiases.html#CreateUserContext" target="_self" >CreateUserContext</a></code>
+                                                        <code>ExecutionContext</code>
                                             </td>
 
                                             <td>
                                                     No
                                             </td>
 
-                                            <td>
-                                            </td>
-
-                                        </tr>
-                                        <tr>
-                                                <td>loginBy</td>
-                                            <td>
-                                                        <code>&quot;email&quot; | &quot;username&quot;</code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-                                            <td>
-                                                    <code>&#x27;email&#x27;</code>
-                                            </td>
 
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;AuthenticatedUserContext&gt;</a></code>
+                            <b>Returns : </b>    <code>Promise&lt;boolean&gt;</code>
 
                         </div>
                             <div class="io-description">
@@ -394,81 +323,61 @@
     </table>
 </section>
 
+        </div>
 
 
-
-
-
-    </div>
-
-
-    <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { UserRole } from &#x27;@features/users/enums/user-role.enum&#x27;;
-import { INestApplication } from &#x27;@nestjs/common&#x27;;
-import { DataSource } from &#x27;typeorm&#x27;;
+        <div class="tab-pane fade  tab-source-code" id="source">
+            <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { SecurityErrors } from &#x27;@features/security/errors/security-errors&#x27;;
+import { CanActivate, ExecutionContext, Injectable } from &#x27;@nestjs/common&#x27;;
+import { Reflector } from &#x27;@nestjs/core&#x27;;
 import {
-  getCookie,
-  getCookieValue,
-  normalizeHeader
-} from &#x27;../utils/cookie.util&#x27;;
-import { AuthenticatedOptions } from &#x27;../utils/types/auth.types&#x27;;
-import {
-  AuthenticatedUserContext,
-  CreateUserContext
-} from &#x27;../utils/types/factory.types&#x27;;
-import { UserFactory } from &#x27;./user.factory&#x27;;
+  RATE_LIMIT_KEY,
+  RateLimitOptions
+} from &#x27;../decorators/rate-limit.decorator&#x27;;
+import { RateLimitService } from &#x27;../rate-limit.service&#x27;;
 
-export class AuthFactory {
-  static async login(
-    context: CreateUserContext,
-    loginBy: &#x27;email&#x27; | &#x27;username&#x27; &#x3D; &#x27;email&#x27;
-  ): Promise&lt;AuthenticatedUserContext&gt; {
-    const identifier &#x3D;
-      loginBy &#x3D;&#x3D;&#x3D; &#x27;email&#x27; ? context.user.email : context.user.username;
+@Injectable()
+export class RateLimitGuard implements CanActivate {
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly rateLimitService: RateLimitService
+  ) {}
 
-    const login &#x3D; await context.client.post(&#x27;/v1/auth/login&#x27;, {
-      body: {
-        email: identifier,
-        password: context.user.password
-      }
-    });
+  async canActivate(context: ExecutionContext): Promise&lt;boolean&gt; {
+    const options &#x3D; this.reflector.get&lt;RateLimitOptions&gt;(
+      RATE_LIMIT_KEY,
+      context.getHandler()
+    );
 
-    const cookies &#x3D; normalizeHeader(login.headers[&#x27;set-cookie&#x27;]);
+    if (!options) {
+      return true;
+    }
 
-    const refreshToken &#x3D; getCookie(cookies, &#x27;refresh_token&#x27;);
+    const request &#x3D; context.switchToHttp().getRequest();
 
-    const csrfToken &#x3D; getCookie(cookies, &#x27;csrf_token&#x27;);
-    const xCsrfToken &#x3D; getCookieValue(cookies, &#x27;csrf_token&#x27;);
+    const ip &#x3D; request.ip;
 
-    return {
-      ...context,
-      response: {
-        ...context.response,
-        login,
-        cookies: { refreshToken, csrfToken },
-        headers: { xCsrfToken }
-      }
-    };
-  }
+    const route &#x3D; request.route?.path ?? request.url;
 
-  static async authenticated(
-    app: INestApplication,
-    options: AuthenticatedOptions &#x3D; {},
-    dataSource?: DataSource
-  ): Promise&lt;AuthenticatedUserContext&gt; {
-    let context;
+    const allowed &#x3D; await this.rateLimitService.consume(
+      route,
+      ip,
+      options.limit,
+      options.ttl
+    );
 
-    if (options.withRole &#x3D;&#x3D;&#x3D; UserRole.ADMIN)
-      context &#x3D; await UserFactory.admin(app, dataSource, options.overrides);
+    if (!allowed) {
+      throw SecurityErrors.rateLimitExceeded();
+    }
 
-    context &#x3D; await UserFactory.register(app, options.overrides);
-
-    return this.login(context, options.loginBy);
+    return true;
   }
 }
 </code></pre>
-    </div>
+        </div>
 </div>
+
+
 
 
 
@@ -503,8 +412,8 @@ export class AuthFactory {
 
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
-            var COMPODOC_CURRENT_PAGE_CONTEXT = 'class';
-            var COMPODOC_CURRENT_PAGE_URL = 'AuthFactory.html';
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'guard';
+            var COMPODOC_CURRENT_PAGE_URL = 'RateLimitGuard.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

@@ -224,12 +224,12 @@
             <tbody>
                 <tr>
                     <td class="col-md-4">
-<code>constructor(deviceMapper: <a href="../injectables/DeviceMapper.html" target="_self">DeviceMapper</a>, clockService: <a href="../injectables/ClockService.html" target="_self">ClockService</a>, hashingProvider: <a href="../injectables/HashingProvider.html" target="_self">HashingProvider</a>, sessionsService: <a href="../injectables/SessionsService.html" target="_self">SessionsService</a>, usersService: <a href="../injectables/UsersService.html" target="_self">UsersService</a>, tokenService: <a href="../injectables/TokenService.html" target="_self">TokenService</a>)</code>
+<code>constructor(deviceMapper: <a href="../injectables/DeviceMapper.html" target="_self">DeviceMapper</a>, clockService: <a href="../injectables/ClockService.html" target="_self">ClockService</a>, hashingProvider: <a href="../injectables/HashingProvider.html" target="_self">HashingProvider</a>, sessionsService: <a href="../injectables/SessionsService.html" target="_self">SessionsService</a>, usersService: <a href="../injectables/UsersService.html" target="_self">UsersService</a>, tokenService: <a href="../injectables/TokenService.html" target="_self">TokenService</a>, redisLockService: <a href="../injectables/RedisLockService.html" target="_self">RedisLockService</a>)</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="18" class="link-to-prism">src/features/auth/auth.service.ts:18</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="20" class="link-to-prism">src/features/auth/auth.service.ts:20</a></div>
                             </td>
                         </tr>
 
@@ -318,6 +318,18 @@
                                                     </td>
                                                     
                                                 </tr>
+                                                <tr>
+                                                        <td>redisLockService</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/RedisLockService.html" target="_self" >RedisLockService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
                                         </tbody>
                                     </table>
                             </div>
@@ -354,8 +366,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="78"
-                                    class="link-to-prism">src/features/auth/auth.service.ts:78</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="80"
+                                    class="link-to-prism">src/features/auth/auth.service.ts:80</a></div>
                         </td>
                     </tr>
 
@@ -446,8 +458,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="38"
-                                    class="link-to-prism">src/features/auth/auth.service.ts:38</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="40"
+                                    class="link-to-prism">src/features/auth/auth.service.ts:40</a></div>
                         </td>
                     </tr>
 
@@ -538,8 +550,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="110"
-                                    class="link-to-prism">src/features/auth/auth.service.ts:110</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="112"
+                                    class="link-to-prism">src/features/auth/auth.service.ts:112</a></div>
                         </td>
                     </tr>
 
@@ -607,8 +619,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="29"
-                                    class="link-to-prism">src/features/auth/auth.service.ts:29</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="31"
+                                    class="link-to-prism">src/features/auth/auth.service.ts:31</a></div>
                         </td>
                     </tr>
 
@@ -669,6 +681,8 @@ import { SessionsService } from &#x27;@features/sessions/sessions.service&#x27;;
 import { TokenErrors } from &#x27;@features/token/errors/token-errors&#x27;;
 import { TokenService } from &#x27;@features/token/token.service&#x27;;
 import { UsersService } from &#x27;@features/users/users.service&#x27;;
+import { RedisKey } from &#x27;@infrastructure/databases/redis/keys/redis-key.enum&#x27;;
+import { RedisLockService } from &#x27;@infrastructure/databases/redis/redis-lock.service&#x27;;
 import { Injectable } from &#x27;@nestjs/common&#x27;;
 import { ChangePasswordRequestDto } from &#x27;./dto/request/change-password.request.dto&#x27;;
 import { LoginUserRequestDto } from &#x27;./dto/request/login-user.request.dto&#x27;;
@@ -685,8 +699,8 @@ export class AuthService implements IAuthService {
     private readonly hashingProvider: HashingProvider,
     private readonly sessionsService: SessionsService,
     private readonly usersService: UsersService,
-    private readonly tokenService: TokenService
-    // private readonly redisLockService: RedisLockService
+    private readonly tokenService: TokenService,
+    private readonly redisLockService: RedisLockService
   ) {}
 
   async registerUser(dto: RegisterUserRequestDto): Promise&lt;void&gt; {
@@ -774,63 +788,68 @@ export class AuthService implements IAuthService {
     const { sub, sessionId, iat } &#x3D;
       await this.tokenService.verifyRefreshToken(refreshToken);
 
-    // const lock &#x3D; await this.redisLockService.acquire(
-    //   RedisLockKey.REFRESH_LOCK,
-    //   sessionId
-    // );
-
-    // if (!lock) {
-    //   throw SessionErrors.refreshRateLimited(sessionId);
-    // }
-
-    const session &#x3D; await this.sessionsService.getActive(sub, sessionId);
-
-    if (!session) {
-      throw SessionErrors.sessionExpired();
-    }
-
-    const isValid &#x3D; await this.hashingProvider.compare(
-      refreshToken,
-      session.refreshTokenHash
+    const lock &#x3D; await this.redisLockService.acquire(
+      RedisKey.REFRESH_LOCK,
+      sessionId
     );
 
-    if (!isValid) {
-      await this.sessionsService.revoke(sub, sessionId);
-
-      throw SessionErrors.sessionReuseDetected(sessionId);
+    if (!lock) {
+      throw SessionErrors.refreshRateLimited(sessionId);
     }
 
-    if (session.rotatedAt &amp;&amp; session.rotatedAt.getTime() &gt;&#x3D; iat * 1000) {
-      throw SessionErrors.sessionReuseDetected(sessionId);
-    }
+    try {
+      const session &#x3D; await this.sessionsService.getActive(sub, sessionId);
 
-    const { now, expiresAt } &#x3D; this.clockService.snapshot();
+      if (!session) {
+        throw SessionErrors.sessionExpired();
+      }
 
-    const tokens &#x3D; await this.tokenService.issuePair(
-      sub,
-      session.id,
-      now,
-      expiresAt
-    );
+      const isValid &#x3D; await this.hashingProvider.compare(
+        refreshToken,
+        session.refreshTokenHash
+      );
 
-    const newHash &#x3D; await this.hashingProvider.hash(tokens.refreshToken);
+      if (!isValid) {
+        await this.sessionsService.revoke(sub, sessionId);
+        throw SessionErrors.sessionReuseDetected(sessionId);
+      }
 
-    const ok &#x3D; await this.sessionsService.rotateAtomic(
-      session.id,
-      session.version,
-      session.refreshTokenHash,
-      newHash,
-      {
+      if (session.rotatedAt &amp;&amp; session.rotatedAt.getTime() &gt;&#x3D; iat * 1000) {
+        throw SessionErrors.sessionReuseDetected(sessionId);
+      }
+
+      const { now, expiresAt } &#x3D; this.clockService.snapshot();
+
+      const tokens &#x3D; await this.tokenService.issuePair(
+        sub,
+        session.id,
         now,
         expiresAt
+      );
+
+      const newRefreshTokenHash &#x3D; await this.hashingProvider.hash(
+        tokens.refreshToken
+      );
+
+      const ok &#x3D; await this.sessionsService.rotateAtomic(
+        session.id,
+        session.version,
+        session.refreshTokenHash,
+        newRefreshTokenHash,
+        {
+          now,
+          expiresAt
+        }
+      );
+
+      if (!ok) {
+        throw SessionErrors.sessionReuseDetected(sessionId);
       }
-    );
 
-    if (!ok) {
-      throw SessionErrors.sessionReuseDetected(sessionId);
+      return tokens;
+    } finally {
+      await this.redisLockService.release(RedisKey.REFRESH_LOCK, sessionId);
     }
-
-    return tokens;
   }
 }
 </code></pre>

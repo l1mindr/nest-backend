@@ -101,7 +101,7 @@
                    <compodoc-menu mode="normal"></compodoc-menu>
                </div>
                <!-- START CONTENT -->
-               <div class="content class">
+               <div class="content injectable">
                    <div class="content-data">
 
 
@@ -115,18 +115,14 @@
 
 
 
-
-
-
-
 <ol class="breadcrumb">
-  <li class="breadcrumb-item">Classes</li>
-  <li class="breadcrumb-item" >AuthFactory</li>
+  <li class="breadcrumb-item">Injectables</li>
+  <li class="breadcrumb-item" >CsrfService</li>
 </ol>
 
 <div class="io-file io-file-path" data-compodoc="entity-file-path">
     <span class="icon ion-ios-document" aria-hidden="true"></span>
-    <code>test/factories/auth.factory.ts</code>
+    <code>src/features/security/csrf/csrf.service.ts</code>
 </div>
 
 <ul class="nav nav-tabs" role="tablist">
@@ -157,7 +153,26 @@
 
 
 
+                <section data-compodoc="block-relationships">
+            <h3>Relationships</h3>
+
+            <div class="row pt-3">
+                <div class="col-sm-6">
+                    <h4>Used by</h4>
+                        <ul class="list-unstyled relationships-list">
+                                <li>
+                                            <code><a href="../modules/CsrfModule.html" target="_self" >CsrfModule</a></code>
+                                </li>
+                        </ul>
+                </div>
+
+                <div class="col-sm-6">
+                    <h4>Depends on</h4>
+                        <p class="comment"><i>No results matching.</i></p>
+                </div>
             </div>
+        </section>
+    </div>
 
     <div class="tab-pane fade " id="api">
             <section data-compodoc="block-index">
@@ -173,15 +188,11 @@
                         <ul class="index-list">
                             <li>
                                 <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
-                                    <span class="modifier">Static</span>
-                                    <span class="modifier">Async</span>
-                                <a href="#authenticated" >authenticated</a>
+                                <a href="#generateToken" >generateToken</a>
                             </li>
                             <li>
                                 <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
-                                    <span class="modifier">Static</span>
-                                    <span class="modifier">Async</span>
-                                <a href="#login" >login</a>
+                                <a href="#validate" >validate</a>
                             </li>
                         </ul>
                     </td>
@@ -196,7 +207,6 @@
 </section>
 
 
-
             <section data-compodoc="block-methods">
     
     <h3 id="methods">
@@ -206,27 +216,24 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="authenticated"></a>
+                    <a name="generateToken"></a>
                     <span class="name">
-                            <span class="modifier">Static</span>
-                            <span class="modifier">Async</span>
-                        <span ><b>authenticated</b></span>
-                        <a href="#authenticated"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>generateToken</b></span>
+                        <a href="#generateToken"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>authenticated(app: INestApplication, options: <a href="../miscellaneous/typealiases.html#AuthenticatedOptions" target="_self">AuthenticatedOptions</a>, dataSource?: DataSource)</code>
+<code>generateToken()</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="49"
-                                    class="link-to-prism">test/factories/auth.factory.ts:49</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="6"
+                                    class="link-to-prism">src/features/security/csrf/csrf.service.ts:6</a></div>
                         </td>
                     </tr>
 
@@ -234,72 +241,10 @@
             <tr>
                 <td class="col-md-4">
 
-                            <div class="io-description">
-                                <b>Parameters :</b>
-                                
-                                <table class="params">
-                                    <thead>
-                                        <tr>
-                                            <td>Name</td>
-                                                <td>Type</td>
-                                            <td>Optional</td>
-                                                <td>Default value</td>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                                <td>app</td>
-                                            <td>
-                                                        <code>INestApplication</code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-                                            <td>
-                                            </td>
-
-                                        </tr>
-                                        <tr>
-                                                <td>options</td>
-                                            <td>
-                                                            <code><a href="../miscellaneous/typealiases.html#AuthenticatedOptions" target="_self" >AuthenticatedOptions</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-                                            <td>
-                                                    <code>{}</code>
-                                            </td>
-
-                                        </tr>
-                                        <tr>
-                                                <td>dataSource</td>
-                                            <td>
-                                                        <code>DataSource</code>
-                                            </td>
-
-                                            <td>
-                                                    Yes
-                                            </td>
-
-                                            <td>
-                                            </td>
-
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;AuthenticatedUserContext&gt;</a></code>
+                            <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
 
                         </div>
-                            <div class="io-description">
-                                
-                            </div>
                 </td>
             </tr>
         </tbody>
@@ -308,27 +253,24 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="login"></a>
+                    <a name="validate"></a>
                     <span class="name">
-                            <span class="modifier">Static</span>
-                            <span class="modifier">Async</span>
-                        <span ><b>login</b></span>
-                        <a href="#login"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>validate</b></span>
+                        <a href="#validate"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>login(context: <a href="../miscellaneous/typealiases.html#CreateUserContext" target="_self">CreateUserContext</a>, loginBy: "email" | "username")</code>
+<code>validate(cookieToken?: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, headerToken?: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="17"
-                                    class="link-to-prism">test/factories/auth.factory.ts:17</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="10"
+                                    class="link-to-prism">src/features/security/csrf/csrf.service.ts:10</a></div>
                         </td>
                     </tr>
 
@@ -345,44 +287,38 @@
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
-                                                <td>Default value</td>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>context</td>
+                                                <td>cookieToken</td>
                                             <td>
-                                                            <code><a href="../miscellaneous/typealiases.html#CreateUserContext" target="_self" >CreateUserContext</a></code>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
 
                                             <td>
-                                                    No
+                                                    Yes
                                             </td>
 
-                                            <td>
-                                            </td>
 
                                         </tr>
                                         <tr>
-                                                <td>loginBy</td>
+                                                <td>headerToken</td>
                                             <td>
-                                                        <code>&quot;email&quot; | &quot;username&quot;</code>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
 
                                             <td>
-                                                    No
+                                                    Yes
                                             </td>
 
-                                            <td>
-                                                    <code>&#x27;email&#x27;</code>
-                                            </td>
 
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;AuthenticatedUserContext&gt;</a></code>
+                            <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
 
                         </div>
                             <div class="io-description">
@@ -395,80 +331,31 @@
 </section>
 
 
-
-
-
-
     </div>
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { UserRole } from &#x27;@features/users/enums/user-role.enum&#x27;;
-import { INestApplication } from &#x27;@nestjs/common&#x27;;
-import { DataSource } from &#x27;typeorm&#x27;;
-import {
-  getCookie,
-  getCookieValue,
-  normalizeHeader
-} from &#x27;../utils/cookie.util&#x27;;
-import { AuthenticatedOptions } from &#x27;../utils/types/auth.types&#x27;;
-import {
-  AuthenticatedUserContext,
-  CreateUserContext
-} from &#x27;../utils/types/factory.types&#x27;;
-import { UserFactory } from &#x27;./user.factory&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Injectable } from &#x27;@nestjs/common&#x27;;
+import { randomBytes } from &#x27;crypto&#x27;;
 
-export class AuthFactory {
-  static async login(
-    context: CreateUserContext,
-    loginBy: &#x27;email&#x27; | &#x27;username&#x27; &#x3D; &#x27;email&#x27;
-  ): Promise&lt;AuthenticatedUserContext&gt; {
-    const identifier &#x3D;
-      loginBy &#x3D;&#x3D;&#x3D; &#x27;email&#x27; ? context.user.email : context.user.username;
-
-    const login &#x3D; await context.client.post(&#x27;/v1/auth/login&#x27;, {
-      body: {
-        email: identifier,
-        password: context.user.password
-      }
-    });
-
-    const cookies &#x3D; normalizeHeader(login.headers[&#x27;set-cookie&#x27;]);
-
-    const refreshToken &#x3D; getCookie(cookies, &#x27;refresh_token&#x27;);
-
-    const csrfToken &#x3D; getCookie(cookies, &#x27;csrf_token&#x27;);
-    const xCsrfToken &#x3D; getCookieValue(cookies, &#x27;csrf_token&#x27;);
-
-    return {
-      ...context,
-      response: {
-        ...context.response,
-        login,
-        cookies: { refreshToken, csrfToken },
-        headers: { xCsrfToken }
-      }
-    };
+@Injectable()
+export class CsrfService {
+  generateToken(): string {
+    return randomBytes(32).toString(&#x27;hex&#x27;);
   }
 
-  static async authenticated(
-    app: INestApplication,
-    options: AuthenticatedOptions &#x3D; {},
-    dataSource?: DataSource
-  ): Promise&lt;AuthenticatedUserContext&gt; {
-    let context;
-
-    if (options.withRole &#x3D;&#x3D;&#x3D; UserRole.ADMIN)
-      context &#x3D; await UserFactory.admin(app, dataSource, options.overrides);
-
-    context &#x3D; await UserFactory.register(app, options.overrides);
-
-    return this.login(context, options.loginBy);
+  validate(cookieToken?: string, headerToken?: string) {
+    return !!cookieToken &amp;&amp; cookieToken &#x3D;&#x3D;&#x3D; headerToken;
   }
 }
 </code></pre>
     </div>
+
 </div>
+
+
+
+
 
 
 
@@ -503,8 +390,8 @@ export class AuthFactory {
 
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
-            var COMPODOC_CURRENT_PAGE_CONTEXT = 'class';
-            var COMPODOC_CURRENT_PAGE_URL = 'AuthFactory.html';
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'injectable';
+            var COMPODOC_CURRENT_PAGE_URL = 'CsrfService.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

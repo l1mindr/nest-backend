@@ -101,7 +101,7 @@
                    <compodoc-menu mode="normal"></compodoc-menu>
                </div>
                <!-- START CONTENT -->
-               <div class="content class">
+               <div class="content guard">
                    <div class="content-data">
 
 
@@ -117,16 +117,14 @@
 
 
 
-
-
 <ol class="breadcrumb">
-  <li class="breadcrumb-item">Classes</li>
-  <li class="breadcrumb-item" >AuthFactory</li>
+    <li class="breadcrumb-item">Guards</li>
+    <li class="breadcrumb-item" >CsrfGuard</li>
 </ol>
 
 <div class="io-file io-file-path" data-compodoc="entity-file-path">
     <span class="icon ion-ios-document" aria-hidden="true"></span>
-    <code>test/factories/auth.factory.ts</code>
+    <code>src/features/security/csrf/guards/csrf.guard.ts</code>
 </div>
 
 <ul class="nav nav-tabs" role="tablist">
@@ -151,16 +149,16 @@
 </ul>
 
 <div class="tab-content">
-    <div class="tab-pane fade active in" id="info">
+        <div class="tab-pane fade active in" id="info">
 
 
 
 
 
-            </div>
+                    </div>
 
-    <div class="tab-pane fade " id="api">
-            <section data-compodoc="block-index">
+        <div class="tab-pane fade " id="api">
+                <section data-compodoc="block-index">
     <h3 id="index">Index</h3>
 
         <table class="table table-sm table-bordered index-table">
@@ -173,15 +171,12 @@
                         <ul class="index-list">
                             <li>
                                 <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
-                                    <span class="modifier">Static</span>
-                                    <span class="modifier">Async</span>
-                                <a href="#authenticated" >authenticated</a>
+                                <a href="#canActivate" >canActivate</a>
                             </li>
                             <li>
                                 <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
-                                    <span class="modifier">Static</span>
-                                    <span class="modifier">Async</span>
-                                <a href="#login" >login</a>
+                                    <span class="modifier">Private</span>
+                                <a href="#isSafeMethod" >isSafeMethod</a>
                             </li>
                         </ul>
                     </td>
@@ -195,9 +190,68 @@
 
 </section>
 
+                <section data-compodoc="block-constructor">
+    <h3 id="constructor">Constructor</h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+<code>constructor(reflector: Reflector, csrfService: <a href="../injectables/CsrfService.html" target="_self">CsrfService</a>)</code>
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="13" class="link-to-prism">src/features/security/csrf/guards/csrf.guard.ts:13</a></div>
+                            </td>
+                        </tr>
 
+                <tr>
+                    <td class="col-md-4">
+                            <div>
+                                    <b>Parameters :</b>
+                                    <table class="params">
+                                        <thead>
+                                            <tr>
+                                                <td>Name</td>
+                                                    <td>Type</td>
+                                                <td>Optional</td>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                                <tr>
+                                                        <td>reflector</td>
+                                                  
+                                                        <td>
+                                                                    <code>Reflector</code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>csrfService</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/CsrfService.html" target="_self" >CsrfService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                        </tbody>
+                                    </table>
+                            </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+</section>
 
-            <section data-compodoc="block-methods">
+                <section data-compodoc="block-methods">
     
     <h3 id="methods">
         Methods
@@ -206,27 +260,24 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="authenticated"></a>
+                    <a name="canActivate"></a>
                     <span class="name">
-                            <span class="modifier">Static</span>
-                            <span class="modifier">Async</span>
-                        <span ><b>authenticated</b></span>
-                        <a href="#authenticated"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>canActivate</b></span>
+                        <a href="#canActivate"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>authenticated(app: INestApplication, options: <a href="../miscellaneous/typealiases.html#AuthenticatedOptions" target="_self">AuthenticatedOptions</a>, dataSource?: DataSource)</code>
+<code>canActivate(context: ExecutionContext)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="49"
-                                    class="link-to-prism">test/factories/auth.factory.ts:49</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="23"
+                                    class="link-to-prism">src/features/security/csrf/guards/csrf.guard.ts:23</a></div>
                         </td>
                     </tr>
 
@@ -243,58 +294,26 @@
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
-                                                <td>Default value</td>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>app</td>
+                                                <td>context</td>
                                             <td>
-                                                        <code>INestApplication</code>
+                                                        <code>ExecutionContext</code>
                                             </td>
 
                                             <td>
                                                     No
                                             </td>
 
-                                            <td>
-                                            </td>
-
-                                        </tr>
-                                        <tr>
-                                                <td>options</td>
-                                            <td>
-                                                            <code><a href="../miscellaneous/typealiases.html#AuthenticatedOptions" target="_self" >AuthenticatedOptions</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-                                            <td>
-                                                    <code>{}</code>
-                                            </td>
-
-                                        </tr>
-                                        <tr>
-                                                <td>dataSource</td>
-                                            <td>
-                                                        <code>DataSource</code>
-                                            </td>
-
-                                            <td>
-                                                    Yes
-                                            </td>
-
-                                            <td>
-                                            </td>
 
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;AuthenticatedUserContext&gt;</a></code>
+                            <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
 
                         </div>
                             <div class="io-description">
@@ -308,27 +327,26 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="login"></a>
+                    <a name="isSafeMethod"></a>
                     <span class="name">
-                            <span class="modifier">Static</span>
-                            <span class="modifier">Async</span>
-                        <span ><b>login</b></span>
-                        <a href="#login"><span class="icon ion-ios-link"></span></a>
+                            <span class="modifier">Private</span>
+                        <span ><b>isSafeMethod</b></span>
+                        <a href="#isSafeMethod"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>login(context: <a href="../miscellaneous/typealiases.html#CreateUserContext" target="_self">CreateUserContext</a>, loginBy: "email" | "username")</code>
+                    <code>isSafeMethod(method: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="17"
-                                    class="link-to-prism">test/factories/auth.factory.ts:17</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="19"
+                                    class="link-to-prism">src/features/security/csrf/guards/csrf.guard.ts:19</a></div>
                         </td>
                     </tr>
 
@@ -345,44 +363,26 @@
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
-                                                <td>Default value</td>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>context</td>
+                                                <td>method</td>
                                             <td>
-                                                            <code><a href="../miscellaneous/typealiases.html#CreateUserContext" target="_self" >CreateUserContext</a></code>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
 
                                             <td>
                                                     No
                                             </td>
 
-                                            <td>
-                                            </td>
-
-                                        </tr>
-                                        <tr>
-                                                <td>loginBy</td>
-                                            <td>
-                                                        <code>&quot;email&quot; | &quot;username&quot;</code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-                                            <td>
-                                                    <code>&#x27;email&#x27;</code>
-                                            </td>
 
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;AuthenticatedUserContext&gt;</a></code>
+                            <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
 
                         </div>
                             <div class="io-description">
@@ -394,81 +394,66 @@
     </table>
 </section>
 
+        </div>
 
 
+        <div class="tab-pane fade  tab-source-code" id="source">
+            <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable
+} from &#x27;@nestjs/common&#x27;;
+import { Reflector } from &#x27;@nestjs/core&#x27;;
+import { Request } from &#x27;express&#x27;;
+import { CsrfService } from &#x27;../csrf.service&#x27;;
+import { SKIP_CSRF_KEY } from &#x27;../decorators/skip-csrf.decorator&#x27;;
 
+@Injectable()
+export class CsrfGuard implements CanActivate {
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly csrfService: CsrfService
+  ) {}
 
-
-    </div>
-
-
-    <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { UserRole } from &#x27;@features/users/enums/user-role.enum&#x27;;
-import { INestApplication } from &#x27;@nestjs/common&#x27;;
-import { DataSource } from &#x27;typeorm&#x27;;
-import {
-  getCookie,
-  getCookieValue,
-  normalizeHeader
-} from &#x27;../utils/cookie.util&#x27;;
-import { AuthenticatedOptions } from &#x27;../utils/types/auth.types&#x27;;
-import {
-  AuthenticatedUserContext,
-  CreateUserContext
-} from &#x27;../utils/types/factory.types&#x27;;
-import { UserFactory } from &#x27;./user.factory&#x27;;
-
-export class AuthFactory {
-  static async login(
-    context: CreateUserContext,
-    loginBy: &#x27;email&#x27; | &#x27;username&#x27; &#x3D; &#x27;email&#x27;
-  ): Promise&lt;AuthenticatedUserContext&gt; {
-    const identifier &#x3D;
-      loginBy &#x3D;&#x3D;&#x3D; &#x27;email&#x27; ? context.user.email : context.user.username;
-
-    const login &#x3D; await context.client.post(&#x27;/v1/auth/login&#x27;, {
-      body: {
-        email: identifier,
-        password: context.user.password
-      }
-    });
-
-    const cookies &#x3D; normalizeHeader(login.headers[&#x27;set-cookie&#x27;]);
-
-    const refreshToken &#x3D; getCookie(cookies, &#x27;refresh_token&#x27;);
-
-    const csrfToken &#x3D; getCookie(cookies, &#x27;csrf_token&#x27;);
-    const xCsrfToken &#x3D; getCookieValue(cookies, &#x27;csrf_token&#x27;);
-
-    return {
-      ...context,
-      response: {
-        ...context.response,
-        login,
-        cookies: { refreshToken, csrfToken },
-        headers: { xCsrfToken }
-      }
-    };
+  private isSafeMethod(method: string): boolean {
+    return [&#x27;GET&#x27;, &#x27;HEAD&#x27;, &#x27;OPTIONS&#x27;].includes(method);
   }
 
-  static async authenticated(
-    app: INestApplication,
-    options: AuthenticatedOptions &#x3D; {},
-    dataSource?: DataSource
-  ): Promise&lt;AuthenticatedUserContext&gt; {
-    let context;
+  canActivate(context: ExecutionContext): boolean {
+    const skip &#x3D; this.reflector.getAllAndOverride&lt;boolean&gt;(SKIP_CSRF_KEY, [
+      context.getHandler(),
+      context.getClass()
+    ]);
 
-    if (options.withRole &#x3D;&#x3D;&#x3D; UserRole.ADMIN)
-      context &#x3D; await UserFactory.admin(app, dataSource, options.overrides);
+    if (skip) {
+      return true;
+    }
 
-    context &#x3D; await UserFactory.register(app, options.overrides);
+    const request &#x3D; context.switchToHttp().getRequest&lt;Request&gt;();
 
-    return this.login(context, options.loginBy);
+    if (this.isSafeMethod(request.method)) {
+      return true;
+    }
+
+    const cookieToken &#x3D; request.cookies?.csrf_token;
+
+    const headerToken &#x3D; request.header(&#x27;x-csrf-token&#x27;);
+
+    const valid &#x3D; this.csrfService.validate(cookieToken, headerToken);
+
+    if (!valid) {
+      throw new ForbiddenException(&#x27;Invalid CSRF token.&#x27;);
+    }
+
+    return true;
   }
 }
 </code></pre>
-    </div>
+        </div>
 </div>
+
+
 
 
 
@@ -503,8 +488,8 @@ export class AuthFactory {
 
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
-            var COMPODOC_CURRENT_PAGE_CONTEXT = 'class';
-            var COMPODOC_CURRENT_PAGE_URL = 'AuthFactory.html';
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'guard';
+            var COMPODOC_CURRENT_PAGE_URL = 'CsrfGuard.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

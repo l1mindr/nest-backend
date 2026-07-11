@@ -101,7 +101,7 @@
                    <compodoc-menu mode="normal"></compodoc-menu>
                </div>
                <!-- START CONTENT -->
-               <div class="content class">
+               <div class="content injectable">
                    <div class="content-data">
 
 
@@ -115,18 +115,14 @@
 
 
 
-
-
-
-
 <ol class="breadcrumb">
-  <li class="breadcrumb-item">Classes</li>
-  <li class="breadcrumb-item" >AuthFactory</li>
+  <li class="breadcrumb-item">Injectables</li>
+  <li class="breadcrumb-item" >RedisCounterService</li>
 </ol>
 
 <div class="io-file io-file-path" data-compodoc="entity-file-path">
     <span class="icon ion-ios-document" aria-hidden="true"></span>
-    <code>test/factories/auth.factory.ts</code>
+    <code>src/infrastructure/databases/redis/redis-counter.service.ts</code>
 </div>
 
 <ul class="nav nav-tabs" role="tablist">
@@ -157,7 +153,26 @@
 
 
 
+                <section data-compodoc="block-relationships">
+            <h3>Relationships</h3>
+
+            <div class="row pt-3">
+                <div class="col-sm-6">
+                    <h4>Used by</h4>
+                        <ul class="list-unstyled relationships-list">
+                                <li>
+                                            <code><a href="../modules/RedisModule.html" target="_self" >RedisModule</a></code>
+                                </li>
+                        </ul>
+                </div>
+
+                <div class="col-sm-6">
+                    <h4>Depends on</h4>
+                        <p class="comment"><i>No results matching.</i></p>
+                </div>
             </div>
+        </section>
+    </div>
 
     <div class="tab-pane fade " id="api">
             <section data-compodoc="block-index">
@@ -173,15 +188,13 @@
                         <ul class="index-list">
                             <li>
                                 <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
-                                    <span class="modifier">Static</span>
                                     <span class="modifier">Async</span>
-                                <a href="#authenticated" >authenticated</a>
+                                <a href="#get" >get</a>
                             </li>
                             <li>
                                 <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
-                                    <span class="modifier">Static</span>
                                     <span class="modifier">Async</span>
-                                <a href="#login" >login</a>
+                                <a href="#increment" >increment</a>
                             </li>
                         </ul>
                     </td>
@@ -195,7 +208,54 @@
 
 </section>
 
+            <section data-compodoc="block-constructor">
+    <h3 id="constructor">Constructor</h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+<code>constructor(redisService: <a href="../injectables/RedisService.html" target="_self">RedisService</a>)</code>
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="5" class="link-to-prism">src/infrastructure/databases/redis/redis-counter.service.ts:5</a></div>
+                            </td>
+                        </tr>
 
+                <tr>
+                    <td class="col-md-4">
+                            <div>
+                                    <b>Parameters :</b>
+                                    <table class="params">
+                                        <thead>
+                                            <tr>
+                                                <td>Name</td>
+                                                    <td>Type</td>
+                                                <td>Optional</td>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                                <tr>
+                                                        <td>redisService</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/RedisService.html" target="_self" >RedisService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                        </tbody>
+                                    </table>
+                            </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+</section>
 
             <section data-compodoc="block-methods">
     
@@ -206,27 +266,26 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="authenticated"></a>
+                    <a name="get"></a>
                     <span class="name">
-                            <span class="modifier">Static</span>
                             <span class="modifier">Async</span>
-                        <span ><b>authenticated</b></span>
-                        <a href="#authenticated"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>get</b></span>
+                        <a href="#get"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>authenticated(app: INestApplication, options: <a href="../miscellaneous/typealiases.html#AuthenticatedOptions" target="_self">AuthenticatedOptions</a>, dataSource?: DataSource)</code>
+                    <code>get(key: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="49"
-                                    class="link-to-prism">test/factories/auth.factory.ts:49</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="8"
+                                    class="link-to-prism">src/infrastructure/databases/redis/redis-counter.service.ts:8</a></div>
                         </td>
                     </tr>
 
@@ -243,58 +302,26 @@
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
-                                                <td>Default value</td>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>app</td>
+                                                <td>key</td>
                                             <td>
-                                                        <code>INestApplication</code>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
 
                                             <td>
                                                     No
                                             </td>
 
-                                            <td>
-                                            </td>
-
-                                        </tr>
-                                        <tr>
-                                                <td>options</td>
-                                            <td>
-                                                            <code><a href="../miscellaneous/typealiases.html#AuthenticatedOptions" target="_self" >AuthenticatedOptions</a></code>
-                                            </td>
-
-                                            <td>
-                                                    No
-                                            </td>
-
-                                            <td>
-                                                    <code>{}</code>
-                                            </td>
-
-                                        </tr>
-                                        <tr>
-                                                <td>dataSource</td>
-                                            <td>
-                                                        <code>DataSource</code>
-                                            </td>
-
-                                            <td>
-                                                    Yes
-                                            </td>
-
-                                            <td>
-                                            </td>
 
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;AuthenticatedUserContext&gt;</a></code>
+                            <b>Returns : </b>    <code>unknown</code>
 
                         </div>
                             <div class="io-description">
@@ -308,27 +335,26 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="login"></a>
+                    <a name="increment"></a>
                     <span class="name">
-                            <span class="modifier">Static</span>
                             <span class="modifier">Async</span>
-                        <span ><b>login</b></span>
-                        <a href="#login"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>increment</b></span>
+                        <a href="#increment"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>login(context: <a href="../miscellaneous/typealiases.html#CreateUserContext" target="_self">CreateUserContext</a>, loginBy: "email" | "username")</code>
+                    <code>increment(key: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ttl?: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="17"
-                                    class="link-to-prism">test/factories/auth.factory.ts:17</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="12"
+                                    class="link-to-prism">src/infrastructure/databases/redis/redis-counter.service.ts:12</a></div>
                         </td>
                     </tr>
 
@@ -345,44 +371,38 @@
                                             <td>Name</td>
                                                 <td>Type</td>
                                             <td>Optional</td>
-                                                <td>Default value</td>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>context</td>
+                                                <td>key</td>
                                             <td>
-                                                            <code><a href="../miscellaneous/typealiases.html#CreateUserContext" target="_self" >CreateUserContext</a></code>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
 
                                             <td>
                                                     No
                                             </td>
 
-                                            <td>
-                                            </td>
 
                                         </tr>
                                         <tr>
-                                                <td>loginBy</td>
+                                                <td>ttl</td>
                                             <td>
-                                                        <code>&quot;email&quot; | &quot;username&quot;</code>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
                                             </td>
 
                                             <td>
-                                                    No
+                                                    Yes
                                             </td>
 
-                                            <td>
-                                                    <code>&#x27;email&#x27;</code>
-                                            </td>
 
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="../classes/User.html" target="_self" >Promise&lt;AuthenticatedUserContext&gt;</a></code>
+                            <b>Returns : </b>    <code>unknown</code>
 
                         </div>
                             <div class="io-description">
@@ -395,80 +415,39 @@
 </section>
 
 
-
-
-
-
     </div>
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { UserRole } from &#x27;@features/users/enums/user-role.enum&#x27;;
-import { INestApplication } from &#x27;@nestjs/common&#x27;;
-import { DataSource } from &#x27;typeorm&#x27;;
-import {
-  getCookie,
-  getCookieValue,
-  normalizeHeader
-} from &#x27;../utils/cookie.util&#x27;;
-import { AuthenticatedOptions } from &#x27;../utils/types/auth.types&#x27;;
-import {
-  AuthenticatedUserContext,
-  CreateUserContext
-} from &#x27;../utils/types/factory.types&#x27;;
-import { UserFactory } from &#x27;./user.factory&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Injectable } from &#x27;@nestjs/common&#x27;;
+import { RedisService } from &#x27;./redis.service&#x27;;
 
-export class AuthFactory {
-  static async login(
-    context: CreateUserContext,
-    loginBy: &#x27;email&#x27; | &#x27;username&#x27; &#x3D; &#x27;email&#x27;
-  ): Promise&lt;AuthenticatedUserContext&gt; {
-    const identifier &#x3D;
-      loginBy &#x3D;&#x3D;&#x3D; &#x27;email&#x27; ? context.user.email : context.user.username;
+@Injectable()
+export class RedisCounterService {
+  constructor(private readonly redisService: RedisService) {}
 
-    const login &#x3D; await context.client.post(&#x27;/v1/auth/login&#x27;, {
-      body: {
-        email: identifier,
-        password: context.user.password
-      }
-    });
-
-    const cookies &#x3D; normalizeHeader(login.headers[&#x27;set-cookie&#x27;]);
-
-    const refreshToken &#x3D; getCookie(cookies, &#x27;refresh_token&#x27;);
-
-    const csrfToken &#x3D; getCookie(cookies, &#x27;csrf_token&#x27;);
-    const xCsrfToken &#x3D; getCookieValue(cookies, &#x27;csrf_token&#x27;);
-
-    return {
-      ...context,
-      response: {
-        ...context.response,
-        login,
-        cookies: { refreshToken, csrfToken },
-        headers: { xCsrfToken }
-      }
-    };
+  async get(key: string) {
+    return this.redisService.get(key);
   }
 
-  static async authenticated(
-    app: INestApplication,
-    options: AuthenticatedOptions &#x3D; {},
-    dataSource?: DataSource
-  ): Promise&lt;AuthenticatedUserContext&gt; {
-    let context;
+  async increment(key: string, ttl?: number) {
+    const value &#x3D; await this.redisService.client.incr(key);
 
-    if (options.withRole &#x3D;&#x3D;&#x3D; UserRole.ADMIN)
-      context &#x3D; await UserFactory.admin(app, dataSource, options.overrides);
+    if (value &#x3D;&#x3D;&#x3D; 1 &amp;&amp; ttl) {
+      await this.redisService.client.expire(key, ttl);
+    }
 
-    context &#x3D; await UserFactory.register(app, options.overrides);
-
-    return this.login(context, options.loginBy);
+    return value;
   }
 }
 </code></pre>
     </div>
+
 </div>
+
+
+
+
 
 
 
@@ -503,8 +482,8 @@ export class AuthFactory {
 
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
-            var COMPODOC_CURRENT_PAGE_CONTEXT = 'class';
-            var COMPODOC_CURRENT_PAGE_URL = 'AuthFactory.html';
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'injectable';
+            var COMPODOC_CURRENT_PAGE_URL = 'RedisCounterService.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

@@ -106,67 +106,67 @@
 
 
 <h1>Nest Backend</h1>
-<p>Enterprise-grade NestJS backend focused on scalability, maintainability and security.</p>
-<h2>Features</h2>
+<p>Nest Backend is a NestJS API for user authentication, session management, and account administration. It uses PostgreSQL with TypeORM, Redis with <code>ioredis</code>, cookie-based JWT authentication, server-side sessions, CSRF protection, role-based access control, and Jest/Supertest tests.</p>
+<p>The package metadata currently sets <code>&quot;private&quot;: true</code> and <code>&quot;license&quot;: &quot;UNLICENSED&quot;</code>. Update those fields before publishing this repository as an open-source package.</p>
+<h2>Documentation</h2>
+<p>The detailed project documentation lives in <a href="docs/">docs</a>. It is based on the current source code, configuration, tests, and Docker files.</p>
+<table class="table table-bordered compodoc-table">
+<thead>
+<tr><th>Document</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="docs/architecture.md">Architecture</a></td><td>System layers, module graph, runtime setup, and architectural gaps.</td></tr>
+<tr><td><a href="docs/project-structure.md">Project Structure</a></td><td>Repository layout and source organization.</td></tr>
+<tr><td><a href="docs/modules.md">Modules</a></td><td>Nest modules, providers, imports, exports, and module communication.</td></tr>
+<tr><td><a href="docs/authentication.md">Authentication</a></td><td>Registration, login, refresh, password change, tokens, and cookies.</td></tr>
+<tr><td><a href="docs/authorization.md">Authorization</a></td><td>Global JWT guard, role guard, decorators, and admin access.</td></tr>
+<tr><td><a href="docs/sessions.md">Sessions</a></td><td>Session entity, session endpoints, revocation, and refresh rotation.</td></tr>
+<tr><td><a href="docs/security.md">Security</a></td><td>Implemented controls and current security gaps.</td></tr>
+<tr><td><a href="docs/api.md">API</a></td><td>Routes, request DTOs, response envelopes, Swagger, and validation rules.</td></tr>
+<tr><td><a href="docs/database.md">Database</a></td><td>PostgreSQL config, TypeORM data source, migrations, and schema.</td></tr>
+<tr><td><a href="docs/entities.md">Entities</a></td><td>User/session entities, embedded timestamps, DTOs, and serialization.</td></tr>
+<tr><td><a href="docs/caching.md">Caching</a></td><td>Redis usage, rate-limit counters, and refresh-flow key helper.</td></tr>
+<tr><td><a href="docs/configuration.md">Configuration</a></td><td>Environment variables, config modules, TypeScript, and package manager notes.</td></tr>
+<tr><td><a href="docs/testing.md">Testing</a></td><td>Unit tests, e2e tests, helpers, factories, Dockerized test flow, and CI.</td></tr>
+<tr><td><a href="docs/deployment.md">Deployment</a></td><td>Production commands, Dockerfile, Compose files, CI, and operational gaps.</td></tr>
+<tr><td><a href="docs/development-guide.md">Development Guide</a></td><td>Local setup, migrations, tests, code quality, and hooks.</td></tr>
+<tr><td><a href="docs/coding-decisions.md">Coding Decisions</a></td><td>Implementation decisions visible in the codebase.</td></tr>
+<tr><td><a href="docs/dependencies.md">Dependencies</a></td><td>Runtime/dev dependency groups and automation.</td></tr>
+<tr><td><a href="docs/request-lifecycle.md">Request Lifecycle</a></td><td>Request flow from middleware through guards, pipes, services, and filters.</td></tr>
+<tr><td><a href="docs/diagrams.md">Diagrams</a></td><td>Mermaid diagrams for modules, auth, refresh, entities, and lifecycle.</td></tr>
+<tr><td><a href="docs/glossary.md">Glossary</a></td><td>Project terms and definitions.</td></tr>
+</tbody>
+</table>
+<h2>Quick Start</h2>
+<p>Prerequisites:</p>
 <ul>
-<li>JWT Authentication</li>
-<li>Refresh Token Rotation</li>
-<li>Session Versioning</li>
-<li>RBAC</li>
+<li>Node.js 22</li>
+<li>Corepack and Yarn 4</li>
 <li>PostgreSQL</li>
 <li>Redis</li>
-<li>Swagger</li>
-<li>Jest</li>
-<li>TypeORM</li>
-<li>Clean Architecture</li>
 </ul>
-<hr>
-<h1>Documentation</h1>
-<h2>Getting Started</h2>
+<p>Install dependencies:</p>
+<b>Example :</b><div><pre class="line-numbers"><code class="language-bash">corepack enable
+yarn install --immutable</code></pre></div><p>Create an environment file:</p>
+<b>Example :</b><div><pre class="line-numbers"><code class="language-bash">cp .env.example .env</code></pre></div><p>Set real values for PostgreSQL, Redis, <code>JWT_SECRET_KEY</code>, and a single <code>NODE_ENV</code> value.</p>
+<p>Run in development:</p>
+<b>Example :</b><div><pre class="line-numbers"><code class="language-bash">yarn start:dev</code></pre></div><p>The application listens on:</p>
+<b>Example :</b><div><pre class="line-numbers"><code class="language-text">http://localhost:8080</code></pre></div><p>Swagger UI is available in development mode:</p>
+<b>Example :</b><div><pre class="line-numbers"><code class="language-text">http://localhost:8080/api</code></pre></div><h2>Common Commands</h2>
+<b>Example :</b><div><pre class="line-numbers"><code class="language-bash">yarn build
+yarn start:prod
+yarn test:unit
+yarn test:e2e
+yarn lint
+yarn format
+yarn migration:run
+yarn docs</code></pre></div><h2>Notes</h2>
 <ul>
-<li>Installation</li>
-<li>Development</li>
-<li>Scripts</li>
-</ul>
-<h2>Documentation (docs)</h2>
-<ul>
-<li><p><strong>Architecture</strong></p>
-<ul>
-<li><a href="docs/project-structure.md">Project Structure</a></li>
-<li><a href="docs/architecture.md">Architecture Overview</a></li>
-<li><a href="docs/providers.md">Providers</a></li>
-</ul>
-</li>
-<li><p><strong>Authentication &amp; Sessions</strong></p>
-<ul>
-<li><a href="docs/authentication.md">Authentication Flow</a></li>
-<li><a href="docs/sessions.md">Sessions (Refresh &amp; Rotation)</a></li>
-<li><a href="docs/security.md">Security Model</a></li>
-</ul>
-</li>
-<li><p><strong>Infrastructure &amp; Database</strong></p>
-<ul>
-<li><a href="docs/database.md">Database Design</a></li>
-<li><a href="docs/redis.md">Redis Usage</a></li>
-</ul>
-</li>
-<li><p><strong>Testing &amp; Development</strong></p>
-<ul>
-<li><a href="docs/testing.md">Testing Guide</a></li>
-<li><a href="docs/development.md">Developer Setup</a></li>
-</ul>
-</li>
-<li><p><strong>Project Conventions &amp; Roadmap</strong></p>
-<ul>
-<li><a href="docs/conventions.md">Conventions</a></li>
-<li><a href="docs/roadmap.md">Roadmap</a></li>
-</ul>
-</li>
-<li><p><strong>FAQ</strong></p>
-<ul>
-<li><a href="docs/faq.md">FAQ — Architecture Questions</a></li>
-</ul>
-</li>
+<li>Successful API responses are wrapped as <code>{ &quot;data&quot;: ... }</code>.</li>
+<li>Runtime errors are wrapped as <code>{ &quot;error&quot;: ... }</code>.</li>
+<li>Routes are URI-versioned under <code>/v1</code>.</li>
+<li>The app port is hardcoded to <code>8080</code>.</li>
+<li>The development Docker Compose file currently needs alignment with the app port and database environment values. See <a href="docs/deployment.md">Deployment</a>.</li>
 </ul>
 
 

@@ -181,6 +181,16 @@
                                     <span class="modifier">Static</span>
                                 <a href="#authenticationRequired" >authenticationRequired</a>
                             </li>
+                            <li>
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
+                                    <span class="modifier">Static</span>
+                                <a href="#invalidCsrfToken" >invalidCsrfToken</a>
+                            </li>
+                            <li>
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
+                                    <span class="modifier">Static</span>
+                                <a href="#rateLimitExceeded" >rateLimitExceeded</a>
+                            </li>
                         </ul>
                     </td>
                 </tr>
@@ -278,6 +288,84 @@
             </tr>
         </tbody>
     </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="invalidCsrfToken"></a>
+                    <span class="name">
+                            <span class="modifier">Static</span>
+                        <span ><b>invalidCsrfToken</b></span>
+                        <a href="#invalidCsrfToken"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>invalidCsrfToken()</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="37"
+                                    class="link-to-prism">src/features/security/errors/security-errors.ts:37</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                        <div class="io-description">
+                            <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                        </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="rateLimitExceeded"></a>
+                    <span class="name">
+                            <span class="modifier">Static</span>
+                        <span ><b>rateLimitExceeded</b></span>
+                        <a href="#rateLimitExceeded"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>rateLimitExceeded()</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="27"
+                                    class="link-to-prism">src/features/security/errors/security-errors.ts:27</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                        <div class="io-description">
+                            <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                        </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 </section>
 
 
@@ -312,6 +400,26 @@ export class SecurityErrors {
       HttpStatus.FORBIDDEN,
       undefined,
       &#x27;Access denied&#x27;
+    );
+  }
+
+  static rateLimitExceeded() {
+    return new AppError(
+      SecurityErrorCode.RATE_LIMIT_EXCEEDED,
+      ErrorDomain.SECURITY,
+      HttpStatus.TOO_MANY_REQUESTS,
+      undefined,
+      &#x27;Too many requests. Please try again later.&#x27;
+    );
+  }
+
+  static invalidCsrfToken() {
+    return new AppError(
+      SecurityErrorCode.INVALID_CSRF_TOKEN,
+      ErrorDomain.SECURITY,
+      HttpStatus.FORBIDDEN,
+      undefined,
+      &#x27;Invalid CSRF token.&#x27;
     );
   }
 }

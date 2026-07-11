@@ -189,10 +189,12 @@
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
+                                    <span class="modifier"></span>
                                 <a href="#changePassword" >changePassword</a>
                             </li>
                             <li>
                                 <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
+                                    <span class="modifier"></span>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
@@ -208,11 +210,15 @@
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
+                                    <span class="modifier"></span>
+                                    <span class="modifier"></span>
                                     <span class="modifier">Async</span>
                                 <a href="#signInUser" >signInUser</a>
                             </li>
                             <li>
                                 <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
+                                    <span class="modifier"></span>
+                                    <span class="modifier"></span>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
                                     <span class="modifier"></span>
@@ -245,6 +251,7 @@
                             <span class="modifier"></span>
                             <span class="modifier"></span>
                             <span class="modifier"></span>
+                            <span class="modifier"></span>
                         <span ><b>changePassword</b></span>
                         <a href="#changePassword"><span class="icon ion-ios-link"></span></a>
                     </span>
@@ -261,14 +268,14 @@
                 <td class="col-md-4">
                     <b>Decorators : </b>
                     <br />
-                    <code>@Post(&#x27;change-password&#x27;)<br />@HttpCode(HttpStatus.NO_CONTENT)<br />@ApiChangePassword()<br /></code>
+                    <code>@Post(&#x27;change-password&#x27;)<br />@HttpCode(HttpStatus.NO_CONTENT)<br />@RateLimit({limit: 3, ttl: 300})<br />@ApiChangePassword()<br /></code>
                 </td>
             </tr>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="69"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:69</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="80"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:80</a></div>
                         </td>
                     </tr>
 
@@ -349,6 +356,7 @@
                             <span class="modifier"></span>
                             <span class="modifier"></span>
                             <span class="modifier"></span>
+                            <span class="modifier"></span>
                             <span class="modifier">Async</span>
                         <span ><b>refreshSession</b></span>
                         <a href="#refreshSession"><span class="icon ion-ios-link"></span></a>
@@ -366,14 +374,14 @@
                 <td class="col-md-4">
                     <b>Decorators : </b>
                     <br />
-                    <code>@Public()<br />@Post(&#x27;refresh&#x27;)<br />@HttpCode(HttpStatus.OK)<br />@UseInterceptors(AuthCookieInterceptor)<br />@ApiLoginUser()<br /></code>
+                    <code>@Public()<br />@Post(&#x27;refresh&#x27;)<br />@HttpCode(HttpStatus.OK)<br />@UseInterceptors(AuthCookieInterceptor)<br />@RateLimit({limit: 20, ttl: 60})<br />@ApiLoginUser()<br /></code>
                 </td>
             </tr>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="62"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:62</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="69"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:69</a></div>
                         </td>
                     </tr>
 
@@ -430,6 +438,8 @@
                             <span class="modifier"></span>
                             <span class="modifier"></span>
                             <span class="modifier"></span>
+                            <span class="modifier"></span>
+                            <span class="modifier"></span>
                             <span class="modifier">Async</span>
                         <span ><b>signInUser</b></span>
                         <a href="#signInUser"><span class="icon ion-ios-link"></span></a>
@@ -447,14 +457,14 @@
                 <td class="col-md-4">
                     <b>Decorators : </b>
                     <br />
-                    <code>@Public()<br />@Post(&#x27;login&#x27;)<br />@HttpCode(HttpStatus.OK)<br />@UseInterceptors(AuthCookieInterceptor)<br />@ApiLoginUser()<br /></code>
+                    <code>@Public()<br />@Post(&#x27;login&#x27;)<br />@HttpCode(HttpStatus.OK)<br />@UseInterceptors(AuthCookieInterceptor)<br />@RateLimit({limit: 5, ttl: 60})<br />@SkipCsrf()<br />@ApiLoginUser()<br /></code>
                 </td>
             </tr>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="49"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:49</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="55"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:55</a></div>
                         </td>
                     </tr>
 
@@ -534,6 +544,8 @@
                             <span class="modifier"></span>
                             <span class="modifier"></span>
                             <span class="modifier"></span>
+                            <span class="modifier"></span>
+                            <span class="modifier"></span>
                         <span ><b>signUpUser</b></span>
                         <a href="#signUpUser"><span class="icon ion-ios-link"></span></a>
                     </span>
@@ -550,14 +562,14 @@
                 <td class="col-md-4">
                     <b>Decorators : </b>
                     <br />
-                    <code>@Public()<br />@Post(&#x27;register&#x27;)<br />@HttpCode(HttpStatus.CREATED)<br />@ApiRegisterUser()<br /></code>
+                    <code>@Public()<br />@Post(&#x27;register&#x27;)<br />@HttpCode(HttpStatus.CREATED)<br />@RateLimit({limit: 5, ttl: 60})<br />@SkipCsrf()<br />@ApiRegisterUser()<br /></code>
                 </td>
             </tr>
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="40"
-                                    class="link-to-prism">src/features/auth/auth.controller.ts:40</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="44"
+                                    class="link-to-prism">src/features/auth/auth.controller.ts:44</a></div>
                         </td>
                     </tr>
 
@@ -608,11 +620,13 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { DeviceContext } from &#x27;@features/security/device-detection/context/device-context.interface&#x27;;
-import { Device } from &#x27;@features/security/device-detection/decorators/device.decorator&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { SkipCsrf } from &#x27;@features/security/csrf/decorators/skip-csrf.decorator&#x27;;
 import { Public } from &#x27;@features/security/decorators/public.decorator&#x27;;
 import { Session } from &#x27;@features/security/decorators/session.decorator&#x27;;
 import { User } from &#x27;@features/security/decorators/user.decorator&#x27;;
+import { DeviceContext } from &#x27;@features/security/device-detection/context/device-context.interface&#x27;;
+import { Device } from &#x27;@features/security/device-detection/decorators/device.decorator&#x27;;
+import { RateLimit } from &#x27;@features/security/rate-limit/decorators/rate-limit.decorator&#x27;;
 import { Session as SessionEntity } from &#x27;@features/sessions/entities/session.entity&#x27;;
 import { User as UserEntity } from &#x27;@features/users/entities/user.entity&#x27;;
 import {
@@ -646,6 +660,8 @@ export class AuthController {
   @Public()
   @Post(&#x27;register&#x27;)
   @HttpCode(HttpStatus.CREATED)
+  @RateLimit({ limit: 5, ttl: 60 })
+  @SkipCsrf()
   @ApiRegisterUser()
   signUpUser(@Body() dto: RegisterUserRequestDto) {
     return this.authService.registerUser(dto);
@@ -655,6 +671,8 @@ export class AuthController {
   @Post(&#x27;login&#x27;)
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(AuthCookieInterceptor)
+  @RateLimit({ limit: 5, ttl: 60 })
+  @SkipCsrf()
   @ApiLoginUser()
   async signInUser(
     @Body() dto: LoginUserRequestDto,
@@ -668,6 +686,7 @@ export class AuthController {
   @Post(&#x27;refresh&#x27;)
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(AuthCookieInterceptor)
+  @RateLimit({ limit: 20, ttl: 60 })
   @ApiLoginUser()
   async refreshSession(@Req() req: Request) {
     return await this.authService.refresh(req.cookies.refresh_token);
@@ -675,11 +694,14 @@ export class AuthController {
 
   @Post(&#x27;change-password&#x27;)
   @HttpCode(HttpStatus.NO_CONTENT)
+  @RateLimit({
+    limit: 3,
+    ttl: 300
+  })
   @ApiChangePassword()
   changePassword(
     @User() user: UserEntity,
     @Session() session: SessionEntity,
-
     @Body() dto: ChangePasswordRequestDto
   ) {
     return this.authService.changeUserPassword(user.id, session.id, dto);

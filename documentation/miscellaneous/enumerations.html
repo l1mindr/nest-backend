@@ -147,7 +147,7 @@
                             <a href="#ErrorDomain" title="src/core/errors/error-domain.enum.ts" class="reference-link "><span class="reference-badge reference-badge--enum" aria-hidden="true">E</span><span class="reference-link-label"><b>ErrorDomain</b>&nbsp;&nbsp;&nbsp;(src/.../error-domain.enum.ts)</span></a>
                         </li>
                         <li>
-                            <a href="#RedisLockKey" title="src/infrastructure/databases/redis/keys/redis-lock-key.enum.ts" class="reference-link "><span class="reference-badge reference-badge--enum" aria-hidden="true">E</span><span class="reference-link-label"><b>RedisLockKey</b>&nbsp;&nbsp;&nbsp;(src/.../redis-lock-key.enum.ts)</span></a>
+                            <a href="#RedisKey" title="src/infrastructure/databases/redis/keys/redis-key.enum.ts" class="reference-link "><span class="reference-badge reference-badge--enum" aria-hidden="true">E</span><span class="reference-link-label"><b>RedisKey</b>&nbsp;&nbsp;&nbsp;(src/.../redis-key.enum.ts)</span></a>
                         </li>
                         <li>
                             <a href="#SecurityErrorCode" title="src/features/security/errors/security-error-code.enum.ts" class="reference-link "><span class="reference-badge reference-badge--enum" aria-hidden="true">E</span><span class="reference-link-label"><b>SecurityErrorCode</b>&nbsp;&nbsp;&nbsp;(src/.../security-error-code.enum.ts)</span></a>
@@ -373,14 +373,14 @@
             </tbody>
         </table>
 </section>
-    <h3>src/infrastructure/databases/redis/keys/redis-lock-key.enum.ts</h3>
+    <h3>src/infrastructure/databases/redis/keys/redis-key.enum.ts</h3>
     <section data-compodoc="block-enums">
         <table class="table table-sm table-bordered">
             <tbody>
                 <tr>
                     <td class="col-md-4">
-                        <a name="RedisLockKey"></a>
-                        <span class="name "><b>RedisLockKey</b><a href="#RedisLockKey"><span class="icon ion-ios-link"></span></a></span>
+                        <a name="RedisKey"></a>
+                        <span class="name "><b>RedisKey</b><a href="#RedisKey"><span class="icon ion-ios-link"></span></a></span>
                     </td>
                 </tr>
                         <tr>
@@ -391,6 +391,16 @@
                         <tr>
                             <td class="col-md-4">
                                 <i>Value : </i><code>refresh:lock</code>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                &nbsp;RATE_LIMIT
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <i>Value : </i><code>rate:limit</code>
                             </td>
                         </tr>
             </tbody>
@@ -424,6 +434,26 @@
                         <tr>
                             <td class="col-md-4">
                                 <i>Value : </i><code>AUTHENTICATION_REQUIRED</code>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                &nbsp;RATE_LIMIT_EXCEEDED
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <i>Value : </i><code>RATE_LIMIT_EXCEEDED</code>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                &nbsp;INVALID_CSRF_TOKEN
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <i>Value : </i><code>INVALID_CSRF_TOKEN</code>
                             </td>
                         </tr>
             </tbody>

@@ -150,6 +150,9 @@
                             <a href="#bootstrap" title="src/main.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>bootstrap</b>&nbsp;&nbsp;&nbsp;(src/.../main.ts)</span></a>
                         </li>
                         <li>
+                            <a href="#clearRedis" title="test/helpers/redis.helper.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>clearRedis</b>&nbsp;&nbsp;&nbsp;(test/.../redis.helper.ts)</span></a>
+                        </li>
+                        <li>
                             <a href="#createTestApp" title="test/bootstrap/test-app.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>createTestApp</b>&nbsp;&nbsp;&nbsp;(test/.../test-app.ts)</span></a>
                         </li>
                         <li>
@@ -165,6 +168,9 @@
                             <a href="#getCookie" title="test/utils/cookie.util.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>getCookie</b>&nbsp;&nbsp;&nbsp;(test/.../cookie.util.ts)</span></a>
                         </li>
                         <li>
+                            <a href="#getCookieValue" title="test/utils/cookie.util.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>getCookieValue</b>&nbsp;&nbsp;&nbsp;(test/.../cookie.util.ts)</span></a>
+                        </li>
+                        <li>
                             <a href="#normalizeHeader" title="test/utils/cookie.util.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>normalizeHeader</b>&nbsp;&nbsp;&nbsp;(test/.../cookie.util.ts)</span></a>
                         </li>
                         <li>
@@ -174,7 +180,7 @@
                             <a href="#PasswordField" title="src/infrastructure/http/validation/fields/password-field.decorator.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>PasswordField</b>&nbsp;&nbsp;&nbsp;(src/.../password-field.decorator.ts)</span></a>
                         </li>
                         <li>
-                            <a href="#runMigrations" title="test/helpers/database.helper.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>runMigrations</b>&nbsp;&nbsp;&nbsp;(test/.../database.helper.ts)</span></a>
+                            <a href="#runMigrations" title="test/helpers/postgresql.helper.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>runMigrations</b>&nbsp;&nbsp;&nbsp;(test/.../postgresql.helper.ts)</span></a>
                         </li>
                         <li>
                             <a href="#Serialize" title="src/infrastructure/http/interceptors/decorators/serialize.decorator.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>Serialize</b>&nbsp;&nbsp;&nbsp;(src/.../serialize.decorator.ts)</span></a>
@@ -183,7 +189,7 @@
                             <a href="#setupApp" title="src/bootstrap.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>setupApp</b>&nbsp;&nbsp;&nbsp;(src/.../bootstrap.ts)</span></a>
                         </li>
                         <li>
-                            <a href="#truncateDatabase" title="test/helpers/database.helper.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>truncateDatabase</b>&nbsp;&nbsp;&nbsp;(test/.../database.helper.ts)</span></a>
+                            <a href="#truncateDatabase" title="test/helpers/postgresql.helper.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>truncateDatabase</b>&nbsp;&nbsp;&nbsp;(test/.../postgresql.helper.ts)</span></a>
                         </li>
                         <li>
                             <a href="#UsernameField" title="src/infrastructure/http/validation/fields/username-field.decorator.ts" class="reference-link "><span class="reference-badge reference-badge--function" aria-hidden="true">F</span><span class="reference-link-label"><b>UsernameField</b>&nbsp;&nbsp;&nbsp;(src/.../username-field.decorator.ts)</span></a>
@@ -286,6 +292,63 @@
 
 
 
+        </tbody>
+    </table>
+</section>
+    <h3>test/helpers/redis.helper.ts</h3>
+    <section data-compodoc="block-methods">
+    <h3></h3>    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="clearRedis"></a>
+                    <span class="name">
+                        <span ><b>clearRedis</b></span>
+                        <a href="#clearRedis"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>clearRedis(app: INestApplication)</code>
+                </td>
+            </tr>
+
+
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>app</td>
+                                            <td>
+                                                        <code>INestApplication</code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                </td>
+            </tr>
         </tbody>
     </table>
 </section>
@@ -537,6 +600,71 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
+                    <a name="getCookieValue"></a>
+                    <span class="name">
+                        <span ><b>getCookieValue</b></span>
+                        <a href="#getCookieValue"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>getCookieValue(headers, name: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>headers</td>
+                                            <td>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>name</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
                     <a name="normalizeHeader"></a>
                     <span class="name">
                         <span ><b>normalizeHeader</b></span>
@@ -712,7 +840,7 @@
         </tbody>
     </table>
 </section>
-    <h3>test/helpers/database.helper.ts</h3>
+    <h3>test/helpers/postgresql.helper.ts</h3>
     <section data-compodoc="block-methods">
     <h3></h3>    <table class="table table-sm table-bordered">
         <tbody>

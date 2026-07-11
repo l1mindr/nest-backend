@@ -282,7 +282,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>acquire(key: <a href="../miscellaneous/enumerations.html#RedisLockKey" target="_self">RedisLockKey</a>, value: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ttlSeconds: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
+                    <code>acquire(lockKey: <a href="../miscellaneous/enumerations.html#RedisKey" target="_self">RedisKey</a>, lockIdentifier: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ttlSeconds: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
                 </td>
             </tr>
 
@@ -312,9 +312,9 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>key</td>
+                                                <td>lockKey</td>
                                             <td>
-                                                            <code><a href="../miscellaneous/enumerations.html#RedisLockKey" target="_self" >RedisLockKey</a></code>
+                                                            <code><a href="../miscellaneous/enumerations.html#RedisKey" target="_self" >RedisKey</a></code>
                                             </td>
 
                                             <td>
@@ -326,7 +326,7 @@
 
                                         </tr>
                                         <tr>
-                                                <td>value</td>
+                                                <td>lockIdentifier</td>
                                             <td>
                                                             <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                             </td>
@@ -383,7 +383,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>getFullKey(key: <a href="../miscellaneous/enumerations.html#RedisLockKey" target="_self">RedisLockKey</a>, value: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                    <code>getFullKey(key: <a href="../miscellaneous/enumerations.html#RedisKey" target="_self">RedisKey</a>, value: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
                 </td>
             </tr>
 
@@ -414,7 +414,7 @@
                                         <tr>
                                                 <td>key</td>
                                             <td>
-                                                            <code><a href="../miscellaneous/enumerations.html#RedisLockKey" target="_self" >RedisLockKey</a></code>
+                                                            <code><a href="../miscellaneous/enumerations.html#RedisKey" target="_self" >RedisKey</a></code>
                                             </td>
 
                                             <td>
@@ -464,15 +464,15 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>release(key: <a href="../miscellaneous/enumerations.html#RedisLockKey" target="_self">RedisLockKey</a>, value: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                    <code>release(key: <a href="../miscellaneous/enumerations.html#RedisKey" target="_self">RedisKey</a>, value: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="29"
-                                    class="link-to-prism">src/infrastructure/databases/redis/redis-lock.service.ts:29</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="27"
+                                    class="link-to-prism">src/infrastructure/databases/redis/redis-lock.service.ts:27</a></div>
                         </td>
                     </tr>
 
@@ -495,7 +495,7 @@
                                         <tr>
                                                 <td>key</td>
                                             <td>
-                                                            <code><a href="../miscellaneous/enumerations.html#RedisLockKey" target="_self" >RedisLockKey</a></code>
+                                                            <code><a href="../miscellaneous/enumerations.html#RedisKey" target="_self" >RedisKey</a></code>
                                             </td>
 
                                             <td>
@@ -538,34 +538,32 @@
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Injectable } from &#x27;@nestjs/common&#x27;;
-import { RedisLockKey } from &#x27;./keys/redis-lock-key.enum&#x27;;
+import { RedisKey } from &#x27;./keys/redis-key.enum&#x27;;
 import { RedisService } from &#x27;./redis.service&#x27;;
 
 @Injectable()
 export class RedisLockService {
   constructor(private readonly redisService: RedisService) {}
 
-  private getFullKey(key: RedisLockKey, value: string) {
+  private getFullKey(key: RedisKey, value: string) {
     return &#x60;${key}:${value}&#x60;;
   }
 
   async acquire(
-    key: RedisLockKey,
-    value: string,
+    lockKey: RedisKey,
+    lockIdentifier: string,
     ttlSeconds &#x3D; 5
   ): Promise&lt;boolean&gt; {
     return (
-      (await (this.redisService as any).set(
-        this.getFullKey(key, value),
+      (await this.redisService.setWithExpiry(
+        this.getFullKey(lockKey, lockIdentifier),
         &#x27;1&#x27;,
-        &#x27;NX&#x27;,
-        &#x27;EX&#x27;,
         ttlSeconds
       )) &#x3D;&#x3D;&#x3D; &#x27;OK&#x27;
     );
   }
 
-  async release(key: RedisLockKey, value: string) {
+  async release(key: RedisKey, value: string) {
     await this.redisService.del(this.getFullKey(key, value));
   }
 }

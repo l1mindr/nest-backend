@@ -206,6 +206,11 @@
                                     <span class="modifier">Async</span>
                                 <a href="#set" >set</a>
                             </li>
+                            <li>
+                                <span class="reference-badge reference-badge--method" aria-hidden="true">M</span>
+                                    <span class="modifier">Async</span>
+                                <a href="#setWithExpiry" >setWithExpiry</a>
+                            </li>
                         </ul>
                     </td>
                 </tr>
@@ -311,8 +316,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="20"
-                                    class="link-to-prism">src/infrastructure/databases/redis/redis.service.ts:20</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="28"
+                                    class="link-to-prism">src/infrastructure/databases/redis/redis.service.ts:28</a></div>
                         </td>
                     </tr>
 
@@ -380,8 +385,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="24"
-                                    class="link-to-prism">src/infrastructure/databases/redis/redis.service.ts:24</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="32"
+                                    class="link-to-prism">src/infrastructure/databases/redis/redis.service.ts:32</a></div>
                         </td>
                     </tr>
 
@@ -449,8 +454,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="28"
-                                    class="link-to-prism">src/infrastructure/databases/redis/redis.service.ts:28</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="36"
+                                    class="link-to-prism">src/infrastructure/databases/redis/redis.service.ts:36</a></div>
                         </td>
                     </tr>
 
@@ -481,7 +486,7 @@
             <tr>
                 <td class="col-md-4">
                         <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>set(...args: Parameters<Redis>)</code>
+                    <code>set(key: <a href="../miscellaneous/enumerations.html#RedisKey" target="_self">RedisKey</a>, value: string | number | Buffer)</code>
                 </td>
             </tr>
 
@@ -510,9 +515,21 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>args</td>
+                                                <td>key</td>
                                             <td>
-                                                        <code>Parameters&lt;Redis&gt;</code>
+                                                            <code><a href="../miscellaneous/enumerations.html#RedisKey" target="_self" >RedisKey</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>value</td>
+                                            <td>
+                                                        <code>string | number | Buffer</code>
                                             </td>
 
                                             <td>
@@ -525,7 +542,100 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>    <code>unknown</code>
+                            <b>Returns : </b>    <code>Promise&lt;OK&gt;</code>
+
+                        </div>
+                            <div class="io-description">
+                                
+                            </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="setWithExpiry"></a>
+                    <span class="name">
+                            <span class="modifier">Async</span>
+                        <span ><b>setWithExpiry</b></span>
+                        <a href="#setWithExpiry"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>setWithExpiry(key: <a href="../miscellaneous/enumerations.html#RedisKey" target="_self">RedisKey</a>, value: string | number | Buffer, ttlSeconds: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
+                </td>
+            </tr>
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <div class="io-line">Defined in <a href="" data-line="20"
+                                    class="link-to-prism">src/infrastructure/databases/redis/redis.service.ts:20</a></div>
+                        </td>
+                    </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                            <div class="io-description">
+                                <b>Parameters :</b>
+                                
+                                <table class="params">
+                                    <thead>
+                                        <tr>
+                                            <td>Name</td>
+                                                <td>Type</td>
+                                            <td>Optional</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                                <td>key</td>
+                                            <td>
+                                                            <code><a href="../miscellaneous/enumerations.html#RedisKey" target="_self" >RedisKey</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>value</td>
+                                            <td>
+                                                        <code>string | number | Buffer</code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                        <tr>
+                                                <td>ttlSeconds</td>
+                                            <td>
+                                                            <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+                                            </td>
+
+                                            <td>
+                                                    No
+                                            </td>
+
+
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <div class="io-description">
+                            <b>Returns : </b>    <code>Promise&lt;OK&gt;</code>
 
                         </div>
                             <div class="io-description">
@@ -570,7 +680,7 @@
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Inject, Injectable, OnModuleDestroy } from &#x27;@nestjs/common&#x27;;
-import Redis from &#x27;ioredis&#x27;;
+import Redis, { RedisKey } from &#x27;ioredis&#x27;;
 import { REDIS_CLIENT } from &#x27;./redis.constants&#x27;;
 
 @Injectable()
@@ -584,8 +694,16 @@ export class RedisService implements OnModuleDestroy {
     return this.redis;
   }
 
-  async set(...args: Parameters&lt;Redis[&#x27;set&#x27;]&gt;) {
-    return this.redis.set(...args);
+  async set(key: RedisKey, value: string | number | Buffer): Promise&lt;&#x27;OK&#x27;&gt; {
+    return this.redis.set(key, value);
+  }
+
+  async setWithExpiry(
+    key: RedisKey,
+    value: string | number | Buffer,
+    ttlSeconds: number
+  ): Promise&lt;&#x27;OK&#x27;&gt; {
+    return this.redis.set(key, value, &#x27;EX&#x27;, ttlSeconds);
   }
 
   async del(key: string): Promise&lt;number&gt; {
