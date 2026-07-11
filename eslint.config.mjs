@@ -15,6 +15,9 @@ const compat = new FlatCompat({
 });
 
 export default [
+  {
+    ignores: ['documentation/template-playground/**']
+  },
   ...compat.extends(
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended'
@@ -23,7 +26,6 @@ export default [
     plugins: {
       '@typescript-eslint': typescriptEslintEslintPlugin
     },
-    ignores: ['documentation/template-playground/**'],
     languageOptions: {
       globals: {
         ...globals.node,
