@@ -26,7 +26,7 @@
     "migration:revert": "pnpm exec typeorm migration:revert -d dist/infrastructure/databases/postgres/data-source",
     "migration:show": "pnpm exec typeorm migration:show",
     "docs": "pnpm exec compodoc -p tsconfig.json -s --port 3333 -w --theme material",
-    "prepare": "node .husky/install.mjs",
+    "prepare": "husky",
     "deprecated": "pnpm exec ts-node findDeprecatedFiles.ts"
   },
   "dependencies": {

@@ -8,6 +8,6 @@ services:
       NODE_ENV: test
 
       ACCESS_TOKEN_SECRET: accessjwtsecret
-      Refresh_TOKEN_SECRET: refreshjwtsecret
+      REFRESH_TOKEN_SECRET: refreshjwtsecret
 
     command: pnpm run test:unit
