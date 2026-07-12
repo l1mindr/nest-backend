@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
 import { setupApp } from '../../src/bootstrap';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 export interface ITextContext {
   app: INestApplication;
@@ -16,7 +17,7 @@ export async function createTestApp(): Promise<ITextContext> {
     imports: [AppModule]
   }).compile();
 
-  const app = moduleFixture.createNestApplication();
+  const app = moduleFixture.createNestApplication<NestExpressApplication>();
 
   setupApp(app);
 
