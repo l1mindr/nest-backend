@@ -22,7 +22,9 @@ describe('TokenService', () => {
   };
 
   const jwtConfiguration = {
-    secret: 'test-secret'
+    secret: 'test-secret',
+    accessTokenSecret: 'accessTokenSecret',
+    refreshTokenSecret: 'refreshTokenSecret'
   };
 
   beforeEach(() => {
@@ -74,7 +76,8 @@ describe('TokenService', () => {
           sessionId: 'session-id'
         }),
         {
-          secret: jwtConfiguration.secret
+          secret: jwtConfiguration.accessTokenSecret,
+          audience: 'api'
         }
       );
 
@@ -85,7 +88,8 @@ describe('TokenService', () => {
           sessionId: 'session-id'
         }),
         {
-          secret: jwtConfiguration.secret
+          secret: jwtConfiguration.refreshTokenSecret,
+          audience: 'refresh'
         }
       );
     });
@@ -105,7 +109,8 @@ describe('TokenService', () => {
       expect(result).toEqual(payload);
 
       expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('token', {
-        secret: jwtConfiguration.secret
+        secret: jwtConfiguration.accessTokenSecret,
+        audience: 'api'
       });
     });
   });
@@ -124,7 +129,8 @@ describe('TokenService', () => {
       expect(result).toEqual(payload);
 
       expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('token', {
-        secret: jwtConfiguration.secret
+        secret: jwtConfiguration.refreshTokenSecret,
+        audience: 'refresh'
       });
     });
   });

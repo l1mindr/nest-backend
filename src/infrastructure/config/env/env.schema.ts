@@ -10,6 +10,7 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
   REDIS_PORT: Joi.string().required(),
   REDIS_PASSWORD: Joi.string().optional(),
   REDIS_DB: Joi.string().optional(),
-  JWT_SECRET_KEY: Joi.string().required(),
+  ACCESS_TOKEN_SECRET: Joi.string().required(),
+  Refresh_TOKEN_SECRET: Joi.string().required(),
   NODE_ENV: Joi.string().required()
 });

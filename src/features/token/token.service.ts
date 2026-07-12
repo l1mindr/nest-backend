@@ -43,7 +43,8 @@ export class TokenService implements ITokenService {
         // role
       },
       {
-        secret: this.jwtConfiguration.secret
+        secret: this.jwtConfiguration.accessTokenSecret,
+        audience: 'api'
       }
     );
 
@@ -54,7 +55,8 @@ export class TokenService implements ITokenService {
         jti: randomUUID()
       },
       {
-        secret: this.jwtConfiguration.secret
+        secret: this.jwtConfiguration.refreshTokenSecret,
+        audience: 'refresh'
       }
     );
 
@@ -63,13 +65,15 @@ export class TokenService implements ITokenService {
 
   async verifyAccessToken(token: string): Promise<IJwtClaims> {
     return this.jwtService.verifyAsync<IJwtClaims>(token, {
-      secret: this.jwtConfiguration.secret
+      secret: this.jwtConfiguration.accessTokenSecret,
+      audience: 'api'
     });
   }
 
   async verifyRefreshToken(token: string): Promise<IJwtClaims> {
     return this.jwtService.verifyAsync<IJwtClaims>(token, {
-      secret: this.jwtConfiguration.secret
+      secret: this.jwtConfiguration.refreshTokenSecret,
+      audience: 'refresh'
     });
   }
 
