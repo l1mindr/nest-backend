@@ -119,4 +119,4 @@ Only fields with `@Expose()` are returned.
 - `UserStatus` is not enforced during login or authorization.
 - The application port is hardcoded.
 - Development Docker Compose does not match runtime config.
-- Both `yarn.lock` and `package-lock.json` exist while package metadata declares Yarn.
+- pnpm is the single package manager and `pnpm-lock.yaml` is the only dependency lockfile.

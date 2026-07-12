@@ -109,7 +109,7 @@ Used by Husky hooks and commitlint.
 
 - `@compodoc/compodoc`
 
-Used by `yarn docs`.
+Used by `pnpm run docs`.
 
 ### Type Definitions
 
@@ -127,14 +127,17 @@ Provide TypeScript types.
 `packageManager` is:
 
 ```json
-"yarn@4.16.0"
+"pnpm@11.9.0"
 ```
 
-CI uses Yarn and `.yarnrc.yml` uses `nodeLinker: node-modules`.
+The repository uses `pnpm-lock.yaml` as the single dependency lockfile. Legacy package-manager lockfiles are intentionally not kept.
 
-Current observation: both `yarn.lock` and `package-lock.json` exist.
+`pnpm-workspace.yaml` contains a pnpm override for `@compodoc/compodoc>@angular-devkit/schematics`.
+Compodoc 2.0.0 declares `@angular-devkit/schematics@22.0.4`, whose matching `@angular-devkit/core@22.0.4` is not published in the registry. The override keeps Compodoc on the published Angular DevKit `21.2.13` line so `pnpm install --frozen-lockfile` can resolve consistently.
+
+The same file also makes pnpm's build-script policy explicit through `allowBuilds`: `bcrypt` is allowed to run its native install build, while the transitive `@scarf/scarf` postinstall script is disabled.
 
 ## Dependency Automation
 
-- [.github/dependabot.yml](../.github/dependabot.yml): weekly npm and GitHub Actions updates.
+- [.github/dependabot.yml](../.github/dependabot.yml): weekly Node package and GitHub Actions updates.
 - [.github/workflows/dependency-review.yml](../.github/workflows/dependency-review.yml): outdated and audit checks.

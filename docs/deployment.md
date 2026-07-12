@@ -17,9 +17,9 @@ The port is hardcoded to `8080`. No `PORT` environment variable is used.
 Relevant scripts from [package.json](../package.json):
 
 ```bash
-yarn build
-yarn migration:run
-yarn start:prod
+pnpm run build
+pnpm run migration:run
+pnpm run start:prod
 ```
 
 `start:prod` runs:
@@ -37,10 +37,10 @@ File: [Dockerfile](../Dockerfile)
 Stages:
 
 - `base`: `node:22-alpine`, enables Corepack, copies package metadata.
-- `deps`: installs dependencies with `yarn install --immutable`.
-- `builder`: copies dependencies and source, runs `yarn build`.
-- `dev`: copies dependencies and source, runs `yarn start:dev`.
-- `test`: copies dependencies and source, runs `yarn test`.
+- `deps`: installs dependencies with `pnpm install --frozen-lockfile`.
+- `builder`: copies dependencies and source, runs `pnpm run build`.
+- `dev`: copies dependencies and source, runs `pnpm run start:dev`.
+- `test`: copies dependencies and source, runs `pnpm run test`.
 
 Current limitation: no dedicated minimal production runtime stage exists.
 
@@ -52,10 +52,8 @@ File: [docker-entrypoint.sh](../docker-entrypoint.sh)
 
 Runs:
 
-1. `npm run migration:run`
+1. `pnpm run migration:run`
 2. `node dist/main.js`
-
-Note: package metadata and CI use Yarn, but this script uses `npm run`.
 
 ### docker-entrypoint-test.sh
 
@@ -63,9 +61,9 @@ File: [docker-entrypoint-test.sh](../docker-entrypoint-test.sh)
 
 Runs:
 
-1. `yarn build`
-2. `yarn migration:run`
-3. `yarn test:e2e`
+1. `pnpm run build`
+2. `pnpm run migration:run`
+3. `pnpm run test:e2e`
 
 ## Development Docker Compose
 
@@ -82,7 +80,6 @@ Current mismatches that need correction before relying on it:
 - The app listens on `8080`, but Compose maps `3000:3000`.
 - `.env.development` sets `DATA_SOURCE_HOST=localhost`; inside Compose it should point to the PostgreSQL service hostname, `postgres`.
 - PostgreSQL service creates `nest_dev`, while `.env.development` uses `mintegs_db`.
-- The app command is `npm run start:dev`, while the package manager is declared as Yarn.
 
 ## E2E Docker Compose
 
@@ -113,7 +110,7 @@ Runs dependency checks on pull requests to `main`.
 
 File: [.github/dependabot.yml](../.github/dependabot.yml)
 
-Checks npm dependencies and GitHub Actions weekly.
+Checks Node package dependencies and GitHub Actions weekly.
 
 ## Operational Gaps
 

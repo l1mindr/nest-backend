@@ -38,7 +38,7 @@ Runtime TypeORM options:
 - Loads entities from `dist/features/**/*.entity{.ts,.js}`.
 - Loads migrations from `dist/infrastructure/databases/postgres/migrations/*{.ts,.js}`.
 
-Because migration scripts point at `dist`, run `yarn build` before `yarn migration:run`.
+Because migration scripts point at `dist`, run `pnpm run build` before `pnpm run migration:run`.
 
 ## Schema Overview
 
@@ -126,11 +126,11 @@ Existing migration files:
 Migration commands:
 
 ```bash
-yarn migration:create
-yarn migration:generate
-yarn migration:run
-yarn migration:revert
-yarn migration:show
+pnpm run migration:create
+pnpm run migration:generate
+pnpm run migration:run
+pnpm run migration:revert
+pnpm run migration:show
 ```
 
 ## Important Migration Note

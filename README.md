@@ -36,7 +36,7 @@ The detailed project documentation lives in [docs](docs/). It is based on the cu
 Prerequisites:
 
 - Node.js 22
-- Corepack and Yarn 4
+- Corepack and pnpm 11
 - PostgreSQL
 - Redis
 
@@ -44,7 +44,7 @@ Install dependencies:
 
 ```bash
 corepack enable
-yarn install --immutable
+pnpm install --frozen-lockfile
 ```
 
 Create an environment file:
@@ -58,7 +58,7 @@ Set real values for PostgreSQL, Redis, `JWT_SECRET_KEY`, and a single `NODE_ENV`
 Run in development:
 
 ```bash
-yarn start:dev
+pnpm run start:dev
 ```
 
 The application listens on:
@@ -76,14 +76,14 @@ http://localhost:8080/api
 ## Common Commands
 
 ```bash
-yarn build
-yarn start:prod
-yarn test:unit
-yarn test:e2e
-yarn lint
-yarn format
-yarn migration:run
-yarn docs
+pnpm run build
+pnpm run start:prod
+pnpm run test:unit
+pnpm run test:e2e
+pnpm run lint
+pnpm run format
+pnpm run migration:run
+pnpm run docs
 ```
 
 ## Notes

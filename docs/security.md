@@ -151,7 +151,7 @@ These items were not found or are incomplete in the current implementation:
 
 GitHub Actions include [dependency-review.yml](../.github/workflows/dependency-review.yml), which runs:
 
-- `yarn outdated` with `continue-on-error: true`.
-- `yarn npm audit --all`.
+- `pnpm outdated` with `continue-on-error: true`.
+- `pnpm audit`.
 
 Dependabot is configured in [.github/dependabot.yml](../.github/dependabot.yml).

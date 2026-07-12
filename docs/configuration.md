@@ -114,10 +114,10 @@ Strictness settings are relaxed:
 [package.json](../package.json) declares:
 
 ```json
-"packageManager": "yarn@4.16.0"
+"packageManager": "pnpm@11.9.0"
 ```
 
-The repository also contains `package-lock.json`. Current package metadata points to Yarn, and CI uses Yarn.
+The dependency lockfile is [pnpm-lock.yaml](../pnpm-lock.yaml).
 
 ## Configuration Gaps
 

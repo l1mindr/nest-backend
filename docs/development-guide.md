@@ -6,7 +6,7 @@ This document explains how to work with the current project locally.
 
 - Node.js 22.
 - Corepack.
-- Yarn 4.16.0.
+- pnpm 11.9.0.
 - PostgreSQL.
 - Redis.
 - Docker and Docker Compose for containerized tests.
@@ -15,10 +15,10 @@ This document explains how to work with the current project locally.
 
 ```bash
 corepack enable
-yarn install --immutable
+pnpm install --frozen-lockfile
 ```
 
-The project uses `nodeLinker: node-modules` in [.yarnrc.yml](../.yarnrc.yml).
+The project uses [pnpm-lock.yaml](../pnpm-lock.yaml) as its single package-manager lockfile.
 
 ## Environment Setup
 
@@ -37,7 +37,7 @@ See [configuration.md](configuration.md) for the full environment variable list.
 Start PostgreSQL and Redis, then run:
 
 ```bash
-yarn start:dev
+pnpm run start:dev
 ```
 
 The app listens on:
@@ -55,7 +55,7 @@ http://localhost:8080/api
 ## Build
 
 ```bash
-yarn build
+pnpm run build
 ```
 
 Nest writes compiled output to `dist/`.
@@ -65,27 +65,27 @@ Nest writes compiled output to `dist/`.
 Run migrations after building:
 
 ```bash
-yarn build
-yarn migration:run
+pnpm run build
+pnpm run migration:run
 ```
 
 Generate migrations:
 
 ```bash
-yarn migration:generate
+pnpm run migration:generate
 ```
 
 Revert the last migration:
 
 ```bash
-yarn migration:revert
+pnpm run migration:revert
 ```
 
 ## Tests
 
 ```bash
-yarn test:unit
-yarn test:e2e
+pnpm run test:unit
+pnpm run test:e2e
 ```
 
 Dockerized e2e tests:
@@ -98,19 +98,19 @@ docker compose -f docker/test/e2e/docker-compose.yml down -v
 ## Code Quality
 
 ```bash
-yarn lint
-yarn format
-yarn build
+pnpm run lint
+pnpm run format
+pnpm run build
 ```
 
-`yarn lint` runs ESLint with `--fix`.
+`pnpm run lint` runs ESLint with `--fix`.
 
 ## Documentation
 
 Compodoc:
 
 ```bash
-yarn docs
+pnpm run docs
 ```
 
 This serves generated documentation at port `3333`.
@@ -121,9 +121,9 @@ Handwritten docs live in `docs/`.
 
 Husky hooks:
 
-- `pre-commit`: `npx lint-staged`
-- `commit-msg`: `npx commitlint --edit --config ./commitlint.config.ts`
-- `pre-push`: `yarn run build && yarn run deprecated`
+- `pre-commit`: `pnpm exec lint-staged`
+- `commit-msg`: `pnpm exec commitlint --edit --config ./commitlint.config.ts`
+- `pre-push`: `pnpm run build && pnpm run deprecated`
 
 Commitlint requires:
 

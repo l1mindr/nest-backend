@@ -31,12 +31,12 @@ From [package.json](../package.json):
 
 | Script | Purpose |
 | --- | --- |
-| `yarn test` | Unit tests through `jest.unit.config.ts`. |
-| `yarn test:unit` | Unit tests through `jest.unit.config.ts`. |
-| `yarn test:watch` | Jest watch mode through `jest.config.ts`. |
-| `yarn test:cov` | Jest coverage. |
-| `yarn test:debug` | Jest with Node inspector. |
-| `yarn test:e2e` | E2E tests through `jest.e2e.config.ts`. |
+| `pnpm run test` | Unit tests through `jest.unit.config.ts`. |
+| `pnpm run test:unit` | Unit tests through `jest.unit.config.ts`. |
+| `pnpm run test:watch` | Jest watch mode through `jest.config.ts`. |
+| `pnpm run test:cov` | Jest coverage. |
+| `pnpm run test:debug` | Jest with Node inspector. |
+| `pnpm run test:e2e` | E2E tests through `jest.e2e.config.ts`. |
 
 ## Unit Tests
 
@@ -143,9 +143,9 @@ Services:
 
 The app container runs [docker-entrypoint-test.sh](../docker-entrypoint-test.sh):
 
-1. `yarn build`
-2. `yarn migration:run`
-3. `yarn test:e2e`
+1. `pnpm run build`
+2. `pnpm run migration:run`
+3. `pnpm run test:e2e`
 
 ## CI
 
@@ -155,10 +155,10 @@ CI runs:
 
 1. Enable Corepack.
 2. Setup Node 22.
-3. `yarn install --immutable`.
-4. `yarn lint`.
-5. `yarn build`.
-6. `yarn test:unit`.
+3. `pnpm install --frozen-lockfile`.
+4. `pnpm run lint`.
+5. `pnpm run build`.
+6. `pnpm run test:unit`.
 7. Dockerized e2e tests.
 8. Docker Compose cleanup.
 
