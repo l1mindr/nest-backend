@@ -141,26 +141,26 @@
 <p>Prerequisites:</p>
 <ul>
 <li>Node.js 22</li>
-<li>Corepack and Yarn 4</li>
+<li>Corepack and pnpm 11</li>
 <li>PostgreSQL</li>
 <li>Redis</li>
 </ul>
 <p>Install dependencies:</p>
 <b>Example :</b><div><pre class="line-numbers"><code class="language-bash">corepack enable
-yarn install --immutable</code></pre></div><p>Create an environment file:</p>
+pnpm install --frozen-lockfile</code></pre></div><p>Create an environment file:</p>
 <b>Example :</b><div><pre class="line-numbers"><code class="language-bash">cp .env.example .env</code></pre></div><p>Set real values for PostgreSQL, Redis, <code>JWT_SECRET_KEY</code>, and a single <code>NODE_ENV</code> value.</p>
 <p>Run in development:</p>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-bash">yarn start:dev</code></pre></div><p>The application listens on:</p>
+<b>Example :</b><div><pre class="line-numbers"><code class="language-bash">pnpm run start:dev</code></pre></div><p>The application listens on:</p>
 <b>Example :</b><div><pre class="line-numbers"><code class="language-text">http://localhost:8080</code></pre></div><p>Swagger UI is available in development mode:</p>
 <b>Example :</b><div><pre class="line-numbers"><code class="language-text">http://localhost:8080/api</code></pre></div><h2>Common Commands</h2>
-<b>Example :</b><div><pre class="line-numbers"><code class="language-bash">yarn build
-yarn start:prod
-yarn test:unit
-yarn test:e2e
-yarn lint
-yarn format
-yarn migration:run
-yarn docs</code></pre></div><h2>Notes</h2>
+<b>Example :</b><div><pre class="line-numbers"><code class="language-bash">pnpm run build
+pnpm run start:prod
+pnpm run test:unit
+pnpm run test:e2e
+pnpm run lint
+pnpm run format
+pnpm run migration:run
+pnpm run docs</code></pre></div><h2>Notes</h2>
 <ul>
 <li>Successful API responses are wrapped as <code>{ &quot;data&quot;: ... }</code>.</li>
 <li>Runtime errors are wrapped as <code>{ &quot;error&quot;: ... }</code>.</li>
