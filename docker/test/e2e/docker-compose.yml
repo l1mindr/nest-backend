@@ -18,7 +18,8 @@ services:
       # REDIS_PASSWORD: ''
       # REDIS_DB: 0
 
-      JWT_SECRET_KEY: test-secret
+      ACCESS_TOKEN_SECRET: accessjwtsecret
+      Refresh_TOKEN_SECRET: refreshjwtsecret
 
     depends_on:
       postgres:

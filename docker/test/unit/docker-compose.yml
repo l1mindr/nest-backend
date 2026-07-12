@@ -7,6 +7,7 @@ services:
     environment:
       NODE_ENV: test
 
-      JWT_SECRET_KEY: test-secret
+      ACCESS_TOKEN_SECRET: accessjwtsecret
+      Refresh_TOKEN_SECRET: refreshjwtsecret
 
     command: pnpm run test:unit
