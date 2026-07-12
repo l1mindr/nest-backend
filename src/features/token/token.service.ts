@@ -64,17 +64,25 @@ export class TokenService implements ITokenService {
   }
 
   async verifyAccessToken(token: string): Promise<IJwtClaims> {
-    return this.jwtService.verifyAsync<IJwtClaims>(token, {
-      secret: this.jwtConfiguration.accessTokenSecret,
-      audience: 'api'
-    });
+    try {
+      return this.jwtService.verifyAsync<IJwtClaims>(token, {
+        secret: this.jwtConfiguration.accessTokenSecret,
+        audience: 'api'
+      });
+    } catch {
+      throw TokenErrors.invalidToken();
+    }
   }
 
   async verifyRefreshToken(token: string): Promise<IJwtClaims> {
-    return this.jwtService.verifyAsync<IJwtClaims>(token, {
-      secret: this.jwtConfiguration.refreshTokenSecret,
-      audience: 'refresh'
-    });
+    try {
+      return this.jwtService.verifyAsync<IJwtClaims>(token, {
+        secret: this.jwtConfiguration.refreshTokenSecret,
+        audience: 'refresh'
+      });
+    } catch {
+      throw TokenErrors.invalidToken();
+    }
   }
 
   async validatePayload({ sub, sessionId }: IJwtPayload): Promise<CustomAuth> {

@@ -1,5 +1,4 @@
 import { TokenModule } from '@features/token/token.module';
-import jwtConfig from '@infrastructure/config/jsonwebtoken/jwt.config';
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
@@ -13,7 +12,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
-    JwtModule.registerAsync(jwtConfig.asProvider()),
+    JwtModule,
     TokenModule,
     DeviceDetectionModule,
     RateLimitModule,
