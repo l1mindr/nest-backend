@@ -14,21 +14,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Enable Corepack (Yarn 4)
+      - name: Enable Corepack
         run: corepack enable
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: yarn install --immutable
+        run: pnpm install --frozen-lockfile
 
       - name: Check outdated dependencies
         continue-on-error: true
-        run: yarn outdated
+        run: pnpm outdated
 
-      - name: Run Yarn audit
-        run: yarn npm audit --all
+      - name: Run pnpm audit
+        run: pnpm audit

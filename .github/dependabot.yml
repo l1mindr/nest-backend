@@ -1,7 +1,7 @@
 version: 2
 
 updates:
-  # NPM Dependencies
+  # Node dependencies managed with pnpm
   - package-ecosystem: "npm"
     directory: "/"
 
@@ -17,7 +17,7 @@ updates:
 
     labels:
       - "dependencies"
-      - "npm"
+      - "pnpm"
 
     commit-message:
       prefix: "deps"

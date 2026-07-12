@@ -1,3 +1,3 @@
 # .husky/commit-msg
 
-npx commitlint --edit --config ./commitlint.config.ts
+pnpm exec commitlint --edit --config ./commitlint.config.ts

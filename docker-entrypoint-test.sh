@@ -2,10 +2,10 @@
 set -e
 
 echo "Running build..."
-yarn build
+pnpm run build
 
 echo "Running migrations..."
-yarn migration:run
+pnpm run migration:run
 
 echo "Running tests..."
-yarn test:e2e
+pnpm run test:e2e

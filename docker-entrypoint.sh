@@ -4,7 +4,7 @@ set -e
 
 echo "Running database migrations..."
 
-npm run migration:run
+pnpm run migration:run
 
 echo "Starting application..."
 

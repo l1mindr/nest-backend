@@ -9,4 +9,4 @@ services:
 
       JWT_SECRET_KEY: test-secret
 
-    command: yarn test:unit
+    command: pnpm run test:unit
