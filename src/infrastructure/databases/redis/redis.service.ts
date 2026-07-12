@@ -17,12 +17,27 @@ export class RedisService implements OnModuleDestroy {
     return this.redis.set(key, value);
   }
 
+  async setIfNotExists(
+    key: RedisKey,
+    value: string | number | Buffer
+  ): Promise<'OK' | null> {
+    return await this.redis.set(key, value, 'NX');
+  }
+
+  async setIfNotExistsWithExpiry(
+    key: RedisKey,
+    value: string | number | Buffer,
+    ttlSeconds: number
+  ): Promise<'OK' | null> {
+    return await this.redis.set(key, value, 'EX', ttlSeconds, 'NX');
+  }
+
   async setWithExpiry(
     key: RedisKey,
     value: string | number | Buffer,
     ttlSeconds: number
-  ): Promise<'OK'> {
-    return this.redis.set(key, value, 'EX', ttlSeconds);
+  ): Promise<'OK' | null> {
+    return await this.redis.set(key, value, 'EX', ttlSeconds, 'NX');
   }
 
   async del(key: string): Promise<number> {

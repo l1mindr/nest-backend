@@ -15,13 +15,13 @@ export class RedisLockService {
     lockIdentifier: string,
     ttlSeconds = 5
   ): Promise<boolean> {
-    return (
-      (await this.redisService.setWithExpiry(
-        this.getFullKey(lockKey, lockIdentifier),
-        '1',
-        ttlSeconds
-      )) === 'OK'
+    const result = await this.redisService.setIfNotExistsWithExpiry(
+      this.getFullKey(lockKey, lockIdentifier),
+      '1',
+      ttlSeconds
     );
+
+    return result === 'OK' ? true : false;
   }
 
   async release(key: RedisKey, value: string) {

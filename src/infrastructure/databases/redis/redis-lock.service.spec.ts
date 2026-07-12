@@ -6,7 +6,7 @@ describe('RedisLockService', () => {
   let service: RedisLockService;
 
   const mockRedisService = {
-    setWithExpiry: jest.fn(),
+    setIfNotExistsWithExpiry: jest.fn(),
     del: jest.fn()
   };
 
@@ -18,7 +18,7 @@ describe('RedisLockService', () => {
 
   describe('acquire', () => {
     it('should acquire lock successfully', async () => {
-      mockRedisService.setWithExpiry.mockResolvedValue('OK');
+      mockRedisService.setIfNotExistsWithExpiry.mockResolvedValue('OK');
 
       const result = await service.acquire(
         RedisKey.REFRESH_LOCK,
@@ -28,7 +28,7 @@ describe('RedisLockService', () => {
 
       expect(result).toBe(true);
 
-      expect(mockRedisService.setWithExpiry).toHaveBeenCalledWith(
+      expect(mockRedisService.setIfNotExistsWithExpiry).toHaveBeenCalledWith(
         'refresh:lock:session-id',
         '1',
         5
@@ -36,13 +36,12 @@ describe('RedisLockService', () => {
     });
 
     it('should return false when lock already exists', async () => {
-      mockRedisService.setWithExpiry.mockResolvedValue(null);
+      mockRedisService.setIfNotExistsWithExpiry.mockResolvedValue(null);
 
       const result = await service.acquire(RedisKey.REFRESH_LOCK, 'session-id');
 
       expect(result).toBe(false);
-
-      expect(mockRedisService.setWithExpiry).toHaveBeenCalledWith(
+      expect(mockRedisService.setIfNotExistsWithExpiry).toHaveBeenCalledWith(
         'refresh:lock:session-id',
         '1',
         5
