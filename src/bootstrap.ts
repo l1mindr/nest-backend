@@ -1,10 +1,15 @@
 import { helmetConfig } from '@infrastructure/http/helmet.config';
-import { INestApplication, VersioningType } from '@nestjs/common';
+import { VersioningType } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 
-export async function setupApp(app: INestApplication) {
+export async function setupApp(app: NestExpressApplication) {
+  if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+  }
+
   if (process.env.NODE_ENV === 'development') {
     const config = new DocumentBuilder()
       .setTitle('The NestjsBackend API description')
