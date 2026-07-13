@@ -67,4 +67,29 @@ describe('Users (e2e) version: 1', () => {
     expect(res.status).toBe(204);
     expect(updateUserDataRes.body.data.name).toBe('New name');
   });
+
+  it.each([
+    { field: 'status', payload: { status: 'ACTIVATE' } },
+    { field: 'email', payload: { email: 'new@example.com' } },
+    { field: 'username', payload: { username: 'newusername' } }
+  ])(
+    'should reject profile update with non-whitelisted $field',
+    async ({ payload }) => {
+      const {
+        client,
+        response: {
+          cookies: { refreshToken, csrfToken },
+          headers: { xCsrfToken }
+        }
+      } = await AuthFactory.authenticated(app, {});
+      const res = await client
+        .put('/v1/user', {
+          body: payload
+        })
+        .set('Cookie', `${refreshToken}; ${csrfToken}`)
+        .set('X-CSRF-Token', xCsrfToken);
+
+      expect(res.status).toBe(422);
+    }
+  );
 });

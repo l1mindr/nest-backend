@@ -3,7 +3,7 @@ import { IUsersService } from '@features/users/interfaces/users.interface';
 import { Injectable } from '@nestjs/common';
 import { DataSource, FindOptionsSelect, Repository } from 'typeorm';
 import { CreateUserRequestDto } from './dto/request/create-user.request.dto';
-import { UpdateUserRequestDto } from './dto/request/update-user.request.dto';
+import { UpdateProfileRequestDto } from './dto/request/update-profile.request.dto';
 import { UserErrors } from './errors/user-errors';
 
 @Injectable()
@@ -75,7 +75,7 @@ export class UsersService implements IUsersService {
 
   async updateProfile(
     id: string,
-    updateUserRequestDto: UpdateUserRequestDto
+    updateUserRequestDto: UpdateProfileRequestDto
   ): Promise<void> {
     try {
       await this.findById(id);

@@ -11,7 +11,7 @@ import {
   Put
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { UpdateUserRequestDto } from './dto/request/update-user.request.dto';
+import { UpdateProfileRequestDto } from './dto/request/update-profile.request.dto';
 import { UserProfileResponseDto } from './dto/response/user-profile.response.dto';
 import { UsersService } from './users.service';
 import {
@@ -39,7 +39,10 @@ export class UsersController {
   @Put()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiChangeProfile()
-  changeProfile(@User() user: UserEntity, @Body() dto: UpdateUserRequestDto) {
+  changeProfile(
+    @User() user: UserEntity,
+    @Body() dto: UpdateProfileRequestDto
+  ) {
     return this.usersService.updateProfile(user.id, dto);
   }
 
