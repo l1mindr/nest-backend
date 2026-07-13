@@ -8,6 +8,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { BcryptProvider } from './providers/bcrypt.provider';
 import { HashingProvider } from './providers/hashing.provider';
+import { RefreshTokenHasher } from './providers/refresh-token-hasher.provider';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { HashingProvider } from './providers/hashing.provider';
   controllers: [AuthController],
   providers: [
     AuthService,
+    RefreshTokenHasher,
     {
       provide: HashingProvider,
       useClass: BcryptProvider

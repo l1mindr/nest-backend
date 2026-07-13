@@ -7,9 +7,14 @@ import { TokenService } from '@features/token/token.service';
 import { UsersService } from '@features/users/users.service';
 import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { createHash } from 'crypto';
 import { AuthService } from './auth.service';
 import { AuthErrors } from './errors/auth-errors';
 import { HashingProvider } from './providers/hashing.provider';
+import { RefreshTokenHasher } from './providers/refresh-token-hasher.provider';
+
+const sha256 = (value: string) =>
+  createHash('sha256').update(value).digest('hex');
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -71,6 +76,7 @@ describe('AuthService', () => {
           provide: HashingProvider,
           useValue: mockHashingProvider
         },
+        RefreshTokenHasher,
         {
           provide: SessionsService,
           useValue: mockSessionsService
@@ -141,8 +147,6 @@ describe('AuthService', () => {
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       });
-
-      mockHashingProvider.hash.mockResolvedValue('refresh-token-hash');
 
       const result = await service.loginUser(
         {
@@ -287,7 +291,7 @@ describe('AuthService', () => {
 
       mockSessionsService.getActive.mockResolvedValue({
         id: 'session-id',
-        refreshTokenHash: 'old-hash',
+        refreshTokenHash: sha256('refresh-token'),
         owner: {
           id: 'user-id'
         }
@@ -298,14 +302,10 @@ describe('AuthService', () => {
         expiresAt
       });
 
-      mockHashingProvider.compare.mockResolvedValue(true);
-
       mockTokenService.issuePair.mockResolvedValue({
         accessToken: 'new-access',
         refreshToken: 'new-refresh'
       });
-
-      mockHashingProvider.hash.mockResolvedValue('new-refresh-hash');
 
       mockSessionsService.rotateAtomic.mockResolvedValue(true);
 
@@ -315,6 +315,15 @@ describe('AuthService', () => {
         accessToken: 'new-access',
         refreshToken: 'new-refresh'
       });
+
+      // The rotated hash stored must be the SHA-256 digest of the new token.
+      expect(mockSessionsService.rotateAtomic).toHaveBeenCalledWith(
+        'session-id',
+        undefined,
+        sha256('refresh-token'),
+        sha256('new-refresh'),
+        expect.anything()
+      );
     });
 
     it('should throw sessionExpired', async () => {
@@ -357,7 +366,7 @@ describe('AuthService', () => {
 
       const session = {
         id: 'session-id',
-        refreshTokenHash: 'hash',
+        refreshTokenHash: sha256('a-different-token'),
         owner: {
           id: 'user-id'
         }
@@ -382,8 +391,6 @@ describe('AuthService', () => {
         now,
         expiresAt: new Date(now + 1000)
       });
-
-      mockHashingProvider.compare.mockResolvedValue(false);
 
       await expect(service.refresh('token')).rejects.toEqual(
         SessionErrors.sessionReuseDetected('session-id')
@@ -412,7 +419,7 @@ describe('AuthService', () => {
 
       mockSessionsService.getActive.mockResolvedValue({
         id: 'session-id',
-        refreshTokenHash: 'hash',
+        refreshTokenHash: sha256('token'),
         owner: {
           id: 'user-id'
         }
@@ -423,14 +430,10 @@ describe('AuthService', () => {
         expiresAt: new Date(now + 1000)
       });
 
-      mockHashingProvider.compare.mockResolvedValue(true);
-
       mockTokenService.issuePair.mockResolvedValue({
         accessToken: 'access',
         refreshToken: 'refresh'
       });
-
-      mockHashingProvider.hash.mockResolvedValue('new-hash');
 
       mockSessionsService.rotateAtomic.mockResolvedValue(false);
 

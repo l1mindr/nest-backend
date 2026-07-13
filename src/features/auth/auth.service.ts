@@ -15,6 +15,7 @@ import { RegisterUserRequestDto } from './dto/request/register-user.request.dto'
 import { AuthErrors } from './errors/auth-errors';
 import { AuthTokens, IAuthService } from './interfaces/auth.interface';
 import { HashingProvider } from './providers/hashing.provider';
+import { RefreshTokenHasher } from './providers/refresh-token-hasher.provider';
 
 @Injectable()
 export class AuthService implements IAuthService {
@@ -22,6 +23,7 @@ export class AuthService implements IAuthService {
     private readonly deviceMapper: DeviceMapper,
     private readonly clockService: ClockService,
     private readonly hashingProvider: HashingProvider,
+    private readonly refreshTokenHasher: RefreshTokenHasher,
     private readonly sessionsService: SessionsService,
     private readonly usersService: UsersService,
     private readonly tokenService: TokenService,
@@ -67,7 +69,7 @@ export class AuthService implements IAuthService {
       expiresAt
     );
 
-    const refreshTokenHash = await this.hashingProvider.hash(refreshToken);
+    const refreshTokenHash = this.refreshTokenHasher.hash(refreshToken);
 
     await this.sessionsService.updateRefreshState(session, {
       refreshTokenHash,
@@ -129,7 +131,7 @@ export class AuthService implements IAuthService {
         throw SessionErrors.sessionExpired();
       }
 
-      const isValid = await this.hashingProvider.compare(
+      const isValid = this.refreshTokenHasher.compare(
         refreshToken,
         session.refreshTokenHash
       );
@@ -152,7 +154,7 @@ export class AuthService implements IAuthService {
         expiresAt
       );
 
-      const newRefreshTokenHash = await this.hashingProvider.hash(
+      const newRefreshTokenHash = this.refreshTokenHasher.hash(
         tokens.refreshToken
       );
 
