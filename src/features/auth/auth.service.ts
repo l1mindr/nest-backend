@@ -8,7 +8,9 @@ import { TokenService } from '@features/token/token.service';
 import { UsersService } from '@features/users/users.service';
 import { RedisKey } from '@infrastructure/databases/redis/keys/redis-key.enum';
 import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.service';
+import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Injectable } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
 import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
@@ -27,8 +29,11 @@ export class AuthService implements IAuthService {
     private readonly sessionsService: SessionsService,
     private readonly usersService: UsersService,
     private readonly tokenService: TokenService,
-    private readonly redisLockService: RedisLockService
-  ) {}
+    private readonly redisLockService: RedisLockService,
+    private readonly logger: PinoLogger
+  ) {
+    this.logger.setContext(AuthService.name);
+  }
 
   async registerUser(dto: RegisterUserRequestDto): Promise<void> {
     const password = await this.hashingProvider.hash(dto.password);
@@ -76,6 +81,16 @@ export class AuthService implements IAuthService {
       lastUsedAt: new Date(now)
     });
 
+    this.logger.info(
+      {
+        event: LogEvent.LOGIN_SUCCESS,
+        userId: user.id,
+        sessionId: session.id,
+        ip: ipAddress
+      },
+      'User logged in'
+    );
+
     return { accessToken, refreshToken };
   }
 
@@ -109,6 +124,11 @@ export class AuthService implements IAuthService {
     const password = await this.hashingProvider.hash(newPassword);
     await this.usersService.setPassword(userId, password);
     await this.sessionsService.terminateOthers(userId, sessionId);
+
+    this.logger.info(
+      { event: LogEvent.PASSWORD_CHANGED, userId, sessionId },
+      'User changed password'
+    );
   }
 
   async refresh(refreshToken: string) {
@@ -172,6 +192,11 @@ export class AuthService implements IAuthService {
       if (!ok) {
         throw SessionErrors.sessionReuseDetected(sessionId);
       }
+
+      this.logger.info(
+        { event: LogEvent.REFRESH_ROTATED, userId: sub, sessionId },
+        'Refresh token rotated'
+      );
 
       return tokens;
     } finally {

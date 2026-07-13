@@ -1,6 +1,8 @@
 import { Session } from '@features/sessions/entities/session.entity';
+import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import { PinoLogger } from 'nestjs-pino';
 import { DataSource, MoreThan, Not, Repository } from 'typeorm';
 import { ISessionDevice } from './interfaces/session-device.interface';
 import { ISessionsService } from './interfaces/sessions.interface';
@@ -8,7 +10,12 @@ import { SessionListItem } from './types/session-list-item.type';
 
 @Injectable()
 export class SessionsService implements ISessionsService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly logger: PinoLogger
+  ) {
+    this.logger.setContext(SessionsService.name);
+  }
 
   private get sessionRepo(): Repository<Session> {
     return this.dataSource.getRepository(Session);
@@ -72,6 +79,11 @@ export class SessionsService implements ISessionsService {
       {
         isRevoked: true
       }
+    );
+
+    this.logger.info(
+      { event: LogEvent.SESSION_REVOKED, userId, sessionId },
+      'Session revoked'
     );
   }
 

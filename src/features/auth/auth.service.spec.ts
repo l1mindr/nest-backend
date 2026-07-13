@@ -8,6 +8,7 @@ import { UsersService } from '@features/users/users.service';
 import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { createHash } from 'crypto';
+import { PinoLogger } from 'nestjs-pino';
 import { AuthService } from './auth.service';
 import { AuthErrors } from './errors/auth-errors';
 import { HashingProvider } from './providers/hashing.provider';
@@ -58,6 +59,13 @@ describe('AuthService', () => {
     release: jest.fn()
   };
 
+  const mockLogger = {
+    setContext: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -92,6 +100,10 @@ describe('AuthService', () => {
         {
           provide: RedisLockService,
           useValue: mockRedisLockService
+        },
+        {
+          provide: PinoLogger,
+          useValue: mockLogger
         }
       ]
     }).compile();

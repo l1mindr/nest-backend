@@ -1,9 +1,17 @@
+import { PinoLogger } from 'nestjs-pino';
 import { DataSource } from 'typeorm';
 import { Session } from './entities/session.entity';
 import { SessionsService } from './sessions.service';
 
 describe('SessionsService', () => {
   let service: SessionsService;
+
+  const mockLogger = {
+    setContext: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  };
 
   const mockQueryBuilder = {
     update: jest.fn().mockReturnThis(),
@@ -31,7 +39,10 @@ describe('SessionsService', () => {
 
     mockRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
-    service = new SessionsService(mockDataSource as unknown as DataSource);
+    service = new SessionsService(
+      mockDataSource as unknown as DataSource,
+      mockLogger as unknown as PinoLogger
+    );
   });
 
   describe('issue', () => {
