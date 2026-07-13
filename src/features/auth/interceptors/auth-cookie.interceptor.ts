@@ -5,7 +5,7 @@ import {
   NestInterceptor
 } from '@nestjs/common';
 import { Response } from 'express';
-import { Observable, tap } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { AuthTokens } from '../interfaces/auth.interface';
 import { CsrfService } from '@features/security/csrf/csrf.service';
 
@@ -19,7 +19,7 @@ export class AuthCookieInterceptor implements NestInterceptor {
     const isProduction = process.env.NODE_ENV === 'production';
 
     return next.handle().pipe(
-      tap(({ accessToken, refreshToken }: AuthTokens) => {
+      map(({ accessToken, refreshToken }: AuthTokens) => {
         if (accessToken && refreshToken) {
           res.cookie('access_token', accessToken, {
             httpOnly: true,
@@ -43,6 +43,8 @@ export class AuthCookieInterceptor implements NestInterceptor {
             sameSite: isProduction ? 'strict' : 'lax'
           });
         }
+
+        return;
       })
     );
   }
