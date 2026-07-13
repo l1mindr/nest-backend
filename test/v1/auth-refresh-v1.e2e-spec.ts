@@ -5,7 +5,6 @@ import { createTestApp } from '../bootstrap/test-app';
 import { AuthFactory } from '../factories/auth.factory';
 import { runMigrations, truncateDatabase } from '../helpers/postgresql.helper';
 import { clearRedis } from '../helpers/redis.helper';
-// import { getCookie, normalizeHeader } from '../utils/cookie.util';
 
 describe('Auth Refresh (e2e) version: 1', () => {
   let app: INestApplication;
