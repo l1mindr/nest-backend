@@ -65,7 +65,7 @@ export class TokenService implements ITokenService {
 
   async verifyAccessToken(token: string): Promise<IJwtClaims> {
     try {
-      return this.jwtService.verifyAsync<IJwtClaims>(token, {
+      return await this.jwtService.verifyAsync<IJwtClaims>(token, {
         secret: this.jwtConfiguration.accessTokenSecret,
         audience: 'api'
       });
@@ -76,7 +76,7 @@ export class TokenService implements ITokenService {
 
   async verifyRefreshToken(token: string): Promise<IJwtClaims> {
     try {
-      return this.jwtService.verifyAsync<IJwtClaims>(token, {
+      return await this.jwtService.verifyAsync<IJwtClaims>(token, {
         secret: this.jwtConfiguration.refreshTokenSecret,
         audience: 'refresh'
       });

@@ -2,6 +2,7 @@ import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { SessionsService } from '@features/sessions/sessions.service';
 import { UsersService } from '@features/users/users.service';
 import { JwtService } from '@nestjs/jwt';
+import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 import { TokenErrors } from './errors/token-errors';
 import { TokenService } from './token.service';
 
@@ -113,6 +114,21 @@ describe('TokenService', () => {
         audience: 'api'
       });
     });
+
+    it.each([
+      ['expired', new TokenExpiredError('jwt expired', new Date())],
+      ['invalid signature', new JsonWebTokenError('invalid signature')],
+      ['malformed', new JsonWebTokenError('jwt malformed')]
+    ])(
+      'should throw invalidToken when the token is %s',
+      async (_case, jwtError) => {
+        mockJwtService.verifyAsync.mockRejectedValue(jwtError);
+
+        await expect(service.verifyAccessToken('token')).rejects.toThrow(
+          TokenErrors.invalidToken()
+        );
+      }
+    );
   });
 
   describe('verifyRefreshToken', () => {
@@ -133,6 +149,21 @@ describe('TokenService', () => {
         audience: 'refresh'
       });
     });
+
+    it.each([
+      ['expired', new TokenExpiredError('jwt expired', new Date())],
+      ['invalid signature', new JsonWebTokenError('invalid signature')],
+      ['malformed', new JsonWebTokenError('jwt malformed')]
+    ])(
+      'should throw invalidToken when the token is %s',
+      async (_case, jwtError) => {
+        mockJwtService.verifyAsync.mockRejectedValue(jwtError);
+
+        await expect(service.verifyRefreshToken('token')).rejects.toThrow(
+          TokenErrors.invalidToken()
+        );
+      }
+    );
   });
 
   describe('validatePayload', () => {
