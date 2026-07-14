@@ -2,14 +2,23 @@ import { ClockService } from '@core/clock/clock.service';
 import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
-import { SessionsService } from '@features/sessions/sessions.service';
+import {
+  ISessionsService,
+  SESSION_SERVICE
+} from '@features/sessions/interfaces/sessions.interface';
 import { TokenErrors } from '@features/token/errors/token-errors';
-import { TokenService } from '@features/token/token.service';
-import { UsersService } from '@features/users/users.service';
+import {
+  ITokenService,
+  TOKEN_SERVICE
+} from '@features/token/interfaces/token.interface';
+import {
+  IUsersService,
+  USER_SERVICE
+} from '@features/users/interfaces/users.interface';
 import { RedisKey } from '@infrastructure/databases/redis/keys/redis-key.enum';
 import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
@@ -26,9 +35,12 @@ export class AuthService implements IAuthService {
     private readonly clockService: ClockService,
     private readonly hashingProvider: HashingProvider,
     private readonly refreshTokenHasher: RefreshTokenHasher,
-    private readonly sessionsService: SessionsService,
-    private readonly usersService: UsersService,
-    private readonly tokenService: TokenService,
+    @Inject(SESSION_SERVICE)
+    private readonly sessionsService: ISessionsService,
+    @Inject(USER_SERVICE)
+    private readonly usersService: IUsersService,
+    @Inject(TOKEN_SERVICE)
+    private readonly tokenService: ITokenService,
     private readonly redisLockService: RedisLockService,
     private readonly logger: PinoLogger
   ) {

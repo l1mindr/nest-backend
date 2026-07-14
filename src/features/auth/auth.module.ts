@@ -6,6 +6,7 @@ import { Module } from '@nestjs/common';
 import { UsersModule } from './../users/users.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AUTH_SERVICE } from './interfaces/auth.interface';
 import { BcryptProvider } from './providers/bcrypt.provider';
 import { HashingProvider } from './providers/hashing.provider';
 import { RefreshTokenHasher } from './providers/refresh-token-hasher.provider';
@@ -21,6 +22,7 @@ import { RefreshTokenHasher } from './providers/refresh-token-hasher.provider';
   controllers: [AuthController],
   providers: [
     AuthService,
+    { provide: AUTH_SERVICE, useExisting: AuthService },
     RefreshTokenHasher,
     {
       provide: HashingProvider,

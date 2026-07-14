@@ -12,18 +12,19 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Inject,
   Post,
   Req,
   UseInterceptors
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
-import { AuthService } from './auth.service';
 import {
   ApiChangePassword,
   ApiLoginUser,
   ApiRegisterUser
 } from './auth.swagger';
+import { AUTH_SERVICE, IAuthService } from './interfaces/auth.interface';
 import { IpAddress } from './decorators/ipAddress.decorator';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
@@ -33,7 +34,10 @@ import { AuthCookieInterceptor } from './interceptors/auth-cookie.interceptor';
 @Controller({ path: 'auth', version: '1' })
 @ApiTags('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    @Inject(AUTH_SERVICE)
+    private readonly authService: IAuthService
+  ) {}
 
   @Public()
   @Post('register')

@@ -1,10 +1,10 @@
 import { ClockService } from '@core/clock/clock.service';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
-import { SessionsService } from '@features/sessions/sessions.service';
+import { SESSION_SERVICE } from '@features/sessions/interfaces/sessions.interface';
 import { TokenErrors } from '@features/token/errors/token-errors';
-import { TokenService } from '@features/token/token.service';
-import { UsersService } from '@features/users/users.service';
+import { TOKEN_SERVICE } from '@features/token/interfaces/token.interface';
+import { USER_SERVICE } from '@features/users/interfaces/users.interface';
 import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { createHash } from 'crypto';
@@ -86,15 +86,15 @@ describe('AuthService', () => {
         },
         RefreshTokenHasher,
         {
-          provide: SessionsService,
+          provide: SESSION_SERVICE,
           useValue: mockSessionsService
         },
         {
-          provide: UsersService,
+          provide: USER_SERVICE,
           useValue: mockUsersService
         },
         {
-          provide: TokenService,
+          provide: TOKEN_SERVICE,
           useValue: mockTokenService
         },
         {
