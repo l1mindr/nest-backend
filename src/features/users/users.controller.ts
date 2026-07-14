@@ -8,12 +8,13 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Put
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { UpdateProfileRequestDto } from './dto/request/update-profile.request.dto';
 import { UserProfileResponseDto } from './dto/response/user-profile.response.dto';
-import { UsersService } from './users.service';
+import { IUsersService, USER_SERVICE } from './interfaces/users.interface';
 import {
   ApiChangeProfile,
   ApiDeleteAccount,
@@ -26,7 +27,10 @@ import {
 })
 @ApiTags('user')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    @Inject(USER_SERVICE)
+    private readonly usersService: IUsersService
+  ) {}
 
   @Get('me')
   @HttpCode(HttpStatus.OK)

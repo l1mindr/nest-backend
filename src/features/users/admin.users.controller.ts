@@ -7,12 +7,13 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Param,
   UseGuards
 } from '@nestjs/common';
 import { AdminUserResponseDto } from './dto/response/admin-user.response.dto';
 import { UserRole } from './enums/user-role.enum';
-import { UsersService } from './users.service';
+import { IUsersService, USER_SERVICE } from './interfaces/users.interface';
 import { ApiAdminGetAllUsers, ApiAdminGetUser } from './users.swagger';
 
 @Controller({
@@ -22,7 +23,10 @@ import { ApiAdminGetAllUsers, ApiAdminGetUser } from './users.swagger';
 @UseGuards(RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminUsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    @Inject(USER_SERVICE)
+    private readonly usersService: IUsersService
+  ) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
