@@ -1,10 +1,12 @@
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
-import { IJwtPayload } from './jwt-payload.interface';
+import { IJwtClaims, IJwtPayload } from './jwt-payload.interface';
 
 export type issuedTokens = {
   accessToken: string;
   refreshToken: string;
 };
+
+export const TOKEN_SERVICE = Symbol('ITokenService');
 
 export interface ITokenService {
   issuePair(
@@ -13,7 +15,7 @@ export interface ITokenService {
     now: number,
     expiresAt: Date
   ): Promise<issuedTokens>;
-  verifyAccessToken(token: string): Promise<IJwtPayload>;
-  verifyRefreshToken(token: string): Promise<IJwtPayload>;
+  verifyAccessToken(token: string): Promise<IJwtClaims>;
+  verifyRefreshToken(token: string): Promise<IJwtClaims>;
   validatePayload(payload: IJwtPayload): Promise<CustomAuth>;
 }

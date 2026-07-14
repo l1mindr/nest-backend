@@ -1,6 +1,12 @@
 import { SessionErrors } from '@features/sessions/errors/session-errors';
-import { SessionsService } from '@features/sessions/sessions.service';
-import { UsersService } from '@features/users/users.service';
+import {
+  ISessionsService,
+  SESSION_SERVICE
+} from '@features/sessions/interfaces/sessions.interface';
+import {
+  IUsersService,
+  USER_SERVICE
+} from '@features/users/interfaces/users.interface';
 import jwtConfig from '@infrastructure/config/jsonwebtoken/jwt.config';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { Inject, Injectable } from '@nestjs/common';
@@ -17,8 +23,10 @@ export class TokenService implements ITokenService {
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly jwtService: JwtService,
-    private readonly usersService: UsersService,
-    private readonly sessionsService: SessionsService
+    @Inject(USER_SERVICE)
+    private readonly usersService: IUsersService,
+    @Inject(SESSION_SERVICE)
+    private readonly sessionsService: ISessionsService
   ) {}
 
   async issuePair(
