@@ -147,12 +147,12 @@ export class AuthService implements IAuthService {
     const { sub, sessionId } =
       await this.tokenService.verifyRefreshToken(refreshToken);
 
-    const lock = await this.redisLockService.acquire(
+    const lockToken = await this.redisLockService.acquire(
       RedisKey.REFRESH_LOCK,
       sessionId
     );
 
-    if (!lock) {
+    if (!lockToken) {
       throw SessionErrors.refreshRateLimited(sessionId);
     }
 
@@ -214,7 +214,11 @@ export class AuthService implements IAuthService {
 
       return tokens;
     } finally {
-      await this.redisLockService.release(RedisKey.REFRESH_LOCK, sessionId);
+      await this.redisLockService.release(
+        RedisKey.REFRESH_LOCK,
+        sessionId,
+        lockToken
+      );
     }
   }
 }

@@ -7,7 +7,7 @@ describe('RedisLockService', () => {
 
   const mockRedisService = {
     setIfNotExistsWithExpiry: jest.fn(),
-    del: jest.fn()
+    compareAndDelete: jest.fn()
   };
 
   beforeEach(() => {
@@ -17,47 +17,76 @@ describe('RedisLockService', () => {
   });
 
   describe('acquire', () => {
-    it('should acquire lock successfully', async () => {
+    it('should acquire the lock and return a unique token stored as the value', async () => {
       mockRedisService.setIfNotExistsWithExpiry.mockResolvedValue('OK');
 
-      const result = await service.acquire(
+      const token = await service.acquire(
         RedisKey.REFRESH_LOCK,
         'session-id',
         5
       );
 
-      expect(result).toBe(true);
+      expect(typeof token).toBe('string');
+      expect(token).not.toHaveLength(0);
 
-      expect(mockRedisService.setIfNotExistsWithExpiry).toHaveBeenCalledWith(
-        'refresh:lock:session-id',
-        '1',
-        5
-      );
+      const [key, storedValue, ttl] =
+        mockRedisService.setIfNotExistsWithExpiry.mock.calls[0];
+
+      expect(key).toBe('refresh:lock:session-id');
+      expect(storedValue).toBe(token);
+      expect(ttl).toBe(5);
     });
 
-    it('should return false when lock already exists', async () => {
+    it('should generate a distinct token per acquisition', async () => {
+      mockRedisService.setIfNotExistsWithExpiry.mockResolvedValue('OK');
+
+      const first = await service.acquire(RedisKey.REFRESH_LOCK, 'session-id');
+      const second = await service.acquire(RedisKey.REFRESH_LOCK, 'session-id');
+
+      expect(first).not.toBe(second);
+    });
+
+    it('should return null when the lock is already held', async () => {
       mockRedisService.setIfNotExistsWithExpiry.mockResolvedValue(null);
 
-      const result = await service.acquire(RedisKey.REFRESH_LOCK, 'session-id');
+      const token = await service.acquire(RedisKey.REFRESH_LOCK, 'session-id');
 
-      expect(result).toBe(false);
+      expect(token).toBeNull();
       expect(mockRedisService.setIfNotExistsWithExpiry).toHaveBeenCalledWith(
         'refresh:lock:session-id',
-        '1',
+        expect.any(String),
         5
       );
     });
   });
 
   describe('release', () => {
-    it('should release lock successfully', async () => {
-      mockRedisService.del.mockResolvedValue(1);
+    it('should release the lock when the token matches', async () => {
+      mockRedisService.compareAndDelete.mockResolvedValue(1);
 
-      await service.release(RedisKey.REFRESH_LOCK, 'session-id');
-
-      expect(mockRedisService.del).toHaveBeenCalledWith(
-        'refresh:lock:session-id'
+      const released = await service.release(
+        RedisKey.REFRESH_LOCK,
+        'session-id',
+        'my-token'
       );
+
+      expect(released).toBe(true);
+      expect(mockRedisService.compareAndDelete).toHaveBeenCalledWith(
+        'refresh:lock:session-id',
+        'my-token'
+      );
+    });
+
+    it('should not release the lock when the token does not match', async () => {
+      mockRedisService.compareAndDelete.mockResolvedValue(0);
+
+      const released = await service.release(
+        RedisKey.REFRESH_LOCK,
+        'session-id',
+        'stale-token'
+      );
+
+      expect(released).toBe(false);
     });
   });
 });

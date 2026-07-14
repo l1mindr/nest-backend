@@ -9,6 +9,7 @@ describe('RedisService', () => {
     setIfNotExistsWithExpiry: jest.fn(),
     get: jest.fn(),
     del: jest.fn(),
+    eval: jest.fn(),
     quit: jest.fn()
   };
 
@@ -117,6 +118,31 @@ describe('RedisService', () => {
 
       expect(result).toBe(1);
       expect(mockRedis.del).toHaveBeenCalledWith('test:key');
+    });
+  });
+
+  describe('compareAndDelete', () => {
+    it('should run the Lua script with the key and expected value', async () => {
+      mockRedis.eval.mockResolvedValue(1);
+
+      const result = await service.compareAndDelete('lock:key', 'token');
+
+      expect(result).toBe(1);
+
+      const [script, numKeys, key, value] = mockRedis.eval.mock.calls[0];
+      expect(typeof script).toBe('string');
+      expect(script).toContain('redis.call("del", KEYS[1])');
+      expect(numKeys).toBe(1);
+      expect(key).toBe('lock:key');
+      expect(value).toBe('token');
+    });
+
+    it('should return 0 when the stored value does not match', async () => {
+      mockRedis.eval.mockResolvedValue(0);
+
+      const result = await service.compareAndDelete('lock:key', 'stale-token');
+
+      expect(result).toBe(0);
     });
   });
 

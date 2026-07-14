@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { RedisKey } from './keys/redis-key.enum';
 import { RedisService } from './redis.service';
 
@@ -14,17 +15,28 @@ export class RedisLockService {
     lockKey: RedisKey,
     lockIdentifier: string,
     ttlSeconds = 5
-  ): Promise<boolean> {
+  ): Promise<string | null> {
+    const token = randomUUID();
+
     const result = await this.redisService.setIfNotExistsWithExpiry(
       this.getFullKey(lockKey, lockIdentifier),
-      '1',
+      token,
       ttlSeconds
     );
 
-    return result === 'OK' ? true : false;
+    return result === 'OK' ? token : null;
   }
 
-  async release(key: RedisKey, value: string) {
-    await this.redisService.del(this.getFullKey(key, value));
+  async release(
+    lockKey: RedisKey,
+    lockIdentifier: string,
+    token: string
+  ): Promise<boolean> {
+    const released = await this.redisService.compareAndDelete(
+      this.getFullKey(lockKey, lockIdentifier),
+      token
+    );
+
+    return released === 1;
   }
 }
