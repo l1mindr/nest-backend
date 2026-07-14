@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn
@@ -12,6 +13,8 @@ import { ISessionDevice } from '../interfaces/session-device.interface';
 import { SwaggerSessionProperties as SessionProps } from '../sessions.swagger';
 
 @Entity()
+@Index('IDX_session_owner_active', ['owner', 'isRevoked', 'expiresAt'])
+@Index('IDX_session_expires_at', ['expiresAt'])
 export class Session {
   @ApiProperty(SessionProps.id)
   @PrimaryGeneratedColumn('uuid')
