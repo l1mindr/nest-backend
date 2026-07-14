@@ -144,7 +144,7 @@ export class AuthService implements IAuthService {
   }
 
   async refresh(refreshToken: string) {
-    const { sub, sessionId, iat } =
+    const { sub, sessionId } =
       await this.tokenService.verifyRefreshToken(refreshToken);
 
     const lock = await this.redisLockService.acquire(
@@ -163,6 +163,12 @@ export class AuthService implements IAuthService {
         throw SessionErrors.sessionExpired();
       }
 
+      // The stored refresh-token hash is the single source of truth for
+      // replay detection. Once a token is rotated the old token no longer
+      // matches the stored hash, so reusing it fails here. We do NOT compare
+      // the JWT `iat` (second precision) against `rotatedAt` (millisecond
+      // precision) because a freshly issued token can look reused within the
+      // same second.
       const isValid = this.refreshTokenHasher.compare(
         refreshToken,
         session.refreshTokenHash
@@ -170,10 +176,6 @@ export class AuthService implements IAuthService {
 
       if (!isValid) {
         await this.sessionsService.revoke(sub, sessionId);
-        throw SessionErrors.sessionReuseDetected(sessionId);
-      }
-
-      if (session.rotatedAt && session.rotatedAt.getTime() >= iat * 1000) {
         throw SessionErrors.sessionReuseDetected(sessionId);
       }
 
