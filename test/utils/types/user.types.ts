@@ -1,3 +1,3 @@
-import { createUser } from '../../helpers/create-user.helper';
+import { createUserDto } from '../../helpers/create-user.helper';
 
-export type TestUser = ReturnType<typeof createUser>;
+export type TestUser = ReturnType<typeof createUserDto>;
