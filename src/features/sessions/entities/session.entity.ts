@@ -18,46 +18,46 @@ import { SwaggerSessionProperties as SessionProps } from '../sessions.swagger';
 export class Session {
   @ApiProperty(SessionProps.id)
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ApiProperty(SessionProps.refreshTokenHash)
   @Column()
-  refreshTokenHash: string;
+  refreshTokenHash!: string;
 
   @ApiProperty(SessionProps.userAgent)
   @Column({ type: 'jsonb' })
-  device: ISessionDevice;
+  device!: ISessionDevice;
 
   @ApiProperty(SessionProps.ipAddress)
   @Column()
-  ipAddress: string;
+  ipAddress!: string;
 
   @Column({ default: false })
-  isRevoked: boolean;
+  isRevoked!: boolean;
 
   @ApiProperty(SessionProps.expireAt)
   @Column({ type: 'timestamp' })
-  expiresAt: Date;
+  expiresAt!: Date;
 
   @ApiProperty(SessionProps.lastUsedAt)
   @Column({ type: 'timestamp' })
-  lastUsedAt: Date;
+  lastUsedAt!: Date;
 
   @Column({ default: 0 })
-  version: number;
+  version!: number;
 
   @Column({ type: 'timestamp', nullable: true })
-  rotatedAt: Date;
+  rotatedAt!: Date;
 
   @ApiProperty(SessionProps.createdAt)
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @ApiProperty(SessionProps.updatedAt)
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @ApiProperty(SessionProps.user)
   @ManyToOne(() => User, (user) => user.sessions, { nullable: false })
-  owner: User;
+  owner!: User;
 }

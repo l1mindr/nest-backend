@@ -18,41 +18,41 @@ import { SwaggerUserProperties as UserProps } from '../users.swagger';
 export class User {
   @ApiProperty(UserProps.id)
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ApiPropertyOptional(UserProps.name)
   @Column({ length: 50, nullable: true, select: false })
-  name: string | null;
+  name!: string | null;
 
   @ApiProperty(UserProps.email)
   @Column({ unique: true })
-  email: string;
+  email!: string;
 
   @ApiProperty(UserProps.username)
   @Column({ unique: true, length: 30 })
-  username: string;
+  username!: string;
 
   @ApiProperty(UserProps.password)
   @Column({ select: false })
-  password: string;
+  password!: string;
 
   @ApiPropertyOptional(UserProps.status)
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.DEACTIVATE })
-  status: UserStatus;
+  status!: UserStatus;
 
   @ApiPropertyOptional(UserProps.role)
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
-  role: UserRole;
+  role!: UserRole;
 
   @ApiProperty(UserProps.registryDates)
   @Column(() => RegistryDatesOrm, { prefix: false })
-  registryDates: RegistryDatesOrm;
+  registryDates!: RegistryDatesOrm;
 
   @ApiProperty(UserProps.sessions)
   @OneToMany(() => Session, (session) => session.owner, {
     cascade: ['soft-remove', 'recover']
   })
-  sessions: Session[];
+  sessions!: Session[];
 
   @ApiProperty(UserProps.isDeleted)
   get isDeleted() {
