@@ -94,11 +94,12 @@ export class TokenService implements ITokenService {
   }
 
   async validatePayload({ sub, sessionId }: IJwtPayload): Promise<CustomAuth> {
-    const user = await this.usersService.findByIdForSessionValidation(sub);
+    const [user, session] = await Promise.all([
+      this.usersService.findByIdForSessionValidation(sub),
+      this.sessionsService.getActive(sub, sessionId)
+    ]);
 
     if (!user) throw TokenErrors.invalidToken();
-
-    const session = await this.sessionsService.getActive(user.id, sessionId);
 
     if (!session) throw SessionErrors.sessionExpired(sessionId);
 
