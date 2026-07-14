@@ -2,10 +2,20 @@ import { Session } from '@features/security/decorators/session.decorator';
 import { User } from '@features/security/decorators/user.decorator';
 import { User as UserEntity } from '@features/users/entities/user.entity';
 import { Serialize } from '@infrastructure/http/interceptors/decorators/serialize.decorator';
-import { Controller, Delete, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Inject
+} from '@nestjs/common';
 import { SessionResponseDto } from './dto/response/session.response.dto';
 import { Session as SessionEntity } from './entities/session.entity';
-import { SessionsService } from './sessions.service';
+import {
+  ISessionsService,
+  SESSION_SERVICE
+} from './interfaces/sessions.interface';
 import {
   ApiGetSessions,
   ApiRevokeCurrentSession,
@@ -17,7 +27,10 @@ import {
   version: '1'
 })
 export class SessionsController {
-  constructor(private readonly sessionsService: SessionsService) {}
+  constructor(
+    @Inject(SESSION_SERVICE)
+    private readonly sessionsService: ISessionsService
+  ) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)

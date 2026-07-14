@@ -2,6 +2,8 @@ import { Session } from '../entities/session.entity';
 import { SessionListItem } from '../types/session-list-item.type';
 import { ISessionDevice } from './session-device.interface';
 
+export const SESSION_SERVICE = Symbol('ISessionsService');
+
 export interface ISessionsService {
   getActive(userId: string, sessionId: string): Promise<Session | null>;
 
