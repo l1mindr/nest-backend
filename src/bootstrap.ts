@@ -29,7 +29,8 @@ export async function setupApp(app: NestExpressApplication) {
   app.use(
     compression({
       level: 6,
-      filter: (req) => req.headers['accept-encoding']?.includes('gzip'),
+      filter: (req) =>
+        req.headers['accept-encoding']?.includes('gzip') ?? false,
       threshold: 1024
     })
   );

@@ -64,7 +64,7 @@ export class UsersService implements IUsersService {
   async register(createUserRequestDto: CreateUserRequestDto): Promise<void> {
     try {
       await this.userRepo.save(this.userRepo.create(createUserRequestDto));
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.handleUniqueConstraintError(error);
     }
   }
@@ -80,7 +80,7 @@ export class UsersService implements IUsersService {
     try {
       await this.findById(id);
       await this.userRepo.update({ id }, updateUserRequestDto);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.handleUniqueConstraintError(error);
     }
   }
@@ -90,10 +90,10 @@ export class UsersService implements IUsersService {
     await this.userRepo.softRemove(user);
   }
 
-  private handleUniqueConstraintError(error: any) {
+  private handleUniqueConstraintError(error: unknown): never {
     // PostgreSQL unique constraint violation
-    if (error.code === '23505') {
-      const detail: string = error.detail ?? '';
+    if (isDatabaseError(error) && error.code === '23505') {
+      const detail = error.detail ?? '';
 
       if (detail.includes('email')) throw UserErrors.emailAlreadyExists();
 
@@ -102,4 +102,17 @@ export class UsersService implements IUsersService {
 
     throw error;
   }
+}
+
+/**
+ * Minimal shape of a node-postgres driver error. Narrowed from `unknown` so
+ * the unique-constraint handling stays type-safe without resorting to `any`.
+ */
+interface DatabaseError {
+  code?: string;
+  detail?: string;
+}
+
+function isDatabaseError(error: unknown): error is DatabaseError {
+  return typeof error === 'object' && error !== null && 'code' in error;
 }

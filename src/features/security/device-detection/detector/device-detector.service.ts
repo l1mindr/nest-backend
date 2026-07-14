@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Request } from 'express';
 import { FingerprintService } from '../fingerprint/fingerprint.service';
 import { UserAgentParser } from '../user-agent/user-agent.parser';
 import { normalizeUA } from '../utils/normalize-ua.util';

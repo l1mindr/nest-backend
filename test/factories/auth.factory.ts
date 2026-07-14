@@ -51,10 +51,15 @@ export class AuthFactory {
     options: AuthenticatedOptions = {},
     dataSource?: DataSource
   ): Promise<AuthenticatedUserContext> {
-    let context;
+    let context: CreateUserContext;
 
-    if (options.withRole === UserRole.ADMIN)
+    if (options.withRole === UserRole.ADMIN) {
+      if (!dataSource) {
+        throw new Error('A DataSource is required to create an admin user.');
+      }
+
       context = await UserFactory.admin(app, dataSource, options.overrides);
+    }
 
     context = await UserFactory.register(app, options.overrides);
 
