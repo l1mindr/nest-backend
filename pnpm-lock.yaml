@@ -23,9 +23,6 @@ importers:
       '@nestjs/jwt':
         specifier: ^11.0.2
         version: 11.0.2(@nestjs/common@11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
-      '@nestjs/mapped-types':
-        specifier: ^2.1.1
-        version: 2.1.1(@nestjs/common@11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)
       '@nestjs/platform-express':
         specifier: ^11.1.28
         version: 11.1.28(@nestjs/common@11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.28)
@@ -35,18 +32,9 @@ importers:
       '@nestjs/typeorm':
         specifier: ^11.0.3
         version: 11.0.3(@nestjs/common@11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.28)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@1.0.0(ioredis@5.11.1)(pg@8.22.0)(ts-node@10.9.2(@types/node@26.1.1)(typescript@5.9.3)))
-      '@types/bcrypt':
-        specifier: ^6.0.0
-        version: 6.0.0
-      '@types/ioredis':
-        specifier: ^5.0.0
-        version: 5.0.0
       bcrypt:
         specifier: ^6.0.0
         version: 6.0.0
-      chalk:
-        specifier: 4.1.2
-        version: 4.1.2
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
@@ -65,6 +53,9 @@ importers:
       dotenv-expand:
         specifier: ^13.0.0
         version: 13.0.0
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1
       helmet:
         specifier: ^8.2.0
         version: 8.2.0
@@ -129,6 +120,9 @@ importers:
       '@nestjs/testing':
         specifier: ^11.1.28
         version: 11.1.28(@nestjs/common@11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.28)(@nestjs/platform-express@11.1.28)
+      '@types/bcrypt':
+        specifier: ^6.0.0
+        version: 6.0.0
       '@types/compression':
         specifier: ^1.8.1
         version: 1.8.1
@@ -153,9 +147,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.63.0
         version: 8.63.0(eslint@10.7.0(jiti@2.6.1))(typescript@5.9.3)
-      conventional-changelog-atom:
-        specifier: ^5.1.0
-        version: 5.1.0
+      chalk:
+        specifier: 4.1.2
+        version: 4.1.2
       eslint:
         specifier: ^10.7.0
         version: 10.7.0(jiti@2.6.1)
@@ -183,18 +177,12 @@ importers:
       prettier:
         specifier: ^3.9.5
         version: 3.9.5
-      source-map-support:
-        specifier: ^0.5.21
-        version: 0.5.21
       supertest:
         specifier: ^7.2.2
         version: 7.2.2
       ts-jest:
         specifier: ^29.4.11
         version: 29.4.11(@babel/core@7.29.7)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.29.7))(jest-util@29.7.0)(jest@29.7.0(@types/node@26.1.1)(ts-node@10.9.2(@types/node@26.1.1)(typescript@5.9.3)))(typescript@5.9.3)
-      ts-loader:
-        specifier: ^9.6.2
-        version: 9.6.2(typescript@5.9.3)(webpack@5.106.2)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@26.1.1)(typescript@5.9.3)
@@ -1129,10 +1117,6 @@ packages:
   '@types/http-errors@2.0.5':
     resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
 
-  '@types/ioredis@5.0.0':
-    resolution: {integrity: sha512-zJbJ3FVE17CNl5KXzdeSPtdltc4tMT3TzC6fxQS0sQngkbFZ6h+0uTafsRqu+eSLIugf6Yb0Ea0SUuRr42Nk9g==}
-    deprecated: This is a stub types definition. ioredis provides its own type definitions, so you do not need this installed.
-
   '@types/istanbul-lib-coverage@2.0.6':
     resolution: {integrity: sha512-2QF/t/auWm0lsy8XtKVPG19v3sSOQlJe/YHZgfjb/KBBHOGSV+J2q/S671rcq9uTBrLAXmZpqJiaQbMT+zNU1w==}
 
@@ -1720,11 +1704,6 @@ packages:
   conventional-changelog-angular@9.2.1:
     resolution: {integrity: sha512-oWSL6ZhnXbYraOFTK3PgRAQJ8fADDAEv5K6AdeyQPLvjFmhG8+ejL0jZZp/R7vTmGJaBvZEE+sE7dB4bCv7sAw==}
     engines: {node: '>=22'}
-
-  conventional-changelog-atom@5.1.0:
-    resolution: {integrity: sha512-fw7GpI9jHNCWGBnTsPRI452ypQbNupGwsjrXfozvRNE0c92pJRpoj9rXfzDKUYJcsmk0H4XKaQjhjelwI9z27w==}
-    engines: {node: '>=18'}
-    deprecated: This preset is deprecated. Please use conventional-changelog-conventionalcommits or conventional-changelog-angular instead.
 
   conventional-changelog-conventionalcommits@10.2.1:
     resolution: {integrity: sha512-n4Kr1HFMTf3iMbES0TMxKIcYtUUv4rKqyQQp2JwfOEfFCOfGT3Tq4mCyJ8S9/YPyWhydjfKrrvnyl+gCjA+mJQ==}
@@ -3685,17 +3664,6 @@ packages:
       jest-util:
         optional: true
 
-  ts-loader@9.6.2:
-    resolution: {integrity: sha512-R4iuczmtgxvtuI556s+hTZ6/7Ee03VCAk/l/M8LY1OAsUgB7YydsCxkgq9D9pKRaD7GJqUi2u8fp9zZP/ufjKA==}
-    engines: {node: '>=12.0.0'}
-    peerDependencies:
-      loader-utils: '*'
-      typescript: '*'
-      webpack: ^4.0.0 || ^5.0.0
-    peerDependenciesMeta:
-      loader-utils:
-        optional: true
-
   ts-morph@28.0.0:
     resolution: {integrity: sha512-Wp3tnZ2bzwxyTZMtgWVzXDfm7lB1Drz+y9DmmYH/L702PQhPyVrp3pkou3yIz4qjS14GY9kcpmLiOOMvl8oG1g==}
 
@@ -5189,12 +5157,6 @@ snapshots:
 
   '@types/http-errors@2.0.5': {}
 
-  '@types/ioredis@5.0.0':
-    dependencies:
-      ioredis: 5.11.1
-    transitivePeerDependencies:
-      - supports-color
-
   '@types/istanbul-lib-coverage@2.0.6': {}
 
   '@types/istanbul-lib-report@3.0.3':
@@ -5861,8 +5823,6 @@ snapshots:
   conventional-changelog-angular@9.2.1:
     dependencies:
       '@conventional-changelog/template': 1.2.1
-
-  conventional-changelog-atom@5.1.0: {}
 
   conventional-changelog-conventionalcommits@10.2.1:
     dependencies:
@@ -7925,14 +7885,6 @@ snapshots:
       '@jest/types': 29.6.3
       babel-jest: 29.7.0(@babel/core@7.29.7)
       jest-util: 29.7.0
-
-  ts-loader@9.6.2(typescript@5.9.3)(webpack@5.106.2):
-    dependencies:
-      chalk: 4.1.2
-      picomatch: 4.0.5
-      source-map: 0.7.6
-      typescript: 5.9.3
-      webpack: 5.106.2
 
   ts-morph@28.0.0:
     dependencies:
