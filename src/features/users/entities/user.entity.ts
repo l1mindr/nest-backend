@@ -21,7 +21,7 @@ export class User {
   id!: string;
 
   @ApiPropertyOptional(UserProps.name)
-  @Column({ length: 50, nullable: true, select: false })
+  @Column({ type: 'varchar', length: 50, nullable: true, select: false })
   name!: string | null;
 
   @ApiProperty(UserProps.email)
