@@ -9,5 +9,6 @@ services:
 
       ACCESS_TOKEN_SECRET: accessjwtsecret
       REFRESH_TOKEN_SECRET: refreshjwtsecret
+      CSRF_TOKEN_SECRET: csrftokensecret
 
     command: pnpm run test:unit
