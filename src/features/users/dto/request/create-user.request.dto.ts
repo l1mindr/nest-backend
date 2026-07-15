@@ -3,17 +3,17 @@ import { EmailField } from '@infrastructure/http/validation/fields/email-field.d
 import { PasswordField } from '@infrastructure/http/validation/fields/password-field.decorator';
 import { UsernameField } from '@infrastructure/http/validation/fields/username-field.decorator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateUserRequestDto {
   @EmailField()
-  email: string;
+  email!: string;
 
   @UsernameField()
-  username: string;
+  username!: string;
 
   @PasswordField()
-  password: string;
+  password!: string;
 
   @ApiPropertyOptional({
     enum: UserStatus,
@@ -30,6 +30,7 @@ export class CreateUserRequestDto {
     example: 'mohmadreza mosalli'
   })
   @IsOptional()
+  @IsString()
   @MaxLength(30)
   name?: string | null;
 }

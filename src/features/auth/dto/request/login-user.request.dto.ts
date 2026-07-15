@@ -1,6 +1,6 @@
 import { PasswordField } from '@infrastructure/http/validation/fields/password-field.decorator';
+import { TrimLowercase } from '@infrastructure/http/validation/decorators/trim-lowercase.decorator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 export class LoginUserRequestDto {
@@ -11,7 +11,7 @@ export class LoginUserRequestDto {
   })
   @IsNotEmpty()
   @IsString()
-  @Transform(({ value }) => value.trim().toLowerCase())
+  @TrimLowercase()
   email: string;
 
   @PasswordField()
