@@ -35,6 +35,55 @@ describe('Sessions (e2e) version: 1', () => {
     expect(Array.isArray(res.body.data)).toBe(true);
   });
 
+  it('should return every SessionResponseDto field for each session', async () => {
+    const { client } = await AuthFactory.authenticated(app, {});
+
+    // A second login creates another session for the same user.
+    await AuthFactory.authenticated(app, {});
+
+    const res = await client.get('/v1/sessions');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(2);
+
+    const [current, other] = res.body.data;
+
+    // Current session is first and flagged.
+    expect(current.current).toBe(true);
+    expect(other.current).toBeUndefined();
+
+    for (const session of [current, other]) {
+      // session id
+      expect(session.sessionId).toEqual(expect.any(String));
+      expect(session.sessionId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      );
+
+      // last activity
+      expect(session.lastActivityAt).toEqual(expect.any(String));
+      expect(new Date(session.lastActivityAt).getTime()).not.toBeNaN();
+
+      // device
+      expect(session.deviceInfo).toEqual({
+        browserName: expect.any(String),
+        browserVersion: expect.any(String),
+        osName: expect.any(String),
+        deviceType: expect.stringMatching(/^(mobile|tablet|desktop)$/)
+      });
+
+      // expiration — a valid date in the future
+      expect(session.validUntil).toEqual(expect.any(String));
+      expect(new Date(session.validUntil).getTime()).toBeGreaterThan(
+        Date.now()
+      );
+
+      expect(session.ipAddress).toEqual(expect.any(String));
+    }
+
+    // The two sessions are distinct.
+    expect(current.sessionId).not.toBe(other.sessionId);
+  });
+
   it('should return 204 when logout successfully', async () => {
     const {
       client,

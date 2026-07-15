@@ -93,28 +93,69 @@ describe('SessionsService', () => {
   });
 
   describe('list', () => {
-    it('should return current session first', async () => {
-      const currentSession = {
-        id: 'current'
-      } as Session;
+    const device = {
+      browserName: 'Chrome',
+      browserVersion: '148.0.0',
+      osName: 'MacOS',
+      deviceType: 'desktop' as const
+    };
 
-      const sessions = [
-        {
-          id: 'other'
-        }
-      ];
+    const currentSession = {
+      id: 'current',
+      ipAddress: '127.0.0.1',
+      device,
+      expiresAt: new Date('2026-08-01T00:00:00.000Z'),
+      lastUsedAt: new Date('2026-07-15T10:00:00.000Z')
+    } as Session;
 
-      mockRepository.find.mockResolvedValue(sessions);
+    const otherSession = {
+      id: 'other',
+      ipAddress: '10.0.0.2',
+      device,
+      expiresAt: new Date('2026-08-02T00:00:00.000Z'),
+      lastUsedAt: new Date('2026-07-14T09:00:00.000Z')
+    } as Session;
+
+    it('should return explicitly mapped items with current session first', async () => {
+      mockRepository.find.mockResolvedValue([otherSession]);
 
       const result = await service.list('user-id', currentSession);
 
       expect(result).toEqual([
         {
-          ...currentSession,
+          sessionId: 'current',
+          ipAddress: '127.0.0.1',
+          deviceInfo: device,
+          validUntil: currentSession.expiresAt,
+          lastActivityAt: currentSession.lastUsedAt,
           current: true
         },
-        ...sessions
+        {
+          sessionId: 'other',
+          ipAddress: '10.0.0.2',
+          deviceInfo: device,
+          validUntil: otherSession.expiresAt,
+          lastActivityAt: otherSession.lastUsedAt
+        }
       ]);
+    });
+
+    it('should select every field the response exposes', async () => {
+      mockRepository.find.mockResolvedValue([]);
+
+      await service.list('user-id', currentSession);
+
+      expect(mockRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: {
+            id: true,
+            ipAddress: true,
+            device: true,
+            expiresAt: true,
+            lastUsedAt: true
+          }
+        })
+      );
     });
   });
 
