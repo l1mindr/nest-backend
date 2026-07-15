@@ -1,13 +1,16 @@
 import { ISessionDevice } from '@features/sessions/interfaces/session-device.interface';
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose, Transform } from 'class-transformer';
+import { Expose } from 'class-transformer';
 
+/**
+ * Fields map one-to-one from SessionListItem — the service maps the entity
+ * explicitly, so no @Transform lookups against the raw entity are needed.
+ */
 export class SessionResponseDto {
   @ApiProperty({
     example: 'e4f8b9a2-1c7d-4d5a-8f3e-9a1b2c3d4e5f'
   })
   @Expose()
-  @Transform(({ obj }) => obj.id)
   sessionId: string;
 
   @ApiProperty({
@@ -20,21 +23,18 @@ export class SessionResponseDto {
     description: 'Information about the client device'
   })
   @Expose()
-  @Transform(({ obj }) => obj.device)
   deviceInfo: ISessionDevice;
 
   @ApiProperty({
     example: '2026-06-15T12:00:00.000Z'
   })
   @Expose()
-  @Transform(({ obj }) => obj.expiresAt)
   validUntil: Date;
 
   @ApiProperty({
     example: '2026-06-10T08:30:00.000Z'
   })
   @Expose()
-  @Transform(({ obj }) => obj.lastUsedAt)
   lastActivityAt: Date;
 
   @ApiProperty({
