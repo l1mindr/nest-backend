@@ -61,13 +61,29 @@ export class SessionsService implements ISessionsService {
         id: Not(session.id)
       },
       select: {
+        id: true,
+        ipAddress: true,
         device: true,
         expiresAt: true,
-        ipAddress: true
+        lastUsedAt: true
       }
     });
 
-    return [{ ...session, current: true }, ...sessions];
+    return [
+      this.toListItem(session, true),
+      ...sessions.map((s) => this.toListItem(s))
+    ];
+  }
+
+  private toListItem(session: Session, current?: boolean): SessionListItem {
+    return {
+      sessionId: session.id,
+      ipAddress: session.ipAddress,
+      deviceInfo: session.device,
+      validUntil: session.expiresAt,
+      lastActivityAt: session.lastUsedAt,
+      ...(current !== undefined && { current })
+    };
   }
 
   async revoke(userId: string, sessionId: string): Promise<void> {
