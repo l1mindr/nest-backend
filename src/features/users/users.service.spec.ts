@@ -148,15 +148,58 @@ describe('UsersService', () => {
     });
   });
 
-  describe('list', () => {
-    it('should return users', async () => {
+  describe('listForAdmin', () => {
+    it('should return users with the admin view selection', async () => {
       const users = [{ id: '1' }, { id: '2' }] as User[];
 
       mockRepository.find.mockResolvedValue(users);
 
-      const result = await service.list();
+      const result = await service.listForAdmin();
 
       expect(result).toEqual(users);
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          email: true,
+          role: true,
+          status: true,
+          registryDates: { createdAt: true, updatedAt: true, deleteAt: true }
+        }
+      });
+    });
+  });
+
+  describe('findByIdForAdmin', () => {
+    it('should return user with the admin view selection', async () => {
+      const user = { id: '1' } as User;
+
+      mockRepository.findOne.mockResolvedValue(user);
+
+      const result = await service.findByIdForAdmin('1');
+
+      expect(result).toEqual(user);
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { id: '1' },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          email: true,
+          role: true,
+          status: true,
+          registryDates: { createdAt: true, updatedAt: true, deleteAt: true }
+        }
+      });
+    });
+
+    it('should throw when user not found', async () => {
+      mockRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findByIdForAdmin('missing')).rejects.toEqual(
+        UserErrors.userNotFound('missing')
+      );
     });
   });
 
