@@ -8,7 +8,7 @@ export const VALIDATION_PIPE_OPTIONS: ValidationPipeOptions = {
   forbidNonWhitelisted: true,
   transform: true,
   transformOptions: {
-    enableImplicitConversion: true
+    enableImplicitConversion: false
   },
   errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
   exceptionFactory: (errors) => {
