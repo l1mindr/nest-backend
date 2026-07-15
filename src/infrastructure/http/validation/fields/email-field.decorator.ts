@@ -1,7 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsEmail } from 'class-validator';
+import { IsEmail, IsString } from 'class-validator';
+import { TrimLowercase } from '../decorators/trim-lowercase.decorator';
 
 export function EmailField() {
   return applyDecorators(
@@ -9,7 +9,8 @@ export function EmailField() {
       description: 'A valid email address for the user',
       example: 'test@gmail.com'
     }),
-    Transform(({ value }) => value.trim().toLowerCase()),
+    TrimLowercase(),
+    IsString(),
     IsEmail()
   );
 }
