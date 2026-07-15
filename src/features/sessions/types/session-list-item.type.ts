@@ -1,5 +1,10 @@
-import { Session } from '../entities/session.entity';
+import { ISessionDevice } from '../interfaces/session-device.interface';
 
-export type SessionListItem = Session & {
+export type SessionListItem = {
+  sessionId: string;
+  ipAddress: string;
+  deviceInfo: ISessionDevice;
+  validUntil: Date;
+  lastActivityAt: Date;
   current?: boolean;
 };
