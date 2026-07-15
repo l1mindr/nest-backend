@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
+import { Request } from 'express';
 import { IncomingMessage, ServerResponse } from 'http';
 import { Params } from 'nestjs-pino';
 import { REDACT_PATHS } from './logging.constants';
@@ -30,12 +31,15 @@ export function loggerFactory(config: ConfigService): Params {
         return id;
       },
 
-      customProps: (req: any) => ({
-        correlationId: req.id,
-        ip: req.ip,
-        userId: req.user?.id,
-        sessionId: req.session?.id
-      }),
+      customProps: (req: IncomingMessage) => {
+        const expressReq = req as Request;
+        return {
+          correlationId: expressReq.id,
+          ip: expressReq.ip,
+          userId: expressReq.user?.id,
+          sessionId: expressReq.session?.id
+        };
+      },
 
       customLogLevel: (_req, res, err) => {
         if (err || res.statusCode >= 500) return 'error';
@@ -43,10 +47,10 @@ export function loggerFactory(config: ConfigService): Params {
         return 'info';
       },
 
-      customSuccessMessage: (req: any, res: any) =>
-        `${req.method} ${req.originalUrl ?? req.url} ${res.statusCode}`,
-      customErrorMessage: (req: any, res: any) =>
-        `${req.method} ${req.originalUrl ?? req.url} ${res.statusCode}`,
+      customSuccessMessage: (req: IncomingMessage, res: ServerResponse) =>
+        `${req.method} ${(req as Request).originalUrl ?? req.url} ${res.statusCode}`,
+      customErrorMessage: (req: IncomingMessage, res: ServerResponse) =>
+        `${req.method} ${(req as Request).originalUrl ?? req.url} ${res.statusCode}`,
 
       redact: {
         paths: REDACT_PATHS,

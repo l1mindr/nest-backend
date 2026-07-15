@@ -5,29 +5,33 @@ import { ErrorDomain } from './error-domain.enum';
 
 export class ErrorMapper {
   static from(error: unknown): AppError {
-    // Already AppError
     if (error instanceof AppError) return error;
 
-    // Nest HTTP errors
     if (error instanceof HttpException) {
       const status = error.getStatus();
       const response = error.getResponse();
 
+      const responseObj =
+        typeof response === 'object' && response !== null
+          ? (response as Record<string, unknown>)
+          : undefined;
+
       const message =
         typeof response === 'string'
           ? response
-          : ((response as any)?.message ?? 'HTTP Error');
+          : responseObj?.message != null
+            ? String(responseObj.message)
+            : 'HTTP Error';
 
       return new AppError(
         DomainErrorCode.HTTP_EXCEPTION,
         ErrorDomain.HTTP,
         status,
-        (response as any)?.errors,
+        responseObj?.errors as Record<string, unknown> | undefined,
         message
       );
     }
 
-    // Unknown errors
     return new AppError(
       DomainErrorCode.INTERNAL_ERROR,
       ErrorDomain.SYSTEM,

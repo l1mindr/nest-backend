@@ -3,6 +3,7 @@ import { ErrorMapper } from '@core/errors/error-mapper';
 import { SessionErrorCode } from '@features/sessions/errors/session-error-code.enum';
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import { Request, Response } from 'express';
 import { PinoLogger } from 'nestjs-pino';
 
 @Catch()
@@ -13,14 +14,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const res = ctx.getResponse();
-    const req = ctx.getRequest();
+    const res = ctx.getResponse<Response>();
+    const req = ctx.getRequest<Request>();
 
     const error: AppError = ErrorMapper.from(exception);
 
     this.logError(exception, error, req);
 
-    // Response format intentionally unchanged — internals never leak.
     return res.status(error.statusCode).json({
       error: {
         code: error.code,
@@ -33,7 +33,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     });
   }
 
-  private logError(exception: unknown, error: AppError, req: any) {
+  private logError(exception: unknown, error: AppError, req: Request) {
     const context = {
       correlationId: req.id,
       method: req.method,
@@ -46,7 +46,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       sessionId: req.session?.id ?? error.metadata?.sessionId
     };
 
-    // Unexpected server errors: log the original exception with its stack.
     if (error.statusCode >= 500) {
       this.logger.error(
         { ...context, event: LogEvent.UNEXPECTED_EXCEPTION, err: exception },
@@ -55,7 +54,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return;
     }
 
-    // Refresh-token reuse is a high-severity security signal.
     if (error.code === SessionErrorCode.SESSION_REUSE_DETECTED) {
       this.logger.error(
         { ...context, event: LogEvent.REFRESH_REUSE_DETECTED },

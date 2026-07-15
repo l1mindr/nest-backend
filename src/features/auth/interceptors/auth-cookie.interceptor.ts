@@ -13,7 +13,7 @@ import { CsrfService } from '@features/security/csrf/csrf.service';
 export class AuthCookieInterceptor implements NestInterceptor {
   constructor(private readonly csrfService: CsrfService) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<void> {
     const ctx = context.switchToHttp();
     const res = ctx.getResponse<Response>();
     const isProduction = process.env.NODE_ENV === 'production';

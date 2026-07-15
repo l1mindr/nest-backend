@@ -5,7 +5,7 @@ export class AppError extends Error {
     public readonly code: string,
     public readonly domain: ErrorDomain,
     public readonly statusCode: number,
-    public readonly metadata?: Record<string, any>,
+    public readonly metadata?: Record<string, unknown>,
     message?: string
   ) {
     super(message);
