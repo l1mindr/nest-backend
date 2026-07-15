@@ -8,6 +8,7 @@ import { Response } from 'express';
 import { map, Observable } from 'rxjs';
 import { AuthTokens } from '../interfaces/auth.interface';
 import { CsrfService } from '@features/security/csrf/csrf.service';
+import { decodeSessionId } from '@features/security/csrf/utils/session-id.util';
 
 @Injectable()
 export class AuthCookieInterceptor implements NestInterceptor {
@@ -35,13 +36,17 @@ export class AuthCookieInterceptor implements NestInterceptor {
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
           });
 
-          const csrfToken = this.csrfService.generateToken();
+          const sessionId = decodeSessionId(accessToken);
 
-          res.cookie('csrf_token', csrfToken, {
-            httpOnly: false,
-            secure: isProduction,
-            sameSite: isProduction ? 'strict' : 'lax'
-          });
+          if (sessionId) {
+            const csrfToken = this.csrfService.generateToken(sessionId);
+
+            res.cookie('csrf_token', csrfToken, {
+              httpOnly: false,
+              secure: isProduction,
+              sameSite: isProduction ? 'strict' : 'lax'
+            });
+          }
         }
 
         return;
