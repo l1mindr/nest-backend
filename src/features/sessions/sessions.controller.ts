@@ -1,5 +1,6 @@
 import { Session } from '@features/security/decorators/session.decorator';
 import { User } from '@features/security/decorators/user.decorator';
+import { ClearCsrfCookieInterceptor } from '@features/security/csrf/interceptors/clear-csrf-cookie.interceptor';
 import { User as UserEntity } from '@features/users/entities/user.entity';
 import { Serialize } from '@infrastructure/http/interceptors/decorators/serialize.decorator';
 import {
@@ -8,7 +9,8 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Inject
+  Inject,
+  UseInterceptors
 } from '@nestjs/common';
 import { SessionResponseDto } from './dto/response/session.response.dto';
 import { Session as SessionEntity } from './entities/session.entity';
@@ -42,6 +44,7 @@ export class SessionsController {
 
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseInterceptors(ClearCsrfCookieInterceptor)
   @ApiRevokeCurrentSession()
   revoke(@User() user: UserEntity, @Session() session: SessionEntity) {
     return this.sessionsService.revoke(user.id, session.id);
