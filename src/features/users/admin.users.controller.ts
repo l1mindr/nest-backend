@@ -33,16 +33,17 @@ export class AdminUsersController {
   @ApiAdminGetAllUsers()
   @Serialize(AdminUserResponseDto)
   async getAll() {
-    return await this.usersService.list();
+    return await this.usersService.listForAdmin();
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiAdminGetUser()
+  @Serialize(AdminUserResponseDto)
   get(
     @Param()
     { id }: IdDto
   ) {
-    return this.usersService.findById(id);
+    return this.usersService.findByIdForAdmin(id);
   }
 }

@@ -3,8 +3,8 @@ import { ErrorResponseDto } from '@infrastructure/http/dto/error-response.dto';
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { Session } from './../sessions/entities/session.entity';
+import { AdminUserResponseDto } from './dto/response/admin-user.response.dto';
 import { UserProfileResponseDto } from './dto/response/user-profile.response.dto';
-import { User } from './entities/user.entity';
 import { UserRole } from './enums/user-role.enum';
 import { UserStatus } from './enums/user-status.enum';
 
@@ -130,7 +130,7 @@ export const ApiAdminGetAllUsers = () =>
     ApiResponse({
       status: 200,
       description: 'Successfully retrieved users',
-      type: [User]
+      type: [AdminUserResponseDto]
     }),
     ApiResponse({
       status: 500,
@@ -152,7 +152,7 @@ export const ApiAdminGetUser = () =>
     ApiResponse({
       status: 200,
       description: 'User found',
-      type: User
+      type: AdminUserResponseDto
     }),
     ApiResponse({
       status: 404,

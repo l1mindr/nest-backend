@@ -9,7 +9,7 @@ export class AdminUserResponseDto extends TimestampResponseDto {
     example: 'uuid'
   })
   @Expose()
-  id: string;
+  id!: string;
 
   @ApiProperty({
     example: 'John Doe',
@@ -18,36 +18,59 @@ export class AdminUserResponseDto extends TimestampResponseDto {
     required: false
   })
   @Expose()
-  name: string | null;
+  name!: string | null;
 
   @ApiProperty({
     example: 'john_doe'
   })
   @Expose()
-  username: string;
+  username!: string;
 
   @ApiProperty({
     example: 'john@example.com'
   })
   @Expose()
-  email: string;
+  email!: string;
 
   @ApiProperty({
     enum: UserRole
   })
   @Expose()
-  role: UserRole;
+  role!: UserRole;
 
   @ApiProperty({
     enum: UserStatus
   })
   @Expose()
-  status: UserStatus;
+  status!: UserStatus;
 
   @ApiProperty({
     example: '2024-10-01T12:34:56.000Z'
   })
   @Expose()
   @Transform(({ obj }) => obj.registryDates.createdAt)
-  registeredAt: Date;
+  registeredAt!: Date;
+
+  @ApiProperty({
+    example: '2024-10-01T12:34:56.000Z'
+  })
+  @Expose()
+  @Transform(({ obj }) => obj.registryDates.createdAt)
+  createdAt!: Date;
+
+  @ApiProperty({
+    example: '2024-10-01T12:34:56.000Z'
+  })
+  @Expose()
+  @Transform(({ obj }) => obj.registryDates.updatedAt)
+  updatedAt!: Date;
+
+  @ApiProperty({
+    example: null,
+    nullable: true,
+    required: false
+  })
+  @Expose()
+  @Transform(({ obj }) => obj.registryDates.deleteAt ?? null)
+  deletedAt!: Date | null;
 }
