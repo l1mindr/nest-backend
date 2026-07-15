@@ -10,6 +10,21 @@ import { UserErrors } from './errors/user-errors';
 export class UsersService implements IUsersService {
   constructor(private readonly dataSource: DataSource) {}
 
+  /**
+   * Every field AdminUserResponseDto serializes: `name` is `select: false`
+   * on the entity and the timestamps live under the embedded registryDates,
+   * so both must be selected explicitly.
+   */
+  private static readonly ADMIN_VIEW_SELECT: FindOptionsSelect<User> = {
+    id: true,
+    name: true,
+    username: true,
+    email: true,
+    role: true,
+    status: true,
+    registryDates: { createdAt: true, updatedAt: true, deleteAt: true }
+  };
+
   private get userRepo(): Repository<User> {
     return this.dataSource.getRepository(User);
   }
@@ -57,6 +72,19 @@ export class UsersService implements IUsersService {
     return user;
   }
 
+  async findByIdForAdmin(id: string): Promise<User> {
+    const user = await this.findByIdWithSelect(
+      id,
+      UsersService.ADMIN_VIEW_SELECT
+    );
+    if (!user) throw UserErrors.userNotFound(id);
+    return user;
+  }
+
+  async listForAdmin(): Promise<User[]> {
+    return this.userRepo.find({ select: UsersService.ADMIN_VIEW_SELECT });
+  }
+
   async setPassword(userid: string, hashPassword: string): Promise<void> {
     await this.userRepo.update({ id: userid }, { password: hashPassword });
   }
@@ -67,10 +95,6 @@ export class UsersService implements IUsersService {
     } catch (error: unknown) {
       this.handleUniqueConstraintError(error);
     }
-  }
-
-  async list(): Promise<User[]> {
-    return this.userRepo.find();
   }
 
   async updateProfile(

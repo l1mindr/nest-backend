@@ -6,7 +6,8 @@ export const USER_SERVICE = Symbol('IUsersService');
 
 export interface IUsersService {
   register(dto: CreateUserRequestDto): Promise<void>;
-  list(): Promise<User[]>;
+  listForAdmin(): Promise<User[]>;
+  findByIdForAdmin(id: string): Promise<User>;
   findByIdentifierForAuth(identifier: string): Promise<User | null>;
   findByIdForSessionValidation(userId: string): Promise<User | null>;
   findByIdWithPassword(userId: string): Promise<User | null>;
