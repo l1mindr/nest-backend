@@ -2,7 +2,7 @@ services:
   app:
     build:
       context: ../../..
-      target: test
+      target: production
 
     environment:
       NODE_ENV: test
