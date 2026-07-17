@@ -1,25 +1,8 @@
 services:
-  migration:
-    build:
-      context: ../../..
-      target: migration
-
-    environment:
-      NODE_ENV: test
-      DATA_SOURCE_HOST: postgres
-      DATA_SOURCE_PORT: 5432
-      DATA_SOURCE_USERNAME: postgres
-      DATA_SOURCE_PASSWORD: postgres
-      DATA_SOURCE_DATABASE: test_e2e_db
-
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   app:
     build:
       context: ../../..
-      target: production
+      target: test
 
     environment:
       NODE_ENV: test
@@ -32,18 +15,21 @@ services:
 
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      # REDIS_PASSWORD: ''
+      # REDIS_DB: 0
 
       ACCESS_TOKEN_SECRET: accessjwtsecret
       REFRESH_TOKEN_SECRET: refreshjwtsecret
       CSRF_TOKEN_SECRET: csrftokensecret
 
     depends_on:
-      migration:
-        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+
       redis:
         condition: service_healthy
 
-    command: pnpm run test:e2e
+    command: sh docker-entrypoint-test.sh
 
   postgres:
     image: postgres:17-alpine
