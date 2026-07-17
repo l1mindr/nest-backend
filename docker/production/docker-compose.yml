@@ -1,0 +1,25 @@
+services:
+  migration:
+    image: ${APP_IMAGE:?Set APP_IMAGE to an immutable production image reference}
+    env_file:
+      - ${APP_ENV_FILE:-../../.env.production}
+    environment:
+      NODE_ENV: production
+    command: ['npm', 'run', 'migration:run']
+    init: true
+    restart: 'no'
+
+  app:
+    image: ${APP_IMAGE:?Set APP_IMAGE to an immutable production image reference}
+    env_file:
+      - ${APP_ENV_FILE:-../../.env.production}
+    environment:
+      NODE_ENV: production
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    init: true
+    ports:
+      - '${APP_PORT:-8080}:8080'
+    restart: unless-stopped
+    stop_grace_period: 30s

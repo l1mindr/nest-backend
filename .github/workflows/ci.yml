@@ -38,14 +38,40 @@ jobs:
       - name: Unit Tests
         run: pnpm run test:unit
 
+      - name: Production Image
+        run: docker build --tag nest-backend:ci .
+
+      - name: Production Image Contract
+        run: |
+          test "$(docker image inspect --format '{{json .Config.Cmd}}' nest-backend:ci)" = '["node","dist/main.js"]'
+          docker run --rm --entrypoint node nest-backend:ci -e "
+            const fs = require('node:fs');
+            const migrationDirectory = 'dist/infrastructure/databases/postgres/migrations';
+            if (process.env.NODE_ENV !== 'production') throw new Error('NODE_ENV must be production');
+            if (process.getuid?.() === 0) throw new Error('Production image must not run as root');
+            fs.accessSync('dist/main.js');
+            fs.accessSync('dist/infrastructure/databases/postgres/data-source.js');
+            fs.accessSync('node_modules/.bin/typeorm', fs.constants.X_OK);
+            if (!fs.readdirSync(migrationDirectory).some((file) => file.endsWith('.js'))) {
+              throw new Error('Production image does not contain compiled migrations');
+            }
+            require.resolve('typeorm');
+          "
+
       - name: E2E Tests (Docker)
         run: |
           docker compose \
             -f docker/test/e2e/docker-compose.yml \
-            up \
-            --build \
-            --abort-on-container-exit \
-            --exit-code-from app
+            build migration app
+          docker compose \
+            -f docker/test/e2e/docker-compose.yml \
+            up -d --wait postgres redis
+          docker compose \
+            -f docker/test/e2e/docker-compose.yml \
+            run --rm --no-deps migration
+          docker compose \
+            -f docker/test/e2e/docker-compose.yml \
+            run --rm --no-deps app
 
       - name: Cleanup
         if: always()

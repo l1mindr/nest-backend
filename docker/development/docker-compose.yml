@@ -1,18 +1,22 @@
-version: '3.9'
-
 services:
   app:
     build:
       context: ../../
       dockerfile: Dockerfile
+      target: development
 
     container_name: nest-app
 
     env_file:
       - ../../.env.development
 
+    environment:
+      DATA_SOURCE_HOST: postgres
+      DATA_SOURCE_DATABASE: nest_dev
+      REDIS_HOST: redis
+
     ports:
-      - '3000:3000'
+      - '8080:8080'
 
     volumes:
       - ../../src:/app/src

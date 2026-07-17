@@ -4,13 +4,18 @@ node_modules
 dist
 
 .git
+.github
+.husky
 
 .vscode
 
 coverage
+documentation
+docs
 
 .env*
 
-docker/development
+docker
 
-docker/test
+*.md
+PROJECT_REVIEW.txt

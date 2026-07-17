@@ -1,4 +1,24 @@
 services:
+  migration:
+    build:
+      context: ../../..
+
+    environment:
+      NODE_ENV: production
+
+      DATA_SOURCE_HOST: postgres
+      DATA_SOURCE_PORT: 5432
+      DATA_SOURCE_USERNAME: postgres
+      DATA_SOURCE_PASSWORD: postgres
+      DATA_SOURCE_DATABASE: test_e2e_db
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    command: npm run migration:run
+    init: true
+
   app:
     build:
       context: ../../..
@@ -23,13 +43,16 @@ services:
       CSRF_TOKEN_SECRET: csrftokensecret
 
     depends_on:
+      migration:
+        condition: service_completed_successfully
+
       postgres:
         condition: service_healthy
 
       redis:
         condition: service_healthy
 
-    command: sh docker-entrypoint-test.sh
+    command: pnpm run test:e2e:docker
 
   postgres:
     image: postgres:17-alpine
