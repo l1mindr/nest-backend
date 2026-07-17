@@ -38,7 +38,8 @@ Runtime TypeORM options:
 - Loads entities from `dist/features/**/*.entity{.ts,.js}`.
 - Loads migrations from `dist/infrastructure/databases/postgres/migrations/*{.ts,.js}`.
 
-Because migration scripts point at `dist`, run `pnpm run build` before `pnpm run migration:run`.
+Because migration scripts point at `dist`, run `pnpm run build` before local
+migration commands. The production image already contains compiled output.
 
 ## Schema Overview
 
@@ -115,17 +116,22 @@ The entity defines `ManyToOne(() => User, (user) => user.sessions, { nullable: f
 
 Existing migration files:
 
-| Migration | Purpose |
-| --- | --- |
-| `1767562475194-create-user-and-session-table.ts` | Creates user/session tables and user enums. |
-| `1778584733796-AddSessionFields.ts` | Replaces initial token/device/IP/expiry columns with refresh/session lifecycle fields. |
-| `1781203122645-RenameUserAgentToDevice.ts` | Renames/recreates session device column as JSONB. |
-| `1781430797078-AddRotatedAtFieldOnSessionEntity.ts` | Adds `rotatedAt`. |
-| `1782233299217-AddVersionFieldToSessionEntity.ts` | Adds `version` and index `IDX_session_id_version`. |
+| Migration                                                  | Purpose                                                                                |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `1767562475000-EnableUuidOsspExtension.ts`                 | Enables `uuid-ossp` before UUID defaults are created.                                  |
+| `1767562475194-create-user-and-session-table.ts`           | Creates user/session tables and user enums.                                            |
+| `1778584733796-AddSessionFields.ts`                        | Replaces initial token/device/IP/expiry columns with refresh/session lifecycle fields. |
+| `1781203122645-RenameUserAgentToDevice.ts`                 | Renames/recreates session device column as JSONB.                                      |
+| `1781430797078-AddRotatedAtFieldOnSessionEntity.ts`        | Adds `rotatedAt`.                                                                      |
+| `1782233299217-AddVersionFieldToSessionEntity.ts`          | Adds `version` and index `IDX_session_id_version`.                                     |
+| `1782300000000-AddSessionIndexes.ts`                       | Adds owner/activity and expiry indexes for session queries.                            |
+| `1782400000000-DropRedundantSessionIdVersionIndex.ts`      | Removes the redundant session ID/version index.                                        |
+| `1782500000000-CorrectSessionSchemaForProductionSafety.ts` | Backfills and constrains session fields after earlier unsafe schema changes.           |
 
 Migration commands:
 
 ```bash
+pnpm run build
 pnpm run migration:create
 pnpm run migration:generate
 pnpm run migration:run
@@ -133,15 +139,14 @@ pnpm run migration:revert
 pnpm run migration:show
 ```
 
-## Important Migration Note
+Production migrations are not run by TypeORM application startup. Deployment
+runs `npm run migration:run` once from the immutable production image before
+starting application replicas. Production release jobs targeting the same
+database must be serialized.
 
-The first migration uses:
-
-```sql
-uuid_generate_v4()
-```
-
-No migration was found that enables the PostgreSQL `uuid-ossp` extension. Databases without that extension may fail when running the initial migration. Add an extension migration or enable the extension manually before running migrations.
+The first migration enables `uuid-ossp` before the schema uses
+`uuid_generate_v4()`. The production migration role therefore needs permission
+to create that extension on a fresh database.
 
 ## Repository Access Pattern
 
@@ -154,8 +159,6 @@ The modules import `TypeOrmModule.forFeature([User])` and `TypeOrmModule.forFeat
 
 ## Current Database Gaps
 
-- No migration creates the UUID extension.
-- No explicit index was found for `session.ownerId`, although the foreign key exists.
 - No pagination or filtering queries are implemented for admin user listing.
 - No database-level checks were found for non-negative session version.
 - TypeORM `synchronize` is not enabled in the migration data source, which is appropriate for migration-based schema management.

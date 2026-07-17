@@ -91,7 +91,10 @@ pnpm run test:e2e
 Dockerized e2e tests:
 
 ```bash
-docker compose -f docker/test/e2e/docker-compose.yml up --build --abort-on-container-exit --exit-code-from app
+docker compose -f docker/test/e2e/docker-compose.yml build migration app
+docker compose -f docker/test/e2e/docker-compose.yml up -d --wait postgres redis
+docker compose -f docker/test/e2e/docker-compose.yml run --rm --no-deps migration
+docker compose -f docker/test/e2e/docker-compose.yml run --rm --no-deps app
 docker compose -f docker/test/e2e/docker-compose.yml down -v
 ```
 

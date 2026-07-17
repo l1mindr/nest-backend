@@ -21,8 +21,7 @@ This document explains the repository layout and where to find the main implemen
 ├── jest.e2e.config.ts           # E2E-test Jest config
 ├── eslint.config.mjs            # ESLint flat config
 ├── commitlint.config.ts         # Conventional commit rules
-├── docker-entrypoint.sh         # Migration + app start script
-└── docker-entrypoint-test.sh    # Build + migration + e2e test script
+└── pnpm-workspace.yaml          # pnpm build-policy and dependency overrides
 ```
 
 ## Source Layout
@@ -98,13 +97,17 @@ test/
 
 ```text
 docker/
+├── production/
+│   ├── deploy.sh
+│   └── docker-compose.yml
 ├── development/docker-compose.yml
 └── test/
     ├── e2e/docker-compose.yml
     └── unit/docker-compose.yml
 ```
 
-The e2e Compose file is used by CI. The development Compose file currently needs configuration alignment before it can run the application unchanged; see [deployment.md](deployment.md).
+The production Compose file gates application startup on a one-shot migration
+job from the same immutable image. The e2e Compose file is used by CI.
 
 ## Path Aliases
 

@@ -1,125 +1,149 @@
 # Deployment
 
-This document describes the deployment-related files and current operational constraints.
+## Deployment Invariant
 
-## Runtime Entry Point
+Every release uses one immutable image for both schema migration and application
+runtime:
 
-Application startup is [src/main.ts](../src/main.ts):
+1. Build and publish the production image.
+2. Create a one-shot container from that image and run
+   `npm run migration:run`.
+3. Start or update application replicas only after the migration exits with
+   status `0`.
 
-```ts
-await app.listen(8080);
-```
+Application startup never runs migrations. This prevents every replica from
+attempting the same schema change during a scale-out or rolling deployment.
+TypeORM `migrationsRun` remains disabled intentionally.
 
-The port is hardcoded to `8080`. No `PORT` environment variable is used.
+A failed migration fails the release. Do not start the new application version
+against a database that did not complete its migrations.
 
-## Production Commands
+Only one release may migrate a database at a time. Configure the deployment
+platform to serialize releases that target the same database.
 
-Relevant scripts from [package.json](../package.json):
+## Production Image
+
+[Dockerfile](../Dockerfile) is a multi-stage build with these targets:
+
+- `dependencies`: installs the locked dependency graph once.
+- `builder`: compiles only production source into `dist/`.
+- `production-dependencies`: removes development dependencies after install.
+- `development`: source-based development runtime.
+- `test`: source-based test runtime.
+- `production`: non-root runtime containing only `dist/`, production
+  dependencies, and `package.json`.
+
+`production` is the last stage. Therefore this command builds the production
+image without requiring `--target`:
 
 ```bash
-pnpm run build
-pnpm run migration:run
-pnpm run start:prod
+docker build --tag registry.example.com/nest-backend:${GIT_SHA} .
+docker push registry.example.com/nest-backend:${GIT_SHA}
 ```
 
-`start:prod` runs:
+The image starts the API with `node dist/main.js`, runs as the unprivileged
+`node` user, and exposes port `8080`. Environment files are excluded from the
+build context and must be injected at runtime. The production image includes
+the TypeORM CLI and compiled migrations so the same artifact can serve the
+one-shot release job.
+
+## Production Compose
+
+[docker/production/docker-compose.yml](../docker/production/docker-compose.yml)
+and [deploy.sh](../docker/production/deploy.sh) are the reference lifecycle for
+a single-host Docker deployment. Compose defines:
+
+- `migration`: a one-shot release job that runs `npm run migration:run`.
+- `app`: the API process using the image's default command.
+- A completion dependency that prevents `app` from starting unless `migration`
+  succeeds when the full Compose project is started directly.
+
+Use a unique immutable image reference for every release:
 
 ```bash
-NODE_ENV=production node dist/main
+export APP_IMAGE=registry.example.com/nest-backend:${GIT_SHA}
+export APP_ENV_FILE=/run/secrets/nest-backend.env
+
+./docker/production/deploy.sh
 ```
 
-Migrations require compiled output because the TypeORM data source points to `dist`.
+`APP_ENV_FILE` defaults to `.env.production` at the repository root.
+`APP_PORT` defaults to `8080`.
 
-## Dockerfile
+The script performs this exact sequence:
 
-File: [Dockerfile](../Dockerfile)
+```bash
+docker compose -f docker/production/docker-compose.yml pull
+docker compose -f docker/production/docker-compose.yml run --rm --no-deps migration
+docker compose -f docker/production/docker-compose.yml up -d --no-deps app
+```
 
-Stages:
+`docker compose run --rm` always creates a new migration container, including
+when the same image is redeployed or a database is replaced. The shell exits
+immediately if that job fails, so the application is not updated. TypeORM
+records applied migrations, so a successful rerun only executes pending
+migrations.
 
-- `base`: `node:22-alpine`, enables Corepack, copies package metadata.
-- `deps`: installs dependencies with `pnpm install --frozen-lockfile`.
-- `builder`: copies dependencies and source, runs `pnpm run build`.
-- `dev`: copies dependencies and source, runs `pnpm run start:dev`.
-- `test`: copies dependencies and source, runs `pnpm run test`.
+Treat `deploy.sh`, or the equivalent ordered release-job workflow in another
+orchestrator, as the supported production deployment path. Do not start the
+`app` service directly and bypass the migration job.
 
-Current limitation: no dedicated minimal production runtime stage exists.
+PostgreSQL and Redis are intentionally not defined in the production Compose
+file. Production credentials should point to externally managed or separately
+operated services.
 
-## Entrypoints
+## Other Orchestrators
 
-### docker-entrypoint.sh
+Use the same ordering in Kubernetes, ECS, Nomad, or a CI/CD platform:
 
-File: [docker-entrypoint.sh](../docker-entrypoint.sh)
+1. Build and publish one immutable image.
+2. Create a one-shot pre-deploy job from that image with the production database
+   environment.
+3. Run `npm run migration:run`.
+4. Require successful job completion before updating the application workload.
+5. Cancel the rollout if the job fails.
+6. Serialize release jobs that target the same database.
 
-Runs:
+Do not run the migration command as the application container entrypoint, an
+application init process attached to every replica, or a background task after
+the rollout begins.
 
-1. `pnpm run migration:run`
-2. `node dist/main.js`
+## Fresh Deployments
 
-### docker-entrypoint-test.sh
+The migration job applies the full ordered migration history to an empty
+database before the first application process starts. A fresh environment is
+therefore upgraded to the schema expected by the image as part of deployment,
+not through a manual post-deploy step.
 
-File: [docker-entrypoint-test.sh](../docker-entrypoint-test.sh)
+The migration role must have permission to create and alter the required
+database objects, including the `uuid-ossp` extension on a fresh database. If
+production policy does not grant extension privileges to the migration role,
+provision that extension before running the release job.
 
-Runs:
+## Rollback Policy
 
-1. `pnpm run build`
-2. `pnpm run migration:run`
-3. `pnpm run test:e2e`
+Rolling back application containers does not automatically revert database
+migrations. Production migrations should remain compatible with the previous
+application version during a rolling release. Any database rollback must be a
+separate reviewed operation; do not attach `migration:revert` to automated
+deployment failure handling.
 
-## Development Docker Compose
+## Development And Test Images
 
-File: [docker/development/docker-compose.yml](../docker/development/docker-compose.yml)
+Development Compose explicitly builds the `development` target:
 
-Services:
+```bash
+docker compose -f docker/development/docker-compose.yml up --build
+```
 
-- `app`
-- `postgres`
-- `redis`
+The unit Compose file explicitly builds the `test` target. E2E Compose first
+builds the Dockerfile's default production stage and runs its one-shot migration
+service against an empty PostgreSQL database. The `test` target starts only
+after that job succeeds, then builds the source and runs the e2e suite.
 
-Current mismatches that need correction before relying on it:
-
-- The app listens on `8080`, but Compose maps `3000:3000`.
-- `.env.development` sets `DATA_SOURCE_HOST=localhost`; inside Compose it should point to the PostgreSQL service hostname, `postgres`.
-- PostgreSQL service creates `nest_dev`, while `.env.development` uses `mintegs_db`.
-
-## E2E Docker Compose
-
-File: [docker/test/e2e/docker-compose.yml](../docker/test/e2e/docker-compose.yml)
-
-This Compose file is aligned for CI e2e tests:
-
-- App receives env vars directly.
-- PostgreSQL host is `postgres`.
-- Redis host is `redis`.
-- App command runs `sh docker-entrypoint-test.sh`.
-
-## GitHub Actions
-
-### CI Pipeline
-
-File: [.github/workflows/ci.yml](../.github/workflows/ci.yml)
-
-Runs lint, build, unit tests, and Dockerized e2e tests on Node 22.
-
-### Dependency Review
-
-File: [.github/workflows/dependency-review.yml](../.github/workflows/dependency-review.yml)
-
-Runs dependency checks on pull requests to `main`.
-
-### Dependabot
-
-File: [.github/dependabot.yml](../.github/dependabot.yml)
-
-Checks Node package dependencies and GitHub Actions weekly.
-
-## Operational Gaps
-
-- No health endpoint.
-- No readiness endpoint.
-- No metrics endpoint.
-- No structured logging setup.
-- No graceful shutdown customization beyond test app shutdown hooks.
-- No production Docker target.
-- No `PORT` env variable.
-- No CORS setup.
-- No documented reverse proxy or TLS termination configuration.
+CI also builds the Dockerfile without a target. This verifies that the default
+final stage remains the production image. The image contract check verifies the
+runtime command, non-root user, production environment, TypeORM CLI, data
+source, and compiled migration artifacts. Dockerized E2E setup verifies that
+the production image can upgrade a fresh database before application tests
+start.

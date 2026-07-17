@@ -29,14 +29,14 @@ All Jest configs use:
 
 From [package.json](../package.json):
 
-| Script | Purpose |
-| --- | --- |
-| `pnpm run test` | Unit tests through `jest.unit.config.ts`. |
-| `pnpm run test:unit` | Unit tests through `jest.unit.config.ts`. |
+| Script                | Purpose                                   |
+| --------------------- | ----------------------------------------- |
+| `pnpm run test`       | Unit tests through `jest.unit.config.ts`. |
+| `pnpm run test:unit`  | Unit tests through `jest.unit.config.ts`. |
 | `pnpm run test:watch` | Jest watch mode through `jest.config.ts`. |
-| `pnpm run test:cov` | Jest coverage. |
-| `pnpm run test:debug` | Jest with Node inspector. |
-| `pnpm run test:e2e` | E2E tests through `jest.e2e.config.ts`. |
+| `pnpm run test:cov`   | Jest coverage.                            |
+| `pnpm run test:debug` | Jest with Node inspector.                 |
+| `pnpm run test:e2e`   | E2E tests through `jest.e2e.config.ts`.   |
 
 ## Unit Tests
 
@@ -137,15 +137,25 @@ File: [docker/test/e2e/docker-compose.yml](../docker/test/e2e/docker-compose.yml
 
 Services:
 
-- `app`: Docker `test` target.
+- `migration`: default production image stage and one-shot migration command.
+- `app`: Docker `test` target; waits for the migration job to succeed.
 - `postgres`: `postgres:17-alpine`, exposed as host port `5433`.
 - `redis`: `redis:7-alpine`, exposed as host port `6380`.
 
-The app container runs [docker-entrypoint-test.sh](../docker-entrypoint-test.sh):
+The migration container runs:
+
+```bash
+npm run migration:run
+```
+
+The app container then runs `pnpm run test:e2e:docker`, which performs:
 
 1. `pnpm run build`
-2. `pnpm run migration:run`
-3. `pnpm run test:e2e`
+2. `pnpm run test:e2e`
+
+CI and local Docker runs build both application images, wait for PostgreSQL and
+Redis health checks, execute the disposable migration container, and only then
+execute the disposable test container.
 
 ## CI
 
@@ -157,10 +167,12 @@ CI runs:
 2. Setup Node 22.
 3. `pnpm install --frozen-lockfile`.
 4. `pnpm run lint`.
-5. `pnpm run build`.
-6. `pnpm run test:unit`.
-7. Dockerized e2e tests.
-8. Docker Compose cleanup.
+5. `pnpm run typecheck`.
+6. `pnpm run build`.
+7. `pnpm run test:unit`.
+8. Build the default production Docker image.
+9. Dockerized production-image migration and e2e tests.
+10. Docker Compose cleanup.
 
 ## Current Testing Gaps
 
