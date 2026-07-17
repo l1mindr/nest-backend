@@ -36,6 +36,7 @@ ENV NODE_ENV=production
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/package.json ./
 
-CMD ["pnpm", "run", "migration:run"]
+# Invoke typeorm directly to avoid npm lifecycle hooks (premigration:run
+# runs "pnpm run build" which needs tsconfig.json / source).
+CMD ["pnpm", "exec", "typeorm", "migration:run", "-d", "dist/infrastructure/databases/postgres/data-source.js"]
