@@ -15,7 +15,7 @@ COPY . .
 RUN pnpm run build
 
 FROM base AS prod-deps
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 
 FROM node:22-alpine AS production
