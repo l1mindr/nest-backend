@@ -14,6 +14,7 @@ async function bootstrap() {
   app.useLogger(logger);
 
   setupApp(app);
+  app.enableShutdownHooks();
   await app.listen(8080);
 
   logger.log(
