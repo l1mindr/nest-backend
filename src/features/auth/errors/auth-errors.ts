@@ -35,4 +35,14 @@ export class AuthErrors {
       'New password must be different'
     );
   }
+
+  static passwordChangeFailed() {
+    return new AppError(
+      AuthErrorCode.PASSWORD_CHANGE_FAILED,
+      ErrorDomain.AUTH,
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      undefined,
+      'Failed to change password'
+    );
+  }
 }
