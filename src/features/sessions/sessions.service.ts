@@ -1,7 +1,10 @@
+import { AppError } from '@core/errors/app.error';
+import { DomainErrorCode } from '@core/errors/domain-error-code.enum';
+import { ErrorDomain } from '@core/errors/error-domain.enum';
 import { Session } from '@features/sessions/entities/session.entity';
 import { User } from '@features/users/entities/user.entity';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PinoLogger } from 'nestjs-pino';
 import {
@@ -88,57 +91,83 @@ export class SessionsService implements ISessionsService {
     cursor?: string,
     limit = 25
   ): Promise<SessionListResponseDto> {
-    const pageSize = Math.min(
-      limit,
-      Number(process.env.SESSIONS_PAGE_MAX) ||
-        SessionsService.DEFAULT_MAX_PAGE_SIZE
-    );
+    try {
+      const pageSize = Math.min(
+        limit,
+        Number(process.env.SESSIONS_PAGE_MAX) ||
+          SessionsService.DEFAULT_MAX_PAGE_SIZE
+      );
 
-    const qb = this.sessionRepo.createQueryBuilder('session');
+      const qb = this.sessionRepo.createQueryBuilder('session');
 
-    qb.where('session.ownerId = :userId', { userId })
-      .andWhere('session.isRevoked = false')
-      .andWhere('session.expiresAt > :now', { now: new Date() });
+      qb.where('session.ownerId = :userId', { userId })
+        .andWhere('session.isRevoked = false')
+        .andWhere('session.expiresAt > :now', { now: new Date() });
 
-    if (cursor) {
-      try {
-        const decoded = JSON.parse(
-          Buffer.from(cursor, 'base64').toString('utf8')
-        ) as {
-          createdAt: string;
-          id: string;
-        };
-        const cursorDate = new Date(decoded.createdAt);
-        qb.andWhere(
-          '(session.createdAt < :cursorDate OR (session.createdAt = :cursorDate AND session.id < :cursorId))',
-          { cursorDate, cursorId: decoded.id }
-        );
-      } catch {
-        // ignore invalid cursor
+      if (cursor) {
+        try {
+          const decoded = JSON.parse(
+            Buffer.from(cursor, 'base64').toString('utf8')
+          ) as {
+            createdAt: string;
+            id: string;
+          };
+          const cursorDate = new Date(decoded.createdAt);
+          qb.andWhere(
+            '(session.createdAt < :cursorDate OR (session.createdAt = :cursorDate AND session.id < :cursorId))',
+            { cursorDate, cursorId: decoded.id }
+          );
+        } catch (e) {
+          this.logger.warn(
+            { event: LogEvent.UNEXPECTED_EXCEPTION, userId, cursor, err: e },
+            'Invalid session list cursor provided'
+          );
+
+          return {
+            items: [],
+            nextCursor: undefined
+          } as SessionListResponseDto;
+        }
       }
+
+      qb.orderBy('session.createdAt', 'DESC')
+        .addOrderBy('session.id', 'DESC')
+        .take(pageSize + 1);
+
+      const rows = await qb.getMany();
+
+      let nextCursor: string | undefined;
+      let items = rows;
+      if (rows.length > pageSize) {
+        const last = rows[pageSize - 1];
+        items = rows.slice(0, pageSize);
+        const payload = {
+          createdAt: last.createdAt.toISOString(),
+          id: last.id
+        };
+        nextCursor = Buffer.from(JSON.stringify(payload)).toString('base64');
+      }
+
+      const dtoItems = items.map((s) => this.toListItem(s));
+
+      return {
+        items: dtoItems,
+        nextCursor
+      } as SessionListResponseDto;
+    } catch (error) {
+      this.logger.error(
+        { event: LogEvent.UNEXPECTED_EXCEPTION, userId, cursor, err: error },
+        'Failed to list sessions'
+      );
+
+      throw new AppError(
+        DomainErrorCode.INTERNAL_ERROR,
+        ErrorDomain.SYSTEM,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        { userId, cursor },
+        'Failed to list sessions'
+      );
     }
-
-    qb.orderBy('session.createdAt', 'DESC')
-      .addOrderBy('session.id', 'DESC')
-      .take(pageSize + 1);
-
-    const rows = await qb.getMany();
-
-    let nextCursor: string | undefined;
-    let items = rows;
-    if (rows.length > pageSize) {
-      const last = rows[pageSize - 1];
-      items = rows.slice(0, pageSize);
-      const payload = { createdAt: last.createdAt.toISOString(), id: last.id };
-      nextCursor = Buffer.from(JSON.stringify(payload)).toString('base64');
-    }
-
-    const dtoItems = items.map((s) => this.toListItem(s));
-
-    return {
-      items: dtoItems,
-      nextCursor
-    } as SessionListResponseDto;
   }
 
   async cleanupExpired(): Promise<number> {
@@ -194,7 +223,18 @@ export class SessionsService implements ISessionsService {
         'user.name',
         'user.status',
         'user.role',
-        'user.registryDates'
+        'user.createdAt',
+        // session fields (explicitly selected because we used `.select` above)
+        'session.id',
+        'session.refreshTokenHash',
+        'session.ipAddress',
+        'session.device',
+        'session.expiresAt',
+        'session.lastUsedAt',
+        'session.version',
+        'session.rotatedAt',
+        'session.createdAt',
+        'session.updatedAt'
       ]);
 
     const user = await qb.getOne();
@@ -203,7 +243,31 @@ export class SessionsService implements ISessionsService {
 
     const session = (user as any).sessions?.[0] ?? null;
 
-    return { user, session };
+    // The query used an explicit select which may omit the embedded registry
+    // columns. Fetch the minimal user view (including the embedded createdAt)
+    // and attach the already-loaded session so higher layers get a consistent
+    // shape.
+
+    const fullUser = await userRepo.findOne({
+      where: { id: user.id },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        name: true,
+        status: true,
+        role: true,
+        registryDates: { createdAt: true }
+      }
+    });
+
+    if (fullUser) {
+      // attach the session loaded from the join so callers receive the active
+      // session without an extra query for it.
+      (fullUser as any).sessions = (user as any).sessions;
+    }
+
+    return { user: fullUser ?? (user as any), session };
   }
 
   async list(userId: string, session: Session): Promise<SessionListItem[]> {
