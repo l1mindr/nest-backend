@@ -6,6 +6,7 @@
   "include": [
     "src",
     "test/**/*.ts",
+    "scripts/**/*.ts",
     "commitlint.config.ts",
     "eslint.config.mjs",
     "jest.unit.config.ts",

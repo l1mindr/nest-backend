@@ -38,9 +38,9 @@ services:
       # REDIS_PASSWORD: ''
       # REDIS_DB: 0
 
-      ACCESS_TOKEN_SECRET: accessjwtsecret
-      REFRESH_TOKEN_SECRET: refreshjwtsecret
-      CSRF_TOKEN_SECRET: csrftokensecret
+      ACCESS_TOKEN_SECRET: 3SGh4K6nRjy3rUiEZcwMaG4xZFyObMdJ
+      REFRESH_TOKEN_SECRET: juQXiRL05Isuon4mhjdwwwd4lUCaEc4Z
+      CSRF_TOKEN_SECRET: Py2RzgyepufR9xQD
 
     depends_on:
       migration:
