@@ -9,6 +9,7 @@ import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.ser
 import { Test, TestingModule } from '@nestjs/testing';
 import { createHash } from 'crypto';
 import { PinoLogger } from 'nestjs-pino';
+import { DataSource, EntityManager } from 'typeorm';
 import { AuthService } from './auth.service';
 import { AuthErrors } from './errors/auth-errors';
 import { HashingProvider } from './providers/hashing.provider';
@@ -59,6 +60,15 @@ describe('AuthService', () => {
     release: jest.fn()
   };
 
+  const mockTransactionManager = {} as EntityManager;
+
+  const mockDataSource = {
+    transaction: jest.fn(
+      async (callback: (manager: EntityManager) => Promise<unknown>) =>
+        callback(mockTransactionManager)
+    )
+  };
+
   const mockLogger = {
     setContext: jest.fn(),
     info: jest.fn(),
@@ -100,6 +110,10 @@ describe('AuthService', () => {
         {
           provide: RedisLockService,
           useValue: mockRedisLockService
+        },
+        {
+          provide: DataSource,
+          useValue: mockDataSource
         },
         {
           provide: PinoLogger,
@@ -231,12 +245,51 @@ describe('AuthService', () => {
 
       expect(mockUsersService.setPassword).toHaveBeenCalledWith(
         'user-id',
-        'new-hash'
+        'new-hash',
+        mockTransactionManager
       );
 
       expect(mockSessionsService.terminateOthers).toHaveBeenCalledWith(
         'user-id',
-        'session-id'
+        'session-id',
+        mockTransactionManager
+      );
+      expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fail the transaction when session revocation fails', async () => {
+      const error = new Error('session update failed');
+
+      mockUsersService.findByIdWithPassword.mockResolvedValue({
+        id: 'user-id',
+        password: 'old-hash'
+      });
+      mockHashingProvider.compare
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false);
+      mockHashingProvider.hash.mockResolvedValue('new-hash');
+      mockSessionsService.terminateOthers.mockRejectedValueOnce(error);
+
+      await expect(
+        service.changeUserPassword('user-id', 'session-id', {
+          currentPassword: 'old-password',
+          newPassword: 'new-password'
+        })
+      ).rejects.toThrow(error);
+
+      expect(mockUsersService.setPassword).toHaveBeenCalledWith(
+        'user-id',
+        'new-hash',
+        mockTransactionManager
+      );
+      expect(mockSessionsService.terminateOthers).toHaveBeenCalledWith(
+        'user-id',
+        'session-id',
+        mockTransactionManager
+      );
+      expect(mockLogger.info).not.toHaveBeenCalledWith(
+        expect.objectContaining({ event: 'password.changed' }),
+        expect.any(String)
       );
     });
 
