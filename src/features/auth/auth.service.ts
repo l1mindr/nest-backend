@@ -20,6 +20,7 @@ import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.ser
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
+import { DataSource } from 'typeorm';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
 import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
@@ -42,6 +43,7 @@ export class AuthService implements IAuthService {
     @Inject(TOKEN_SERVICE)
     private readonly tokenService: ITokenService,
     private readonly redisLockService: RedisLockService,
+    private readonly dataSource: DataSource,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(AuthService.name);
@@ -132,10 +134,12 @@ export class AuthService implements IAuthService {
 
     if (isSame) throw AuthErrors.passwordMustBeDifferent();
 
-    // Hash new password and update
     const password = await this.hashingProvider.hash(newPassword);
-    await this.usersService.setPassword(userId, password);
-    await this.sessionsService.terminateOthers(userId, sessionId);
+
+    await this.dataSource.transaction(async (manager) => {
+      await this.usersService.setPassword(userId, password, manager);
+      await this.sessionsService.terminateOthers(userId, sessionId, manager);
+    });
 
     this.logger.info(
       { event: LogEvent.PASSWORD_CHANGED, userId, sessionId },
