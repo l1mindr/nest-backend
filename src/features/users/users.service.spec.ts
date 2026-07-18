@@ -1,4 +1,4 @@
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserErrors } from './errors/user-errors';
 import { UsersService } from './users.service';
@@ -94,6 +94,24 @@ describe('UsersService', () => {
         { id: '1' },
         { password: 'hashed-password' }
       );
+    });
+
+    it('should use the transaction manager repository when provided', async () => {
+      const transactionRepository = {
+        update: jest.fn().mockResolvedValue(undefined)
+      };
+      const manager = {
+        getRepository: jest.fn().mockReturnValue(transactionRepository)
+      } as unknown as EntityManager;
+
+      await service.setPassword('1', 'hashed-password', manager);
+
+      expect(manager.getRepository).toHaveBeenCalledWith(User);
+      expect(transactionRepository.update).toHaveBeenCalledWith(
+        { id: '1' },
+        { password: 'hashed-password' }
+      );
+      expect(mockRepository.update).not.toHaveBeenCalled();
     });
   });
 
