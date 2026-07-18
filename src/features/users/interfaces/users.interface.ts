@@ -1,6 +1,7 @@
 import { CreateUserRequestDto } from '../dto/request/create-user.request.dto';
 import { UpdateProfileRequestDto } from '../dto/request/update-profile.request.dto';
 import { User } from '../entities/user.entity';
+import type { EntityManager } from 'typeorm';
 
 export const USER_SERVICE = Symbol('IUsersService');
 
@@ -16,6 +17,10 @@ export interface IUsersService {
     userId: string,
     updateUserRequestDto: UpdateProfileRequestDto
   ): Promise<void>;
-  setPassword(userid: string, hashPassword: string): Promise<void>;
+  setPassword(
+    userId: string,
+    hashPassword: string,
+    manager?: EntityManager
+  ): Promise<void>;
   requestAccountDeletion(userId: string): Promise<void>;
 }

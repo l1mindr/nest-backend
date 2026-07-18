@@ -1,7 +1,12 @@
 import { User } from '@features/users/entities/user.entity';
 import { IUsersService } from '@features/users/interfaces/users.interface';
 import { Injectable } from '@nestjs/common';
-import { DataSource, FindOptionsSelect, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  FindOptionsSelect,
+  Repository
+} from 'typeorm';
 import { CreateUserRequestDto } from './dto/request/create-user.request.dto';
 import { UpdateProfileRequestDto } from './dto/request/update-profile.request.dto';
 import { UserErrors } from './errors/user-errors';
@@ -85,8 +90,14 @@ export class UsersService implements IUsersService {
     return this.userRepo.find({ select: UsersService.ADMIN_VIEW_SELECT });
   }
 
-  async setPassword(userid: string, hashPassword: string): Promise<void> {
-    await this.userRepo.update({ id: userid }, { password: hashPassword });
+  async setPassword(
+    userId: string,
+    hashPassword: string,
+    manager?: EntityManager
+  ): Promise<void> {
+    const repository = manager?.getRepository(User) ?? this.userRepo;
+
+    await repository.update({ id: userId }, { password: hashPassword });
   }
 
   async register(createUserRequestDto: CreateUserRequestDto): Promise<void> {
