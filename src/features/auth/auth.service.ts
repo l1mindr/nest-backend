@@ -136,10 +136,18 @@ export class AuthService implements IAuthService {
 
     const password = await this.hashingProvider.hash(newPassword);
 
-    await this.dataSource.transaction(async (manager) => {
-      await this.usersService.setPassword(userId, password, manager);
-      await this.sessionsService.terminateOthers(userId, sessionId, manager);
-    });
+    try {
+      await this.dataSource.transaction(async (manager) => {
+        await this.usersService.setPassword(userId, password, manager);
+        await this.sessionsService.terminateOthers(userId, sessionId, manager);
+      });
+    } catch (error) {
+      this.logger.error(
+        { event: LogEvent.PASSWORD_CHANGED, userId, sessionId, err: error },
+        'Password change transaction failed'
+      );
+      throw AuthErrors.passwordChangeFailed();
+    }
 
     this.logger.info(
       { event: LogEvent.PASSWORD_CHANGED, userId, sessionId },
