@@ -275,7 +275,7 @@ describe('AuthService', () => {
           currentPassword: 'old-password',
           newPassword: 'new-password'
         })
-      ).rejects.toThrow(error);
+      ).rejects.toEqual(AuthErrors.passwordChangeFailed());
 
       expect(mockUsersService.setPassword).toHaveBeenCalledWith(
         'user-id',
