@@ -1,6 +1,5 @@
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { SessionsService } from '@features/sessions/sessions.service';
-import { UsersService } from '@features/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 import { TokenErrors } from './errors/token-errors';
@@ -14,12 +13,9 @@ describe('TokenService', () => {
     verifyAsync: jest.fn()
   };
 
-  const mockUsersService = {
-    findByIdForSessionValidation: jest.fn()
-  };
-
   const mockSessionsService = {
-    getActive: jest.fn()
+    getActive: jest.fn(),
+    getUserAndActiveSession: jest.fn()
   };
 
   const jwtConfiguration = {
@@ -34,7 +30,6 @@ describe('TokenService', () => {
     service = new TokenService(
       jwtConfiguration as any,
       mockJwtService as unknown as JwtService,
-      mockUsersService as unknown as UsersService,
       mockSessionsService as unknown as SessionsService
     );
   });
@@ -176,44 +171,38 @@ describe('TokenService', () => {
         id: 'session-id'
       };
 
-      mockUsersService.findByIdForSessionValidation.mockResolvedValue(user);
-
-      mockSessionsService.getActive.mockResolvedValue(session);
+      mockSessionsService.getUserAndActiveSession.mockResolvedValue({
+        user,
+        session
+      });
 
       const result = await service.validatePayload({
         sub: 'user-id',
         sessionId: 'session-id'
       });
 
-      expect(result).toEqual({
-        user,
-        session
-      });
+      expect(result).toEqual({ user, session });
     });
 
     it('should throw invalidToken when user does not exist', async () => {
-      mockUsersService.findByIdForSessionValidation.mockResolvedValue(null);
+      mockSessionsService.getUserAndActiveSession.mockResolvedValue({
+        user: null,
+        session: null
+      });
 
       await expect(
-        service.validatePayload({
-          sub: 'user-id',
-          sessionId: 'session-id'
-        })
+        service.validatePayload({ sub: 'user-id', sessionId: 'session-id' })
       ).rejects.toEqual(TokenErrors.invalidToken());
     });
 
     it('should throw sessionExpired when session does not exist', async () => {
-      mockUsersService.findByIdForSessionValidation.mockResolvedValue({
-        id: 'user-id'
+      mockSessionsService.getUserAndActiveSession.mockResolvedValue({
+        user: { id: 'user-id' },
+        session: null
       });
 
-      mockSessionsService.getActive.mockResolvedValue(null);
-
       await expect(
-        service.validatePayload({
-          sub: 'user-id',
-          sessionId: 'session-id'
-        })
+        service.validatePayload({ sub: 'user-id', sessionId: 'session-id' })
       ).rejects.toEqual(SessionErrors.sessionExpired('session-id'));
     });
   });
