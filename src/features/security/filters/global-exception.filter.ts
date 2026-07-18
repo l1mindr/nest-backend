@@ -1,8 +1,9 @@
 import { AppError } from '@core/errors/app.error';
 import { ErrorMapper } from '@core/errors/error-mapper';
+import { AuthErrorCode } from '@features/auth/errors/auth-error-code.enum';
 import { SessionErrorCode } from '@features/sessions/errors/session-error-code.enum';
-import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { PinoLogger } from 'nestjs-pino';
 
@@ -45,6 +46,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       userId: req.user?.id,
       sessionId: req.session?.id ?? error.metadata?.sessionId
     };
+
+    if (error.code === AuthErrorCode.PASSWORD_CHANGE_FAILED) {
+      this.logger.error(
+        { ...context, event: LogEvent.PASSWORD_CHANGE_FAILED, err: exception },
+        'Password change failed'
+      );
+      return;
+    }
 
     if (error.statusCode >= 500) {
       this.logger.error(
