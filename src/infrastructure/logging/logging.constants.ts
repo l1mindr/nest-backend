@@ -6,6 +6,7 @@ export enum LogEvent {
   LOGIN_FAILED = 'auth.login.failed',
   LOGOUT = 'auth.logout',
   PASSWORD_CHANGED = 'auth.password.changed',
+  PASSWORD_CHANGE_FAILED = 'auth.password.change_failed',
 
   REFRESH_ROTATED = 'auth.refresh.rotated',
   REFRESH_REUSE_DETECTED = 'auth.refresh.reuse_detected',
