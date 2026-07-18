@@ -3,7 +3,15 @@ import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PinoLogger } from 'nestjs-pino';
-import { DataSource, EntityManager, MoreThan, Not, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  In,
+  MoreThan,
+  Not,
+  Repository
+} from 'typeorm';
+import { SessionListResponseDto } from './dto/response/session-list-response.dto';
 import { ISessionDevice } from './interfaces/session-device.interface';
 import { ISessionsService } from './interfaces/sessions.interface';
 import { SessionListItem } from './types/session-list-item.type';
@@ -21,13 +29,16 @@ export class SessionsService implements ISessionsService {
     return this.dataSource.getRepository(Session);
   }
 
+  private static readonly DEFAULT_MAX_ACTIVE_SESSIONS = 10;
+  private static readonly DEFAULT_MAX_PAGE_SIZE = 50;
+
   async issue(
     userId: string,
     ipAddress: string,
     device: ISessionDevice,
     expiresAt: Date
   ) {
-    return await this.sessionRepo.save(
+    const session = await this.sessionRepo.save(
       this.sessionRepo.create({
         owner: { id: userId },
         ipAddress,
@@ -37,6 +48,116 @@ export class SessionsService implements ISessionsService {
         refreshTokenHash: randomUUID()
       })
     );
+
+    // Enforce maximum active sessions per user. Configurable via env var.
+    const maxSessions =
+      Number(process.env.MAX_ACTIVE_SESSIONS) ||
+      SessionsService.DEFAULT_MAX_ACTIVE_SESSIONS;
+
+    if (maxSessions > 0) {
+      // Count active sessions
+      const now = new Date();
+      const active = await this.sessionRepo.find({
+        where: {
+          owner: { id: userId },
+          isRevoked: false,
+          expiresAt: MoreThan(now)
+        },
+        select: { id: true },
+        order: { createdAt: 'ASC' }
+      });
+
+      if (active.length > maxSessions) {
+        const toRevoke = active
+          .slice(0, active.length - maxSessions)
+          .map((s) => s.id);
+        if (toRevoke.length) {
+          await this.sessionRepo.update(
+            { id: In(toRevoke) },
+            { isRevoked: true }
+          );
+        }
+      }
+    }
+
+    return session;
+  }
+
+  /**
+   * Cursor-based pagination for sessions. Returns items and nextCursor if more.
+   * Ordering: createdAt DESC, id DESC (stable)
+   */
+  async listCursor(
+    userId: string,
+    session: Session,
+    cursor?: string,
+    limit = 25
+  ): Promise<SessionListResponseDto> {
+    const pageSize = Math.min(
+      limit,
+      Number(process.env.SESSIONS_PAGE_MAX) ||
+        SessionsService.DEFAULT_MAX_PAGE_SIZE
+    );
+
+    const qb = this.sessionRepo.createQueryBuilder('session');
+
+    qb.where('session.ownerId = :userId', { userId })
+      .andWhere('session.isRevoked = false')
+      .andWhere('session.expiresAt > :now', { now: new Date() });
+
+    if (cursor) {
+      try {
+        const decoded = JSON.parse(
+          Buffer.from(cursor, 'base64').toString('utf8')
+        ) as {
+          createdAt: string;
+          id: string;
+        };
+        const cursorDate = new Date(decoded.createdAt);
+        qb.andWhere(
+          '(session.createdAt < :cursorDate OR (session.createdAt = :cursorDate AND session.id < :cursorId))',
+          { cursorDate, cursorId: decoded.id }
+        );
+      } catch {
+        // ignore invalid cursor
+      }
+    }
+
+    qb.orderBy('session.createdAt', 'DESC')
+      .addOrderBy('session.id', 'DESC')
+      .take(pageSize + 1);
+
+    const rows = await qb.getMany();
+
+    let nextCursor: string | undefined;
+    let items = rows;
+    if (rows.length > pageSize) {
+      const last = rows[pageSize - 1];
+      items = rows.slice(0, pageSize);
+      const payload = { createdAt: last.createdAt.toISOString(), id: last.id };
+      nextCursor = Buffer.from(JSON.stringify(payload)).toString('base64');
+    }
+
+    const dtoItems = items.map((s) => this.toListItem(s));
+
+    return {
+      items: dtoItems,
+      nextCursor
+    } as SessionListResponseDto;
+  }
+
+  /** Remove expired sessions. Returns number of revoked sessions. */
+  async cleanupExpired(): Promise<number> {
+    const now = new Date();
+    const result = await this.sessionRepo
+      .createQueryBuilder()
+      .update(Session)
+      .set({ isRevoked: true })
+      .where('expiresAt <= :now', { now })
+      .andWhere('isRevoked = false')
+      .execute();
+
+    return result.affected ?? 0;
   }
 
   async getActive(userId: string, sessionId: string): Promise<Session | null> {

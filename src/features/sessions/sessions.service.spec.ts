@@ -18,7 +18,11 @@ describe('SessionsService', () => {
     set: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
-    execute: jest.fn()
+    execute: jest.fn(),
+    orderBy: jest.fn().mockReturnThis(),
+    addOrderBy: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    getMany: jest.fn()
   };
 
   const mockRepository = {
@@ -53,6 +57,7 @@ describe('SessionsService', () => {
 
       mockRepository.create.mockReturnValue(session);
       mockRepository.save.mockResolvedValue(session);
+      mockRepository.find.mockResolvedValue([]);
 
       const result = await service.issue(
         'user-id',
@@ -69,6 +74,33 @@ describe('SessionsService', () => {
       expect(mockRepository.create).toHaveBeenCalled();
       expect(mockRepository.save).toHaveBeenCalledWith(session);
       expect(result).toEqual(session);
+    });
+
+    it('should enforce maximum active sessions and revoke oldest', async () => {
+      process.env.MAX_ACTIVE_SESSIONS = '2';
+      // active sessions ordered asc by createdAt: oldest first
+      const active = [
+        { id: 's1' } as Session,
+        { id: 's2' } as Session,
+        { id: 's3' } as Session
+      ];
+      mockRepository.create.mockReturnValue({ id: 'new' } as Session);
+      mockRepository.save.mockResolvedValue({ id: 'new' } as Session);
+      mockRepository.find.mockResolvedValue(active);
+
+      mockRepository.update.mockResolvedValue(undefined);
+
+      const result = await service.issue(
+        'user-id',
+        '127.0.0.1',
+        {} as any,
+        new Date()
+      );
+
+      expect(mockRepository.find).toHaveBeenCalled();
+      expect(mockRepository.update).toHaveBeenCalled();
+      expect(result).toEqual({ id: 'new' });
+      delete process.env.MAX_ACTIVE_SESSIONS;
     });
   });
 
