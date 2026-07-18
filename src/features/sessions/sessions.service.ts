@@ -1,4 +1,5 @@
 import { Session } from '@features/sessions/entities/session.entity';
+import { User } from '@features/users/entities/user.entity';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
@@ -49,13 +50,11 @@ export class SessionsService implements ISessionsService {
       })
     );
 
-    // Enforce maximum active sessions per user. Configurable via env var.
     const maxSessions =
       Number(process.env.MAX_ACTIVE_SESSIONS) ||
       SessionsService.DEFAULT_MAX_ACTIVE_SESSIONS;
 
     if (maxSessions > 0) {
-      // Count active sessions
       const now = new Date();
       const active = await this.sessionRepo.find({
         where: {
@@ -83,10 +82,6 @@ export class SessionsService implements ISessionsService {
     return session;
   }
 
-  /**
-   * Cursor-based pagination for sessions. Returns items and nextCursor if more.
-   * Ordering: createdAt DESC, id DESC (stable)
-   */
   async listCursor(
     userId: string,
     session: Session,
@@ -146,7 +141,6 @@ export class SessionsService implements ISessionsService {
     } as SessionListResponseDto;
   }
 
-  /** Remove expired sessions. Returns number of revoked sessions. */
   async cleanupExpired(): Promise<number> {
     const now = new Date();
     const result = await this.sessionRepo
@@ -171,6 +165,45 @@ export class SessionsService implements ISessionsService {
         }
       }
     });
+  }
+
+  async getUserAndActiveSession(
+    userId: string,
+    sessionId: string
+  ): Promise<{
+    user: import('@features/users/entities/user.entity').User | null;
+    session: Session | null;
+  }> {
+    const now = new Date();
+
+    const userRepo = this.dataSource.getRepository(User);
+
+    const qb = userRepo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect(
+        'user.sessions',
+        'session',
+        'session.id = :sessionId AND session.isRevoked = false AND session.expiresAt > :now',
+        { sessionId, now }
+      )
+      .where('user.id = :userId', { userId })
+      .select([
+        'user.id',
+        'user.email',
+        'user.username',
+        'user.name',
+        'user.status',
+        'user.role',
+        'user.registryDates'
+      ]);
+
+    const user = await qb.getOne();
+
+    if (!user) return { user: null, session: null };
+
+    const session = (user as any).sessions?.[0] ?? null;
+
+    return { user, session };
   }
 
   async list(userId: string, session: Session): Promise<SessionListItem[]> {
