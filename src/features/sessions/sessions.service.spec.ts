@@ -1,5 +1,5 @@
 import { PinoLogger } from 'nestjs-pino';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { Session } from './entities/session.entity';
 import { SessionsService } from './sessions.service';
 
@@ -184,6 +184,21 @@ describe('SessionsService', () => {
       await service.terminateOthers('user-id', 'current-session');
 
       expect(mockRepository.update).toHaveBeenCalled();
+    });
+
+    it('should use the transaction manager repository when provided', async () => {
+      const transactionRepository = {
+        update: jest.fn().mockResolvedValue(undefined)
+      };
+      const manager = {
+        getRepository: jest.fn().mockReturnValue(transactionRepository)
+      } as unknown as EntityManager;
+
+      await service.terminateOthers('user-id', 'current-session', manager);
+
+      expect(manager.getRepository).toHaveBeenCalledWith(Session);
+      expect(transactionRepository.update).toHaveBeenCalled();
+      expect(mockRepository.update).not.toHaveBeenCalled();
     });
   });
 
