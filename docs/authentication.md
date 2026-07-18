@@ -135,11 +135,11 @@ sequenceDiagram
 
 Cookies are set in `AuthCookieInterceptor`:
 
-| Cookie | HttpOnly | Secure | SameSite | Max Age |
-| --- | --- | --- | --- | --- |
-| `access_token` | Yes | `true` in production | `strict` in production, `lax` otherwise | 15 minutes |
-| `refresh_token` | Yes | `true` in production | `strict` in production, `lax` otherwise | 7 days |
-| `csrf_token` | No | `true` in production | `strict` in production, `lax` otherwise | Not explicitly set |
+| Cookie          | HttpOnly | Secure               | SameSite                                | Max Age            |
+| --------------- | -------- | -------------------- | --------------------------------------- | ------------------ |
+| `access_token`  | Yes      | `true` in production | `strict` in production, `lax` otherwise | 15 minutes         |
+| `refresh_token` | Yes      | `true` in production | `strict` in production, `lax` otherwise | 7 days             |
+| `csrf_token`    | No       | `true` in production | `strict` in production, `lax` otherwise | Not explicitly set |
 
 ## Authenticated Request Flow
 
@@ -202,8 +202,9 @@ Flow:
 2. `AuthService.changeUserPassword()` loads the user with password hash.
 3. Current password is verified.
 4. New password is compared against the old hash and must be different.
-5. New password is hashed and stored.
-6. All other sessions for the user are revoked through `SessionsService.terminateOthers()`.
+5. The new password is hashed before starting a database transaction.
+6. Inside one TypeORM transaction, the password is stored and all other sessions are revoked through `SessionsService.terminateOthers()`.
+7. If either database operation fails, both changes are rolled back.
 
 The current session remains active.
 
