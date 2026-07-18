@@ -11,21 +11,21 @@ export class UserProfileResponseDto extends TimestampResponseDto {
     required: false
   })
   @Expose()
-  name: string | null;
+  name!: string | null;
 
   @ApiProperty({
     example: 'john_doe',
     description: 'Unique username'
   })
   @Expose()
-  username: string;
+  username!: string;
 
   @ApiProperty({
     example: 'john@example.com',
     description: 'User email address'
   })
   @Expose()
-  email: string;
+  email!: string;
 
   @ApiProperty({
     enum: UserRole,
@@ -33,13 +33,13 @@ export class UserProfileResponseDto extends TimestampResponseDto {
     description: 'User role'
   })
   @Expose()
-  role: UserRole;
+  role!: UserRole;
 
   @ApiProperty({
     example: '2024-10-01T12:34:56.000Z',
     description: 'Registration date'
   })
   @Expose()
-  @Transform(({ obj }) => obj.registryDates.createdAt)
-  joinedAt: Date;
+  @Transform(({ obj }) => obj.registryDates?.createdAt ?? obj.createdAt)
+  joinedAt!: Date;
 }
