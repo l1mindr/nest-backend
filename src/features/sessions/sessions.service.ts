@@ -3,7 +3,7 @@ import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PinoLogger } from 'nestjs-pino';
-import { DataSource, MoreThan, Not, Repository } from 'typeorm';
+import { DataSource, EntityManager, MoreThan, Not, Repository } from 'typeorm';
 import { ISessionDevice } from './interfaces/session-device.interface';
 import { ISessionsService } from './interfaces/sessions.interface';
 import { SessionListItem } from './types/session-list-item.type';
@@ -103,8 +103,14 @@ export class SessionsService implements ISessionsService {
     );
   }
 
-  async terminateOthers(userId: string, sessionId: string): Promise<void> {
-    await this.sessionRepo.update(
+  async terminateOthers(
+    userId: string,
+    sessionId: string,
+    manager?: EntityManager
+  ): Promise<void> {
+    const repository = manager?.getRepository(Session) ?? this.sessionRepo;
+
+    await repository.update(
       {
         owner: { id: userId },
         id: Not(sessionId)

@@ -1,6 +1,7 @@
 import { Session } from '../entities/session.entity';
 import { SessionListItem } from '../types/session-list-item.type';
 import { ISessionDevice } from './session-device.interface';
+import type { EntityManager } from 'typeorm';
 
 export const SESSION_SERVICE = Symbol('ISessionsService');
 
@@ -18,7 +19,11 @@ export interface ISessionsService {
 
   revoke(userId: string, sessionId: string): Promise<void>;
 
-  terminateOthers(userId: string, sessionId: string): Promise<void>;
+  terminateOthers(
+    userId: string,
+    sessionId: string,
+    manager?: EntityManager
+  ): Promise<void>;
 
   updateRefreshState(
     session: Session,
