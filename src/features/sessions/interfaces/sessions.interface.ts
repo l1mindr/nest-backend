@@ -7,11 +7,6 @@ export const SESSION_SERVICE = Symbol('ISessionsService');
 
 export interface ISessionsService {
   getActive(userId: string, sessionId: string): Promise<Session | null>;
-
-  /**
-   * Fetch the user and the active session (if any) in a single indexed query.
-   * Returns an object with `user` (null if not found) and `session` (null if not active/missing).
-   */
   getUserAndActiveSession(
     userId: string,
     sessionId: string
@@ -36,6 +31,13 @@ export interface ISessionsService {
     sessionId: string,
     manager?: EntityManager
   ): Promise<void>;
+
+  /**
+   * Revoke every non-revoked session belonging to the user. Accepts an
+   * EntityManager so callers (e.g. account deletion) can run it inside a
+   * transaction alongside their own writes.
+   */
+  revokeAllForUser(userId: string, manager?: EntityManager): Promise<void>;
 
   updateRefreshState(
     session: Session,

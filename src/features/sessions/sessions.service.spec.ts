@@ -234,6 +234,47 @@ describe('SessionsService', () => {
     });
   });
 
+  describe('revokeAllForUser', () => {
+    it('should revoke every active session belonging to the user', async () => {
+      mockRepository.update.mockResolvedValue(undefined);
+
+      await service.revokeAllForUser('user-id');
+
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        {
+          owner: { id: 'user-id' },
+          isRevoked: false
+        },
+        {
+          isRevoked: true
+        }
+      );
+    });
+
+    it('should use the transaction manager repository when provided', async () => {
+      const transactionRepository = {
+        update: jest.fn().mockResolvedValue(undefined)
+      };
+      const manager = {
+        getRepository: jest.fn().mockReturnValue(transactionRepository)
+      } as unknown as EntityManager;
+
+      await service.revokeAllForUser('user-id', manager);
+
+      expect(manager.getRepository).toHaveBeenCalledWith(Session);
+      expect(transactionRepository.update).toHaveBeenCalledWith(
+        {
+          owner: { id: 'user-id' },
+          isRevoked: false
+        },
+        {
+          isRevoked: true
+        }
+      );
+      expect(mockRepository.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe('updateRefreshState', () => {
     it('should update session state', async () => {
       const session = {
@@ -253,7 +294,7 @@ describe('SessionsService', () => {
     });
   });
 
-  describe('rotateRefreshToken', () => {
+  describe('rotateAtomic', () => {
     it('should return true when update succeeds', async () => {
       mockQueryBuilder.execute.mockResolvedValue({
         affected: 1

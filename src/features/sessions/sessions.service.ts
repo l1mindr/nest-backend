@@ -1,10 +1,7 @@
-import { AppError } from '@core/errors/app.error';
-import { DomainErrorCode } from '@core/errors/domain-error-code.enum';
-import { ErrorDomain } from '@core/errors/error-domain.enum';
 import { Session } from '@features/sessions/entities/session.entity';
 import { User } from '@features/users/entities/user.entity';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PinoLogger } from 'nestjs-pino';
 import {
@@ -15,7 +12,6 @@ import {
   Not,
   Repository
 } from 'typeorm';
-import { SessionListResponseDto } from './dto/response/session-list-response.dto';
 import { ISessionDevice } from './interfaces/session-device.interface';
 import { ISessionsService } from './interfaces/sessions.interface';
 import { SessionListItem } from './types/session-list-item.type';
@@ -34,7 +30,6 @@ export class SessionsService implements ISessionsService {
   }
 
   private static readonly DEFAULT_MAX_ACTIVE_SESSIONS = 10;
-  private static readonly DEFAULT_MAX_PAGE_SIZE = 50;
 
   async issue(
     userId: string,
@@ -83,104 +78,6 @@ export class SessionsService implements ISessionsService {
     }
 
     return session;
-  }
-
-  async listCursor(
-    userId: string,
-    session: Session,
-    cursor?: string,
-    limit = 25
-  ): Promise<SessionListResponseDto> {
-    try {
-      const pageSize = Math.min(
-        limit,
-        Number(process.env.SESSIONS_PAGE_MAX) ||
-          SessionsService.DEFAULT_MAX_PAGE_SIZE
-      );
-
-      const qb = this.sessionRepo.createQueryBuilder('session');
-
-      qb.where('session.ownerId = :userId', { userId })
-        .andWhere('session.isRevoked = false')
-        .andWhere('session.expiresAt > :now', { now: new Date() });
-
-      if (cursor) {
-        try {
-          const decoded = JSON.parse(
-            Buffer.from(cursor, 'base64').toString('utf8')
-          ) as {
-            createdAt: string;
-            id: string;
-          };
-          const cursorDate = new Date(decoded.createdAt);
-          qb.andWhere(
-            '(session.createdAt < :cursorDate OR (session.createdAt = :cursorDate AND session.id < :cursorId))',
-            { cursorDate, cursorId: decoded.id }
-          );
-        } catch (e) {
-          this.logger.warn(
-            { event: LogEvent.UNEXPECTED_EXCEPTION, userId, cursor, err: e },
-            'Invalid session list cursor provided'
-          );
-
-          return {
-            items: [],
-            nextCursor: undefined
-          } as SessionListResponseDto;
-        }
-      }
-
-      qb.orderBy('session.createdAt', 'DESC')
-        .addOrderBy('session.id', 'DESC')
-        .take(pageSize + 1);
-
-      const rows = await qb.getMany();
-
-      let nextCursor: string | undefined;
-      let items = rows;
-      if (rows.length > pageSize) {
-        const last = rows[pageSize - 1];
-        items = rows.slice(0, pageSize);
-        const payload = {
-          createdAt: last.createdAt.toISOString(),
-          id: last.id
-        };
-        nextCursor = Buffer.from(JSON.stringify(payload)).toString('base64');
-      }
-
-      const dtoItems = items.map((s) => this.toListItem(s));
-
-      return {
-        items: dtoItems,
-        nextCursor
-      } as SessionListResponseDto;
-    } catch (error) {
-      this.logger.error(
-        { event: LogEvent.UNEXPECTED_EXCEPTION, userId, cursor, err: error },
-        'Failed to list sessions'
-      );
-
-      throw new AppError(
-        DomainErrorCode.INTERNAL_ERROR,
-        ErrorDomain.SYSTEM,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        { userId, cursor },
-        'Failed to list sessions'
-      );
-    }
-  }
-
-  async cleanupExpired(): Promise<number> {
-    const now = new Date();
-    const result = await this.sessionRepo
-      .createQueryBuilder()
-      .update(Session)
-      .set({ isRevoked: true })
-      .where('expiresAt <= :now', { now })
-      .andWhere('isRevoked = false')
-      .execute();
-
-    return result.affected ?? 0;
   }
 
   async getActive(userId: string, sessionId: string): Promise<Session | null> {
@@ -310,54 +207,34 @@ export class SessionsService implements ISessionsService {
     );
   }
 
+  async revokeAllForUser(
+    userId: string,
+    manager?: EntityManager
+  ): Promise<void> {
+    const repository = manager?.getRepository(Session) ?? this.sessionRepo;
+
+    await repository.update(
+      {
+        owner: { id: userId },
+        isRevoked: false
+      },
+      {
+        isRevoked: true
+      }
+    );
+
+    this.logger.info(
+      { event: LogEvent.SESSION_REVOKED, userId },
+      'All sessions revoked for user'
+    );
+  }
+
   async updateRefreshState(
     session: Session,
     payload: Partial<Session>
   ): Promise<void> {
     Object.assign(session, payload);
     await this.sessionRepo.save(session);
-  }
-
-  async rotateRefreshToken(
-    sessionId: string,
-    oldHash: string,
-    newHash: string,
-    meta: {
-      lastUsedAt: Date;
-      expiresAt: Date;
-      rotatedAt: Date;
-    }
-  ): Promise<boolean> {
-    return this.dataSource.transaction(async (manager) => {
-      const repo = manager.getRepository(Session);
-
-      const session = await repo
-        .createQueryBuilder('session')
-        .setLock('pessimistic_write')
-        .where('session.id = :id', { id: sessionId })
-        .getOne();
-
-      if (!session) return false;
-
-      if (session.refreshTokenHash !== oldHash) {
-        return false;
-      }
-
-      const result = await repo.update(
-        {
-          id: sessionId,
-          refreshTokenHash: oldHash
-        },
-        {
-          refreshTokenHash: newHash,
-          rotatedAt: meta.rotatedAt,
-          lastUsedAt: meta.lastUsedAt,
-          expiresAt: meta.expiresAt
-        }
-      );
-
-      return result.affected === 1;
-    });
   }
 
   async rotateAtomic(
