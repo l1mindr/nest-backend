@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
+import { UserFactory } from '../factories/user.factory';
 import { ApiClient } from '../helpers/api-client.helper';
 import { runMigrations, truncateDatabase } from '../helpers/postgresql.helper';
 import { clearRedis } from '../helpers/redis.helper';
@@ -74,6 +75,9 @@ describe('DTO validation hardening (e2e) version: 1', () => {
   describe('POST /auth/login', () => {
     beforeEach(async () => {
       await client.post('/v1/auth/register', { body: validBody });
+      // Registered users are DEACTIVATE; verify email so valid-credential
+      // logins reach 200 (validation-error cases fail before the status check).
+      await UserFactory.verifyEmail(app, validBody.email);
     });
 
     it.each([

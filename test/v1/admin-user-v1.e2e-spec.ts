@@ -101,7 +101,7 @@ describe('Admin Users (e2e) version: 1', () => {
       username: adminContext.user.username,
       email: adminContext.user.email,
       role: UserRole.ADMIN,
-      status: UserStatus.DEACTIVATE
+      status: UserStatus.ACTIVATE
     });
   });
 
