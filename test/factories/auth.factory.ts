@@ -63,6 +63,8 @@ export class AuthFactory {
 
     context = await UserFactory.register(app, options.overrides);
 
+    await UserFactory.verifyEmail(app, context.user.email);
+
     return this.login(context, options.loginBy);
   }
 }

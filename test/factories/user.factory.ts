@@ -1,5 +1,6 @@
 import { User } from '@features/users/entities/user.entity';
 import { UserRole } from '@features/users/enums/user-role.enum';
+import { UserStatus } from '@features/users/enums/user-status.enum';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ApiClient } from '../helpers/api-client.helper';
@@ -23,6 +24,20 @@ export class UserFactory {
         register
       }
     };
+  }
+
+  static async verifyEmail(
+    app: INestApplication,
+    email: string
+  ): Promise<void> {
+    const repo = app.get(DataSource).getRepository(User);
+
+    // Emails are trimmed + lowercased on registration, so normalize the
+    // lookup to match the persisted row (overrides may use mixed case).
+    await repo.update(
+      { email: email.trim().toLowerCase() },
+      { status: UserStatus.ACTIVATE }
+    );
   }
 
   static async admin(

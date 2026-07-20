@@ -10,6 +10,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { createHash } from 'crypto';
 import { PinoLogger } from 'nestjs-pino';
 import { DataSource, EntityManager } from 'typeorm';
+import { UserStatus } from '@features/users/enums/user-status.enum';
 import { AuthService } from './auth.service';
 import { AuthErrors } from './errors/auth-errors';
 import { HashingProvider } from './providers/hashing.provider';
@@ -151,7 +152,8 @@ describe('AuthService', () => {
 
       mockUsersService.findByIdentifierForAuth.mockResolvedValue({
         id: 'user-id',
-        password: 'hashed-password'
+        password: 'hashed-password',
+        status: UserStatus.ACTIVATE
       });
 
       mockHashingProvider.compare.mockResolvedValue(true);
@@ -223,6 +225,33 @@ describe('AuthService', () => {
         )
       ).rejects.toEqual(AuthErrors.invalidCredentials());
     });
+
+    it.each([UserStatus.DEACTIVATE, UserStatus.SUSPEND])(
+      'should reject login for %s users with invalidCredentials and issue no tokens',
+      async (status) => {
+        mockUsersService.findByIdentifierForAuth.mockResolvedValue({
+          id: 'user-id',
+          password: 'hashed-password',
+          status
+        });
+
+        mockHashingProvider.compare.mockResolvedValue(true);
+
+        await expect(
+          service.loginUser(
+            {
+              email: 'test@test.com',
+              password: '123456'
+            },
+            '127.0.0.1',
+            {} as any
+          )
+        ).rejects.toEqual(AuthErrors.invalidCredentials());
+
+        expect(mockSessionsService.issue).not.toHaveBeenCalled();
+        expect(mockTokenService.issuePair).not.toHaveBeenCalled();
+      }
+    );
   });
 
   describe('changeUserPassword', () => {
