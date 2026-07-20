@@ -496,7 +496,7 @@ describe('AuthService', () => {
       );
     });
 
-    it('should throw when rotateRefreshToken fails', async () => {
+    it('should throw when rotateAtomic fails', async () => {
       const now = Date.now();
 
       mockTokenService.verifyRefreshToken.mockResolvedValue({
