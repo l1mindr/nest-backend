@@ -1,3 +1,4 @@
+import { ISessionsService } from '@features/sessions/interfaces/sessions.interface';
 import { DataSource, EntityManager } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserErrors } from './errors/user-errors';
@@ -15,14 +16,32 @@ describe('UsersService', () => {
     softRemove: jest.fn()
   };
 
-  const mockDataSource = {
+  const mockTransactionManager = {
     getRepository: jest.fn().mockReturnValue(mockRepository)
+  };
+
+  const mockDataSource = {
+    getRepository: jest.fn().mockReturnValue(mockRepository),
+    transaction: jest.fn(
+      async (cb: (manager: EntityManager) => Promise<unknown>) =>
+        cb(mockTransactionManager as unknown as EntityManager)
+    )
+  };
+
+  const mockSessionsService = {
+    revokeAllForUser: jest.fn()
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    service = new UsersService(mockDataSource as unknown as DataSource);
+    mockDataSource.getRepository.mockReturnValue(mockRepository);
+    mockTransactionManager.getRepository.mockReturnValue(mockRepository);
+
+    service = new UsersService(
+      mockDataSource as unknown as DataSource,
+      mockSessionsService as unknown as ISessionsService
+    );
   });
 
   describe('findByIdentifierForAuth', () => {
@@ -32,18 +51,6 @@ describe('UsersService', () => {
       mockRepository.findOne.mockResolvedValue(user);
 
       const result = await service.findByIdentifierForAuth('test@test.com');
-
-      expect(result).toEqual(user);
-    });
-  });
-
-  describe('findByIdForSessionValidation', () => {
-    it('should return user', async () => {
-      const user = { id: '1' } as User;
-
-      mockRepository.findOne.mockResolvedValue(user);
-
-      const result = await service.findByIdForSessionValidation('1');
 
       expect(result).toEqual(user);
     });
@@ -263,14 +270,42 @@ describe('UsersService', () => {
   });
 
   describe('requestAccountDeletion', () => {
-    it('should soft delete user', async () => {
+    it('should soft delete user and revoke all sessions in one transaction', async () => {
       const user = { id: '1' } as User;
 
       jest.spyOn(service, 'findById').mockResolvedValue(user);
 
       await service.requestAccountDeletion('1');
 
+      expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
       expect(mockRepository.softRemove).toHaveBeenCalledWith(user);
+      expect(mockSessionsService.revokeAllForUser).toHaveBeenCalledWith(
+        '1',
+        mockTransactionManager
+      );
+    });
+
+    it('should not revoke sessions when the user does not exist', async () => {
+      jest
+        .spyOn(service, 'findById')
+        .mockRejectedValue(UserErrors.userNotFound('1'));
+
+      await expect(service.requestAccountDeletion('1')).rejects.toEqual(
+        UserErrors.userNotFound('1')
+      );
+
+      expect(mockRepository.softRemove).not.toHaveBeenCalled();
+      expect(mockSessionsService.revokeAllForUser).not.toHaveBeenCalled();
+    });
+
+    it('should propagate transaction failures without swallowing them', async () => {
+      const user = { id: '1' } as User;
+      const error = new Error('db down');
+
+      jest.spyOn(service, 'findById').mockResolvedValue(user);
+      mockRepository.softRemove.mockRejectedValue(error);
+
+      await expect(service.requestAccountDeletion('1')).rejects.toThrow(error);
     });
   });
 });
