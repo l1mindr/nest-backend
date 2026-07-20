@@ -1,6 +1,10 @@
+import {
+  ISessionsService,
+  SESSION_SERVICE
+} from '@features/sessions/interfaces/sessions.interface';
 import { User } from '@features/users/entities/user.entity';
 import { IUsersService } from '@features/users/interfaces/users.interface';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   DataSource,
   EntityManager,
@@ -13,7 +17,11 @@ import { UserErrors } from './errors/user-errors';
 
 @Injectable()
 export class UsersService implements IUsersService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    @Inject(SESSION_SERVICE)
+    private readonly sessionsService: ISessionsService
+  ) {}
 
   /**
    * Every field AdminUserResponseDto serializes: `name` is `select: false`
@@ -52,18 +60,6 @@ export class UsersService implements IUsersService {
         password: true,
         status: true
       }
-    });
-  }
-
-  async findByIdForSessionValidation(userId: string): Promise<User | null> {
-    return this.findByIdWithSelect(userId, {
-      id: true,
-      email: true,
-      username: true,
-      name: true,
-      status: true,
-      role: true,
-      registryDates: { createdAt: true }
     });
   }
 
@@ -122,7 +118,11 @@ export class UsersService implements IUsersService {
 
   async requestAccountDeletion(userId: string): Promise<void> {
     const user = await this.findById(userId);
-    await this.userRepo.softRemove(user);
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.getRepository(User).softRemove(user);
+      await this.sessionsService.revokeAllForUser(userId, manager);
+    });
   }
 
   private handleUniqueConstraintError(error: unknown): never {

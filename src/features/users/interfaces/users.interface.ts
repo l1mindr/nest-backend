@@ -10,7 +10,6 @@ export interface IUsersService {
   listForAdmin(): Promise<User[]>;
   findByIdForAdmin(id: string): Promise<User>;
   findByIdentifierForAuth(identifier: string): Promise<User | null>;
-  findByIdForSessionValidation(userId: string): Promise<User | null>;
   findByIdWithPassword(userId: string): Promise<User | null>;
   findById(id: string): Promise<User>;
   updateProfile(
