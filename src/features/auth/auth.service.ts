@@ -11,6 +11,7 @@ import {
   ITokenService,
   TOKEN_SERVICE
 } from '@features/token/interfaces/token.interface';
+import { UserStatus } from '@features/users/enums/user-status.enum';
 import {
   IUsersService,
   USER_SERVICE
@@ -70,6 +71,10 @@ export class AuthService implements IAuthService {
     const isMatch = await this.hashingProvider.compare(password, user.password);
 
     if (!isMatch) throw AuthErrors.invalidCredentials();
+
+    if (user.status !== UserStatus.ACTIVATE) {
+      throw AuthErrors.invalidCredentials();
+    }
 
     const { now, expiresAt } = this.clockService.snapshot();
     const userAgent = this.deviceMapper.toSessionUserAgent(device);
@@ -175,12 +180,6 @@ export class AuthService implements IAuthService {
         throw SessionErrors.sessionExpired();
       }
 
-      // The stored refresh-token hash is the single source of truth for
-      // replay detection. Once a token is rotated the old token no longer
-      // matches the stored hash, so reusing it fails here. We do NOT compare
-      // the JWT `iat` (second precision) against `rotatedAt` (millisecond
-      // precision) because a freshly issued token can look reused within the
-      // same second.
       const isValid = this.refreshTokenHasher.compare(
         refreshToken,
         session.refreshTokenHash
