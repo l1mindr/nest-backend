@@ -3,6 +3,7 @@ import {
   ISessionsService,
   SESSION_SERVICE
 } from '@features/sessions/interfaces/sessions.interface';
+import { UserStatus } from '@features/users/enums/user-status.enum';
 import jwtConfig from '@infrastructure/config/jsonwebtoken/jwt.config';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { Inject, Injectable } from '@nestjs/common';
@@ -94,6 +95,10 @@ export class TokenService implements ITokenService {
     );
 
     if (!result.user) throw TokenErrors.invalidToken();
+
+    if (result.user.status !== UserStatus.ACTIVATE) {
+      throw TokenErrors.invalidToken();
+    }
 
     if (!result.session) throw SessionErrors.sessionExpired(sessionId);
 
