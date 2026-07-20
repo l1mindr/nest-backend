@@ -200,14 +200,13 @@ export class SessionsService implements ISessionsService {
     userId: string,
     sessionId: string
   ): Promise<{
-    user: import('@features/users/entities/user.entity').User | null;
+    user: User | null;
     session: Session | null;
   }> {
     const now = new Date();
 
-    const userRepo = this.dataSource.getRepository(User);
-
-    const qb = userRepo
+    const user = await this.dataSource
+      .getRepository(User)
       .createQueryBuilder('user')
       .leftJoinAndSelect(
         'user.sessions',
@@ -223,8 +222,7 @@ export class SessionsService implements ISessionsService {
         'user.name',
         'user.status',
         'user.role',
-        'user.createdAt',
-        // session fields (explicitly selected because we used `.select` above)
+        'user.registryDates.createdAt',
         'session.id',
         'session.refreshTokenHash',
         'session.ipAddress',
@@ -235,39 +233,12 @@ export class SessionsService implements ISessionsService {
         'session.rotatedAt',
         'session.createdAt',
         'session.updatedAt'
-      ]);
-
-    const user = await qb.getOne();
+      ])
+      .getOne();
 
     if (!user) return { user: null, session: null };
 
-    const session = (user as any).sessions?.[0] ?? null;
-
-    // The query used an explicit select which may omit the embedded registry
-    // columns. Fetch the minimal user view (including the embedded createdAt)
-    // and attach the already-loaded session so higher layers get a consistent
-    // shape.
-
-    const fullUser = await userRepo.findOne({
-      where: { id: user.id },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        name: true,
-        status: true,
-        role: true,
-        registryDates: { createdAt: true }
-      }
-    });
-
-    if (fullUser) {
-      // attach the session loaded from the join so callers receive the active
-      // session without an extra query for it.
-      (fullUser as any).sessions = (user as any).sessions;
-    }
-
-    return { user: fullUser ?? (user as any), session };
+    return { user, session: user.sessions?.[0] ?? null };
   }
 
   async list(userId: string, session: Session): Promise<SessionListItem[]> {
