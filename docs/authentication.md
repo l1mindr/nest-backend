@@ -147,10 +147,9 @@ For routes without `@Public()`:
 
 1. `JwtGuard` reads the `access_token` cookie.
 2. `JwtStrategy.authenticate()` verifies the token.
-3. `TokenService.validatePayload()` loads the user through `UsersService.findByIdForSessionValidation()`.
-4. `TokenService.validatePayload()` loads an active session through `SessionsService.getActive()`.
-5. The guard attaches `request.user` and `request.session`.
-6. `@User()` and `@Session()` decorators read those values in controllers.
+3. `TokenService.validatePayload()` loads the user and the active session in a single query through `SessionsService.getUserAndActiveSession()`.
+4. The guard attaches `request.user` and `request.session`.
+5. `@User()` and `@Session()` decorators read those values in controllers.
 
 If the token is missing, invalid, or the session is not active, a domain error is thrown and handled by `GlobalExceptionFilter`.
 

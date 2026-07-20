@@ -61,17 +61,14 @@ sequenceDiagram
   participant JwtGuard
   participant JwtStrategy
   participant TokenService
-  participant UsersService
   participant SessionsService
   participant Controller
 
   Client->>JwtGuard: Request with access_token cookie
   JwtGuard->>JwtStrategy: authenticate(req)
   JwtStrategy->>TokenService: validatePayload(payload)
-  TokenService->>UsersService: findByIdForSessionValidation(sub)
-  UsersService-->>TokenService: user
-  TokenService->>SessionsService: getActive(user.id, sessionId)
-  SessionsService-->>TokenService: session
+  TokenService->>SessionsService: getUserAndActiveSession(sub, sessionId)
+  SessionsService-->>TokenService: user + session
   TokenService-->>JwtStrategy: user + session
   JwtStrategy-->>JwtGuard: user + session
   JwtGuard->>Controller: request.user and request.session attached
