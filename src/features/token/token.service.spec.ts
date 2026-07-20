@@ -1,5 +1,6 @@
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { SessionsService } from '@features/sessions/sessions.service';
+import { UserStatus } from '@features/users/enums/user-status.enum';
 import { JwtService } from '@nestjs/jwt';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 import { TokenErrors } from './errors/token-errors';
@@ -164,7 +165,8 @@ describe('TokenService', () => {
   describe('validatePayload', () => {
     it('should return user and session', async () => {
       const user = {
-        id: 'user-id'
+        id: 'user-id',
+        status: UserStatus.ACTIVATE
       };
 
       const session = {
@@ -195,9 +197,23 @@ describe('TokenService', () => {
       ).rejects.toEqual(TokenErrors.invalidToken());
     });
 
+    it.each([UserStatus.DEACTIVATE, UserStatus.SUSPEND])(
+      'should throw invalidToken when the account is %s',
+      async (status) => {
+        mockSessionsService.getUserAndActiveSession.mockResolvedValue({
+          user: { id: 'user-id', status },
+          session: { id: 'session-id' }
+        });
+
+        await expect(
+          service.validatePayload({ sub: 'user-id', sessionId: 'session-id' })
+        ).rejects.toEqual(TokenErrors.invalidToken());
+      }
+    );
+
     it('should throw sessionExpired when session does not exist', async () => {
       mockSessionsService.getUserAndActiveSession.mockResolvedValue({
-        user: { id: 'user-id' },
+        user: { id: 'user-id', status: UserStatus.ACTIVATE },
         session: null
       });
 
