@@ -45,6 +45,7 @@ The Joi schema requires:
 | `REDIS_PORT` | Yes | string | Redis port. |
 | `REDIS_PASSWORD` | No | string | Redis password. |
 | `REDIS_DB` | No | string | Redis database number. |
+| `MAX_ACTIVE_SESSIONS` | Yes | positive integer | Maximum active sessions per user. Must be at least `1`. |
 | `JWT_SECRET_KEY` | Yes | string | JWT signing secret. |
 | `NODE_ENV` | Yes | string | Runtime environment. |
 
