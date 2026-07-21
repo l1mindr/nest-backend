@@ -52,6 +52,8 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
   }),
   REDIS_DB: Joi.number().integer().min(0).optional(),
 
+  MAX_ACTIVE_SESSIONS: Joi.number().integer().min(5).required(),
+
   // Strong secrets with entropy checks. In production require longer/more entropy.
   ACCESS_TOKEN_SECRET: Joi.when('NODE_ENV', {
     is: 'production',
