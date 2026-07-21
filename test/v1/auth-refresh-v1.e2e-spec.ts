@@ -1,3 +1,4 @@
+import { ClockService } from '@core/clock/clock.service';
 import { Session } from '@features/sessions/entities/session.entity';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -20,6 +21,7 @@ type RefreshCredentials = {
 
 describe('Auth Refresh (e2e) version: 1', () => {
   let app: INestApplication;
+  let clockService: ClockService;
   let dataSource: DataSource;
 
   beforeAll(async () => {
@@ -27,6 +29,7 @@ describe('Auth Refresh (e2e) version: 1', () => {
     await runMigrations(testDataSource);
 
     app = testApp;
+    clockService = app.get(ClockService);
     dataSource = testDataSource;
   });
 
@@ -114,6 +117,22 @@ describe('Auth Refresh (e2e) version: 1', () => {
     const secondRefresh = await refresh(rotated);
     expect(secondRefresh.status).toBe(200);
     expect(secondRefresh.headers['set-cookie'][1]).toContain('refresh_token');
+  });
+
+  it('should update session activity after a successful refresh', async () => {
+    const credentials = await authenticate();
+    const repository = dataSource.getRepository(Session);
+    const [session] = await repository.find();
+    const staleActivity = clockService.addDaysFrom(clockService.nowMs(), -1);
+    await repository.update({ id: session.id }, { lastUsedAt: staleActivity });
+
+    const res = await refresh(credentials);
+    const updated = await repository.findOneByOrFail({ id: session.id });
+
+    expect(res.status).toBe(200);
+    expect(updated.lastUsedAt.getTime()).toBeGreaterThan(
+      staleActivity.getTime()
+    );
   });
 
   it('should not create inconsistent sessions under concurrent refresh', async () => {

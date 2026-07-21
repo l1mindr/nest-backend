@@ -96,8 +96,7 @@ export class AuthService implements IAuthService {
     const refreshTokenHash = this.refreshTokenHasher.hash(refreshToken);
 
     await this.sessionsService.updateRefreshState(session, {
-      refreshTokenHash,
-      lastUsedAt: new Date(now)
+      refreshTokenHash
     });
 
     this.logger.info(

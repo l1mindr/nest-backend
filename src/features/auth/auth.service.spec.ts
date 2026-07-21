@@ -18,6 +18,8 @@ import { RefreshTokenHasher } from './providers/refresh-token-hasher.provider';
 
 const sha256 = (value: string) =>
   createHash('sha256').update(value).digest('hex');
+const NOW_MS = 1710000000000;
+const EXPIRES_AT = new Date(NOW_MS + 1000);
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -147,9 +149,6 @@ describe('AuthService', () => {
 
   describe('loginUser', () => {
     it('should login successfully', async () => {
-      const now = Date.now();
-      const expiresAt = new Date(now + 1000);
-
       mockUsersService.findByIdentifierForAuth.mockResolvedValue({
         id: 'user-id',
         password: 'hashed-password',
@@ -159,8 +158,8 @@ describe('AuthService', () => {
       mockHashingProvider.compare.mockResolvedValue(true);
 
       mockClockService.snapshot.mockReturnValue({
-        now,
-        expiresAt
+        now: NOW_MS,
+        expiresAt: EXPIRES_AT
       });
 
       mockDeviceMapper.toSessionUserAgent.mockReturnValue({
@@ -189,6 +188,12 @@ describe('AuthService', () => {
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       });
+      expect(mockSessionsService.updateRefreshState).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'session-id' }),
+        {
+          refreshTokenHash: sha256('refresh-token')
+        }
+      );
     });
 
     it('should throw when user not found', async () => {
@@ -368,9 +373,6 @@ describe('AuthService', () => {
 
   describe('refresh', () => {
     it('should refresh successfully', async () => {
-      const now = Date.now();
-      const expiresAt = new Date(now + 1000);
-
       mockTokenService.verifyRefreshToken.mockResolvedValue({
         sub: 'user-id',
         sessionId: 'session-id'
@@ -392,8 +394,8 @@ describe('AuthService', () => {
       });
 
       mockClockService.snapshot.mockReturnValue({
-        now,
-        expiresAt
+        now: NOW_MS,
+        expiresAt: EXPIRES_AT
       });
 
       mockTokenService.issuePair.mockResolvedValue({
@@ -456,8 +458,6 @@ describe('AuthService', () => {
     });
 
     it('should revoke session on token reuse', async () => {
-      const now = Date.now();
-
       const session = {
         id: 'session-id',
         refreshTokenHash: sha256('a-different-token'),
@@ -482,8 +482,8 @@ describe('AuthService', () => {
       mockSessionsService.getActive.mockResolvedValue(session);
 
       mockClockService.snapshot.mockReturnValue({
-        now,
-        expiresAt: new Date(now + 1000)
+        now: NOW_MS,
+        expiresAt: EXPIRES_AT
       });
 
       await expect(service.refresh('token')).rejects.toEqual(
@@ -497,8 +497,6 @@ describe('AuthService', () => {
     });
 
     it('should throw when rotateAtomic fails', async () => {
-      const now = Date.now();
-
       mockTokenService.verifyRefreshToken.mockResolvedValue({
         sub: 'user-id',
         sessionId: 'session-id'
@@ -520,8 +518,8 @@ describe('AuthService', () => {
       });
 
       mockClockService.snapshot.mockReturnValue({
-        now,
-        expiresAt: new Date(now + 1000)
+        now: NOW_MS,
+        expiresAt: EXPIRES_AT
       });
 
       mockTokenService.issuePair.mockResolvedValue({
