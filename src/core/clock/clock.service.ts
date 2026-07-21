@@ -7,8 +7,16 @@ export class ClockService {
     return Date.now();
   }
 
+  nowDate(): Date {
+    return this.dateFromMs(this.nowMs());
+  }
+
+  dateFromMs(ms: number): Date {
+    return new Date(ms);
+  }
+
   addDaysFrom(ms: number, days: number): Date {
-    return new Date(ms + days * TimeConstants.MS_PER_DAY);
+    return this.dateFromMs(ms + days * TimeConstants.MS_PER_DAY);
   }
 
   snapshot() {

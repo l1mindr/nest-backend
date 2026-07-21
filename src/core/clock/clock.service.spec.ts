@@ -18,6 +18,26 @@ describe('ClockService', () => {
     });
   });
 
+  describe('nowDate', () => {
+    it('should return the current time as a Date', () => {
+      const now = 1710000000000;
+      const expected = new Date(now);
+      jest.spyOn(service, 'nowMs').mockReturnValue(now);
+      const dateFromMsSpy = jest.spyOn(service, 'dateFromMs');
+
+      expect(service.nowDate()).toEqual(expected);
+      expect(dateFromMsSpy).toHaveBeenCalledWith(now);
+    });
+  });
+
+  describe('dateFromMs', () => {
+    it('should convert a timestamp to a Date', () => {
+      const timestamp = 1710000000000;
+
+      expect(service.dateFromMs(timestamp)).toEqual(new Date(timestamp));
+    });
+  });
+
   describe('addDaysFrom', () => {
     it('should add days to timestamp', () => {
       const now = 1000;
