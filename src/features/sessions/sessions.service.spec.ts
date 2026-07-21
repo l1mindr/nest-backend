@@ -1,3 +1,5 @@
+import { ClockService } from '@core/clock/clock.service';
+import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
 import { DataSource, EntityManager } from 'typeorm';
 import { Session } from './entities/session.entity';
@@ -5,6 +7,17 @@ import { SessionsService } from './sessions.service';
 
 describe('SessionsService', () => {
   let service: SessionsService;
+  const now = new Date('2026-07-21T08:00:00.000Z');
+  const expiresAt = new Date('2026-07-28T08:00:00.000Z');
+
+  const mockClockService = {
+    nowDate: jest.fn(),
+    dateFromMs: jest.fn()
+  };
+
+  const mockConfigService = {
+    getOrThrow: jest.fn()
+  };
 
   const mockLogger = {
     setContext: jest.fn(),
@@ -14,15 +27,20 @@ describe('SessionsService', () => {
   };
 
   const mockQueryBuilder = {
+    select: jest.fn().mockReturnThis(),
     update: jest.fn().mockReturnThis(),
     set: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
+    setLock: jest.fn().mockReturnThis(),
     execute: jest.fn(),
     orderBy: jest.fn().mockReturnThis(),
     addOrderBy: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
-    getMany: jest.fn()
+    getMany: jest.fn(),
+    getOne: jest.fn(),
+    getOneOrFail: jest.fn(),
+    leftJoinAndSelect: jest.fn().mockReturnThis()
   };
 
   const mockRepository = {
@@ -35,6 +53,11 @@ describe('SessionsService', () => {
   };
 
   const mockDataSource = {
+    getRepository: jest.fn().mockReturnValue(mockRepository),
+    transaction: jest.fn()
+  };
+
+  const mockTransactionManager = {
     getRepository: jest.fn().mockReturnValue(mockRepository)
   };
 
@@ -42,8 +65,17 @@ describe('SessionsService', () => {
     jest.clearAllMocks();
 
     mockRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+    mockClockService.nowDate.mockReturnValue(now);
+    mockClockService.dateFromMs.mockReturnValue(now);
+    mockConfigService.getOrThrow.mockReturnValue(10);
+    mockQueryBuilder.getOneOrFail.mockResolvedValue({ id: 'user-id' });
+    mockDataSource.transaction.mockImplementation(async (callback) =>
+      callback(mockTransactionManager)
+    );
 
     service = new SessionsService(
+      mockClockService as unknown as ClockService,
+      mockConfigService as unknown as ConfigService,
       mockDataSource as unknown as DataSource,
       mockLogger as unknown as PinoLogger
     );
@@ -68,21 +100,31 @@ describe('SessionsService', () => {
           osName: 'MacOS',
           deviceType: 'desktop'
         },
-        new Date()
+        expiresAt
       );
 
       expect(mockRepository.create).toHaveBeenCalled();
       expect(mockRepository.save).toHaveBeenCalledWith(session);
+      expect(mockRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ lastUsedAt: now })
+      );
+      expect(mockClockService.nowDate).toHaveBeenCalledTimes(1);
+      expect(mockConfigService.getOrThrow).toHaveBeenCalledWith(
+        'MAX_ACTIVE_SESSIONS'
+      );
+      expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
+      expect(mockQueryBuilder.setLock).toHaveBeenCalledWith(
+        'pessimistic_write'
+      );
       expect(result).toEqual(session);
     });
 
-    it('should enforce maximum active sessions and revoke oldest', async () => {
-      process.env.MAX_ACTIVE_SESSIONS = '2';
-      // active sessions ordered asc by createdAt: oldest first
+    it('should revoke the least recently used session', async () => {
+      mockConfigService.getOrThrow.mockReturnValue(2);
       const active = [
-        { id: 's1' } as Session,
-        { id: 's2' } as Session,
-        { id: 's3' } as Session
+        { id: 'least-recently-used' } as Session,
+        { id: 'recently-used' } as Session,
+        { id: 'new' } as Session
       ];
       mockRepository.create.mockReturnValue({ id: 'new' } as Session);
       mockRepository.save.mockResolvedValue({ id: 'new' } as Session);
@@ -94,13 +136,24 @@ describe('SessionsService', () => {
         'user-id',
         '127.0.0.1',
         {} as any,
-        new Date()
+        expiresAt
       );
 
-      expect(mockRepository.find).toHaveBeenCalled();
-      expect(mockRepository.update).toHaveBeenCalled();
+      expect(mockRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          order: {
+            lastUsedAt: 'ASC',
+            createdAt: 'ASC',
+            id: 'ASC'
+          }
+        })
+      );
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        { id: expect.objectContaining({ value: ['least-recently-used'] }) },
+        { isRevoked: true }
+      );
       expect(result).toEqual({ id: 'new' });
-      delete process.env.MAX_ACTIVE_SESSIONS;
+      expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -113,6 +166,7 @@ describe('SessionsService', () => {
       const result = await service.getActive('user-id', 'session-id');
 
       expect(result).toEqual(session);
+      expect(mockClockService.nowDate).toHaveBeenCalledTimes(1);
     });
 
     it('should return null when session not found', async () => {
@@ -121,6 +175,23 @@ describe('SessionsService', () => {
       const result = await service.getActive('user-id', 'session-id');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('getUserAndActiveSession', () => {
+    it('should use the clock for the expiration comparison', async () => {
+      const user = { id: 'user-id', sessions: [] };
+      mockQueryBuilder.getOne.mockResolvedValue(user);
+
+      await service.getUserAndActiveSession('user-id', 'session-id');
+
+      expect(mockClockService.nowDate).toHaveBeenCalledTimes(1);
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'user.sessions',
+        'session',
+        expect.any(String),
+        { sessionId: 'session-id', now }
+      );
     });
   });
 
@@ -170,6 +241,7 @@ describe('SessionsService', () => {
           lastActivityAt: otherSession.lastUsedAt
         }
       ]);
+      expect(mockClockService.nowDate).toHaveBeenCalledTimes(1);
     });
 
     it('should select every field the response exposes', async () => {
@@ -296,6 +368,7 @@ describe('SessionsService', () => {
 
   describe('rotateAtomic', () => {
     it('should return true when update succeeds', async () => {
+      const nowMs = 1710000000000;
       mockQueryBuilder.execute.mockResolvedValue({
         affected: 1
       });
@@ -306,12 +379,19 @@ describe('SessionsService', () => {
         'old-hash',
         'new-hash',
         {
-          now: Date.now(),
-          expiresAt: new Date()
+          now: nowMs,
+          expiresAt
         }
       );
 
       expect(result).toBe(true);
+      expect(mockClockService.dateFromMs).toHaveBeenCalledWith(nowMs);
+      expect(mockQueryBuilder.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          rotatedAt: now,
+          lastUsedAt: now
+        })
+      );
     });
 
     it('should return false when update affects no rows', async () => {
@@ -325,8 +405,8 @@ describe('SessionsService', () => {
         'old-hash',
         'new-hash',
         {
-          now: Date.now(),
-          expiresAt: new Date()
+          now: 1710000000000,
+          expiresAt
         }
       );
 

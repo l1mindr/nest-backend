@@ -1,7 +1,9 @@
+import { ClockService } from '@core/clock/clock.service';
 import { Session } from '@features/sessions/entities/session.entity';
 import { User } from '@features/users/entities/user.entity';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { PinoLogger } from 'nestjs-pino';
 import {
@@ -19,6 +21,8 @@ import { SessionListItem } from './types/session-list-item.type';
 @Injectable()
 export class SessionsService implements ISessionsService {
   constructor(
+    private readonly clockService: ClockService,
+    private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
     private readonly logger: PinoLogger
   ) {
@@ -29,55 +33,81 @@ export class SessionsService implements ISessionsService {
     return this.dataSource.getRepository(Session);
   }
 
-  private static readonly DEFAULT_MAX_ACTIVE_SESSIONS = 10;
-
   async issue(
     userId: string,
     ipAddress: string,
     device: ISessionDevice,
     expiresAt: Date
   ) {
-    const session = await this.sessionRepo.save(
-      this.sessionRepo.create({
-        owner: { id: userId },
+    const maxSessions = this.configService.getOrThrow<number>(
+      'MAX_ACTIVE_SESSIONS'
+    );
+
+    return this.dataSource.transaction(async (manager) => {
+      await manager
+        .getRepository(User)
+        .createQueryBuilder('user')
+        .select('user.id')
+        .where('user.id = :userId', { userId })
+        .setLock('pessimistic_write')
+        .getOneOrFail();
+
+      const repository = manager.getRepository(Session);
+      const now = this.clockService.nowDate();
+      const session = await this.createSession(
+        repository,
+        userId,
         ipAddress,
         device,
         expiresAt,
-        lastUsedAt: new Date(),
-        refreshTokenHash: randomUUID()
-      })
-    );
-
-    const maxSessions =
-      Number(process.env.MAX_ACTIVE_SESSIONS) ||
-      SessionsService.DEFAULT_MAX_ACTIVE_SESSIONS;
-
-    if (maxSessions > 0) {
-      const now = new Date();
-      const active = await this.sessionRepo.find({
+        now
+      );
+      const active = await repository.find({
         where: {
           owner: { id: userId },
           isRevoked: false,
           expiresAt: MoreThan(now)
         },
         select: { id: true },
-        order: { createdAt: 'ASC' }
+        order: {
+          lastUsedAt: 'ASC',
+          createdAt: 'ASC',
+          id: 'ASC'
+        }
       });
 
       if (active.length > maxSessions) {
         const toRevoke = active
           .slice(0, active.length - maxSessions)
-          .map((s) => s.id);
+          .map((activeSession) => activeSession.id);
+
         if (toRevoke.length) {
-          await this.sessionRepo.update(
-            { id: In(toRevoke) },
-            { isRevoked: true }
-          );
+          await repository.update({ id: In(toRevoke) }, { isRevoked: true });
         }
       }
-    }
 
-    return session;
+      return session;
+    });
+  }
+
+  private createSession(
+    repository: Repository<Session>,
+    userId: string,
+    ipAddress: string,
+    device: ISessionDevice,
+    expiresAt: Date,
+    now: Date
+  ): Promise<Session> {
+    return repository.save(
+      repository.create({
+        owner: { id: userId },
+        ipAddress,
+        device,
+        expiresAt,
+        lastUsedAt: now,
+        refreshTokenHash: randomUUID()
+      })
+    );
   }
 
   async getActive(userId: string, sessionId: string): Promise<Session | null> {
@@ -85,7 +115,7 @@ export class SessionsService implements ISessionsService {
       where: {
         id: sessionId,
         isRevoked: false,
-        expiresAt: MoreThan(new Date()),
+        expiresAt: MoreThan(this.clockService.nowDate()),
         owner: {
           id: userId
         }
@@ -100,7 +130,7 @@ export class SessionsService implements ISessionsService {
     user: User | null;
     session: Session | null;
   }> {
-    const now = new Date();
+    const now = this.clockService.nowDate();
 
     const user = await this.dataSource
       .getRepository(User)
@@ -143,7 +173,7 @@ export class SessionsService implements ISessionsService {
       where: {
         owner: { id: userId },
         isRevoked: false,
-        expiresAt: MoreThan(new Date()),
+        expiresAt: MoreThan(this.clockService.nowDate()),
         id: Not(session.id)
       },
       select: {
@@ -244,13 +274,14 @@ export class SessionsService implements ISessionsService {
     newHash: string,
     meta: { now: number; expiresAt: Date }
   ): Promise<boolean> {
+    const now = this.clockService.dateFromMs(meta.now);
     const result = await this.sessionRepo
       .createQueryBuilder()
       .update(Session)
       .set({
         refreshTokenHash: newHash,
-        rotatedAt: new Date(meta.now),
-        lastUsedAt: new Date(meta.now),
+        rotatedAt: now,
+        lastUsedAt: now,
         expiresAt: meta.expiresAt,
         version: () => '"version" + 1'
       })
