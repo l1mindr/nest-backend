@@ -1,3 +1,4 @@
+import { Session } from '@features/sessions/entities/session.entity';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../bootstrap/test-app';
@@ -126,5 +127,76 @@ describe('Sessions (e2e) version: 1', () => {
       .set('X-CSRF-Token', xCsrfToken);
 
     expect(terminateOtherSessionsRes.status).toBe(204);
+  });
+
+  it('should return sessions ordered by lastActivityAt ascending', async () => {
+    const { client } = await AuthFactory.authenticated(app, {});
+
+    // Create a second session via login
+    await AuthFactory.authenticated(app, {});
+
+    const repo = dataSource.getRepository(Session);
+    const sessions = await repo.find({ order: { createdAt: 'ASC' } });
+    expect(sessions).toHaveLength(2);
+
+    const [older, newer] = sessions;
+
+    // Set distinct lastUsedAt values to verify ordering
+    await repo.update(older.id, {
+      lastUsedAt: new Date('2026-01-01T00:00:00.000Z')
+    });
+    await repo.update(newer.id, {
+      lastUsedAt: new Date('2026-06-01T00:00:00.000Z')
+    });
+
+    const res = await client.get('/v1/sessions');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(2);
+
+    // Current session is always first, then others ordered by lastActivityAt ASC
+    const [current, other] = res.body.data;
+    expect(current.current).toBe(true);
+    expect(other.current).toBeUndefined();
+
+    const currentLastActivity = new Date(current.lastActivityAt).getTime();
+    const otherLastActivity = new Date(other.lastActivityAt).getTime();
+    expect(currentLastActivity).toBeLessThanOrEqual(otherLastActivity);
+  });
+
+  it('should use id as final tie-breaker when timestamps are identical', async () => {
+    const { client } = await AuthFactory.authenticated(app, {});
+
+    // Create two more sessions
+    await AuthFactory.authenticated(app, {});
+    await AuthFactory.authenticated(app, {});
+
+    const repo = dataSource.getRepository(Session);
+    const sessions = await repo.find({ order: { createdAt: 'ASC' } });
+    expect(sessions).toHaveLength(3);
+
+    const equalTimestamp = new Date('2026-03-15T12:00:00.000Z');
+
+    // Set all sessions to the same lastUsedAt and createdAt
+    for (const s of sessions) {
+      await repo.update(s.id, {
+        lastUsedAt: equalTimestamp,
+        createdAt: equalTimestamp
+      });
+    }
+
+    const res = await client.get('/v1/sessions');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(3);
+
+    // Current session is first; remaining sorted by id ASC
+    const sessionIds = res.body.data.map(
+      (s: { sessionId: string }) => s.sessionId
+    );
+
+    const otherIds = sessionIds.slice(1);
+    const sortedIds = [...otherIds].sort();
+    expect(otherIds).toEqual(sortedIds);
   });
 });
