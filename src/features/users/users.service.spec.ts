@@ -174,14 +174,14 @@ describe('UsersService', () => {
   });
 
   describe('listForAdmin', () => {
-    it('should return users with the admin view selection', async () => {
+    it('should return users with the admin view selection and no nextCursor when all fit', async () => {
       const users = [{ id: '1' }, { id: '2' }] as User[];
 
       mockRepository.find.mockResolvedValue(users);
 
       const result = await service.listForAdmin();
 
-      expect(result).toEqual(users);
+      expect(result).toEqual({ items: users, nextCursor: null });
       expect(mockRepository.find).toHaveBeenCalledWith({
         select: {
           id: true,
@@ -191,8 +191,68 @@ describe('UsersService', () => {
           role: true,
           status: true,
           registryDates: { createdAt: true, updatedAt: true, deleteAt: true }
-        }
+        },
+        where: undefined,
+        order: { id: 'ASC' },
+        take: 21
       });
+    });
+
+    it('should return nextCursor when there are more results', async () => {
+      const users = Array.from({ length: 21 }, (_, i) => ({
+        id: `user-${String(i).padStart(2, '0')}`
+      })) as User[];
+
+      mockRepository.find.mockResolvedValue(users);
+
+      const result = await service.listForAdmin(undefined, 20);
+
+      expect(result.items).toHaveLength(20);
+      expect(result.nextCursor).toBe(
+        Buffer.from('user-19', 'utf-8').toString('base64url')
+      );
+    });
+
+    it('should apply cursor filter when cursor is provided', async () => {
+      const cursorId = '550e8400-e29b-41d4-a716-446655440000';
+      const cursor = Buffer.from(cursorId, 'utf-8').toString('base64url');
+      const users = [{ id: '660e8400-e29b-41d4-a716-446655440001' }] as User[];
+
+      mockRepository.find.mockResolvedValue(users);
+
+      const result = await service.listForAdmin(cursor, 10);
+
+      expect(result).toEqual({ items: users, nextCursor: null });
+      expect(mockRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: expect.any(Object) },
+          take: 11
+        })
+      );
+    });
+
+    it('should throw on invalid base64 cursor', async () => {
+      await expect(service.listForAdmin('!!!invalid!!!')).rejects.toEqual(
+        UserErrors.invalidCursor()
+      );
+    });
+
+    it('should throw when cursor decodes to non-UUID value', async () => {
+      const cursor = Buffer.from('not-a-uuid', 'utf-8').toString('base64url');
+
+      await expect(service.listForAdmin(cursor)).rejects.toEqual(
+        UserErrors.invalidCursor()
+      );
+    });
+
+    it('should use default limit of 20 when limit is not provided', async () => {
+      mockRepository.find.mockResolvedValue([]);
+
+      await service.listForAdmin();
+
+      expect(mockRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 21 })
+      );
     });
   });
 

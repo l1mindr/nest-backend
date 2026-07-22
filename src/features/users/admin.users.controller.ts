@@ -9,8 +9,11 @@ import {
   HttpStatus,
   Inject,
   Param,
+  Query,
   UseGuards
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { AdminUsersListRequestDto } from './dto/request/admin-users-list.request.dto';
 import { AdminUserResponseDto } from './dto/response/admin-user.response.dto';
 import { UserRole } from './enums/user-role.enum';
 import { IUsersService, USER_SERVICE } from './interfaces/users.interface';
@@ -31,9 +34,18 @@ export class AdminUsersController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiAdminGetAllUsers()
-  @Serialize(AdminUserResponseDto)
-  async getAll() {
-    return await this.usersService.listForAdmin();
+  async getAll(@Query() query: AdminUsersListRequestDto) {
+    const { items, nextCursor } = await this.usersService.listForAdmin(
+      query.cursor,
+      query.limit
+    );
+
+    return {
+      items: plainToInstance(AdminUserResponseDto, items, {
+        excludeExtraneousValues: true
+      }),
+      nextCursor
+    };
   }
 
   @Get(':id')

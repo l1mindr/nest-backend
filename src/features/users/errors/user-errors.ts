@@ -37,4 +37,14 @@ export class UserErrors {
       'Username already exists'
     );
   }
+
+  static invalidCursor() {
+    return new AppError(
+      UserErrorCode.INVALID_CURSOR,
+      ErrorDomain.USER,
+      HttpStatus.BAD_REQUEST,
+      { field: 'cursor' },
+      'Invalid cursor'
+    );
+  }
 }

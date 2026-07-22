@@ -3,14 +3,19 @@ import {
   SESSION_SERVICE
 } from '@features/sessions/interfaces/sessions.interface';
 import { User } from '@features/users/entities/user.entity';
-import { IUsersService } from '@features/users/interfaces/users.interface';
+import {
+  IUsersService,
+  PaginatedResult
+} from '@features/users/interfaces/users.interface';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   DataSource,
   EntityManager,
   FindOptionsSelect,
+  MoreThan,
   Repository
 } from 'typeorm';
+import { ADMIN_USERS_PAGE_SIZE_DEFAULT } from './dto/request/admin-users-list.request.dto';
 import { CreateUserRequestDto } from './dto/request/create-user.request.dto';
 import { UpdateProfileRequestDto } from './dto/request/update-profile.request.dto';
 import { UserErrors } from './errors/user-errors';
@@ -82,8 +87,27 @@ export class UsersService implements IUsersService {
     return user;
   }
 
-  async listForAdmin(): Promise<User[]> {
-    return this.userRepo.find({ select: UsersService.ADMIN_VIEW_SELECT });
+  async listForAdmin(
+    cursor?: string,
+    limit?: number
+  ): Promise<PaginatedResult<User>> {
+    const take = limit ?? ADMIN_USERS_PAGE_SIZE_DEFAULT;
+    const cursorId = this.decodeCursor(cursor);
+
+    const items = await this.userRepo.find({
+      select: UsersService.ADMIN_VIEW_SELECT,
+      where: cursorId ? { id: MoreThan(cursorId) } : undefined,
+      order: { id: 'ASC' },
+      take: take + 1
+    });
+
+    const hasMore = items.length > take;
+    const page = hasMore ? items.slice(0, take) : items;
+    const nextCursor = hasMore
+      ? this.encodeCursor(page[page.length - 1].id)
+      : null;
+
+    return { items: page, nextCursor };
   }
 
   async setPassword(
@@ -136,6 +160,30 @@ export class UsersService implements IUsersService {
     }
 
     throw error;
+  }
+
+  private static readonly UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  private encodeCursor(id: string): string {
+    return Buffer.from(id, 'utf-8').toString('base64url');
+  }
+
+  private decodeCursor(cursor?: string): string | null {
+    if (!cursor) return null;
+
+    let decoded: string;
+    try {
+      decoded = Buffer.from(cursor, 'base64url').toString('utf-8');
+    } catch {
+      throw UserErrors.invalidCursor();
+    }
+
+    if (!UsersService.UUID_RE.test(decoded)) {
+      throw UserErrors.invalidCursor();
+    }
+
+    return decoded;
   }
 }
 

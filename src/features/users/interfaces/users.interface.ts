@@ -5,9 +5,14 @@ import type { EntityManager } from 'typeorm';
 
 export const USER_SERVICE = Symbol('IUsersService');
 
+export interface PaginatedResult<T> {
+  items: T[];
+  nextCursor: string | null;
+}
+
 export interface IUsersService {
   register(dto: CreateUserRequestDto): Promise<void>;
-  listForAdmin(): Promise<User[]>;
+  listForAdmin(cursor?: string, limit?: number): Promise<PaginatedResult<User>>;
   findByIdForAdmin(id: string): Promise<User>;
   findByIdentifierForAuth(identifier: string): Promise<User | null>;
   findByIdWithPassword(userId: string): Promise<User | null>;

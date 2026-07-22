@@ -1,8 +1,9 @@
 import { RegistryDatesOrm } from '@infrastructure/databases/postgres/embedded/registry-dates.embedded';
 import { ErrorResponseDto } from '@infrastructure/http/dto/error-response.dto';
 import { applyDecorators } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { Session } from './../sessions/entities/session.entity';
+import { AdminUsersListResponseDto } from './dto/response/admin-users-list.response.dto';
 import { AdminUserResponseDto } from './dto/response/admin-user.response.dto';
 import { UserProfileResponseDto } from './dto/response/user-profile.response.dto';
 import { UserRole } from './enums/user-role.enum';
@@ -127,10 +128,34 @@ export const ApiDeleteAccount = () =>
 export const ApiAdminGetAllUsers = () =>
   applyDecorators(
     ApiOperation({ summary: '[Admin] Get all users' }),
+    ApiQuery({
+      name: 'cursor',
+      required: false,
+      type: String,
+      description:
+        'Opaque cursor from a previous response to fetch the next page.'
+    }),
+    ApiQuery({
+      name: 'limit',
+      required: false,
+      type: Number,
+      description: 'Number of items per page (1–100, default 20).',
+      example: 20
+    }),
     ApiResponse({
       status: 200,
       description: 'Successfully retrieved users',
-      type: [AdminUserResponseDto]
+      type: AdminUsersListResponseDto
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Invalid cursor',
+      type: ErrorResponseDto
+    }),
+    ApiResponse({
+      status: 422,
+      description: 'Validation error (e.g. limit out of range)',
+      type: ErrorResponseDto
     }),
     ApiResponse({
       status: 500,
