@@ -63,6 +63,10 @@ export class RedisService implements OnModuleDestroy {
     return Number(result);
   }
 
+  async eval(script: string, keys: string[], ...args: (string | number)[]) {
+    return this.redis.eval(script, keys.length, ...keys, ...args);
+  }
+
   async get(key: string) {
     return this.redis.get(key);
   }
