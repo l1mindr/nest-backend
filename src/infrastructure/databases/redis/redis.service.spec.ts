@@ -146,6 +146,35 @@ describe('RedisService', () => {
     });
   });
 
+  describe('eval', () => {
+    it('should forward the script, numKeys, keys, and args to ioredis', async () => {
+      mockRedis.eval.mockResolvedValue(42);
+
+      const result = await service.eval(
+        'return redis.call("get", KEYS[1])',
+        ['my:key'],
+        'arg1'
+      );
+
+      expect(result).toBe(42);
+
+      const [script, numKeys, ...rest] = mockRedis.eval.mock.calls[0];
+      expect(script).toBe('return redis.call("get", KEYS[1])');
+      expect(numKeys).toBe(1);
+      expect(rest).toEqual(['my:key', 'arg1']);
+    });
+
+    it('should handle multiple keys', async () => {
+      mockRedis.eval.mockResolvedValue(0);
+
+      await service.eval('return 0', ['key1', 'key2', 'key3']);
+
+      const [, numKeys, ...rest] = mockRedis.eval.mock.calls[0];
+      expect(numKeys).toBe(3);
+      expect(rest).toEqual(['key1', 'key2', 'key3']);
+    });
+  });
+
   describe('onModuleDestroy', () => {
     it('should close redis connection', async () => {
       await service.onModuleDestroy();
