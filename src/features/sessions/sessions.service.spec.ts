@@ -261,6 +261,22 @@ describe('SessionsService', () => {
         })
       );
     });
+
+    it('should order sessions deterministically by lastUsedAt, createdAt, id', async () => {
+      mockRepository.find.mockResolvedValue([]);
+
+      await service.list('user-id', currentSession);
+
+      expect(mockRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          order: {
+            lastUsedAt: 'ASC',
+            createdAt: 'ASC',
+            id: 'ASC'
+          }
+        })
+      );
+    });
   });
 
   describe('revoke', () => {
