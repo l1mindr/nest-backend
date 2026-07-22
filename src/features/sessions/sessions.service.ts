@@ -182,6 +182,11 @@ export class SessionsService implements ISessionsService {
         device: true,
         expiresAt: true,
         lastUsedAt: true
+      },
+      order: {
+        lastUsedAt: 'ASC',
+        createdAt: 'ASC',
+        id: 'ASC'
       }
     });
 
