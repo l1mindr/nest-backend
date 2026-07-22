@@ -1,3 +1,4 @@
+import { PaginatedResult } from '@core/pagination/paginated-result.interface';
 import type { EntityManager } from 'typeorm';
 import { Session } from '../entities/session.entity';
 import { SessionListItem } from '../types/session-list-item.type';
@@ -22,7 +23,12 @@ export interface ISessionsService {
     expiresAt: Date
   ): Promise<Session>;
 
-  list(userId: string, session: Session): Promise<SessionListItem[]>;
+  list(
+    userId: string,
+    session: Session,
+    limit?: number,
+    cursor?: string
+  ): Promise<SessionListResult>;
 
   revoke(userId: string, sessionId: string): Promise<void>;
 
@@ -54,4 +60,8 @@ export interface ISessionsService {
       expiresAt: Date;
     }
   ): Promise<boolean>;
+}
+
+export interface SessionListResult extends PaginatedResult<SessionListItem> {
+  currentSession: SessionListItem;
 }

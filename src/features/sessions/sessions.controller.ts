@@ -1,8 +1,7 @@
+import { ClearCsrfCookieInterceptor } from '@features/security/csrf/interceptors/clear-csrf-cookie.interceptor';
 import { Session } from '@features/security/decorators/session.decorator';
 import { User } from '@features/security/decorators/user.decorator';
-import { ClearCsrfCookieInterceptor } from '@features/security/csrf/interceptors/clear-csrf-cookie.interceptor';
 import { User as UserEntity } from '@features/users/entities/user.entity';
-import { Serialize } from '@infrastructure/http/interceptors/decorators/serialize.decorator';
 import {
   Controller,
   Delete,
@@ -10,8 +9,11 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Query,
   UseInterceptors
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { SessionListRequestDto } from './dto/request/session-list-request.dto';
 import { SessionResponseDto } from './dto/response/session.response.dto';
 import { Session as SessionEntity } from './entities/session.entity';
 import {
@@ -37,9 +39,28 @@ export class SessionsController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiGetSessions()
-  @Serialize(SessionResponseDto)
-  getAll(@User() user: UserEntity, @Session() session: SessionEntity) {
-    return this.sessionsService.list(user.id, session);
+  async getAll(
+    @User() user: UserEntity,
+    @Session() session: SessionEntity,
+    @Query() query: SessionListRequestDto
+  ) {
+    const { currentSession, items, nextCursor } =
+      await this.sessionsService.list(
+        user.id,
+        session,
+        query.limit,
+        query.cursor
+      );
+
+    return {
+      currentSession: plainToInstance(SessionResponseDto, currentSession, {
+        excludeExtraneousValues: true
+      }),
+      items: plainToInstance(SessionResponseDto, items, {
+        excludeExtraneousValues: true
+      }),
+      nextCursor
+    };
   }
 
   @Delete()

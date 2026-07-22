@@ -72,8 +72,8 @@ All session endpoints require authentication. `DELETE` endpoints also require CS
 
 `SessionsService.list(userId, session)` returns:
 
-- Current session first, with `current: true`.
-- Other active non-revoked sessions for the same user.
+- The current session in the `currentSession` field.
+- Other active non-revoked sessions in `items`.
 
 The query selects only `device`, `expiresAt`, and `ipAddress` for other sessions. Because `SessionResponseDto` maps `sessionId` from `obj.id` and `lastActivityAt` from `obj.lastUsedAt`, other-session responses may lack these fields based on the current select list. This is a current implementation detail to review before relying on full session metadata in clients.
 

@@ -57,4 +57,14 @@ export class SessionErrors {
       'Session reuse detected'
     );
   }
+
+  static invalidCursor() {
+    return new AppError(
+      SessionErrorCode.INVALID_CURSOR,
+      ErrorDomain.SESSION,
+      HttpStatus.BAD_REQUEST,
+      { field: 'cursor' },
+      'Invalid cursor'
+    );
+  }
 }

@@ -32,12 +32,4 @@ export class SessionResponseDto {
   })
   @Expose()
   lastActivityAt!: Date;
-
-  @ApiProperty({
-    required: false,
-    default: false,
-    description: 'Indicates whether this is the current session'
-  })
-  @Expose()
-  current?: boolean;
 }

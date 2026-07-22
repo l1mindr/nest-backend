@@ -6,5 +6,4 @@ export type SessionListItem = {
   deviceInfo: ISessionDevice;
   validUntil: Date;
   lastActivityAt: Date;
-  current?: boolean;
 };
