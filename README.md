@@ -1,4 +1,4 @@
-# Nest Backend
+# Nest Backend v1
 
 Nest Backend is a NestJS API for user authentication, session management, and account administration. It uses PostgreSQL with TypeORM, Redis with `ioredis`, cookie-based JWT authentication, server-side sessions, CSRF protection, role-based access control, and Jest/Supertest tests.
 
