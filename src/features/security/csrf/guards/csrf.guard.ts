@@ -5,16 +5,14 @@ import { SecurityErrors } from '../../errors/security-errors';
 import { CsrfService } from '../csrf.service';
 import { SKIP_CSRF_KEY } from '../decorators/skip-csrf.decorator';
 
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 @Injectable()
 export class CsrfGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly csrfService: CsrfService
   ) {}
-
-  private isSafeMethod(method: string): boolean {
-    return ['GET', 'HEAD', 'OPTIONS'].includes(method);
-  }
 
   canActivate(context: ExecutionContext): boolean {
     const skip = this.reflector.getAllAndOverride<boolean>(SKIP_CSRF_KEY, [
@@ -28,7 +26,7 @@ export class CsrfGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<Request>();
 
-    if (this.isSafeMethod(request.method)) {
+    if (SAFE_METHODS.has(request.method)) {
       return true;
     }
 
