@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { CsrfModule } from './csrf/csrf.module';
+import { CsrfGuard } from './csrf/guards/csrf.guard';
 import { DeviceDetectionModule } from './device-detection/device-detection.module';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { JwtGuard } from './guards/jwt.guard';
@@ -31,6 +32,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     {
       provide: APP_GUARD,
       useClass: RolesGuard
+    },
+    {
+      provide: APP_GUARD,
+      useClass: CsrfGuard
     }
   ],
   exports: [DeviceDetectionModule]
