@@ -6,10 +6,7 @@ export class RedisCounterService {
   private static readonly INCREMENT_WITH_TTL_SCRIPT = `
     local current = redis.call("incr", KEYS[1])
     if current == 1 then
-      local ttl = tonumber(ARGV[1])
-      if ttl then
-        redis.call("expire", KEYS[1], ttl)
-      end
+      redis.call("expire", KEYS[1], tonumber(ARGV[1]))
     end
     return current
   `;
@@ -20,11 +17,15 @@ export class RedisCounterService {
     return this.redisService.get(key);
   }
 
-  async increment(key: string, ttl?: number) {
+  async increment(key: string, ttl: number) {
+    if (ttl <= 0) {
+      throw new Error('TTL must be a positive number');
+    }
+
     const result = await this.redisService.eval(
       RedisCounterService.INCREMENT_WITH_TTL_SCRIPT,
       [key],
-      ttl ?? ''
+      ttl
     );
 
     return Number(result);
