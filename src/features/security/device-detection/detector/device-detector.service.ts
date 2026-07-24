@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Request } from 'express';
+import { DeviceContext } from '../context/device-context.interface';
 import { FingerprintService } from '../fingerprint/fingerprint.service';
 import { UserAgentParser } from '../user-agent/user-agent.parser';
 import { normalizeUA } from '../utils/normalize-ua.util';
@@ -11,18 +12,17 @@ export class DeviceDetectorService {
     private readonly fingerprintService: FingerprintService
   ) {}
 
-  detect(request: Request) {
+  detect(request: Request): DeviceContext {
     const ua = normalizeUA(request.headers['user-agent']);
-    const device = this.uaParser.parse(ua);
-
-    const fingerprint = this.fingerprintService.analyze(device);
+    const parsed = this.uaParser.parse(ua);
+    const { fingerprintRisk } = this.fingerprintService.analyze(parsed);
 
     return {
-      browserName: device.browserName,
-      browserVersion: device.browserVersion,
-      osName: device.osName,
-      deviceType: device.deviceType,
-      ...fingerprint
+      browserName: parsed.browserName,
+      browserVersion: parsed.browserVersion,
+      osName: parsed.osName,
+      deviceType: parsed.deviceType,
+      fingerprintRisk
     };
   }
 }
