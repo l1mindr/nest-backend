@@ -10,7 +10,8 @@ describe('RedisService', () => {
     get: jest.fn(),
     del: jest.fn(),
     eval: jest.fn(),
-    quit: jest.fn()
+    quit: jest.fn(),
+    disconnect: jest.fn()
   };
 
   beforeEach(() => {
@@ -176,10 +177,20 @@ describe('RedisService', () => {
   });
 
   describe('onModuleDestroy', () => {
-    it('should close redis connection', async () => {
+    it('should close redis connection via quit', async () => {
       await service.onModuleDestroy();
 
       expect(mockRedis.quit).toHaveBeenCalledTimes(1);
+      expect(mockRedis.disconnect).not.toHaveBeenCalled();
+    });
+
+    it('should fall back to disconnect when quit fails', async () => {
+      mockRedis.quit.mockRejectedValue(new Error('Connection already closed'));
+
+      await service.onModuleDestroy();
+
+      expect(mockRedis.quit).toHaveBeenCalledTimes(1);
+      expect(mockRedis.disconnect).toHaveBeenCalledTimes(1);
     });
   });
 });
