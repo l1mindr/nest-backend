@@ -49,18 +49,6 @@ describe('RedisCounterService', () => {
       expect(ttl).toBe(60);
     });
 
-    it('should pass empty string for ttl when not provided', async () => {
-      mockRedisService.eval.mockResolvedValue(1);
-
-      const result = await service.increment('counter:key');
-
-      expect(result).toBe(1);
-
-      const [, keys, ttl] = mockRedisService.eval.mock.calls[0];
-      expect(keys).toEqual(['counter:key']);
-      expect(ttl).toBe('');
-    });
-
     it('should return the current counter value on subsequent increments', async () => {
       mockRedisService.eval.mockResolvedValue(5);
 
@@ -87,6 +75,18 @@ describe('RedisCounterService', () => {
 
       await expect(service.increment('counter:key', 60)).rejects.toThrow(
         'ECONNRESET'
+      );
+    });
+
+    it('should throw when ttl is zero', async () => {
+      await expect(service.increment('counter:key', 0)).rejects.toThrow(
+        'TTL must be a positive number'
+      );
+    });
+
+    it('should throw when ttl is negative', async () => {
+      await expect(service.increment('counter:key', -10)).rejects.toThrow(
+        'TTL must be a positive number'
       );
     });
   });
