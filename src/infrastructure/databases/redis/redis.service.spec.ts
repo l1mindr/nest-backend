@@ -76,27 +76,41 @@ describe('RedisService', () => {
   });
 
   describe('setWithExpiry', () => {
-    it('should set value with expiry', async () => {
+    it('should set a new value with expiry', async () => {
       mockRedis.set.mockResolvedValue('OK');
 
-      const result = await service.setWithExpiry('lock:key', '1', 5);
+      const result = await service.setWithExpiry('cache:key', 'value', 30);
 
       expect(result).toBe('OK');
       expect(mockRedis.set).toHaveBeenCalledWith(
-        'lock:key',
-        '1',
+        'cache:key',
+        'value',
         'EX',
-        5,
-        'NX'
+        30
       );
     });
 
-    it('should return null when key already exists', async () => {
-      mockRedis.set.mockResolvedValue(null);
+    it('should overwrite an existing value unconditionally', async () => {
+      mockRedis.set.mockResolvedValue('OK');
 
-      const result = await service.setWithExpiry('lock:key', '1', 5);
+      const result = await service.setWithExpiry('cache:key', 'updated', 30);
 
-      expect(result).toBeNull();
+      expect(result).toBe('OK');
+      expect(mockRedis.set).toHaveBeenCalledWith(
+        'cache:key',
+        'updated',
+        'EX',
+        30
+      );
+    });
+
+    it('should not use NX flag', async () => {
+      mockRedis.set.mockResolvedValue('OK');
+
+      await service.setWithExpiry('cache:key', 'value', 60);
+
+      const args = mockRedis.set.mock.calls[0];
+      expect(args).not.toContain('NX');
     });
   });
 
