@@ -44,8 +44,8 @@ export class RedisService implements OnModuleDestroy {
     key: RedisKey,
     value: string | number | Buffer,
     ttlSeconds: number
-  ): Promise<'OK' | null> {
-    return await this.redis.set(key, value, 'EX', ttlSeconds, 'NX');
+  ): Promise<'OK'> {
+    return await this.redis.set(key, value, 'EX', ttlSeconds);
   }
 
   async del(key: string): Promise<number> {
@@ -72,6 +72,14 @@ export class RedisService implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await this.redis.quit();
+    if (this.redis.status === 'end') {
+      return;
+    }
+
+    try {
+      await this.redis.quit();
+    } catch {
+      this.redis.disconnect();
+    }
   }
 }

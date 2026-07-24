@@ -4,13 +4,15 @@ describe('RedisService', () => {
   let service: RedisService;
 
   const mockRedis = {
+    status: 'ready',
     set: jest.fn(),
     setIfNotExists: jest.fn(),
     setIfNotExistsWithExpiry: jest.fn(),
     get: jest.fn(),
     del: jest.fn(),
     eval: jest.fn(),
-    quit: jest.fn()
+    quit: jest.fn(),
+    disconnect: jest.fn()
   };
 
   beforeEach(() => {
@@ -75,27 +77,41 @@ describe('RedisService', () => {
   });
 
   describe('setWithExpiry', () => {
-    it('should set value with expiry', async () => {
+    it('should set a new value with expiry', async () => {
       mockRedis.set.mockResolvedValue('OK');
 
-      const result = await service.setWithExpiry('lock:key', '1', 5);
+      const result = await service.setWithExpiry('cache:key', 'value', 30);
 
       expect(result).toBe('OK');
       expect(mockRedis.set).toHaveBeenCalledWith(
-        'lock:key',
-        '1',
+        'cache:key',
+        'value',
         'EX',
-        5,
-        'NX'
+        30
       );
     });
 
-    it('should return null when key already exists', async () => {
-      mockRedis.set.mockResolvedValue(null);
+    it('should overwrite an existing value unconditionally', async () => {
+      mockRedis.set.mockResolvedValue('OK');
 
-      const result = await service.setWithExpiry('lock:key', '1', 5);
+      const result = await service.setWithExpiry('cache:key', 'updated', 30);
 
-      expect(result).toBeNull();
+      expect(result).toBe('OK');
+      expect(mockRedis.set).toHaveBeenCalledWith(
+        'cache:key',
+        'updated',
+        'EX',
+        30
+      );
+    });
+
+    it('should not use NX flag', async () => {
+      mockRedis.set.mockResolvedValue('OK');
+
+      await service.setWithExpiry('cache:key', 'value', 60);
+
+      const args = mockRedis.set.mock.calls[0];
+      expect(args).not.toContain('NX');
     });
   });
 
@@ -176,10 +192,29 @@ describe('RedisService', () => {
   });
 
   describe('onModuleDestroy', () => {
-    it('should close redis connection', async () => {
+    it('should close redis connection via quit', async () => {
       await service.onModuleDestroy();
 
       expect(mockRedis.quit).toHaveBeenCalledTimes(1);
+      expect(mockRedis.disconnect).not.toHaveBeenCalled();
+    });
+
+    it('should fall back to disconnect when quit fails', async () => {
+      mockRedis.quit.mockRejectedValue(new Error('Connection already closed'));
+
+      await service.onModuleDestroy();
+
+      expect(mockRedis.quit).toHaveBeenCalledTimes(1);
+      expect(mockRedis.disconnect).toHaveBeenCalledTimes(1);
+    });
+
+    it('should skip quit when client is already ended', async () => {
+      mockRedis.status = 'end';
+
+      await service.onModuleDestroy();
+
+      expect(mockRedis.quit).not.toHaveBeenCalled();
+      expect(mockRedis.disconnect).not.toHaveBeenCalled();
     });
   });
 });

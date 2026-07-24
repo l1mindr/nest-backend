@@ -3,6 +3,4 @@ export interface IUserAgent {
   browserVersion: string;
   osName: string;
   deviceType: 'mobile' | 'tablet' | 'desktop';
-  deviceVendor?: string;
-  deviceModel?: string;
 }
