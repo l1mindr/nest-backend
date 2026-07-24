@@ -9,8 +9,7 @@ import { map, Observable } from 'rxjs';
 import { AuthTokens } from '../interfaces/auth.interface';
 import { CsrfService } from '@features/security/csrf/csrf.service';
 import { decodeSessionId } from '@features/security/csrf/utils/session-id.util';
-
-const isProduction = process.env.NODE_ENV === 'production';
+import { IS_PRODUCTION } from '@infrastructure/config/env/env.constants';
 
 @Injectable()
 export class AuthCookieInterceptor implements NestInterceptor {
@@ -25,15 +24,15 @@ export class AuthCookieInterceptor implements NestInterceptor {
         if (accessToken && refreshToken) {
           res.cookie('access_token', accessToken, {
             httpOnly: true,
-            secure: isProduction,
-            sameSite: isProduction ? 'strict' : 'lax',
+            secure: IS_PRODUCTION,
+            sameSite: IS_PRODUCTION ? 'strict' : 'lax',
             maxAge: 15 * 60 * 1000 // 15 minutes
           });
 
           res.cookie('refresh_token', refreshToken, {
             httpOnly: true,
-            secure: isProduction,
-            sameSite: isProduction ? 'strict' : 'lax',
+            secure: IS_PRODUCTION,
+            sameSite: IS_PRODUCTION ? 'strict' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
           });
 
@@ -44,8 +43,8 @@ export class AuthCookieInterceptor implements NestInterceptor {
 
             res.cookie('csrf_token', csrfToken, {
               httpOnly: false,
-              secure: isProduction,
-              sameSite: isProduction ? 'strict' : 'lax'
+              secure: IS_PRODUCTION,
+              sameSite: IS_PRODUCTION ? 'strict' : 'lax'
             });
           }
         }
