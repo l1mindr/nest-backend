@@ -72,6 +72,10 @@ export class RedisService implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    if (this.redis.status === 'end') {
+      return;
+    }
+
     try {
       await this.redis.quit();
     } catch {

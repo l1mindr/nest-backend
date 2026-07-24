@@ -4,6 +4,7 @@ describe('RedisService', () => {
   let service: RedisService;
 
   const mockRedis = {
+    status: 'ready',
     set: jest.fn(),
     setIfNotExists: jest.fn(),
     setIfNotExistsWithExpiry: jest.fn(),
@@ -205,6 +206,15 @@ describe('RedisService', () => {
 
       expect(mockRedis.quit).toHaveBeenCalledTimes(1);
       expect(mockRedis.disconnect).toHaveBeenCalledTimes(1);
+    });
+
+    it('should skip quit when client is already ended', async () => {
+      mockRedis.status = 'end';
+
+      await service.onModuleDestroy();
+
+      expect(mockRedis.quit).not.toHaveBeenCalled();
+      expect(mockRedis.disconnect).not.toHaveBeenCalled();
     });
   });
 });
