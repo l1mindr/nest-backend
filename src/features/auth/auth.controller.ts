@@ -69,6 +69,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(AuthCookieInterceptor)
   @RateLimit({ limit: 20, ttl: 60 })
+  @SkipCsrf()
   @ApiLoginUser()
   async refreshSession(@Req() req: Request) {
     return await this.authService.refresh(req.cookies.refresh_token);

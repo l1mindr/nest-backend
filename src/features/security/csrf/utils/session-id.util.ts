@@ -1,5 +1,3 @@
-import { Request } from 'express';
-
 export function decodeSessionId(token: unknown): string | undefined {
   if (typeof token !== 'string') return undefined;
 
@@ -25,13 +23,4 @@ export function decodeSessionId(token: unknown): string | undefined {
   } catch {
     return undefined;
   }
-}
-
-export function extractSessionIdFromAuthCookies(
-  req: Request
-): string | undefined {
-  return (
-    decodeSessionId(req.cookies?.access_token) ??
-    decodeSessionId(req.cookies?.refresh_token)
-  );
 }

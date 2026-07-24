@@ -4,7 +4,6 @@ import { Request } from 'express';
 import { SecurityErrors } from '../../errors/security-errors';
 import { CsrfService } from '../csrf.service';
 import { SKIP_CSRF_KEY } from '../decorators/skip-csrf.decorator';
-import { extractSessionIdFromAuthCookies } from '../utils/session-id.util';
 
 @Injectable()
 export class CsrfGuard implements CanActivate {
@@ -37,7 +36,7 @@ export class CsrfGuard implements CanActivate {
 
     const headerToken = request.header('x-csrf-token');
 
-    const sessionId = extractSessionIdFromAuthCookies(request);
+    const sessionId = request.session?.id;
 
     const valid = this.csrfService.validate(
       cookieToken,
