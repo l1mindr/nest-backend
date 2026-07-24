@@ -2,10 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { UAParser } from 'ua-parser-js';
 import { IUserAgent } from './user-agent.interface';
 
+const parser = new UAParser();
+
 @Injectable()
 export class UserAgentParser {
   parse(ua: string): IUserAgent {
-    const { browser, os, device } = UAParser(ua);
+    parser.setUA(ua);
+    const { browser, os, device } = parser.getResult();
 
     return {
       browserName: browser.name || 'unknown',

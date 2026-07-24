@@ -7,11 +7,12 @@ import {
 import { Response } from 'express';
 import { Observable, tap } from 'rxjs';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 @Injectable()
 export class ClearCsrfCookieInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const res = context.switchToHttp().getResponse<Response>();
-    const isProduction = process.env.NODE_ENV === 'production';
 
     return next.handle().pipe(
       tap(() => {

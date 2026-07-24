@@ -10,6 +10,8 @@ import { AuthTokens } from '../interfaces/auth.interface';
 import { CsrfService } from '@features/security/csrf/csrf.service';
 import { decodeSessionId } from '@features/security/csrf/utils/session-id.util';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 @Injectable()
 export class AuthCookieInterceptor implements NestInterceptor {
   constructor(private readonly csrfService: CsrfService) {}
@@ -17,7 +19,6 @@ export class AuthCookieInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<void> {
     const ctx = context.switchToHttp();
     const res = ctx.getResponse<Response>();
-    const isProduction = process.env.NODE_ENV === 'production';
 
     return next.handle().pipe(
       map(({ accessToken, refreshToken }: AuthTokens) => {
