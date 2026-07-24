@@ -163,7 +163,10 @@ describe('AuthService', () => {
       });
 
       mockDeviceMapper.toSessionUserAgent.mockReturnValue({
-        browser: 'Chrome'
+        browserName: 'Chrome',
+        browserVersion: '120.0.0.0',
+        osName: 'Windows',
+        deviceType: 'desktop'
       });
 
       mockSessionsService.issue.mockResolvedValue({
