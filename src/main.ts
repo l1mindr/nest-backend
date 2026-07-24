@@ -3,6 +3,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { setupApp } from './bootstrap';
+import { NODE_ENV } from '@infrastructure/config/env/env.constants';
 import { LogEvent } from './infrastructure/logging/logging.constants';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -16,7 +17,7 @@ function logFatal(error: Error, message: string) {
       {
         event: LogEvent.UNEXPECTED_EXCEPTION,
         err: error,
-        environment: process.env.NODE_ENV
+        environment: NODE_ENV
       },
       message
     );
@@ -55,7 +56,7 @@ async function bootstrap() {
     {
       event: LogEvent.APPLICATION_STARTUP,
       port: 8080,
-      environment: process.env.NODE_ENV
+      environment: NODE_ENV
     },
     'Application started'
   );

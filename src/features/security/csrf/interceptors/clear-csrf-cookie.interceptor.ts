@@ -6,8 +6,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { Observable, tap } from 'rxjs';
-
-const isProduction = process.env.NODE_ENV === 'production';
+import { IS_PRODUCTION } from '@infrastructure/config/env/env.constants';
 
 @Injectable()
 export class ClearCsrfCookieInterceptor implements NestInterceptor {
@@ -18,8 +17,8 @@ export class ClearCsrfCookieInterceptor implements NestInterceptor {
       tap(() => {
         res.clearCookie('csrf_token', {
           httpOnly: false,
-          secure: isProduction,
-          sameSite: isProduction ? 'strict' : 'lax'
+          secure: IS_PRODUCTION,
+          sameSite: IS_PRODUCTION ? 'strict' : 'lax'
         });
       })
     );

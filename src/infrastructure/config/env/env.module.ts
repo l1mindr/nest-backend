@@ -3,6 +3,7 @@ import jwtConfig from '@infrastructure/config/jsonwebtoken/jwt.config';
 import csrfConfig from '@infrastructure/config/security/csrf.config';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { NODE_ENV } from './env.constants';
 import { ENV_VALIDATION_SCHEMA } from './env.schema';
 
 @Module({
@@ -11,7 +12,7 @@ import { ENV_VALIDATION_SCHEMA } from './env.schema';
       isGlobal: true,
       expandVariables: true,
       validationSchema: ENV_VALIDATION_SCHEMA,
-      envFilePath: [`.env.${process.env.NODE_ENV}`, '.env'],
+      envFilePath: [`.env.${NODE_ENV}`, '.env'],
       load: [jwtConfig, redisConfig, csrfConfig]
     })
   ]

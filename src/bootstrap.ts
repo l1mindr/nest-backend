@@ -1,4 +1,8 @@
 import { helmetConfig } from '@infrastructure/http/helmet.config';
+import {
+  IS_PRODUCTION,
+  IS_DEVELOPMENT
+} from '@infrastructure/config/env/env.constants';
 import { VersioningType } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -6,11 +10,11 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 
 export async function setupApp(app: NestExpressApplication) {
-  if (process.env.NODE_ENV === 'production') {
+  if (IS_PRODUCTION) {
     app.set('trust proxy', 1);
   }
 
-  if (process.env.NODE_ENV === 'development') {
+  if (IS_DEVELOPMENT) {
     const config = new DocumentBuilder()
       .setTitle('The NestjsBackend API description')
       .setDescription('Use the base API URL at http://localhost:8080')
