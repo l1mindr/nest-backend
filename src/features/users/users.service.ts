@@ -1,6 +1,6 @@
 import {
-  ISessionsService,
-  SESSION_SERVICE
+  IRevokeAllUserSessionsService,
+  REVOKE_ALL_USER_SESSIONS_SERVICE
 } from '@features/sessions/interfaces/sessions.interface';
 import { User } from '@features/users/entities/user.entity';
 import {
@@ -24,8 +24,8 @@ import { UserErrors } from './errors/user-errors';
 export class UsersService implements IUsersService {
   constructor(
     private readonly dataSource: DataSource,
-    @Inject(SESSION_SERVICE)
-    private readonly sessionsService: ISessionsService
+    @Inject(REVOKE_ALL_USER_SESSIONS_SERVICE)
+    private readonly revokeAllUserSessionsService: IRevokeAllUserSessionsService
   ) {}
 
   /**
@@ -145,7 +145,7 @@ export class UsersService implements IUsersService {
 
     await this.dataSource.transaction(async (manager) => {
       await manager.getRepository(User).softRemove(user);
-      await this.sessionsService.revokeAllForUser(userId, manager);
+      await this.revokeAllUserSessionsService.revokeAllForUser(userId, manager);
     });
   }
 
