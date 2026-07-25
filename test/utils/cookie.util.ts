@@ -22,9 +22,3 @@ export function getCookieValue(
 ) {
   return getCookie(headers, name).split('=')[1];
 }
-
-export function extractRefreshToken(setCookie: string[]) {
-  const cookie = setCookie.find((c) => c.startsWith('refresh_token='));
-
-  return cookie?.split(';')[0];
-}
