@@ -16,7 +16,7 @@ import { DeleteAccountService } from './services/delete-account.service';
 import { FindUserAdminService } from './services/find-user-admin.service';
 import { ListUsersAdminService } from './services/list-users-admin.service';
 import { UpdateProfileService } from './services/update-profile.service';
-import { UserRepository } from './services/user.repository';
+import { UserRepository } from './repositories/user.repository';
 import { UsersController } from './users.controller';
 
 @Module({

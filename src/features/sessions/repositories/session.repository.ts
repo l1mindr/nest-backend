@@ -9,9 +9,9 @@ import {
   Not,
   Repository
 } from 'typeorm';
-import { Session } from './entities/session.entity';
-import { ISessionDevice } from './interfaces/session-device.interface';
-import { ISessionRepository } from './interfaces/sessions.interface';
+import { Session } from '../entities/session.entity';
+import { ISessionDevice } from '../interfaces/session-device.interface';
+import { ISessionRepository } from '../interfaces/sessions.interface';
 
 @Injectable()
 export class SessionRepository implements ISessionRepository {

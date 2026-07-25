@@ -13,7 +13,7 @@ import { IssueSessionService } from './services/issue-session.service';
 import { ListSessionsService } from './services/list-sessions.service';
 import { RevokeAllUserSessionsService } from './services/revoke-all-user-sessions.service';
 import { RevokeSessionService } from './services/revoke-session.service';
-import { SessionRepository } from './session.repository';
+import { SessionRepository } from './repositories/session.repository';
 import { SessionsController } from './sessions.controller';
 import { TerminateOtherSessionsService } from './services/terminate-other-sessions.service';
 
