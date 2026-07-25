@@ -1,5 +1,5 @@
 import { SessionErrors } from '@features/sessions/errors/session-errors';
-import { SessionsService } from '@features/sessions/sessions.service';
+import { ISessionRepository } from '@features/sessions/interfaces/sessions.interface';
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import { JwtService } from '@nestjs/jwt';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
@@ -14,7 +14,7 @@ describe('TokenService', () => {
     verifyAsync: jest.fn()
   };
 
-  const mockSessionsService = {
+  const mockSessionRepository = {
     getActive: jest.fn(),
     getUserAndActiveSession: jest.fn()
   };
@@ -31,7 +31,7 @@ describe('TokenService', () => {
     service = new TokenService(
       jwtConfiguration as any,
       mockJwtService as unknown as JwtService,
-      mockSessionsService as unknown as SessionsService
+      mockSessionRepository as unknown as ISessionRepository
     );
   });
 
@@ -173,7 +173,7 @@ describe('TokenService', () => {
         id: 'session-id'
       };
 
-      mockSessionsService.getUserAndActiveSession.mockResolvedValue({
+      mockSessionRepository.getUserAndActiveSession.mockResolvedValue({
         user,
         session
       });
@@ -187,7 +187,7 @@ describe('TokenService', () => {
     });
 
     it('should throw invalidToken when user does not exist', async () => {
-      mockSessionsService.getUserAndActiveSession.mockResolvedValue({
+      mockSessionRepository.getUserAndActiveSession.mockResolvedValue({
         user: null,
         session: null
       });
@@ -200,7 +200,7 @@ describe('TokenService', () => {
     it.each([UserStatus.DEACTIVATE, UserStatus.SUSPEND])(
       'should throw invalidToken when the account is %s',
       async (status) => {
-        mockSessionsService.getUserAndActiveSession.mockResolvedValue({
+        mockSessionRepository.getUserAndActiveSession.mockResolvedValue({
           user: { id: 'user-id', status },
           session: { id: 'session-id' }
         });
@@ -212,7 +212,7 @@ describe('TokenService', () => {
     );
 
     it('should throw sessionExpired when session does not exist', async () => {
-      mockSessionsService.getUserAndActiveSession.mockResolvedValue({
+      mockSessionRepository.getUserAndActiveSession.mockResolvedValue({
         user: { id: 'user-id', status: UserStatus.ACTIVATE },
         session: null
       });

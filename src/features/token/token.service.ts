@@ -1,7 +1,7 @@
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import {
-  ISessionsService,
-  SESSION_SERVICE
+  ISessionRepository,
+  SESSION_REPOSITORY
 } from '@features/sessions/interfaces/sessions.interface';
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import jwtConfig from '@infrastructure/config/jsonwebtoken/jwt.config';
@@ -20,8 +20,8 @@ export class TokenService implements ITokenService {
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly jwtService: JwtService,
-    @Inject(SESSION_SERVICE)
-    private readonly sessionsService: ISessionsService
+    @Inject(SESSION_REPOSITORY)
+    private readonly sessionRepository: ISessionRepository
   ) {}
 
   async issuePair(
@@ -89,7 +89,7 @@ export class TokenService implements ITokenService {
   }
 
   async validatePayload({ sub, sessionId }: IJwtPayload): Promise<CustomAuth> {
-    const result = await this.sessionsService.getUserAndActiveSession(
+    const result = await this.sessionRepository.getUserAndActiveSession(
       sub,
       sessionId
     );
