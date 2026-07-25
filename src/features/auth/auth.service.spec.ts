@@ -1,7 +1,12 @@
 import { ClockService } from '@core/clock/clock.service';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
+import {
+  ISSUE_SESSION_SERVICE,
+  REVOKE_SESSION_SERVICE,
+  SESSION_REPOSITORY,
+  TERMINATE_OTHER_SESSIONS_SERVICE
+} from '@features/sessions/interfaces/sessions.interface';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
-import { SESSION_SERVICE } from '@features/sessions/interfaces/sessions.interface';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import { TOKEN_SERVICE } from '@features/token/interfaces/token.interface';
 import { USER_SERVICE } from '@features/users/interfaces/users.interface';
@@ -37,12 +42,20 @@ describe('AuthService', () => {
     compare: jest.fn()
   };
 
-  const mockSessionsService = {
-    issue: jest.fn(),
+  const mockIssueSessionService = {
+    issue: jest.fn()
+  };
+
+  const mockRevokeSessionService = {
+    revoke: jest.fn()
+  };
+
+  const mockTerminateOtherSessionsService = {
+    terminateOthers: jest.fn()
+  };
+
+  const mockSessionRepository = {
     getActive: jest.fn(),
-    updateRefreshState: jest.fn(),
-    terminateOthers: jest.fn(),
-    revoke: jest.fn(),
     rotateAtomic: jest.fn()
   };
 
@@ -69,7 +82,8 @@ describe('AuthService', () => {
     transaction: jest.fn(
       async (callback: (manager: EntityManager) => Promise<unknown>) =>
         callback(mockTransactionManager)
-    )
+    ),
+    getRepository: jest.fn()
   };
 
   const mockLogger = {
@@ -99,8 +113,20 @@ describe('AuthService', () => {
         },
         RefreshTokenHasher,
         {
-          provide: SESSION_SERVICE,
-          useValue: mockSessionsService
+          provide: ISSUE_SESSION_SERVICE,
+          useValue: mockIssueSessionService
+        },
+        {
+          provide: REVOKE_SESSION_SERVICE,
+          useValue: mockRevokeSessionService
+        },
+        {
+          provide: TERMINATE_OTHER_SESSIONS_SERVICE,
+          useValue: mockTerminateOtherSessionsService
+        },
+        {
+          provide: SESSION_REPOSITORY,
+          useValue: mockSessionRepository
         },
         {
           provide: USER_SERVICE,
@@ -169,7 +195,7 @@ describe('AuthService', () => {
         deviceType: 'desktop'
       });
 
-      mockSessionsService.issue.mockResolvedValue({
+      mockIssueSessionService.issue.mockResolvedValue({
         id: 'session-id'
       });
 
@@ -177,6 +203,11 @@ describe('AuthService', () => {
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       });
+
+      const mockSessionRepo = {
+        save: jest.fn()
+      };
+      mockDataSource.getRepository.mockReturnValue(mockSessionRepo);
 
       const result = await service.loginUser(
         {
@@ -191,11 +222,11 @@ describe('AuthService', () => {
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       });
-      expect(mockSessionsService.updateRefreshState).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'session-id' }),
-        {
+      expect(mockSessionRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'session-id',
           refreshTokenHash: sha256('refresh-token')
-        }
+        })
       );
     });
 
@@ -256,7 +287,7 @@ describe('AuthService', () => {
           )
         ).rejects.toEqual(AuthErrors.invalidCredentials());
 
-        expect(mockSessionsService.issue).not.toHaveBeenCalled();
+        expect(mockIssueSessionService.issue).not.toHaveBeenCalled();
         expect(mockTokenService.issuePair).not.toHaveBeenCalled();
       }
     );
@@ -286,11 +317,9 @@ describe('AuthService', () => {
         mockTransactionManager
       );
 
-      expect(mockSessionsService.terminateOthers).toHaveBeenCalledWith(
-        'user-id',
-        'session-id',
-        mockTransactionManager
-      );
+      expect(
+        mockTerminateOtherSessionsService.terminateOthers
+      ).toHaveBeenCalledWith('user-id', 'session-id', mockTransactionManager);
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
     });
 
@@ -305,7 +334,9 @@ describe('AuthService', () => {
         .mockResolvedValueOnce(true)
         .mockResolvedValueOnce(false);
       mockHashingProvider.hash.mockResolvedValue('new-hash');
-      mockSessionsService.terminateOthers.mockRejectedValueOnce(error);
+      mockTerminateOtherSessionsService.terminateOthers.mockRejectedValueOnce(
+        error
+      );
 
       await expect(
         service.changeUserPassword('user-id', 'session-id', {
@@ -319,11 +350,9 @@ describe('AuthService', () => {
         'new-hash',
         mockTransactionManager
       );
-      expect(mockSessionsService.terminateOthers).toHaveBeenCalledWith(
-        'user-id',
-        'session-id',
-        mockTransactionManager
-      );
+      expect(
+        mockTerminateOtherSessionsService.terminateOthers
+      ).toHaveBeenCalledWith('user-id', 'session-id', mockTransactionManager);
       expect(mockLogger.info).not.toHaveBeenCalledWith(
         expect.objectContaining({ event: 'password.changed' }),
         expect.any(String)
@@ -388,7 +417,7 @@ describe('AuthService', () => {
 
       mockRedisLockService.release.mockResolvedValue(undefined);
 
-      mockSessionsService.getActive.mockResolvedValue({
+      mockSessionRepository.getActive.mockResolvedValue({
         id: 'session-id',
         refreshTokenHash: sha256('refresh-token'),
         owner: {
@@ -406,7 +435,7 @@ describe('AuthService', () => {
         refreshToken: 'new-refresh'
       });
 
-      mockSessionsService.rotateAtomic.mockResolvedValue(true);
+      mockSessionRepository.rotateAtomic.mockResolvedValue(true);
 
       const result = await service.refresh('refresh-token');
 
@@ -416,7 +445,7 @@ describe('AuthService', () => {
       });
 
       // The rotated hash stored must be the SHA-256 digest of the new token.
-      expect(mockSessionsService.rotateAtomic).toHaveBeenCalledWith(
+      expect(mockSessionRepository.rotateAtomic).toHaveBeenCalledWith(
         'session-id',
         undefined,
         sha256('refresh-token'),
@@ -439,7 +468,7 @@ describe('AuthService', () => {
 
       mockRedisLockService.release.mockResolvedValue(undefined);
 
-      mockSessionsService.getActive.mockResolvedValue(null);
+      mockSessionRepository.getActive.mockResolvedValue(null);
 
       await expect(service.refresh('token')).rejects.toEqual(
         SessionErrors.sessionExpired()
@@ -482,7 +511,7 @@ describe('AuthService', () => {
 
       mockRedisLockService.release.mockResolvedValue(undefined);
 
-      mockSessionsService.getActive.mockResolvedValue(session);
+      mockSessionRepository.getActive.mockResolvedValue(session);
 
       mockClockService.snapshot.mockReturnValue({
         now: NOW_MS,
@@ -493,7 +522,7 @@ describe('AuthService', () => {
         SessionErrors.sessionReuseDetected('session-id')
       );
 
-      expect(mockSessionsService.revoke).toHaveBeenCalledWith(
+      expect(mockRevokeSessionService.revoke).toHaveBeenCalledWith(
         'user-id',
         'session-id'
       );
@@ -512,7 +541,7 @@ describe('AuthService', () => {
 
       mockRedisLockService.release.mockResolvedValue(undefined);
 
-      mockSessionsService.getActive.mockResolvedValue({
+      mockSessionRepository.getActive.mockResolvedValue({
         id: 'session-id',
         refreshTokenHash: sha256('token'),
         owner: {
@@ -530,7 +559,7 @@ describe('AuthService', () => {
         refreshToken: 'refresh'
       });
 
-      mockSessionsService.rotateAtomic.mockResolvedValue(false);
+      mockSessionRepository.rotateAtomic.mockResolvedValue(false);
 
       await expect(service.refresh('token')).rejects.toEqual(
         SessionErrors.sessionReuseDetected('session-id')

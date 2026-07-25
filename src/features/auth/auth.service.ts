@@ -1,10 +1,17 @@
 import { ClockService } from '@core/clock/clock.service';
 import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
+import { Session } from '@features/sessions/entities/session.entity';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import {
-  ISessionsService,
-  SESSION_SERVICE
+  IIssueSessionService,
+  IRevokeSessionService,
+  ISessionRepository,
+  ITerminateOtherSessionsService,
+  ISSUE_SESSION_SERVICE,
+  REVOKE_SESSION_SERVICE,
+  SESSION_REPOSITORY,
+  TERMINATE_OTHER_SESSIONS_SERVICE
 } from '@features/sessions/interfaces/sessions.interface';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import {
@@ -37,8 +44,14 @@ export class AuthService implements IAuthService {
     private readonly clockService: ClockService,
     private readonly hashingProvider: HashingProvider,
     private readonly refreshTokenHasher: RefreshTokenHasher,
-    @Inject(SESSION_SERVICE)
-    private readonly sessionsService: ISessionsService,
+    @Inject(ISSUE_SESSION_SERVICE)
+    private readonly issueSessionService: IIssueSessionService,
+    @Inject(REVOKE_SESSION_SERVICE)
+    private readonly revokeSessionService: IRevokeSessionService,
+    @Inject(TERMINATE_OTHER_SESSIONS_SERVICE)
+    private readonly terminateOtherSessionsService: ITerminateOtherSessionsService,
+    @Inject(SESSION_REPOSITORY)
+    private readonly sessionRepository: ISessionRepository,
     @Inject(USER_SERVICE)
     private readonly usersService: IUsersService,
     @Inject(TOKEN_SERVICE)
@@ -79,7 +92,7 @@ export class AuthService implements IAuthService {
     const { now, expiresAt } = this.clockService.snapshot();
     const userAgent = this.deviceMapper.toSessionUserAgent(device);
 
-    const session = await this.sessionsService.issue(
+    const session = await this.issueSessionService.issue(
       user.id,
       ipAddress,
       userAgent,
@@ -95,9 +108,8 @@ export class AuthService implements IAuthService {
 
     const refreshTokenHash = this.refreshTokenHasher.hash(refreshToken);
 
-    await this.sessionsService.updateRefreshState(session, {
-      refreshTokenHash
-    });
+    session.refreshTokenHash = refreshTokenHash;
+    await this.dataSource.getRepository(Session).save(session);
 
     this.logger.info(
       {
@@ -143,7 +155,11 @@ export class AuthService implements IAuthService {
     try {
       await this.dataSource.transaction(async (manager) => {
         await this.usersService.setPassword(userId, password, manager);
-        await this.sessionsService.terminateOthers(userId, sessionId, manager);
+        await this.terminateOtherSessionsService.terminateOthers(
+          userId,
+          sessionId,
+          manager
+        );
       });
     } catch (error) {
       this.logger.error(
@@ -173,7 +189,7 @@ export class AuthService implements IAuthService {
     }
 
     try {
-      const session = await this.sessionsService.getActive(sub, sessionId);
+      const session = await this.sessionRepository.getActive(sub, sessionId);
 
       if (!session) {
         throw SessionErrors.sessionExpired();
@@ -185,7 +201,7 @@ export class AuthService implements IAuthService {
       );
 
       if (!isValid) {
-        await this.sessionsService.revoke(sub, sessionId);
+        await this.revokeSessionService.revoke(sub, sessionId);
         throw SessionErrors.sessionReuseDetected(sessionId);
       }
 
@@ -202,7 +218,7 @@ export class AuthService implements IAuthService {
         tokens.refreshToken
       );
 
-      const ok = await this.sessionsService.rotateAtomic(
+      const ok = await this.sessionRepository.rotateAtomic(
         session.id,
         session.version,
         session.refreshTokenHash,
