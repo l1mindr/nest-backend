@@ -4,8 +4,8 @@ import {
 } from '@features/sessions/interfaces/sessions.interface';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import {
-  IUsersService,
-  USER_SERVICE
+  IUserRepository,
+  USER_REPOSITORY
 } from '@features/users/interfaces/users.interface';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
@@ -20,8 +20,8 @@ import { HashingProvider } from '../providers/hashing.provider';
 export class ChangePasswordService implements IChangePasswordService {
   constructor(
     private readonly hashingProvider: HashingProvider,
-    @Inject(USER_SERVICE)
-    private readonly usersService: IUsersService,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: IUserRepository,
     @Inject(TERMINATE_OTHER_SESSIONS_SERVICE)
     private readonly terminateOtherSessionsService: ITerminateOtherSessionsService,
     private readonly dataSource: DataSource,
@@ -36,7 +36,7 @@ export class ChangePasswordService implements IChangePasswordService {
     { currentPassword, newPassword }: ChangePasswordRequestDto
   ): Promise<void> {
     const userWithPassword =
-      await this.usersService.findByIdWithPassword(userId);
+      await this.userRepository.findByIdWithPassword(userId);
 
     if (!userWithPassword) throw TokenErrors.invalidToken();
 
@@ -58,7 +58,7 @@ export class ChangePasswordService implements IChangePasswordService {
 
     try {
       await this.dataSource.transaction(async (manager) => {
-        await this.usersService.setPassword(userId, password, manager);
+        await this.userRepository.setPassword(userId, password, manager);
         await this.terminateOtherSessionsService.terminateOthers(
           userId,
           sessionId,

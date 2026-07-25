@@ -38,7 +38,7 @@ describe('LoginUserService', () => {
     issuePair: jest.fn()
   };
 
-  const mockUsersService = {
+  const mockUserRepository = {
     findByIdentifierForAuth: jest.fn()
   };
 
@@ -77,7 +77,7 @@ describe('LoginUserService', () => {
       mockRefreshTokenHasher as any,
       mockIssueSessionService as any,
       mockTokenService as any,
-      mockUsersService as any,
+      mockUserRepository as any,
       mockDataSource as unknown as DataSource,
       mockLogger as any
     );
@@ -85,7 +85,7 @@ describe('LoginUserService', () => {
 
   describe('login', () => {
     it('should login successfully', async () => {
-      mockUsersService.findByIdentifierForAuth.mockResolvedValue({
+      mockUserRepository.findByIdentifierForAuth.mockResolvedValue({
         id: 'user-id',
         password: 'hashed-password',
         status: UserStatus.ACTIVATE
@@ -129,7 +129,7 @@ describe('LoginUserService', () => {
     });
 
     it('should throw when user not found', async () => {
-      mockUsersService.findByIdentifierForAuth.mockResolvedValue(null);
+      mockUserRepository.findByIdentifierForAuth.mockResolvedValue(null);
 
       await expect(
         service.login(
@@ -144,7 +144,7 @@ describe('LoginUserService', () => {
     });
 
     it('should throw when password mismatch', async () => {
-      mockUsersService.findByIdentifierForAuth.mockResolvedValue({
+      mockUserRepository.findByIdentifierForAuth.mockResolvedValue({
         id: 'user-id',
         password: 'hash'
       });
@@ -166,7 +166,7 @@ describe('LoginUserService', () => {
     it.each([UserStatus.DEACTIVATE, UserStatus.SUSPEND])(
       'should reject login for %s users with invalidCredentials and issue no tokens',
       async (status) => {
-        mockUsersService.findByIdentifierForAuth.mockResolvedValue({
+        mockUserRepository.findByIdentifierForAuth.mockResolvedValue({
           id: 'user-id',
           password: 'hashed-password',
           status

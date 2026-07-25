@@ -14,7 +14,12 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { UpdateProfileRequestDto } from './dto/request/update-profile.request.dto';
 import { UserProfileResponseDto } from './dto/response/user-profile.response.dto';
-import { IUsersService, USER_SERVICE } from './interfaces/users.interface';
+import {
+  DELETE_ACCOUNT_SERVICE,
+  IDeleteAccountService,
+  IUpdateProfileService,
+  UPDATE_PROFILE_SERVICE
+} from './interfaces/users.interface';
 import {
   ApiChangeProfile,
   ApiDeleteAccount,
@@ -28,8 +33,10 @@ import {
 @ApiTags('user')
 export class UsersController {
   constructor(
-    @Inject(USER_SERVICE)
-    private readonly usersService: IUsersService
+    @Inject(UPDATE_PROFILE_SERVICE)
+    private readonly updateProfileService: IUpdateProfileService,
+    @Inject(DELETE_ACCOUNT_SERVICE)
+    private readonly deleteAccountService: IDeleteAccountService
   ) {}
 
   @Get('me')
@@ -47,13 +54,13 @@ export class UsersController {
     @User() user: UserEntity,
     @Body() dto: UpdateProfileRequestDto
   ) {
-    return this.usersService.updateProfile(user.id, dto);
+    return this.updateProfileService.updateProfile(user.id, dto);
   }
 
   @Delete('delete-account')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteAccount()
   deleteAccount(@User() user: UserEntity) {
-    return this.usersService.requestAccountDeletion(user.id);
+    return this.deleteAccountService.deleteAccount(user.id);
   }
 }

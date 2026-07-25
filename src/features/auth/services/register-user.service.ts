@@ -1,6 +1,6 @@
 import {
-  IUsersService,
-  USER_SERVICE
+  CREATE_USER_SERVICE,
+  ICreateUserService
 } from '@features/users/interfaces/users.interface';
 import { Inject, Injectable } from '@nestjs/common';
 import { RegisterUserRequestDto } from '../dto/request/register-user.request.dto';
@@ -11,14 +11,14 @@ import { HashingProvider } from '../providers/hashing.provider';
 export class RegisterUserService implements IRegisterUserService {
   constructor(
     private readonly hashingProvider: HashingProvider,
-    @Inject(USER_SERVICE)
-    private readonly usersService: IUsersService
+    @Inject(CREATE_USER_SERVICE)
+    private readonly createUserService: ICreateUserService
   ) {}
 
   async register(dto: RegisterUserRequestDto): Promise<void> {
     const password = await this.hashingProvider.hash(dto.password);
 
-    return this.usersService.register({
+    return this.createUserService.create({
       ...dto,
       password
     });

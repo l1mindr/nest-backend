@@ -16,7 +16,12 @@ import { plainToInstance } from 'class-transformer';
 import { AdminUsersListRequestDto } from './dto/request/admin-users-list.request.dto';
 import { AdminUserResponseDto } from './dto/response/admin-user.response.dto';
 import { UserRole } from './enums/user-role.enum';
-import { IUsersService, USER_SERVICE } from './interfaces/users.interface';
+import {
+  FIND_USER_ADMIN_SERVICE,
+  IFindUserAdminService,
+  IListUsersAdminService,
+  LIST_USERS_ADMIN_SERVICE
+} from './interfaces/users.interface';
 import { ApiAdminGetAllUsers, ApiAdminGetUser } from './users.swagger';
 
 @Controller({
@@ -27,15 +32,17 @@ import { ApiAdminGetAllUsers, ApiAdminGetUser } from './users.swagger';
 @Roles(UserRole.ADMIN)
 export class AdminUsersController {
   constructor(
-    @Inject(USER_SERVICE)
-    private readonly usersService: IUsersService
+    @Inject(LIST_USERS_ADMIN_SERVICE)
+    private readonly listUsersAdminService: IListUsersAdminService,
+    @Inject(FIND_USER_ADMIN_SERVICE)
+    private readonly findUserAdminService: IFindUserAdminService
   ) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiAdminGetAllUsers()
   async getAll(@Query() query: AdminUsersListRequestDto) {
-    const { items, nextCursor } = await this.usersService.listForAdmin(
+    const { items, nextCursor } = await this.listUsersAdminService.list(
       query.cursor,
       query.limit
     );
@@ -56,6 +63,6 @@ export class AdminUsersController {
     @Param()
     { id }: IdDto
   ) {
-    return this.usersService.findByIdForAdmin(id);
+    return this.findUserAdminService.findById(id);
   }
 }

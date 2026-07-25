@@ -6,23 +6,49 @@ import type { PaginatedResult } from '@core/pagination/paginated-result.interfac
 
 export type { PaginatedResult } from '@core/pagination/paginated-result.interface';
 
-export const USER_SERVICE = Symbol('IUsersService');
+export const USER_REPOSITORY = Symbol('IUserRepository');
 
-export interface IUsersService {
-  register(dto: CreateUserRequestDto): Promise<void>;
-  listForAdmin(cursor?: string, limit?: number): Promise<PaginatedResult<User>>;
-  findByIdForAdmin(id: string): Promise<User>;
+export interface IUserRepository {
+  create(dto: CreateUserRequestDto): Promise<void>;
+  findById(id: string): Promise<User | null>;
   findByIdentifierForAuth(identifier: string): Promise<User | null>;
   findByIdWithPassword(userId: string): Promise<User | null>;
-  findById(id: string): Promise<User>;
-  updateProfile(
-    userId: string,
-    updateUserRequestDto: UpdateProfileRequestDto
-  ): Promise<void>;
+  findByIdForAdmin(id: string): Promise<User | null>;
+  findForAdmin(cursorId: string | null, limit: number): Promise<User[]>;
+  update(id: string, dto: UpdateProfileRequestDto): Promise<void>;
   setPassword(
     userId: string,
     hashPassword: string,
     manager?: EntityManager
   ): Promise<void>;
-  requestAccountDeletion(userId: string): Promise<void>;
+}
+
+export const CREATE_USER_SERVICE = Symbol('ICreateUserService');
+
+export interface ICreateUserService {
+  create(dto: CreateUserRequestDto): Promise<void>;
+}
+
+export const UPDATE_PROFILE_SERVICE = Symbol('IUpdateProfileService');
+
+export interface IUpdateProfileService {
+  updateProfile(userId: string, dto: UpdateProfileRequestDto): Promise<void>;
+}
+
+export const DELETE_ACCOUNT_SERVICE = Symbol('IDeleteAccountService');
+
+export interface IDeleteAccountService {
+  deleteAccount(userId: string): Promise<void>;
+}
+
+export const LIST_USERS_ADMIN_SERVICE = Symbol('IListUsersAdminService');
+
+export interface IListUsersAdminService {
+  list(cursor?: string, limit?: number): Promise<PaginatedResult<User>>;
+}
+
+export const FIND_USER_ADMIN_SERVICE = Symbol('IFindUserAdminService');
+
+export interface IFindUserAdminService {
+  findById(id: string): Promise<User>;
 }

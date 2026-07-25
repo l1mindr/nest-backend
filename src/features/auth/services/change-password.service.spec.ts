@@ -11,7 +11,7 @@ describe('ChangePasswordService', () => {
     hash: jest.fn()
   };
 
-  const mockUsersService = {
+  const mockUserRepository = {
     findByIdWithPassword: jest.fn(),
     setPassword: jest.fn()
   };
@@ -41,7 +41,7 @@ describe('ChangePasswordService', () => {
 
     service = new ChangePasswordService(
       mockHashingProvider as any,
-      mockUsersService as any,
+      mockUserRepository as any,
       mockTerminateOtherSessionsService as any,
       mockDataSource as unknown as DataSource,
       mockLogger as any
@@ -50,7 +50,7 @@ describe('ChangePasswordService', () => {
 
   describe('changePassword', () => {
     it('should change password successfully', async () => {
-      mockUsersService.findByIdWithPassword.mockResolvedValue({
+      mockUserRepository.findByIdWithPassword.mockResolvedValue({
         id: 'user-id',
         password: 'old-hash'
       });
@@ -66,7 +66,7 @@ describe('ChangePasswordService', () => {
         newPassword: 'new-password'
       });
 
-      expect(mockUsersService.setPassword).toHaveBeenCalledWith(
+      expect(mockUserRepository.setPassword).toHaveBeenCalledWith(
         'user-id',
         'new-hash',
         mockTransactionManager
@@ -81,7 +81,7 @@ describe('ChangePasswordService', () => {
     it('should fail the transaction when session revocation fails', async () => {
       const error = new Error('session update failed');
 
-      mockUsersService.findByIdWithPassword.mockResolvedValue({
+      mockUserRepository.findByIdWithPassword.mockResolvedValue({
         id: 'user-id',
         password: 'old-hash'
       });
@@ -100,7 +100,7 @@ describe('ChangePasswordService', () => {
         })
       ).rejects.toEqual(AuthErrors.passwordChangeFailed());
 
-      expect(mockUsersService.setPassword).toHaveBeenCalledWith(
+      expect(mockUserRepository.setPassword).toHaveBeenCalledWith(
         'user-id',
         'new-hash',
         mockTransactionManager
@@ -115,7 +115,7 @@ describe('ChangePasswordService', () => {
     });
 
     it('should throw when user not found', async () => {
-      mockUsersService.findByIdWithPassword.mockResolvedValue(null);
+      mockUserRepository.findByIdWithPassword.mockResolvedValue(null);
 
       await expect(
         service.changePassword('user-id', 'session-id', {
@@ -126,7 +126,7 @@ describe('ChangePasswordService', () => {
     });
 
     it('should throw invalidCurrentPassword', async () => {
-      mockUsersService.findByIdWithPassword.mockResolvedValue({
+      mockUserRepository.findByIdWithPassword.mockResolvedValue({
         password: 'hash'
       });
 
@@ -141,7 +141,7 @@ describe('ChangePasswordService', () => {
     });
 
     it('should throw passwordMustBeDifferent', async () => {
-      mockUsersService.findByIdWithPassword.mockResolvedValue({
+      mockUserRepository.findByIdWithPassword.mockResolvedValue({
         password: 'hash'
       });
 
