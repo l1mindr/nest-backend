@@ -1,0 +1,346 @@
+# PROJECT_REVIEW.txt — Comprehensive Codebase Review
+
+**Date:** 2026-07-22
+**Reviewer:** Automated Comprehensive Review
+**Project:** nest-backend — NestJS Authentication & Session Management API
+**Scope:** Full codebase as of current HEAD
+
+---
+
+## Executive Summary
+
+This is a well-architected NestJS v11 application implementing cookie-based JWT authentication with server-side session management, CSRF protection, role-based access control, rate limiting, and device detection. The project demonstrates strong engineering practices: clean layered architecture, interface-driven DI, comprehensive E2E testing with concurrency and transaction-rollback scenarios, structured error handling, and production-ready Docker builds. The codebase is in good overall health with some areas for improvement.
+
+**Overall verdict:** Production-grade codebase with solid foundations. Several confirmed issues and recommendations identified below.
+
+---
+
+## Overall Architecture Assessment
+
+The project follows a clean three-layer architecture:
+
+- **`core/`** — Domain-agnostic utilities (clock, errors, validation rules)
+- **`infrastructure/`** — Technical concerns (PostgreSQL, Redis, HTTP, logging, config)
+- **`features/`** — Business modules (auth, users, sessions, token, security)
+
+Module boundaries are well-defined with interface-driven DI tokens (`AUTH_SERVICE`, `USER_SERVICE`, `SESSION_SERVICE`, `TOKEN_SERVICE`). The separation between infrastructure and features is clean. Path aliases (`@features/*`, `@infrastructure/*`, `@core/*`) keep imports readable.
+
+The module hierarchy flows: `AppModule` → `LoggingModule`, `CoreModule`, `InfrastructureModule`, `FeaturesModule`. Global modules (`CoreModule`, `RedisModule`, `LoggingModule`) avoid unnecessary re-imports.
+
+---
+
+## Positive Findings
+
+1. **Excellent layered architecture** — Clean separation of core/infrastructure/features with proper DI tokens and interfaces for every service boundary.
+
+2. **Production-ready Dockerfile** — Multi-stage build with dependency pruning, non-root user, and a CI contract test verifying the image composition.
+
+3. **Strong CSRF implementation** — HMAC-signed double-submit cookie pattern with session binding, timing-safe comparison, and nonce-based token construction. Far superior to naive double-submit approaches.
+
+4. **Refresh token rotation with atomicity** — `rotateAtomic()` uses optimistic locking (version + hash check) preventing race conditions. The concurrent refresh E2E test validates this under lock contention.
+
+5. **Pessimistic locking for session limits** — `issue()` uses `pessimistic_write` on the user row to prevent session-limit bypass under concurrent logins. The integration test validates this with lock contention.
+
+6. **Distributed refresh lock** — Redis-based ownership-safe lock with Lua compare-and-delete prevents concurrent refresh token abuse.
+
+7. **Comprehensive E2E test suite** — 13 E2E specs covering login, register, refresh, CSRF, sessions, users, admin, validation hardening, concurrent session limits, and Redis lock ownership. PostgreSQL failure-trigger tests validate transaction rollback.
+
+8. **Structured error domain model** — `AppError` carries domain, code, status, and metadata. The global exception filter maps errors to structured JSON with correlation IDs.
+
+9. **Secret entropy validation** — Joi schema validates Shannon entropy of secrets, rejects weak values, and enforces production-specific constraints (minimum length, no localhost Redis, password != token secrets).
+
+10. **Refresh token hashing** — Refresh tokens are stored as SHA-256 hashes with timing-safe comparison, preventing database leaks from exposing usable tokens.
+
+11. **Device detection middleware** — User-agent parsing with fingerprint risk analysis, stored per-session for auditability.
+
+12. **CI pipeline** — Single workflow with lint, typecheck, build, unit tests, production image contract verification, and Dockerized E2E tests.
+
+13. **Commit conventions** — Commitlint with conventional commits, scoped to project architecture.
+
+14. **Test factories** — `UserFactory` and `AuthFactory` provide clean test setup with typed contexts.
+
+15. **Logging** — Pino-based structured logging with correlation IDs, request redaction (authorization, cookies, CSRF tokens), and log-level separation by environment.
+
+---
+
+## Top 10 Highest Priority Improvements
+
+| # | Finding | Severity | Type |
+|---|---------|----------|------|
+| 1 | `.env` file committed to repository with development secrets | High | Confirmed Issue |
+| 2 | AuthFactory.authenticated() always creates non-admin even when ADMIN requested | High | Confirmed Issue |
+| 3 | Refresh endpoint reuses `@ApiLoginUser()` swagger decorator instead of refresh-specific one | Medium | Confirmed Issue |
+| 4 | `fingerpint.interface.ts` filename typo (missing 'r') | Low | Confirmed Issue |
+| 5 | `setWithExpiry` and `setIfNotExistsWithExpiry` both use NX flag | Medium | Confirmed Issue |
+| 6 | `to-boolean.decorator.ts` uses relative path instead of path alias | Low | Confirmed Issue |
+| 7 | No `.env.example` file despite README referencing it | Medium | Confirmed Issue |
+| 8 | TypeORM config missing `synchronize: false` explicitly in runtime config | Low | Potential Risk |
+| 9 | No CORS configuration | Low | Potential Risk |
+| 10 | `RegistryDatesOrm.deleteAt` differs from TypeORM `@DeleteDateColumn()` convention name `deletedAt` | Low | Recommendation |
+
+---
+
+## Detailed Findings
+
+### Finding 1: `.env` file committed with weak development secrets
+
+- **Severity:** High
+- **Classification:** Confirmed Issue
+- **File:** `.env:1-14`
+- **Description:** The `.env` file is tracked by git and contains weak, low-entropy secrets (`accessjwtsecret`, `refreshjwtsecret`, `csrftokensecret`, `postgres/postgres`). While `.gitignore` lists `.env`, the file is already tracked. Additionally, the `.env` values would fail the Joi entropy validation if `NODE_ENV=production`.
+- **Why it matters:** Even development secrets in version control create risk of accidental production use, credential leakage in CI logs, and confusion about which secrets are real.
+- **Evidence:** `.env:6-8` contains `ACCESS_TOKEN_SECRET=accessjwtsecret` etc.
+- **Recommended solution:** Remove `.env` from tracking (`git rm --cached .env`), add `.env.example` with placeholder values, and document the setup process.
+
+### Finding 2: AuthFactory.authenticated() admin path is immediately overwritten
+
+- **Severity:** High
+- **Classification:** Confirmed Issue
+- **File:** `test/factories/auth.factory.ts:49-69`
+- **Description:** When `options.withRole === UserRole.ADMIN`, the method sets `context = await UserFactory.admin(...)`, but then unconditionally executes `context = await UserFactory.register(...)` on line 64, overwriting the admin context. This means the `authenticated()` factory always logs in as a freshly registered non-admin user, even when `withRole: UserRole.ADMIN` is passed.
+- **Why it matters:** The admin E2E tests still pass because they manually update the role via the repository before logging in, but the factory's admin path is dead code. Any future test relying on the factory's `withRole` feature will silently fail.
+- **Evidence:** `test/factories/auth.factory.ts:54-68` — missing `else` branch.
+- **Recommended solution:** Add `else` before the `context = await UserFactory.register(...)` line.
+
+### Finding 3: Refresh endpoint uses wrong Swagger decorator
+
+- **Severity:** Medium
+- **Classification:** Confirmed Issue
+- **File:** `src/features/auth/auth.controller.ts:72`
+- **Description:** The `refreshSession()` endpoint uses `@ApiLoginUser()` decorator instead of a dedicated refresh-specific swagger decorator. The Swagger docs will show "User login with email/username and password" for the refresh endpoint.
+- **Why it matters:** API documentation is misleading for consumers relying on Swagger UI.
+- **Evidence:** `auth.controller.ts:72` — `@ApiLoginUser()` on the refresh endpoint.
+- **Recommended solution:** Create a dedicated `ApiRefreshSession()` decorator in `auth.swagger.ts`.
+
+### Finding 4: Filename typo `fingerpint.interface.ts`
+
+- **Severity:** Low
+- **Classification:** Confirmed Issue
+- **File:** `src/features/security/device-detection/fingerprint/fingerpint.interface.ts`
+- **Description:** The file is named `fingerpint.interface.ts` instead of `fingerprint.interface.ts`. The interface `IDeviceFingerprintInput` defined in it appears unused (not imported anywhere).
+- **Why it matters:** Typo in filename is confusing; unused code adds clutter.
+- **Evidence:** `grep` finds no imports of `IDeviceFingerprintInput`.
+- **Recommended solution:** Rename the file and either use the interface or remove it.
+
+### Finding 5: `setWithExpiry` always uses NX (set-if-not-exists)
+
+- **Severity:** Medium
+- **Classification:** Confirmed Issue
+- **File:** `src/infrastructure/databases/redis/redis.service.ts:52-55`
+- **Description:** `setWithExpiry()` uses `NX` flag (`'EX', ttlSeconds, 'NX'`), making it behave identically to `setIfNotExistsWithExpiry()`. The method name implies unconditional set-with-expiry, but the `NX` flag makes it conditional.
+- **Why it matters:** Method name is misleading. Any caller expecting unconditional set-with-expiry will get silent failures.
+- **Evidence:** `redis.service.ts:53` — `return await this.redis.set(key, value, 'EX', ttlSeconds, 'NX');`
+- **Recommended solution:** Either rename to `setIfNotExistsWithExpiry` and remove the duplicate, or remove the `NX` flag from `setWithExpiry`.
+
+### Finding 6: `to-boolean.decorator.ts` uses relative path
+
+- **Severity:** Low
+- **Classification:** Confirmed Issue
+- **File:** `src/infrastructure/http/validation/decorators/to-boolean.decorator.ts:2`
+- **Description:** Uses `import { toBoolean } from '../../../../core/utils/to-boolean'` instead of the configured `@core/*` path alias.
+- **Why it matters:** Inconsistent import style. While functional, it defeats the purpose of path aliases and is fragile to directory restructuring.
+- **Evidence:** `to-boolean.decorator.ts:2` — relative import `../../../../core/utils/to-boolean`.
+- **Recommended solution:** Use `import { toBoolean } from '@core/utils/to-boolean'`.
+
+### Finding 7: Missing `.env.example` file
+
+- **Severity:** Medium
+- **Classification:** Confirmed Issue
+- **File:** (missing)
+- **Description:** `README.md` references `cp .env.example .env` but no `.env.example` file exists in the repository. New developers cannot know which environment variables are required without reading the Joi schema.
+- **Why it matters:** Onboarding friction; developers must reverse-engineer required variables from the validation schema.
+- **Recommended solution:** Create `.env.example` with placeholder values matching the schema.
+
+### Finding 8: TypeORM config missing explicit `synchronize: false`
+
+- **Severity:** Low
+- **Classification:** Potential Risk
+- **File:** `src/infrastructure/config/databases/postgres.config.ts:4-11`
+- **Description:** The runtime TypeORM config does not explicitly set `synchronize: false`. While the default is `false`, making this explicit prevents accidental override and documents the intent. The `data-source.ts` for CLI correctly sets it.
+- **Why it matters:** Defensive coding for a dangerous setting that could auto-alter schemas.
+- **Evidence:** `postgres.config.ts:6` — no `synchronize` property.
+
+### Finding 9: No CORS configuration
+
+- **Severity:** Low
+- **Classification:** Potential Risk
+- **File:** `src/bootstrap.ts`
+- **Description:** The application does not call `app.enableCors()`. In development mode, cross-origin requests from a frontend (e.g., React on port 3000) will be blocked. Helmet is configured but does not include CORS headers.
+- **Why it matters:** Frontend development workflow requires CORS. Currently only works for same-origin requests.
+- **Recommended solution:** Add `app.enableCors()` with configurable origins via environment variables for production use.
+
+### Finding 10: `deleteAt` vs `deletedAt` naming inconsistency
+
+- **Severity:** Low
+- **Classification:** Recommendation
+- **Files:** `src/core/registry-dates.ts:4`, `src/infrastructure/databases/postgres/embedded/registry-dates.embedded.ts:12`
+- **Description:** The soft-delete column is named `deleteAt` throughout the codebase, but TypeORM's `@DeleteDateColumn()` convention uses `deletedAt`. This is a minor inconsistency with the ecosystem but is internally consistent within this project.
+- **Why it matters:** Developers familiar with TypeORM conventions may find it confusing.
+
+---
+
+## Additional Findings
+
+### Finding 11: `auth.service.spec.ts` refresh test passes wrong shape for `getActive`
+
+- **Severity:** Low
+- **Classification:** Confirmed Issue
+- **File:** `src/features/auth/auth.service.spec.ts` (refresh test — `it('should refresh successfully'`)
+- **Description:** The mock for `getActive` returns an object with an `owner.id` field, but the actual service code at `auth.service.ts:150` only accesses `session.refreshTokenHash`, `session.version`, and `session.id`. The test passes but tests against a shape that doesn't match the real `Session` entity. Additionally, `session.version` is `undefined` in the mock, which is what gets passed to `rotateAtomic`.
+- **Why it matters:** The test validates the happy path but doesn't exercise the version field correctly.
+
+### Finding 12: `updateRefreshState` uses `Object.assign` + `save` instead of `update`
+
+- **Severity:** Low
+- **Classification:** Recommendation
+- **File:** `src/features/sessions/sessions.service.ts:176-179`
+- **Description:** `updateRefreshState` mutates the entity and calls `save()`, which can trigger unexpected Column default handling and doesn't use the `UPDATE` query builder pattern used elsewhere. It's only called once (during initial login) and works correctly, but the pattern is inconsistent.
+- **Why it matters:** Minor consistency issue.
+
+### Finding 13: `DataResponseInterceptor` wraps all responses in `{ data: ... }`
+
+- **Severity:** Low
+- **Classification:** Potential Risk
+- **File:** `src/infrastructure/http/interceptors/data-response.interceptor.ts`
+- **Description:** This global interceptor wraps all successful responses in `{ data: ... }`. Endpoints that return `void` (like `204 No Content`) will return `undefined` wrapped in `{ data: undefined }`. However, since 204 responses typically have no body, this is unlikely to cause issues in practice.
+- **Why it matters:** Minor edge case.
+
+### Finding 14: Rate limit uses IP as sole identifier
+
+- **Severity:** Low
+- **Classification:** Potential Risk
+- **File:** `src/features/security/rate-limit/guards/rate-limit.guard.ts:33`
+- **Description:** Rate limiting is based solely on `request.ip`. Behind a load balancer or reverse proxy, all requests may share the same IP, making rate limiting ineffective or overly aggressive. The production Docker compose does set `trust proxy: 1`, but this relies on correct proxy configuration.
+- **Why it matters:** In production behind a CDN/load balancer, IP-based rate limiting may not work correctly.
+
+### Finding 15: Session listing includes non-current sessions without pagination
+
+- **Severity:** Low
+- **Classification:** Recommendation
+- **File:** `src/features/sessions/sessions.service.ts:128-148`
+- **Description:** `list()` fetches all active sessions without pagination. While `SessionListRequestDto` exists with `cursor` and `limit` fields, it's not used. For users with many active sessions (up to `MAX_ACTIVE_SESSIONS`), this is fine, but it's not future-proof.
+- **Why it matters:** The DTO exists but is unused, suggesting pagination was planned but not implemented.
+
+### Finding 16: `helmetConfig` disables CSP and COEP
+
+- **Severity:** Low
+- **Classification:** Recommendation
+- **File:** `src/infrastructure/http/helmet.config.ts:4-5`
+- **Description:** Both `contentSecurityPolicy` and `crossOriginEmbedderPolicy` are disabled. While this is common for API-only servers, it should be documented as intentional.
+- **Why it matters:** Security headers are reduced.
+
+---
+
+## Technical Debt
+
+| Item | Severity | Description |
+|------|----------|-------------|
+| `fingerpint.interface.ts` typo + unused interface | Low | File and interface appear unused |
+| `IDeviceFingerprintInput` interface | Low | Defined but never imported |
+| `SessionListRequestDto` | Low | DTO exists with cursor/limit but pagination not implemented |
+| `to-boolean.decorator.ts` relative import | Low | Should use path alias |
+| `findDeprecatedFiles.ts` | Low | Root-level script appears to be a development utility |
+| `docs/` directory | Low | Extensive docs exist alongside `documentation/` directory — potential for confusion |
+
+---
+
+## Testing Assessment
+
+### Existing Coverage Strengths
+
+**Unit Tests (11 spec files):**
+- `auth.service.spec.ts` — Comprehensive: register, login (4 variants), change password (5 scenarios), refresh (6 scenarios including reuse detection and atomic rotation failure)
+- `users.service.spec.ts` — All CRUD paths, unique constraint errors, transaction manager delegation
+- `sessions.service.spec.ts` — Issue with session limits, LRU revocation, list, revoke, terminateOthers, rotateAtomic, transaction manager delegation
+- `token.service.spec.ts` — Issue pair, verify access/refresh, payload validation
+- `csrf.service.spec.ts` — Token generation, validation, expiry, safe comparison
+- `global-exception.filter.spec.ts` — Error mapping and logging
+- `redis.service.spec.ts` — Set/get/delete, compare-and-delete
+- `redis-lock.service.spec.ts` — Acquire/release
+- `refresh-token-hasher.provider.spec.ts` — Hash, compare, timing-safe
+- `clock.service.spec.ts` — Time operations
+- `env.schema.spec.ts` — Environment validation
+
+**E2E Tests (13 specs):**
+- Auth login (email/username, wrong creds, validation)
+- Auth register (validation, duplicates)
+- Auth status enforcement (DEACTIVATE/SUSPEND blocking, activation)
+- Auth refresh (rotation, reuse detection, concurrent refresh)
+- Auth change password (atomicity, transaction rollback with PG trigger)
+- Sessions (list, logout, terminate others, DTO shape validation)
+- Users (profile, update, whitelisting)
+- Users delete account (soft delete, session revocation, rollback, cascading invalidation)
+- CSRF (valid/invalid/expired/cross-session tokens, cookie clearing)
+- Admin users (role enforcement, DTO shape, 404)
+- Validation hardening (type injection, null, objects, arrays)
+- Session limit concurrency (pessimistic write lock, non-blocking for other users, LRU)
+- Redis lock ownership (TTL expiry, stale owner protection)
+
+### Missing Unit Tests
+
+- `users.controller.ts` — No controller-level tests
+- `admin.users.controller.ts` — No controller-level tests
+- `sessions.controller.ts` — No controller-level tests
+- `auth.controller.ts` — No controller-level tests
+- `jwt.strategy.ts` — No strategy-level tests
+- `jwt.guard.ts` — No guard-level tests
+- `roles.guard.ts` — No guard-level tests
+- `rate-limit.guard.ts` — No guard-level tests
+- `rate-limit.service.ts` — No unit tests
+- `device-detector.service.ts` — No unit tests
+- `fingerprint.service.ts` — No unit tests
+- `user-agent.parser.ts` — No unit tests
+- `device.mapper.ts` — No unit tests
+- `data-response.interceptor.ts` — No unit tests
+- `serialize.interceptor.ts` — No unit tests
+- `auth-cookie.interceptor.ts` — No unit tests
+
+### Missing Integration Tests
+
+- `bcrypt.provider.ts` — Only has `hash()` default salt tested through `auth.service.spec.ts`
+- `redis-counter.service.ts` — No unit tests
+- Rate limiting end-to-end (verifying actual 429 responses from the full stack)
+
+### Missing E2E Scenarios
+
+- Password change after account deletion
+- Refresh with completely expired access token (not just rotated)
+- Admin role assignment and de-escalation
+- Session limit breach at exact boundary (e.g., 10th session)
+- Multiple concurrent registrations for duplicate detection
+- Login after password change (old password should fail)
+
+---
+
+## Documentation Assessment
+
+The `docs/` directory contains 20 markdown files covering architecture, modules, auth, sessions, security, API, database, entities, caching, configuration, testing, deployment, development guide, coding decisions, dependencies, request lifecycle, diagrams, and glossary. This is exceptionally thorough for a project of this size.
+
+**Strengths:**
+- Comprehensive architecture documentation
+- Decision records (coding decisions)
+- Request lifecycle documentation
+- Entity relationship documentation
+
+**Gaps:**
+- No `.env.example` file (despite README reference)
+- README claims `cp .env.example .env` but file doesn't exist
+
+---
+
+## Final Scores (0-10)
+
+| Area | Score | Justification |
+|------|-------|---------------|
+| **Architecture** | 9/10 | Clean three-layer design with proper DI boundaries. Minor: some relative imports, unused interfaces |
+| **Code Quality** | 8/10 | Consistent patterns, good naming, proper error handling. Minor: method naming inconsistency in Redis, typo in filename |
+| **Maintainability** | 8/10 | Well-structured modules, interface-driven, comprehensive docs. Minor: dead code, unused DTOs |
+| **Security** | 8.5/10 | Strong CSRF, refresh token hashing, atomic rotation, entropy validation, rate limiting. Minor: IP-only rate limiting, CSP disabled |
+| **Performance** | 8/10 | Redis caching, pessimistic locking, compression, well-indexed queries. No N+1 issues detected |
+| **Testability** | 9/10 | Excellent DI abstraction, 11 unit specs, 13 E2E specs, concurrency tests, transaction rollback tests. Some service/guard tests missing |
+| **Scalability** | 7.5/10 | Stateless JWT + Redis sessions, pagination-ready but not implemented, no connection pooling config visible |
+| **Documentation** | 8.5/10 | 20+ doc files, Swagger decorators, typed interfaces. Missing `.env.example` |
+
+---
+
+*Review completed. All findings verified against current source code.*
