@@ -31,6 +31,7 @@ lerna-debug.log*
 *.sublime-workspace
 
 # IDE - VSCode
+.vscode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -61,6 +62,9 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .env
 .env.production
 
+# AI
+AGENTS.md
+PROJECT.md
 
 .eslintcache
 commitlint.config.d.ts
