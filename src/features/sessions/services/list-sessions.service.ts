@@ -1,4 +1,10 @@
 import { ClockService } from '@core/clock/clock.service';
+import {
+  decodeCursor,
+  encodeCursor,
+  isValidUUID
+} from '@core/pagination/cursor.util';
+import { paginate } from '@core/pagination/paginate.util';
 import { Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { SESSION_PAGE_SIZE_DEFAULT } from '../dto/request/session-list-request.dto';
@@ -28,7 +34,7 @@ export class ListSessionsService implements IListSessionsService {
     cursor?: string
   ): Promise<SessionListResult> {
     const take = limit ?? SESSION_PAGE_SIZE_DEFAULT;
-    const cursorData = this.decodeCursor(cursor);
+    const cursorData = this.parseCursor(cursor);
 
     const qb = this.sessionRepo
       .createQueryBuilder('session')
@@ -56,41 +62,30 @@ export class ListSessionsService implements IListSessionsService {
 
     const sessions = await qb.getMany();
 
-    const hasMore = sessions.length > take;
-    const page = hasMore ? sessions.slice(0, take) : sessions;
-    const nextCursor = hasMore
-      ? this.encodeCursor(page[page.length - 1])
-      : null;
-
-    const items = page.map((s) => this.toListItem(s));
+    const paginated = paginate(sessions, take, (s) =>
+      encodeCursor(
+        JSON.stringify({
+          lastUsedAt: s.lastUsedAt.toISOString(),
+          id: s.id
+        })
+      )
+    );
 
     return {
       currentSession: this.toListItem(session),
-      items,
-      nextCursor
+      ...paginated,
+      items: paginated.items.map((s) => this.toListItem(s))
     };
   }
 
-  private static readonly UUID_RE =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-  private encodeCursor(session: Session): string {
-    const payload = {
-      lastUsedAt: session.lastUsedAt.toISOString(),
-      id: session.id
-    };
-
-    return Buffer.from(JSON.stringify(payload), 'utf-8').toString('base64url');
-  }
-
-  private decodeCursor(
+  private parseCursor(
     cursor?: string
   ): { lastUsedAt: Date; id: string } | null {
     if (!cursor) return null;
 
     let decoded: string;
     try {
-      decoded = Buffer.from(cursor, 'base64url').toString('utf-8');
+      decoded = decodeCursor(cursor);
     } catch {
       throw SessionErrors.invalidCursor();
     }
@@ -118,10 +113,7 @@ export class ListSessionsService implements IListSessionsService {
 
     const lastUsedAtDate = new Date(lastUsedAt);
 
-    if (
-      isNaN(lastUsedAtDate.getTime()) ||
-      !ListSessionsService.UUID_RE.test(id)
-    ) {
+    if (isNaN(lastUsedAtDate.getTime()) || !isValidUUID(id)) {
       throw SessionErrors.invalidCursor();
     }
 

@@ -1,4 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  decodeCursor,
+  encodeCursor,
+  isValidUUID
+} from '@core/pagination/cursor.util';
+import { paginate } from '@core/pagination/paginate.util';
 import { ADMIN_USERS_PAGE_SIZE_DEFAULT } from '../dto/request/admin-users-list.request.dto';
 import { UserErrors } from '../errors/user-errors';
 import {
@@ -16,39 +22,26 @@ export class ListUsersAdminService implements IListUsersAdminService {
     private readonly userRepository: IUserRepository
   ) {}
 
-  private static readonly UUID_RE =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
   async list(cursor?: string, limit?: number): Promise<PaginatedResult<User>> {
     const take = limit ?? ADMIN_USERS_PAGE_SIZE_DEFAULT;
-    const cursorId = this.decodeCursor(cursor);
+    const cursorId = this.parseCursor(cursor);
 
     const items = await this.userRepository.findForAdmin(cursorId, take + 1);
 
-    const hasMore = items.length > take;
-    const page = hasMore ? items.slice(0, take) : items;
-    const nextCursor = hasMore
-      ? this.encodeCursor(page[page.length - 1].id)
-      : null;
-
-    return { items: page, nextCursor };
+    return paginate(items, take, (user) => encodeCursor(user.id));
   }
 
-  private encodeCursor(id: string): string {
-    return Buffer.from(id, 'utf-8').toString('base64url');
-  }
-
-  private decodeCursor(cursor?: string): string | null {
+  private parseCursor(cursor?: string): string | null {
     if (!cursor) return null;
 
     let decoded: string;
     try {
-      decoded = Buffer.from(cursor, 'base64url').toString('utf-8');
+      decoded = decodeCursor(cursor);
     } catch {
       throw UserErrors.invalidCursor();
     }
 
-    if (!ListUsersAdminService.UUID_RE.test(decoded)) {
+    if (!isValidUUID(decoded)) {
       throw UserErrors.invalidCursor();
     }
 
