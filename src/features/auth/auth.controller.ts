@@ -24,7 +24,16 @@ import {
   ApiLoginUser,
   ApiRegisterUser
 } from './auth.swagger';
-import { AUTH_SERVICE, IAuthService } from './interfaces/auth.interface';
+import {
+  CHANGE_PASSWORD_SERVICE,
+  IChangePasswordService,
+  ILoginUserService,
+  IRefreshTokenService,
+  IRegisterUserService,
+  LOGIN_USER_SERVICE,
+  REFRESH_TOKEN_SERVICE,
+  REGISTER_USER_SERVICE
+} from './interfaces/auth.interface';
 import { IpAddress } from './decorators/ipAddress.decorator';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
@@ -35,8 +44,14 @@ import { AuthCookieInterceptor } from './interceptors/auth-cookie.interceptor';
 @ApiTags('auth')
 export class AuthController {
   constructor(
-    @Inject(AUTH_SERVICE)
-    private readonly authService: IAuthService
+    @Inject(REGISTER_USER_SERVICE)
+    private readonly registerUserService: IRegisterUserService,
+    @Inject(LOGIN_USER_SERVICE)
+    private readonly loginUserService: ILoginUserService,
+    @Inject(CHANGE_PASSWORD_SERVICE)
+    private readonly changePasswordService: IChangePasswordService,
+    @Inject(REFRESH_TOKEN_SERVICE)
+    private readonly refreshTokenService: IRefreshTokenService
   ) {}
 
   @Public()
@@ -46,7 +61,7 @@ export class AuthController {
   @SkipCsrf()
   @ApiRegisterUser()
   signUpUser(@Body() dto: RegisterUserRequestDto) {
-    return this.authService.registerUser(dto);
+    return this.registerUserService.register(dto);
   }
 
   @Public()
@@ -61,7 +76,7 @@ export class AuthController {
     @IpAddress() ipAddress: string,
     @Device() device: DeviceContext
   ) {
-    return await this.authService.loginUser(dto, ipAddress, device);
+    return await this.loginUserService.login(dto, ipAddress, device);
   }
 
   @Public()
@@ -72,7 +87,7 @@ export class AuthController {
   @SkipCsrf()
   @ApiLoginUser()
   async refreshSession(@Req() req: Request) {
-    return await this.authService.refresh(req.cookies.refresh_token);
+    return await this.refreshTokenService.refresh(req.cookies.refresh_token);
   }
 
   @Post('change-password')
@@ -87,6 +102,6 @@ export class AuthController {
     @Session() session: SessionEntity,
     @Body() dto: ChangePasswordRequestDto
   ) {
-    return this.authService.changeUserPassword(user.id, session.id, dto);
+    return this.changePasswordService.changePassword(user.id, session.id, dto);
   }
 }

@@ -1,0 +1,98 @@
+import { ClockService } from '@core/clock/clock.service';
+import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
+import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
+import { Session } from '@features/sessions/entities/session.entity';
+import {
+  IIssueSessionService,
+  ISSUE_SESSION_SERVICE
+} from '@features/sessions/interfaces/sessions.interface';
+import {
+  ITokenService,
+  TOKEN_SERVICE
+} from '@features/token/interfaces/token.interface';
+import { UserStatus } from '@features/users/enums/user-status.enum';
+import {
+  IUsersService,
+  USER_SERVICE
+} from '@features/users/interfaces/users.interface';
+import { LogEvent } from '@infrastructure/logging/logging.constants';
+import { Inject, Injectable } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
+import { DataSource } from 'typeorm';
+import { LoginUserRequestDto } from '../dto/request/login-user.request.dto';
+import { AuthErrors } from '../errors/auth-errors';
+import { AuthTokens, ILoginUserService } from '../interfaces/auth.interface';
+import { HashingProvider } from '../providers/hashing.provider';
+import { RefreshTokenHasher } from '../providers/refresh-token-hasher.provider';
+
+@Injectable()
+export class LoginUserService implements ILoginUserService {
+  constructor(
+    private readonly deviceMapper: DeviceMapper,
+    private readonly clockService: ClockService,
+    private readonly hashingProvider: HashingProvider,
+    private readonly refreshTokenHasher: RefreshTokenHasher,
+    @Inject(ISSUE_SESSION_SERVICE)
+    private readonly issueSessionService: IIssueSessionService,
+    @Inject(TOKEN_SERVICE)
+    private readonly tokenService: ITokenService,
+    @Inject(USER_SERVICE)
+    private readonly usersService: IUsersService,
+    private readonly dataSource: DataSource,
+    private readonly logger: PinoLogger
+  ) {
+    this.logger.setContext(LoginUserService.name);
+  }
+
+  async login(
+    { email, password }: LoginUserRequestDto,
+    ipAddress: string,
+    device: DeviceContext
+  ): Promise<AuthTokens> {
+    const user = await this.usersService.findByIdentifierForAuth(email);
+
+    if (!user) throw AuthErrors.invalidCredentials();
+
+    const isMatch = await this.hashingProvider.compare(password, user.password);
+
+    if (!isMatch) throw AuthErrors.invalidCredentials();
+
+    if (user.status !== UserStatus.ACTIVATE) {
+      throw AuthErrors.invalidCredentials();
+    }
+
+    const { now, expiresAt } = this.clockService.snapshot();
+    const userAgent = this.deviceMapper.toSessionUserAgent(device);
+
+    const session = await this.issueSessionService.issue(
+      user.id,
+      ipAddress,
+      userAgent,
+      expiresAt
+    );
+
+    const { accessToken, refreshToken } = await this.tokenService.issuePair(
+      user.id,
+      session.id,
+      now,
+      expiresAt
+    );
+
+    const refreshTokenHash = this.refreshTokenHasher.hash(refreshToken);
+
+    session.refreshTokenHash = refreshTokenHash;
+    await this.dataSource.getRepository(Session).save(session);
+
+    this.logger.info(
+      {
+        event: LogEvent.LOGIN_SUCCESS,
+        userId: user.id,
+        sessionId: session.id,
+        ip: ipAddress
+      },
+      'User logged in'
+    );
+
+    return { accessToken, refreshToken };
+  }
+}
