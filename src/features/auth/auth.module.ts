@@ -5,11 +5,19 @@ import { TokenModule } from '@features/token/token.module';
 import { Module } from '@nestjs/common';
 import { UsersModule } from './../users/users.module';
 import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
-import { AUTH_SERVICE } from './interfaces/auth.interface';
+import {
+  CHANGE_PASSWORD_SERVICE,
+  LOGIN_USER_SERVICE,
+  REFRESH_TOKEN_SERVICE,
+  REGISTER_USER_SERVICE
+} from './interfaces/auth.interface';
 import { BcryptProvider } from './providers/bcrypt.provider';
 import { HashingProvider } from './providers/hashing.provider';
 import { RefreshTokenHasher } from './providers/refresh-token-hasher.provider';
+import { ChangePasswordService } from './services/change-password.service';
+import { LoginUserService } from './services/login-user.service';
+import { RefreshTokenService } from './services/refresh-token.service';
+import { RegisterUserService } from './services/register-user.service';
 
 @Module({
   imports: [
@@ -21,8 +29,14 @@ import { RefreshTokenHasher } from './providers/refresh-token-hasher.provider';
   ],
   controllers: [AuthController],
   providers: [
-    AuthService,
-    { provide: AUTH_SERVICE, useExisting: AuthService },
+    RegisterUserService,
+    { provide: REGISTER_USER_SERVICE, useExisting: RegisterUserService },
+    LoginUserService,
+    { provide: LOGIN_USER_SERVICE, useExisting: LoginUserService },
+    ChangePasswordService,
+    { provide: CHANGE_PASSWORD_SERVICE, useExisting: ChangePasswordService },
+    RefreshTokenService,
+    { provide: REFRESH_TOKEN_SERVICE, useExisting: RefreshTokenService },
     RefreshTokenHasher,
     {
       provide: HashingProvider,
