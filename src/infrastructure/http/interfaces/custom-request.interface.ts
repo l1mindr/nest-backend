@@ -1,13 +1,12 @@
-import { Session } from '@features/sessions/entities/session.entity';
-import { User } from '@features/users/entities/user.entity';
+import type { AuthSession, AuthUser } from '@core/http';
 import { Request } from 'express';
 
 export interface CustomAuth {
-  readonly user: User;
-  readonly session: Session;
+  readonly user: AuthUser;
+  readonly session: AuthSession;
 }
 
 export interface IRequest extends Request {
-  user: User;
-  session: Session;
+  user: AuthUser;
+  session: AuthSession;
 }

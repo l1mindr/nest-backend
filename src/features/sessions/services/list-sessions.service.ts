@@ -1,3 +1,4 @@
+import { SessionContext } from '@core/http/session-context.interface';
 import { ClockService } from '@core/clock/clock.service';
 import {
   decodeCursor,
@@ -8,7 +9,6 @@ import { paginate } from '@core/pagination/paginate.util';
 import { Inject, Injectable } from '@nestjs/common';
 import { SESSION_PAGE_SIZE_DEFAULT } from '../dto/request/session-list-request.dto';
 import { SessionErrors } from '../errors/session-errors';
-import { Session } from '../entities/session.entity';
 import {
   IListSessionsService,
   ISessionRepository,
@@ -27,7 +27,7 @@ export class ListSessionsService implements IListSessionsService {
 
   async listSessions(
     userId: string,
-    session: Session,
+    session: SessionContext,
     limit?: number,
     cursor?: string
   ): Promise<SessionListResult> {
@@ -102,7 +102,7 @@ export class ListSessionsService implements IListSessionsService {
     return { lastUsedAt: lastUsedAtDate, id };
   }
 
-  private toListItem(session: Session): SessionListItem {
+  private toListItem(session: SessionContext): SessionListItem {
     return {
       sessionId: session.id,
       ipAddress: session.ipAddress,

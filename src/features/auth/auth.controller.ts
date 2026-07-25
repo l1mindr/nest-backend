@@ -2,7 +2,7 @@ import { SkipCsrf } from '@features/security/csrf/decorators/skip-csrf.decorator
 import { Public } from '@features/security/decorators/public.decorator';
 import { Session } from '@features/security/decorators/session.decorator';
 import { User } from '@features/security/decorators/user.decorator';
-import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
+import { DeviceContext } from '@core/http/device-context.interface';
 import { Device } from '@features/security/device-detection/decorators/device.decorator';
 import { RateLimit } from '@features/security/rate-limit/decorators/rate-limit.decorator';
 import { Session as SessionEntity } from '@features/sessions/entities/session.entity';

@@ -1,6 +1,4 @@
-import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
-import { Session } from '@features/sessions/entities/session.entity';
-import { User } from '@features/users/entities/user.entity';
+import type { AuthSession, AuthUser, DeviceContext } from '@core/http';
 
 /**
  * Augments the Express request with the properties this application attaches
@@ -14,8 +12,8 @@ import { User } from '@features/users/entities/user.entity';
 declare global {
   namespace Express {
     interface Request {
-      user?: User;
-      session?: Session;
+      user?: AuthUser;
+      session?: AuthSession;
       device?: DeviceContext;
     }
   }

@@ -1,3 +1,4 @@
+import { SessionContext } from '@core/http/session-context.interface';
 import { PaginatedResult } from '@core/pagination/paginated-result.interface';
 import type { EntityManager } from 'typeorm';
 import { Session } from '../entities/session.entity';
@@ -13,7 +14,7 @@ export const LIST_SESSIONS_SERVICE = Symbol('IListSessionsService');
 export interface IListSessionsService {
   listSessions(
     userId: string,
-    session: Session,
+    session: SessionContext,
     limit?: number,
     cursor?: string
   ): Promise<SessionListResult>;
