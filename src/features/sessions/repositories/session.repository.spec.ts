@@ -26,7 +26,8 @@ describe('SessionRepository', () => {
     orderBy: jest.fn().mockReturnThis(),
     addOrderBy: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
-    getMany: jest.fn()
+    getMany: jest.fn(),
+    count: jest.fn()
   };
 
   const mockRepository = {
@@ -35,10 +36,7 @@ describe('SessionRepository', () => {
     update: jest.fn(),
     save: jest.fn(),
     create: jest.fn(),
-    createQueryBuilder: jest.fn(() => mockQueryBuilder)
-  };
-
-  const mockUserRepository = {
+    count: jest.fn(),
     createQueryBuilder: jest.fn(() => mockQueryBuilder)
   };
 
@@ -54,10 +52,7 @@ describe('SessionRepository', () => {
     mockClockService.dateFromMs.mockReturnValue(now);
     mockRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
-    mockDataSource.getRepository.mockImplementation((entity) => {
-      if (entity.name === 'User') return mockUserRepository;
-      return mockRepository;
-    });
+    mockDataSource.getRepository.mockReturnValue(mockRepository);
 
     repository = new SessionRepository(
       mockClockService as unknown as ClockService,
@@ -89,23 +84,6 @@ describe('SessionRepository', () => {
       );
 
       expect(result).toBeNull();
-    });
-  });
-
-  describe('findUserWithActiveSession', () => {
-    it('should use the clock for the expiration comparison', async () => {
-      const user = { id: 'user-id', sessions: [] };
-      mockQueryBuilder.getOne.mockResolvedValue(user);
-
-      await repository.findUserWithActiveSession('user-id', 'session-id');
-
-      expect(mockClockService.nowDate).toHaveBeenCalledTimes(1);
-      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
-        'user.sessions',
-        'session',
-        expect.any(String),
-        { sessionId: 'session-id', now }
-      );
     });
   });
 
@@ -331,32 +309,53 @@ describe('SessionRepository', () => {
     });
   });
 
-  describe('createSession', () => {
-    it('should create session within transaction', async () => {
-      const session = { id: 'new-session' } as Session;
-      const mockUserQb = {
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        setLock: jest.fn().mockReturnThis(),
-        getOneOrFail: jest.fn().mockResolvedValue({ id: 'user-id' })
+  describe('countActiveSessions', () => {
+    it('should count active sessions for user', async () => {
+      mockRepository.count.mockResolvedValue(3);
+
+      const result = await repository.countActiveSessions('user-id', now);
+
+      expect(result).toBe(3);
+      expect(mockRepository.count).toHaveBeenCalledWith({
+        where: {
+          owner: { id: 'user-id' },
+          isRevoked: false,
+          expiresAt: expect.anything()
+        }
+      });
+    });
+
+    it('should use the transaction manager repository when provided', async () => {
+      const transactionRepository = {
+        count: jest.fn().mockResolvedValue(2)
       };
+      const manager = {
+        getRepository: jest.fn().mockReturnValue(transactionRepository)
+      } as any;
+
+      const result = await repository.countActiveSessions(
+        'user-id',
+        now,
+        manager
+      );
+
+      expect(manager.getRepository).toHaveBeenCalledWith(Session);
+      expect(transactionRepository.count).toHaveBeenCalled();
+      expect(result).toBe(2);
+      expect(mockRepository.count).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createSession', () => {
+    it('should create session using provided manager', async () => {
+      const session = { id: 'new-session' } as Session;
       const mockTxRepo = {
         create: jest.fn().mockReturnValue(session),
-        save: jest.fn().mockResolvedValue(session),
-        find: jest.fn().mockResolvedValue([])
+        save: jest.fn().mockResolvedValue(session)
       };
       const mockManager = {
-        getRepository: jest.fn().mockImplementation((entity) => {
-          if (entity.name === 'User') {
-            return { createQueryBuilder: jest.fn(() => mockUserQb) };
-          }
-          return mockTxRepo;
-        })
+        getRepository: jest.fn().mockReturnValue(mockTxRepo)
       };
-
-      (mockDataSource.transaction as jest.Mock).mockImplementation(
-        async (callback) => callback(mockManager)
-      );
 
       const result = await repository.createSession({
         userId: 'user-id',
@@ -369,58 +368,29 @@ describe('SessionRepository', () => {
         },
         expiresAt: new Date('2026-07-28T08:00:00.000Z'),
         now,
-        maxSessions: 10
+        manager: mockManager as any
       });
 
-      expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
       expect(mockManager.getRepository).toHaveBeenCalledWith(Session);
+      expect(mockTxRepo.save).toHaveBeenCalled();
       expect(result).toEqual(session);
     });
 
-    it('should revoke oldest sessions when limit exceeded', async () => {
-      const active = [
-        { id: 'old1' },
-        { id: 'old2' },
-        { id: 'new' }
-      ] as Session[];
-      const mockUserQb = {
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        setLock: jest.fn().mockReturnThis(),
-        getOneOrFail: jest.fn().mockResolvedValue({ id: 'user-id' })
-      };
-      const mockTxRepo = {
-        create: jest.fn().mockReturnValue({ id: 'new' } as Session),
-        save: jest.fn().mockResolvedValue({ id: 'new' } as Session),
-        find: jest.fn().mockResolvedValue(active),
-        update: jest.fn().mockResolvedValue(undefined)
-      };
-      const mockManager = {
-        getRepository: jest.fn().mockImplementation((entity) => {
-          if (entity.name === 'User') {
-            return { createQueryBuilder: jest.fn(() => mockUserQb) };
-          }
-          return mockTxRepo;
-        })
-      };
+    it('should create session using default repository when no manager', async () => {
+      const session = { id: 'new-session' } as Session;
+      mockRepository.create.mockReturnValue(session);
+      mockRepository.save.mockResolvedValue(session);
 
-      (mockDataSource.transaction as jest.Mock).mockImplementation(
-        async (callback) => callback(mockManager)
-      );
-
-      await repository.createSession({
+      const result = await repository.createSession({
         userId: 'user-id',
         ipAddress: '127.0.0.1',
         device: {} as any,
         expiresAt: new Date('2026-07-28T08:00:00.000Z'),
-        now,
-        maxSessions: 2
+        now
       });
 
-      expect(mockTxRepo.update).toHaveBeenCalledWith(
-        { id: expect.objectContaining({ value: ['old1'] }) },
-        { isRevoked: true }
-      );
+      expect(mockRepository.save).toHaveBeenCalled();
+      expect(result).toEqual(session);
     });
   });
 });

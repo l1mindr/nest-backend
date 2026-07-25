@@ -64,13 +64,6 @@ export const SESSION_REPOSITORY = Symbol('ISessionRepository');
 
 export interface ISessionRepository {
   findActiveSession(userId: string, sessionId: string): Promise<Session | null>;
-  findUserWithActiveSession(
-    userId: string,
-    sessionId: string
-  ): Promise<{
-    user: import('@features/users/entities/user.entity').User | null;
-    session: Session | null;
-  }>;
   rotateRefreshToken(
     sessionId: string,
     version: number,
@@ -98,12 +91,17 @@ export interface ISessionRepository {
       cursor?: { lastUsedAt: Date; id: string };
     }
   ): Promise<Session[]>;
+  countActiveSessions(
+    userId: string,
+    now: Date,
+    manager?: EntityManager
+  ): Promise<number>;
   createSession(params: {
     userId: string;
     ipAddress: string;
     device: ISessionDevice;
     expiresAt: Date;
     now: Date;
-    maxSessions: number;
+    manager?: EntityManager;
   }): Promise<Session>;
 }

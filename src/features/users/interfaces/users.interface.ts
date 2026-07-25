@@ -11,6 +11,7 @@ export const USER_REPOSITORY = Symbol('IUserRepository');
 export interface IUserRepository {
   insertUser(dto: CreateUserRequestDto): Promise<void>;
   findUserById(id: string): Promise<User | null>;
+  findUserForTokenValidation(id: string): Promise<User | null>;
   findByEmailOrUsernameForAuth(identifier: string): Promise<User | null>;
   findUserWithPassword(userId: string): Promise<User | null>;
   findUserForAdmin(id: string): Promise<User | null>;

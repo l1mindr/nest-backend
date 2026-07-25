@@ -40,6 +40,21 @@ export class UserRepository implements IUserRepository {
     });
   }
 
+  async findUserForTokenValidation(id: string): Promise<User | null> {
+    return this.userRepo.findOne({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        name: true,
+        status: true,
+        role: true,
+        registryDates: { createdAt: true }
+      }
+    });
+  }
+
   async findByEmailOrUsernameForAuth(identifier: string): Promise<User | null> {
     return this.userRepo.findOne({
       where: [{ email: identifier }, { username: identifier }],

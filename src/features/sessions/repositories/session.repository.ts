@@ -1,14 +1,6 @@
 import { ClockService } from '@core/clock/clock.service';
-import { User } from '@features/users/entities/user.entity';
 import { Injectable } from '@nestjs/common';
-import {
-  DataSource,
-  EntityManager,
-  In,
-  MoreThan,
-  Not,
-  Repository
-} from 'typeorm';
+import { DataSource, EntityManager, MoreThan, Not, Repository } from 'typeorm';
 import { Session } from '../entities/session.entity';
 import { ISessionDevice } from '../interfaces/session-device.interface';
 import { ISessionRepository } from '../interfaces/sessions.interface';
@@ -38,51 +30,6 @@ export class SessionRepository implements ISessionRepository {
         }
       }
     });
-  }
-
-  async findUserWithActiveSession(
-    userId: string,
-    sessionId: string
-  ): Promise<{
-    user: User | null;
-    session: Session | null;
-  }> {
-    const now = this.clockService.nowDate();
-
-    const user = await this.dataSource
-      .getRepository(User)
-      .createQueryBuilder('user')
-      .leftJoinAndSelect(
-        'user.sessions',
-        'session',
-        'session.id = :sessionId AND session.isRevoked = false AND session.expiresAt > :now',
-        { sessionId, now }
-      )
-      .where('user.id = :userId', { userId })
-      .select([
-        'user.id',
-        'user.email',
-        'user.username',
-        'user.name',
-        'user.status',
-        'user.role',
-        'user.registryDates.createdAt',
-        'session.id',
-        'session.refreshTokenHash',
-        'session.ipAddress',
-        'session.device',
-        'session.expiresAt',
-        'session.lastUsedAt',
-        'session.version',
-        'session.rotatedAt',
-        'session.createdAt',
-        'session.updatedAt'
-      ])
-      .getOne();
-
-    if (!user) return { user: null, session: null };
-
-    return { user, session: user.sessions?.[0] ?? null };
   }
 
   async rotateRefreshToken(
@@ -194,63 +141,43 @@ export class SessionRepository implements ISessionRepository {
     return qb.getMany();
   }
 
+  async countActiveSessions(
+    userId: string,
+    now: Date,
+    manager?: EntityManager
+  ): Promise<number> {
+    const repository = manager?.getRepository(Session) ?? this.sessionRepo;
+
+    return repository.count({
+      where: {
+        owner: { id: userId },
+        isRevoked: false,
+        expiresAt: MoreThan(now)
+      }
+    });
+  }
+
   async createSession(params: {
     userId: string;
     ipAddress: string;
     device: ISessionDevice;
     expiresAt: Date;
     now: Date;
-    maxSessions: number;
+    manager?: EntityManager;
   }): Promise<Session> {
-    const { userId, ipAddress, device, expiresAt, now, maxSessions } = params;
+    const { userId, ipAddress, device, expiresAt, now, manager } = params;
 
-    return this.dataSource.transaction(async (manager) => {
-      await manager
-        .getRepository(User)
-        .createQueryBuilder('user')
-        .select('user.id')
-        .where('user.id = :userId', { userId })
-        .setLock('pessimistic_write')
-        .getOneOrFail();
+    const repository = manager?.getRepository(Session) ?? this.sessionRepo;
 
-      const repository = manager.getRepository(Session);
-
-      const session = await repository.save(
-        repository.create({
-          owner: { id: userId },
-          ipAddress,
-          device,
-          expiresAt,
-          lastUsedAt: now,
-          refreshTokenHash: crypto.randomUUID()
-        })
-      );
-
-      const active = await repository.find({
-        where: {
-          owner: { id: userId },
-          isRevoked: false,
-          expiresAt: MoreThan(now)
-        },
-        select: { id: true },
-        order: {
-          lastUsedAt: 'ASC',
-          createdAt: 'ASC',
-          id: 'ASC'
-        }
-      });
-
-      if (active.length > maxSessions) {
-        const toRevoke = active
-          .slice(0, active.length - maxSessions)
-          .map((activeSession) => activeSession.id);
-
-        if (toRevoke.length) {
-          await repository.update({ id: In(toRevoke) }, { isRevoked: true });
-        }
-      }
-
-      return session;
-    });
+    return repository.save(
+      repository.create({
+        owner: { id: userId },
+        ipAddress,
+        device,
+        expiresAt,
+        lastUsedAt: now,
+        refreshTokenHash: crypto.randomUUID()
+      })
+    );
   }
 }

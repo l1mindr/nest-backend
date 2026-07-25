@@ -1,6 +1,7 @@
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { ISessionRepository } from '@features/sessions/interfaces/sessions.interface';
 import { UserStatus } from '@features/users/enums/user-status.enum';
+import { IUserRepository } from '@features/users/interfaces/users.interface';
 import { JwtService } from '@nestjs/jwt';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 import { TokenErrors } from './errors/token-errors';
@@ -15,8 +16,11 @@ describe('TokenService', () => {
   };
 
   const mockSessionRepository = {
-    findActiveSession: jest.fn(),
-    findUserWithActiveSession: jest.fn()
+    findActiveSession: jest.fn()
+  };
+
+  const mockUserRepository = {
+    findUserForTokenValidation: jest.fn()
   };
 
   const jwtConfiguration = {
@@ -31,7 +35,8 @@ describe('TokenService', () => {
     service = new TokenService(
       jwtConfiguration as any,
       mockJwtService as unknown as JwtService,
-      mockSessionRepository as unknown as ISessionRepository
+      mockSessionRepository as unknown as ISessionRepository,
+      mockUserRepository as unknown as IUserRepository
     );
   });
 
@@ -173,10 +178,8 @@ describe('TokenService', () => {
         id: 'session-id'
       };
 
-      mockSessionRepository.findUserWithActiveSession.mockResolvedValue({
-        user,
-        session
-      });
+      mockUserRepository.findUserForTokenValidation.mockResolvedValue(user);
+      mockSessionRepository.findActiveSession.mockResolvedValue(session);
 
       const result = await service.findUserAndActiveSession({
         sub: 'user-id',
@@ -184,13 +187,17 @@ describe('TokenService', () => {
       });
 
       expect(result).toEqual({ user, session });
+      expect(
+        mockUserRepository.findUserForTokenValidation
+      ).toHaveBeenCalledWith('user-id');
+      expect(mockSessionRepository.findActiveSession).toHaveBeenCalledWith(
+        'user-id',
+        'session-id'
+      );
     });
 
     it('should throw invalidToken when user does not exist', async () => {
-      mockSessionRepository.findUserWithActiveSession.mockResolvedValue({
-        user: null,
-        session: null
-      });
+      mockUserRepository.findUserForTokenValidation.mockResolvedValue(null);
 
       await expect(
         service.findUserAndActiveSession({
@@ -203,9 +210,12 @@ describe('TokenService', () => {
     it.each([UserStatus.DEACTIVATE, UserStatus.SUSPEND])(
       'should throw invalidToken when the account is %s',
       async (status) => {
-        mockSessionRepository.findUserWithActiveSession.mockResolvedValue({
-          user: { id: 'user-id', status },
-          session: { id: 'session-id' }
+        mockUserRepository.findUserForTokenValidation.mockResolvedValue({
+          id: 'user-id',
+          status
+        });
+        mockSessionRepository.findActiveSession.mockResolvedValue({
+          id: 'session-id'
         });
 
         await expect(
@@ -218,10 +228,11 @@ describe('TokenService', () => {
     );
 
     it('should throw sessionExpired when session does not exist', async () => {
-      mockSessionRepository.findUserWithActiveSession.mockResolvedValue({
-        user: { id: 'user-id', status: UserStatus.ACTIVATE },
-        session: null
+      mockUserRepository.findUserForTokenValidation.mockResolvedValue({
+        id: 'user-id',
+        status: UserStatus.ACTIVATE
       });
+      mockSessionRepository.findActiveSession.mockResolvedValue(null);
 
       await expect(
         service.findUserAndActiveSession({

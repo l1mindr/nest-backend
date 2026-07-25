@@ -4,6 +4,10 @@ import {
   SESSION_REPOSITORY
 } from '@features/sessions/interfaces/sessions.interface';
 import { UserStatus } from '@features/users/enums/user-status.enum';
+import {
+  IUserRepository,
+  USER_REPOSITORY
+} from '@features/users/interfaces/users.interface';
 import jwtConfig from '@infrastructure/config/jsonwebtoken/jwt.config';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { Inject, Injectable } from '@nestjs/common';
@@ -21,7 +25,9 @@ export class TokenService implements ITokenService {
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly jwtService: JwtService,
     @Inject(SESSION_REPOSITORY)
-    private readonly sessionRepository: ISessionRepository
+    private readonly sessionRepository: ISessionRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: IUserRepository
   ) {}
 
   async issuePair(
@@ -92,19 +98,21 @@ export class TokenService implements ITokenService {
     sub,
     sessionId
   }: IJwtPayload): Promise<CustomAuth> {
-    const result = await this.sessionRepository.findUserWithActiveSession(
+    const user = await this.userRepository.findUserForTokenValidation(sub);
+
+    if (!user) throw TokenErrors.invalidToken();
+
+    if (user.status !== UserStatus.ACTIVATE) {
+      throw TokenErrors.invalidToken();
+    }
+
+    const session = await this.sessionRepository.findActiveSession(
       sub,
       sessionId
     );
 
-    if (!result.user) throw TokenErrors.invalidToken();
+    if (!session) throw SessionErrors.sessionExpired(sessionId);
 
-    if (result.user.status !== UserStatus.ACTIVATE) {
-      throw TokenErrors.invalidToken();
-    }
-
-    if (!result.session) throw SessionErrors.sessionExpired(sessionId);
-
-    return { user: result.user, session: result.session };
+    return { user, session };
   }
 }
