@@ -4,9 +4,61 @@ import { Session } from '../entities/session.entity';
 import { SessionListItem } from '../types/session-list-item.type';
 import { ISessionDevice } from './session-device.interface';
 
-export const SESSION_SERVICE = Symbol('ISessionsService');
+export interface SessionListResult extends PaginatedResult<SessionListItem> {
+  currentSession: SessionListItem;
+}
 
-export interface ISessionsService {
+export const LIST_SESSIONS_SERVICE = Symbol('IListSessionsService');
+
+export interface IListSessionsService {
+  list(
+    userId: string,
+    session: Session,
+    limit?: number,
+    cursor?: string
+  ): Promise<SessionListResult>;
+}
+
+export const ISSUE_SESSION_SERVICE = Symbol('IIssueSessionService');
+
+export interface IIssueSessionService {
+  issue(
+    userId: string,
+    ipAddress: string,
+    device: ISessionDevice,
+    expiresAt: Date
+  ): Promise<Session>;
+}
+
+export const REVOKE_SESSION_SERVICE = Symbol('IRevokeSessionService');
+
+export interface IRevokeSessionService {
+  revoke(userId: string, sessionId: string): Promise<void>;
+}
+
+export const TERMINATE_OTHER_SESSIONS_SERVICE = Symbol(
+  'ITerminateOtherSessionsService'
+);
+
+export interface ITerminateOtherSessionsService {
+  terminateOthers(
+    userId: string,
+    sessionId: string,
+    manager?: EntityManager
+  ): Promise<void>;
+}
+
+export const REVOKE_ALL_USER_SESSIONS_SERVICE = Symbol(
+  'IRevokeAllUserSessionsService'
+);
+
+export interface IRevokeAllUserSessionsService {
+  revokeAllForUser(userId: string, manager?: EntityManager): Promise<void>;
+}
+
+export const SESSION_REPOSITORY = Symbol('ISessionRepository');
+
+export interface ISessionRepository {
   getActive(userId: string, sessionId: string): Promise<Session | null>;
   getUserAndActiveSession(
     userId: string,
@@ -15,53 +67,11 @@ export interface ISessionsService {
     user: import('@features/users/entities/user.entity').User | null;
     session: Session | null;
   }>;
-
-  issue(
-    userId: string,
-    ipAddress: string,
-    device: ISessionDevice,
-    expiresAt: Date
-  ): Promise<Session>;
-
-  list(
-    userId: string,
-    session: Session,
-    limit?: number,
-    cursor?: string
-  ): Promise<SessionListResult>;
-
-  revoke(userId: string, sessionId: string): Promise<void>;
-
-  terminateOthers(
-    userId: string,
-    sessionId: string,
-    manager?: EntityManager
-  ): Promise<void>;
-
-  /**
-   * Revoke every non-revoked session belonging to the user. Accepts an
-   * EntityManager so callers (e.g. account deletion) can run it inside a
-   * transaction alongside their own writes.
-   */
-  revokeAllForUser(userId: string, manager?: EntityManager): Promise<void>;
-
-  updateRefreshState(
-    session: Session,
-    payload: Partial<Session>
-  ): Promise<void>;
-
   rotateAtomic(
     sessionId: string,
     version: number,
     oldHash: string,
     newHash: string,
-    meta: {
-      now: number;
-      expiresAt: Date;
-    }
+    meta: { now: number; expiresAt: Date }
   ): Promise<boolean>;
-}
-
-export interface SessionListResult extends PaginatedResult<SessionListItem> {
-  currentSession: SessionListItem;
 }
