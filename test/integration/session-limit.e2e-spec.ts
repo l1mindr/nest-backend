@@ -10,9 +10,9 @@ import { User } from '@features/users/entities/user.entity';
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, MoreThan, QueryRunner } from 'typeorm';
-import { createTestApp } from '../bootstrap/test-app';
+import { createMigratedTestApp } from '../bootstrap/test-app';
 import { UserFactory } from '../factories/user.factory';
-import { runMigrations, truncateDatabase } from '../helpers/postgresql.helper';
+import { truncateDatabase } from '../helpers/postgresql.helper';
 import { clearRedis } from '../helpers/redis.helper';
 
 describe('Session limit concurrency (e2e)', () => {
@@ -24,8 +24,8 @@ describe('Session limit concurrency (e2e)', () => {
   let sessionRepository: ISessionRepository;
 
   beforeAll(async () => {
-    const { app: testApp, dataSource: testDataSource } = await createTestApp();
-    await runMigrations(testDataSource);
+    const { app: testApp, dataSource: testDataSource } =
+      await createMigratedTestApp();
 
     app = testApp;
     clockService = app.get(ClockService);
@@ -58,6 +58,8 @@ describe('Session limit concurrency (e2e)', () => {
     });
     const blocker = dataSource.createQueryRunner();
     const issuePromises: Promise<Session>[] = [];
+    let observing = false;
+    let observation: Promise<void> | undefined;
 
     configService.set('MAX_ACTIVE_SESSIONS', limit);
 
@@ -88,9 +90,9 @@ describe('Session limit concurrency (e2e)', () => {
         0
       );
 
-      let observing = true;
+      observing = true;
       let maxObserved = 0;
-      const observation = (async () => {
+      observation = (async () => {
         while (observing) {
           maxObserved = Math.max(
             maxObserved,
@@ -112,6 +114,7 @@ describe('Session limit concurrency (e2e)', () => {
       } finally {
         observing = false;
         await observation;
+        observation = undefined;
       }
 
       const sessions = await dataSource.getRepository(Session).find({
@@ -127,15 +130,17 @@ describe('Session limit concurrency (e2e)', () => {
         concurrentIssues - limit
       );
     } finally {
-      if (blocker.isTransactionActive) {
-        await blocker.rollbackTransaction();
-      }
-      if (!blocker.isReleased) {
-        await blocker.release();
-      }
-      await Promise.allSettled(issuePromises);
+      observing = false;
 
-      restoreSessionLimit(configService, previousLimit);
+      try {
+        await closeQueryRunner(blocker);
+      } finally {
+        await Promise.allSettled([
+          ...(observation ? [observation] : []),
+          ...issuePromises
+        ]);
+        restoreSessionLimit(configService, previousLimit);
+      }
     }
   });
 
@@ -208,15 +213,12 @@ describe('Session limit concurrency (e2e)', () => {
       await blocker.commitTransaction();
       await pendingIssues[0];
     } finally {
-      if (blocker.isTransactionActive) {
-        await blocker.rollbackTransaction();
+      try {
+        await closeQueryRunner(blocker);
+      } finally {
+        await Promise.allSettled(pendingIssues);
+        restoreSessionLimit(configService, previousLimit);
       }
-      if (!blocker.isReleased) {
-        await blocker.release();
-      }
-      await Promise.allSettled(pendingIssues);
-
-      restoreSessionLimit(configService, previousLimit);
     }
   });
 
@@ -398,6 +400,18 @@ async function lockUser(queryRunner: QueryRunner, userId: string) {
     .where('user.id = :userId', { userId })
     .setLock('pessimistic_write')
     .getOneOrFail();
+}
+
+async function closeQueryRunner(queryRunner: QueryRunner) {
+  try {
+    if (queryRunner.isTransactionActive) {
+      await queryRunner.rollbackTransaction();
+    }
+  } finally {
+    if (!queryRunner.isReleased) {
+      await queryRunner.release();
+    }
+  }
 }
 
 async function countActiveSessions(

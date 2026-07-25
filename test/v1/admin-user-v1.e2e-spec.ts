@@ -3,9 +3,9 @@ import { UserRole } from '@features/users/enums/user-role.enum';
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { createTestApp } from '../bootstrap/test-app';
+import { createMigratedTestApp } from '../bootstrap/test-app';
 import { AuthFactory } from '../factories/auth.factory';
-import { runMigrations, truncateDatabase } from '../helpers/postgresql.helper';
+import { truncateDatabase } from '../helpers/postgresql.helper';
 import { clearRedis } from '../helpers/redis.helper';
 
 describe('Admin Users (e2e) version: 1', () => {
@@ -28,8 +28,8 @@ describe('Admin Users (e2e) version: 1', () => {
   };
 
   beforeAll(async () => {
-    const { app: testApp, dataSource: testDataSource } = await createTestApp();
-    await runMigrations(testDataSource);
+    const { app: testApp, dataSource: testDataSource } =
+      await createMigratedTestApp();
 
     app = testApp;
     dataSource = testDataSource;
@@ -41,7 +41,7 @@ describe('Admin Users (e2e) version: 1', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   it('admin should access to users list', async () => {

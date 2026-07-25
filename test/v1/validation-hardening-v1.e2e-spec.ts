@@ -1,9 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { createTestApp } from '../bootstrap/test-app';
+import { createMigratedTestApp } from '../bootstrap/test-app';
 import { UserFactory } from '../factories/user.factory';
 import { ApiClient } from '../helpers/api-client.helper';
-import { runMigrations, truncateDatabase } from '../helpers/postgresql.helper';
+import { truncateDatabase } from '../helpers/postgresql.helper';
 import { clearRedis } from '../helpers/redis.helper';
 
 describe('DTO validation hardening (e2e) version: 1', () => {
@@ -18,8 +18,8 @@ describe('DTO validation hardening (e2e) version: 1', () => {
   };
 
   beforeAll(async () => {
-    const { app: testApp, dataSource: testDataSource } = await createTestApp();
-    await runMigrations(testDataSource);
+    const { app: testApp, dataSource: testDataSource } =
+      await createMigratedTestApp();
 
     app = testApp;
     dataSource = testDataSource;
@@ -32,7 +32,7 @@ describe('DTO validation hardening (e2e) version: 1', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   const expectValidationError = (res: {

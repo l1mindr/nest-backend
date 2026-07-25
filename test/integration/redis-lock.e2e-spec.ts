@@ -31,7 +31,7 @@ describe('RedisLockService ownership (integration)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   it('stores the acquisition token as the lock value', async () => {

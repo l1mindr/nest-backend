@@ -3,9 +3,9 @@ import { Session } from '@features/sessions/entities/session.entity';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { createTestApp } from '../bootstrap/test-app';
+import { createMigratedTestApp } from '../bootstrap/test-app';
 import { AuthFactory } from '../factories/auth.factory';
-import { runMigrations, truncateDatabase } from '../helpers/postgresql.helper';
+import { truncateDatabase } from '../helpers/postgresql.helper';
 import { clearRedis } from '../helpers/redis.helper';
 import {
   getCookie,
@@ -25,8 +25,8 @@ describe('Auth Refresh (e2e) version: 1', () => {
   let dataSource: DataSource;
 
   beforeAll(async () => {
-    const { app: testApp, dataSource: testDataSource } = await createTestApp();
-    await runMigrations(testDataSource);
+    const { app: testApp, dataSource: testDataSource } =
+      await createMigratedTestApp();
 
     app = testApp;
     clockService = app.get(ClockService);
@@ -39,7 +39,7 @@ describe('Auth Refresh (e2e) version: 1', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   const readCredentials = (

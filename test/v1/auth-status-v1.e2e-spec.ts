@@ -2,9 +2,9 @@ import { User } from '@features/users/entities/user.entity';
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { createTestApp } from '../bootstrap/test-app';
+import { createMigratedTestApp } from '../bootstrap/test-app';
 import { UserFactory } from '../factories/user.factory';
-import { runMigrations, truncateDatabase } from '../helpers/postgresql.helper';
+import { truncateDatabase } from '../helpers/postgresql.helper';
 import { clearRedis } from '../helpers/redis.helper';
 
 describe('Auth Status Enforcement (e2e) version: 1', () => {
@@ -18,8 +18,8 @@ describe('Auth Status Enforcement (e2e) version: 1', () => {
     dataSource.getRepository(User).update({ email }, { status });
 
   beforeAll(async () => {
-    const { app: testApp, dataSource: testDataSource } = await createTestApp();
-    await runMigrations(testDataSource);
+    const { app: testApp, dataSource: testDataSource } =
+      await createMigratedTestApp();
 
     app = testApp;
     dataSource = testDataSource;
@@ -31,7 +31,7 @@ describe('Auth Status Enforcement (e2e) version: 1', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   it('registers users with UserStatus.DEACTIVATE', async () => {
