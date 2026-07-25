@@ -1,4 +1,4 @@
-import { ISessionsService } from '@features/sessions/interfaces/sessions.interface';
+import { IRevokeAllUserSessionsService } from '@features/sessions/interfaces/sessions.interface';
 import { DataSource, EntityManager } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserErrors } from './errors/user-errors';
@@ -28,7 +28,7 @@ describe('UsersService', () => {
     )
   };
 
-  const mockSessionsService = {
+  const mockRevokeAllUserSessionsService = {
     revokeAllForUser: jest.fn()
   };
 
@@ -40,7 +40,7 @@ describe('UsersService', () => {
 
     service = new UsersService(
       mockDataSource as unknown as DataSource,
-      mockSessionsService as unknown as ISessionsService
+      mockRevokeAllUserSessionsService as unknown as IRevokeAllUserSessionsService
     );
   });
 
@@ -167,6 +167,7 @@ describe('UsersService', () => {
       const error = new Error('unknown');
 
       mockRepository.create.mockReturnValue({});
+
       mockRepository.save.mockRejectedValue(error);
 
       await expect(service.register({} as any)).rejects.toThrow(error);
@@ -339,10 +340,9 @@ describe('UsersService', () => {
 
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
       expect(mockRepository.softRemove).toHaveBeenCalledWith(user);
-      expect(mockSessionsService.revokeAllForUser).toHaveBeenCalledWith(
-        '1',
-        mockTransactionManager
-      );
+      expect(
+        mockRevokeAllUserSessionsService.revokeAllForUser
+      ).toHaveBeenCalledWith('1', mockTransactionManager);
     });
 
     it('should not revoke sessions when the user does not exist', async () => {
@@ -355,7 +355,9 @@ describe('UsersService', () => {
       );
 
       expect(mockRepository.softRemove).not.toHaveBeenCalled();
-      expect(mockSessionsService.revokeAllForUser).not.toHaveBeenCalled();
+      expect(
+        mockRevokeAllUserSessionsService.revokeAllForUser
+      ).not.toHaveBeenCalled();
     });
 
     it('should propagate transaction failures without swallowing them', async () => {
