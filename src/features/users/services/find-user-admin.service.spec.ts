@@ -6,7 +6,7 @@ describe('FindUserAdminService', () => {
   let service: FindUserAdminService;
 
   const mockUserRepository = {
-    findByIdForAdmin: jest.fn()
+    findUserForAdmin: jest.fn()
   };
 
   beforeEach(() => {
@@ -15,21 +15,21 @@ describe('FindUserAdminService', () => {
     service = new FindUserAdminService(mockUserRepository as any);
   });
 
-  describe('findById', () => {
+  describe('findUserById', () => {
     it('should return user', async () => {
       const user = { id: '1' } as User;
-      mockUserRepository.findByIdForAdmin.mockResolvedValue(user);
+      mockUserRepository.findUserForAdmin.mockResolvedValue(user);
 
-      const result = await service.findById('1');
+      const result = await service.findUserById('1');
 
       expect(result).toEqual(user);
-      expect(mockUserRepository.findByIdForAdmin).toHaveBeenCalledWith('1');
+      expect(mockUserRepository.findUserForAdmin).toHaveBeenCalledWith('1');
     });
 
     it('should throw when user not found', async () => {
-      mockUserRepository.findByIdForAdmin.mockResolvedValue(null);
+      mockUserRepository.findUserForAdmin.mockResolvedValue(null);
 
-      await expect(service.findById('missing')).rejects.toEqual(
+      await expect(service.findUserById('missing')).rejects.toEqual(
         UserErrors.userNotFound('missing')
       );
     });

@@ -22,11 +22,17 @@ export class ListUsersAdminService implements IListUsersAdminService {
     private readonly userRepository: IUserRepository
   ) {}
 
-  async list(cursor?: string, limit?: number): Promise<PaginatedResult<User>> {
+  async listUsers(
+    cursor?: string,
+    limit?: number
+  ): Promise<PaginatedResult<User>> {
     const take = limit ?? ADMIN_USERS_PAGE_SIZE_DEFAULT;
     const cursorId = this.parseCursor(cursor);
 
-    const items = await this.userRepository.findForAdmin(cursorId, take + 1);
+    const items = await this.userRepository.findUsersForAdmin(
+      cursorId,
+      take + 1
+    );
 
     return paginate(items, take, (user) => encodeCursor(user.id));
   }

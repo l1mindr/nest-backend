@@ -5,29 +5,27 @@ import {
   isValidUUID
 } from '@core/pagination/cursor.util';
 import { paginate } from '@core/pagination/paginate.util';
-import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
 import { SESSION_PAGE_SIZE_DEFAULT } from '../dto/request/session-list-request.dto';
 import { SessionErrors } from '../errors/session-errors';
 import { Session } from '../entities/session.entity';
 import {
   IListSessionsService,
+  ISessionRepository,
+  SESSION_REPOSITORY,
   SessionListResult
 } from '../interfaces/sessions.interface';
 import { SessionListItem } from '../types/session-list-item.type';
 
 @Injectable()
 export class ListSessionsService implements IListSessionsService {
-  private get sessionRepo(): Repository<Session> {
-    return this.dataSource.getRepository(Session);
-  }
-
   constructor(
     private readonly clockService: ClockService,
-    private readonly dataSource: DataSource
+    @Inject(SESSION_REPOSITORY)
+    private readonly sessionRepository: ISessionRepository
   ) {}
 
-  async list(
+  async listSessions(
     userId: string,
     session: Session,
     limit?: number,
@@ -36,31 +34,15 @@ export class ListSessionsService implements IListSessionsService {
     const take = limit ?? SESSION_PAGE_SIZE_DEFAULT;
     const cursorData = this.parseCursor(cursor);
 
-    const qb = this.sessionRepo
-      .createQueryBuilder('session')
-      .where('session.owner = :userId', { userId })
-      .andWhere('session.isRevoked = false')
-      .andWhere('session.expiresAt > :now', {
-        now: this.clockService.nowDate()
-      })
-      .andWhere('session.id != :currentSessionId', {
-        currentSessionId: session.id
-      })
-      .orderBy('session.lastUsedAt', 'ASC')
-      .addOrderBy('session.id', 'ASC')
-      .take(take + 1);
-
-    if (cursorData) {
-      qb.andWhere(
-        `(session."lastUsedAt" > :cursorLastUsedAt OR (session."lastUsedAt" = :cursorLastUsedAt AND session."id" > :cursorId))`,
-        {
-          cursorLastUsedAt: cursorData.lastUsedAt,
-          cursorId: cursorData.id
-        }
-      );
-    }
-
-    const sessions = await qb.getMany();
+    const sessions = await this.sessionRepository.listUserSessions(
+      userId,
+      session.id,
+      {
+        now: this.clockService.nowDate(),
+        limit: take,
+        cursor: cursorData ?? undefined
+      }
+    );
 
     const paginated = paginate(sessions, take, (s) =>
       encodeCursor(

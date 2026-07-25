@@ -9,14 +9,14 @@ export type { PaginatedResult } from '@core/pagination/paginated-result.interfac
 export const USER_REPOSITORY = Symbol('IUserRepository');
 
 export interface IUserRepository {
-  create(dto: CreateUserRequestDto): Promise<void>;
-  findById(id: string): Promise<User | null>;
-  findByIdentifierForAuth(identifier: string): Promise<User | null>;
-  findByIdWithPassword(userId: string): Promise<User | null>;
-  findByIdForAdmin(id: string): Promise<User | null>;
-  findForAdmin(cursorId: string | null, limit: number): Promise<User[]>;
-  update(id: string, dto: UpdateProfileRequestDto): Promise<void>;
-  setPassword(
+  insertUser(dto: CreateUserRequestDto): Promise<void>;
+  findUserById(id: string): Promise<User | null>;
+  findByEmailOrUsernameForAuth(identifier: string): Promise<User | null>;
+  findUserWithPassword(userId: string): Promise<User | null>;
+  findUserForAdmin(id: string): Promise<User | null>;
+  findUsersForAdmin(cursorId: string | null, limit: number): Promise<User[]>;
+  updateUserProfile(id: string, dto: UpdateProfileRequestDto): Promise<void>;
+  updatePasswordHash(
     userId: string,
     hashPassword: string,
     manager?: EntityManager
@@ -26,7 +26,7 @@ export interface IUserRepository {
 export const CREATE_USER_SERVICE = Symbol('ICreateUserService');
 
 export interface ICreateUserService {
-  create(dto: CreateUserRequestDto): Promise<void>;
+  createUser(dto: CreateUserRequestDto): Promise<void>;
 }
 
 export const UPDATE_PROFILE_SERVICE = Symbol('IUpdateProfileService');
@@ -44,11 +44,11 @@ export interface IDeleteAccountService {
 export const LIST_USERS_ADMIN_SERVICE = Symbol('IListUsersAdminService');
 
 export interface IListUsersAdminService {
-  list(cursor?: string, limit?: number): Promise<PaginatedResult<User>>;
+  listUsers(cursor?: string, limit?: number): Promise<PaginatedResult<User>>;
 }
 
 export const FIND_USER_ADMIN_SERVICE = Symbol('IFindUserAdminService');
 
 export interface IFindUserAdminService {
-  findById(id: string): Promise<User>;
+  findUserById(id: string): Promise<User>;
 }

@@ -22,8 +22,8 @@ describe('RefreshTokenService', () => {
   };
 
   const mockSessionRepository = {
-    getActive: jest.fn(),
-    rotateAtomic: jest.fn()
+    findActiveSession: jest.fn(),
+    rotateRefreshToken: jest.fn()
   };
 
   const mockRefreshTokenHasher = {
@@ -36,7 +36,7 @@ describe('RefreshTokenService', () => {
   };
 
   const mockRevokeSessionService = {
-    revoke: jest.fn()
+    revokeSession: jest.fn()
   };
 
   const mockLogger = {
@@ -72,7 +72,7 @@ describe('RefreshTokenService', () => {
     );
   });
 
-  describe('refresh', () => {
+  describe('refreshTokens', () => {
     it('should refresh successfully', async () => {
       mockTokenService.verifyRefreshToken.mockResolvedValue({
         sub: 'user-id',
@@ -84,7 +84,7 @@ describe('RefreshTokenService', () => {
         token: 'lock-token'
       });
 
-      mockSessionRepository.getActive.mockResolvedValue({
+      mockSessionRepository.findActiveSession.mockResolvedValue({
         id: 'session-id',
         refreshTokenHash: sha256('refresh-token'),
         owner: {
@@ -97,16 +97,16 @@ describe('RefreshTokenService', () => {
         refreshToken: 'new-refresh'
       });
 
-      mockSessionRepository.rotateAtomic.mockResolvedValue(true);
+      mockSessionRepository.rotateRefreshToken.mockResolvedValue(true);
 
-      const result = await service.refresh('refresh-token');
+      const result = await service.refreshTokens('refresh-token');
 
       expect(result).toEqual({
         accessToken: 'new-access',
         refreshToken: 'new-refresh'
       });
 
-      expect(mockSessionRepository.rotateAtomic).toHaveBeenCalledWith(
+      expect(mockSessionRepository.rotateRefreshToken).toHaveBeenCalledWith(
         'session-id',
         undefined,
         sha256('refresh-token'),
@@ -126,9 +126,9 @@ describe('RefreshTokenService', () => {
         token: 'lock-token'
       });
 
-      mockSessionRepository.getActive.mockResolvedValue(null);
+      mockSessionRepository.findActiveSession.mockResolvedValue(null);
 
-      await expect(service.refresh('token')).rejects.toEqual(
+      await expect(service.refreshTokens('token')).rejects.toEqual(
         SessionErrors.sessionExpired()
       );
     });
@@ -141,7 +141,7 @@ describe('RefreshTokenService', () => {
 
       mockRedisLockService.acquire.mockResolvedValue(null);
 
-      await expect(service.refresh('token')).rejects.toEqual(
+      await expect(service.refreshTokens('token')).rejects.toEqual(
         SessionErrors.refreshRateLimited('session-id')
       );
     });
@@ -165,19 +165,19 @@ describe('RefreshTokenService', () => {
         token: 'lock-token'
       });
 
-      mockSessionRepository.getActive.mockResolvedValue(session);
+      mockSessionRepository.findActiveSession.mockResolvedValue(session);
 
-      await expect(service.refresh('token')).rejects.toEqual(
+      await expect(service.refreshTokens('token')).rejects.toEqual(
         SessionErrors.sessionReuseDetected('session-id')
       );
 
-      expect(mockRevokeSessionService.revoke).toHaveBeenCalledWith(
+      expect(mockRevokeSessionService.revokeSession).toHaveBeenCalledWith(
         'user-id',
         'session-id'
       );
     });
 
-    it('should throw when rotateAtomic fails', async () => {
+    it('should throw when rotateRefreshToken fails', async () => {
       mockTokenService.verifyRefreshToken.mockResolvedValue({
         sub: 'user-id',
         sessionId: 'session-id'
@@ -188,7 +188,7 @@ describe('RefreshTokenService', () => {
         token: 'lock-token'
       });
 
-      mockSessionRepository.getActive.mockResolvedValue({
+      mockSessionRepository.findActiveSession.mockResolvedValue({
         id: 'session-id',
         refreshTokenHash: sha256('token'),
         owner: {
@@ -206,9 +206,9 @@ describe('RefreshTokenService', () => {
         refreshToken: 'refresh'
       });
 
-      mockSessionRepository.rotateAtomic.mockResolvedValue(false);
+      mockSessionRepository.rotateRefreshToken.mockResolvedValue(false);
 
-      await expect(service.refresh('token')).rejects.toEqual(
+      await expect(service.refreshTokens('token')).rejects.toEqual(
         SessionErrors.sessionReuseDetected('session-id')
       );
     });

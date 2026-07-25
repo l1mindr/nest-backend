@@ -13,8 +13,8 @@ export class FindUserAdminService implements IFindUserAdminService {
     private readonly userRepository: IUserRepository
   ) {}
 
-  async findById(id: string) {
-    const user = await this.userRepository.findByIdForAdmin(id);
+  async findUserById(id: string) {
+    const user = await this.userRepository.findUserForAdmin(id);
     if (!user) throw UserErrors.userNotFound(id);
     return user;
   }

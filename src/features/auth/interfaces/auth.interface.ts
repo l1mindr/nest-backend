@@ -11,13 +11,13 @@ export type AuthTokens = {
 export const REGISTER_USER_SERVICE = Symbol('IRegisterUserService');
 
 export interface IRegisterUserService {
-  register(dto: RegisterUserRequestDto): Promise<void>;
+  registerUser(dto: RegisterUserRequestDto): Promise<void>;
 }
 
 export const LOGIN_USER_SERVICE = Symbol('ILoginUserService');
 
 export interface ILoginUserService {
-  login(
+  loginUser(
     dto: LoginUserRequestDto,
     ipAddress: string,
     device: DeviceContext
@@ -27,7 +27,7 @@ export interface ILoginUserService {
 export const CHANGE_PASSWORD_SERVICE = Symbol('IChangePasswordService');
 
 export interface IChangePasswordService {
-  changePassword(
+  changeUserPassword(
     userId: string,
     sessionId: string,
     dto: ChangePasswordRequestDto
@@ -37,5 +37,5 @@ export interface IChangePasswordService {
 export const REFRESH_TOKEN_SERVICE = Symbol('IRefreshTokenService');
 
 export interface IRefreshTokenService {
-  refresh(refreshToken: string): Promise<AuthTokens>;
+  refreshTokens(refreshToken: string): Promise<AuthTokens>;
 }

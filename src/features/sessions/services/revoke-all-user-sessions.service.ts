@@ -1,38 +1,28 @@
 import { LogEvent } from '@infrastructure/logging/logging.constants';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { DataSource, EntityManager, Repository } from 'typeorm';
-import { Session } from '../entities/session.entity';
-import { IRevokeAllUserSessionsService } from '../interfaces/sessions.interface';
+import { EntityManager } from 'typeorm';
+import {
+  ISessionRepository,
+  IRevokeAllUserSessionsService,
+  SESSION_REPOSITORY
+} from '../interfaces/sessions.interface';
 
 @Injectable()
 export class RevokeAllUserSessionsService implements IRevokeAllUserSessionsService {
-  private get sessionRepo(): Repository<Session> {
-    return this.dataSource.getRepository(Session);
-  }
-
   constructor(
-    private readonly dataSource: DataSource,
+    @Inject(SESSION_REPOSITORY)
+    private readonly sessionRepository: ISessionRepository,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(RevokeAllUserSessionsService.name);
   }
 
-  async revokeAllForUser(
+  async revokeAllSessionsForUser(
     userId: string,
     manager?: EntityManager
   ): Promise<void> {
-    const repository = manager?.getRepository(Session) ?? this.sessionRepo;
-
-    await repository.update(
-      {
-        owner: { id: userId },
-        isRevoked: false
-      },
-      {
-        isRevoked: true
-      }
-    );
+    await this.sessionRepository.revokeAllSessionsForUser(userId, manager);
 
     this.logger.info(
       { event: LogEvent.SESSION_REVOKED, userId },

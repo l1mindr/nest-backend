@@ -23,12 +23,15 @@ export class DeleteAccountService implements IDeleteAccountService {
   ) {}
 
   async deleteAccount(userId: string): Promise<void> {
-    const user = await this.userRepository.findById(userId);
+    const user = await this.userRepository.findUserById(userId);
     if (!user) throw UserErrors.userNotFound(userId);
 
     await this.dataSource.transaction(async (manager) => {
       await manager.getRepository(User).softRemove(user);
-      await this.revokeAllUserSessionsService.revokeAllForUser(userId, manager);
+      await this.revokeAllUserSessionsService.revokeAllSessionsForUser(
+        userId,
+        manager
+      );
     });
   }
 }

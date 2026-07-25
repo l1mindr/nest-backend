@@ -47,13 +47,13 @@ export class SessionsController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiGetSessions()
-  async getAll(
+  async listSessions(
     @User() user: UserEntity,
     @Session() session: SessionEntity,
     @Query() query: SessionListRequestDto
   ) {
     const { currentSession, items, nextCursor } =
-      await this.listSessionsService.list(
+      await this.listSessionsService.listSessions(
         user.id,
         session,
         query.limit,
@@ -75,15 +75,18 @@ export class SessionsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseInterceptors(ClearCsrfCookieInterceptor)
   @ApiRevokeCurrentSession()
-  revoke(@User() user: UserEntity, @Session() session: SessionEntity) {
-    return this.revokeSessionService.revoke(user.id, session.id);
+  revokeSession(@User() user: UserEntity, @Session() session: SessionEntity) {
+    return this.revokeSessionService.revokeSession(user.id, session.id);
   }
 
   @Delete('others')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiTerminateOtherSessions()
-  terminateOthers(@User() user: UserEntity, @Session() session: SessionEntity) {
-    return this.terminateOtherSessionsService.terminateOthers(
+  terminateOtherSessions(
+    @User() user: UserEntity,
+    @Session() session: SessionEntity
+  ) {
+    return this.terminateOtherSessionsService.terminateOtherSessions(
       user.id,
       session.id
     );

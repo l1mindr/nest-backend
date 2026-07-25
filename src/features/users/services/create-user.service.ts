@@ -15,9 +15,9 @@ export class CreateUserService implements ICreateUserService {
     private readonly userRepository: IUserRepository
   ) {}
 
-  async create(dto: CreateUserRequestDto): Promise<void> {
+  async createUser(dto: CreateUserRequestDto): Promise<void> {
     try {
-      await this.userRepository.create(dto);
+      await this.userRepository.insertUser(dto);
     } catch (error: unknown) {
       this.handleUniqueConstraintError(error);
     }

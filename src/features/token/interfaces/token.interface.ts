@@ -17,5 +17,5 @@ export interface ITokenService {
   ): Promise<issuedTokens>;
   verifyAccessToken(token: string): Promise<IJwtClaims>;
   verifyRefreshToken(token: string): Promise<IJwtClaims>;
-  validatePayload(payload: IJwtPayload): Promise<CustomAuth>;
+  findUserAndActiveSession(payload: IJwtPayload): Promise<CustomAuth>;
 }

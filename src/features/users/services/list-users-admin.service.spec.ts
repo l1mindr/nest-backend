@@ -6,7 +6,7 @@ describe('ListUsersAdminService', () => {
   let service: ListUsersAdminService;
 
   const mockUserRepository = {
-    findForAdmin: jest.fn()
+    findUsersForAdmin: jest.fn()
   };
 
   beforeEach(() => {
@@ -15,15 +15,18 @@ describe('ListUsersAdminService', () => {
     service = new ListUsersAdminService(mockUserRepository as any);
   });
 
-  describe('list', () => {
+  describe('listUsers', () => {
     it('should return users with no nextCursor when all fit', async () => {
       const users = [{ id: '1' }, { id: '2' }] as User[];
-      mockUserRepository.findForAdmin.mockResolvedValue(users);
+      mockUserRepository.findUsersForAdmin.mockResolvedValue(users);
 
-      const result = await service.list();
+      const result = await service.listUsers();
 
       expect(result).toEqual({ items: users, nextCursor: null });
-      expect(mockUserRepository.findForAdmin).toHaveBeenCalledWith(null, 21);
+      expect(mockUserRepository.findUsersForAdmin).toHaveBeenCalledWith(
+        null,
+        21
+      );
     });
 
     it('should return nextCursor when there are more results', async () => {
@@ -31,9 +34,9 @@ describe('ListUsersAdminService', () => {
         id: `user-${String(i).padStart(2, '0')}`
       })) as User[];
 
-      mockUserRepository.findForAdmin.mockResolvedValue(users);
+      mockUserRepository.findUsersForAdmin.mockResolvedValue(users);
 
-      const result = await service.list(undefined, 20);
+      const result = await service.listUsers(undefined, 20);
 
       expect(result.items).toHaveLength(20);
       expect(result.nextCursor).toBe(
@@ -46,19 +49,19 @@ describe('ListUsersAdminService', () => {
       const cursor = Buffer.from(cursorId, 'utf-8').toString('base64url');
       const users = [{ id: '660e8400-e29b-41d4-a716-446655440001' }] as User[];
 
-      mockUserRepository.findForAdmin.mockResolvedValue(users);
+      mockUserRepository.findUsersForAdmin.mockResolvedValue(users);
 
-      const result = await service.list(cursor, 10);
+      const result = await service.listUsers(cursor, 10);
 
       expect(result).toEqual({ items: users, nextCursor: null });
-      expect(mockUserRepository.findForAdmin).toHaveBeenCalledWith(
+      expect(mockUserRepository.findUsersForAdmin).toHaveBeenCalledWith(
         cursorId,
         11
       );
     });
 
     it('should throw on invalid base64 cursor', async () => {
-      await expect(service.list('!!!invalid!!!')).rejects.toEqual(
+      await expect(service.listUsers('!!!invalid!!!')).rejects.toEqual(
         UserErrors.invalidCursor()
       );
     });
@@ -66,17 +69,20 @@ describe('ListUsersAdminService', () => {
     it('should throw when cursor decodes to non-UUID value', async () => {
       const cursor = Buffer.from('not-a-uuid', 'utf-8').toString('base64url');
 
-      await expect(service.list(cursor)).rejects.toEqual(
+      await expect(service.listUsers(cursor)).rejects.toEqual(
         UserErrors.invalidCursor()
       );
     });
 
     it('should use default limit of 20 when limit is not provided', async () => {
-      mockUserRepository.findForAdmin.mockResolvedValue([]);
+      mockUserRepository.findUsersForAdmin.mockResolvedValue([]);
 
-      await service.list();
+      await service.listUsers();
 
-      expect(mockUserRepository.findForAdmin).toHaveBeenCalledWith(null, 21);
+      expect(mockUserRepository.findUsersForAdmin).toHaveBeenCalledWith(
+        null,
+        21
+      );
     });
   });
 });

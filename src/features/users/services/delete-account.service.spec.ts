@@ -8,7 +8,7 @@ describe('DeleteAccountService', () => {
   let service: DeleteAccountService;
 
   const mockUserRepository = {
-    findById: jest.fn()
+    findUserById: jest.fn()
   };
 
   const mockRepository = {
@@ -20,7 +20,7 @@ describe('DeleteAccountService', () => {
   };
 
   const mockRevokeAllUserSessionsService = {
-    revokeAllForUser: jest.fn()
+    revokeAllSessionsForUser: jest.fn()
   };
 
   const mockDataSource = {
@@ -44,19 +44,19 @@ describe('DeleteAccountService', () => {
   describe('deleteAccount', () => {
     it('should soft delete user and revoke all sessions in one transaction', async () => {
       const user = { id: '1' } as User;
-      mockUserRepository.findById.mockResolvedValue(user);
+      mockUserRepository.findUserById.mockResolvedValue(user);
 
       await service.deleteAccount('1');
 
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
       expect(mockRepository.softRemove).toHaveBeenCalledWith(user);
       expect(
-        mockRevokeAllUserSessionsService.revokeAllForUser
+        mockRevokeAllUserSessionsService.revokeAllSessionsForUser
       ).toHaveBeenCalledWith('1', mockTransactionManager);
     });
 
     it('should throw when user does not exist', async () => {
-      mockUserRepository.findById.mockResolvedValue(null);
+      mockUserRepository.findUserById.mockResolvedValue(null);
 
       await expect(service.deleteAccount('1')).rejects.toEqual(
         UserErrors.userNotFound('1')
@@ -64,7 +64,7 @@ describe('DeleteAccountService', () => {
 
       expect(mockRepository.softRemove).not.toHaveBeenCalled();
       expect(
-        mockRevokeAllUserSessionsService.revokeAllForUser
+        mockRevokeAllUserSessionsService.revokeAllSessionsForUser
       ).not.toHaveBeenCalled();
     });
 
@@ -72,7 +72,7 @@ describe('DeleteAccountService', () => {
       const user = { id: '1' } as User;
       const error = new Error('db down');
 
-      mockUserRepository.findById.mockResolvedValue(user);
+      mockUserRepository.findUserById.mockResolvedValue(user);
       mockRepository.softRemove.mockRejectedValue(error);
 
       await expect(service.deleteAccount('1')).rejects.toThrow(error);

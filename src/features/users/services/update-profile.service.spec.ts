@@ -6,8 +6,8 @@ describe('UpdateProfileService', () => {
   let service: UpdateProfileService;
 
   const mockUserRepository = {
-    findById: jest.fn(),
-    update: jest.fn()
+    findUserById: jest.fn(),
+    updateUserProfile: jest.fn()
   };
 
   beforeEach(() => {
@@ -18,30 +18,30 @@ describe('UpdateProfileService', () => {
 
   describe('updateProfile', () => {
     it('should update profile', async () => {
-      mockUserRepository.findById.mockResolvedValue({ id: '1' } as User);
-      mockUserRepository.update.mockResolvedValue(undefined);
+      mockUserRepository.findUserById.mockResolvedValue({ id: '1' } as User);
+      mockUserRepository.updateUserProfile.mockResolvedValue(undefined);
 
       await service.updateProfile('1', { name: 'Ali' } as any);
 
-      expect(mockUserRepository.findById).toHaveBeenCalledWith('1');
-      expect(mockUserRepository.update).toHaveBeenCalledWith('1', {
+      expect(mockUserRepository.findUserById).toHaveBeenCalledWith('1');
+      expect(mockUserRepository.updateUserProfile).toHaveBeenCalledWith('1', {
         name: 'Ali'
       });
     });
 
     it('should throw when user not found', async () => {
-      mockUserRepository.findById.mockResolvedValue(null);
+      mockUserRepository.findUserById.mockResolvedValue(null);
 
       await expect(service.updateProfile('1', {} as any)).rejects.toEqual(
         UserErrors.userNotFound('1')
       );
 
-      expect(mockUserRepository.update).not.toHaveBeenCalled();
+      expect(mockUserRepository.updateUserProfile).not.toHaveBeenCalled();
     });
 
     it('should throw emailAlreadyExists', async () => {
-      mockUserRepository.findById.mockResolvedValue({ id: '1' } as User);
-      mockUserRepository.update.mockRejectedValue({
+      mockUserRepository.findUserById.mockResolvedValue({ id: '1' } as User);
+      mockUserRepository.updateUserProfile.mockRejectedValue({
         code: '23505',
         detail: 'email'
       });
@@ -52,8 +52,8 @@ describe('UpdateProfileService', () => {
     });
 
     it('should throw usernameAlreadyExists', async () => {
-      mockUserRepository.findById.mockResolvedValue({ id: '1' } as User);
-      mockUserRepository.update.mockRejectedValue({
+      mockUserRepository.findUserById.mockResolvedValue({ id: '1' } as User);
+      mockUserRepository.updateUserProfile.mockRejectedValue({
         code: '23505',
         detail: 'username'
       });
@@ -65,8 +65,8 @@ describe('UpdateProfileService', () => {
 
     it('should rethrow unknown errors', async () => {
       const error = new Error('unknown');
-      mockUserRepository.findById.mockResolvedValue({ id: '1' } as User);
-      mockUserRepository.update.mockRejectedValue(error);
+      mockUserRepository.findUserById.mockResolvedValue({ id: '1' } as User);
+      mockUserRepository.updateUserProfile.mockRejectedValue(error);
 
       await expect(service.updateProfile('1', {} as any)).rejects.toThrow(
         error

@@ -24,7 +24,7 @@ describe('UserRepository', () => {
     repository = new UserRepository(mockDataSource as unknown as DataSource);
   });
 
-  describe('create', () => {
+  describe('insertUser', () => {
     it('should create and save user', async () => {
       const dto = {
         email: 'test@test.com',
@@ -34,19 +34,19 @@ describe('UserRepository', () => {
       mockRepository.create.mockReturnValue(dto);
       mockRepository.save.mockResolvedValue(undefined);
 
-      await repository.create(dto as any);
+      await repository.insertUser(dto as any);
 
       expect(mockRepository.create).toHaveBeenCalledWith(dto);
       expect(mockRepository.save).toHaveBeenCalled();
     });
   });
 
-  describe('findById', () => {
+  describe('findUserById', () => {
     it('should return user', async () => {
       const user = { id: '1' } as User;
       mockRepository.findOne.mockResolvedValue(user);
 
-      const result = await repository.findById('1');
+      const result = await repository.findUserById('1');
 
       expect(result).toEqual(user);
       expect(mockRepository.findOne).toHaveBeenCalledWith({
@@ -58,18 +58,19 @@ describe('UserRepository', () => {
     it('should return null when not found', async () => {
       mockRepository.findOne.mockResolvedValue(null);
 
-      const result = await repository.findById('missing');
+      const result = await repository.findUserById('missing');
 
       expect(result).toBeNull();
     });
   });
 
-  describe('findByIdentifierForAuth', () => {
+  describe('findByEmailOrUsernameForAuth', () => {
     it('should return user by email', async () => {
       const user = { id: '1', password: 'hash', status: 'ACTIVATE' } as User;
       mockRepository.findOne.mockResolvedValue(user);
 
-      const result = await repository.findByIdentifierForAuth('test@test.com');
+      const result =
+        await repository.findByEmailOrUsernameForAuth('test@test.com');
 
       expect(result).toEqual(user);
       expect(mockRepository.findOne).toHaveBeenCalledWith({
@@ -82,18 +83,18 @@ describe('UserRepository', () => {
       mockRepository.findOne.mockResolvedValue(null);
 
       const result =
-        await repository.findByIdentifierForAuth('missing@test.com');
+        await repository.findByEmailOrUsernameForAuth('missing@test.com');
 
       expect(result).toBeNull();
     });
   });
 
-  describe('findByIdWithPassword', () => {
+  describe('findUserWithPassword', () => {
     it('should return user with password', async () => {
       const user = { id: '1', password: 'hash' } as User;
       mockRepository.findOne.mockResolvedValue(user);
 
-      const result = await repository.findByIdWithPassword('1');
+      const result = await repository.findUserWithPassword('1');
 
       expect(result).toEqual(user);
       expect(mockRepository.findOne).toHaveBeenCalledWith({
@@ -103,12 +104,12 @@ describe('UserRepository', () => {
     });
   });
 
-  describe('findByIdForAdmin', () => {
+  describe('findUserForAdmin', () => {
     it('should return user with admin view select', async () => {
       const user = { id: '1' } as User;
       mockRepository.findOne.mockResolvedValue(user);
 
-      const result = await repository.findByIdForAdmin('1');
+      const result = await repository.findUserForAdmin('1');
 
       expect(result).toEqual(user);
       expect(mockRepository.findOne).toHaveBeenCalledWith({
@@ -126,12 +127,12 @@ describe('UserRepository', () => {
     });
   });
 
-  describe('findForAdmin', () => {
+  describe('findUsersForAdmin', () => {
     it('should return users without cursor', async () => {
       const users = [{ id: '1' }, { id: '2' }] as User[];
       mockRepository.find.mockResolvedValue(users);
 
-      const result = await repository.findForAdmin(null, 21);
+      const result = await repository.findUsersForAdmin(null, 21);
 
       expect(result).toEqual(users);
       expect(mockRepository.find).toHaveBeenCalledWith({
@@ -154,7 +155,7 @@ describe('UserRepository', () => {
       const users = [{ id: '2' }] as User[];
       mockRepository.find.mockResolvedValue(users);
 
-      const result = await repository.findForAdmin('cursor-id', 11);
+      const result = await repository.findUsersForAdmin('cursor-id', 11);
 
       expect(result).toEqual(users);
       expect(mockRepository.find).toHaveBeenCalledWith(
@@ -165,11 +166,11 @@ describe('UserRepository', () => {
     });
   });
 
-  describe('update', () => {
+  describe('updateUserProfile', () => {
     it('should update user', async () => {
       mockRepository.update.mockResolvedValue(undefined);
 
-      await repository.update('1', { name: 'Ali' } as any);
+      await repository.updateUserProfile('1', { name: 'Ali' } as any);
 
       expect(mockRepository.update).toHaveBeenCalledWith(
         { id: '1' },

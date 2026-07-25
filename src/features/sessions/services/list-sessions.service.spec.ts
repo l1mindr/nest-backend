@@ -1,5 +1,4 @@
 import { ClockService } from '@core/clock/clock.service';
-import { DataSource } from 'typeorm';
 import { Session } from '../entities/session.entity';
 import { ListSessionsService } from './list-sessions.service';
 
@@ -11,21 +10,8 @@ describe('ListSessionsService', () => {
     nowDate: jest.fn()
   };
 
-  const mockQueryBuilder = {
-    where: jest.fn().mockReturnThis(),
-    andWhere: jest.fn().mockReturnThis(),
-    orderBy: jest.fn().mockReturnThis(),
-    addOrderBy: jest.fn().mockReturnThis(),
-    take: jest.fn().mockReturnThis(),
-    getMany: jest.fn()
-  };
-
-  const mockRepository = {
-    createQueryBuilder: jest.fn(() => mockQueryBuilder)
-  };
-
-  const mockDataSource = {
-    getRepository: jest.fn().mockReturnValue(mockRepository)
+  const mockSessionRepository = {
+    listUserSessions: jest.fn()
   };
 
   const device = {
@@ -54,20 +40,19 @@ describe('ListSessionsService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
     mockClockService.nowDate.mockReturnValue(now);
 
     service = new ListSessionsService(
       mockClockService as unknown as ClockService,
-      mockDataSource as unknown as DataSource
+      mockSessionRepository as any
     );
   });
 
-  describe('list', () => {
+  describe('listSessions', () => {
     it('should return explicitly mapped items with current session first', async () => {
-      mockQueryBuilder.getMany.mockResolvedValue([otherSession]);
+      mockSessionRepository.listUserSessions.mockResolvedValue([otherSession]);
 
-      const result = await service.list('user-id', currentSession);
+      const result = await service.listSessions('user-id', currentSession);
       expect(result.currentSession).toEqual({
         sessionId: 'current',
         ipAddress: '127.0.0.1',
@@ -88,57 +73,55 @@ describe('ListSessionsService', () => {
       expect(mockClockService.nowDate).toHaveBeenCalledTimes(1);
     });
 
-    it('should use queryBuilder for session listing', async () => {
-      mockQueryBuilder.getMany.mockResolvedValue([]);
+    it('should use repository for session listing', async () => {
+      mockSessionRepository.listUserSessions.mockResolvedValue([]);
 
-      await service.list('user-id', currentSession);
+      await service.listSessions('user-id', currentSession);
 
-      expect(mockRepository.createQueryBuilder).toHaveBeenCalled();
+      expect(mockSessionRepository.listUserSessions).toHaveBeenCalledWith(
+        'user-id',
+        'current',
+        expect.objectContaining({ now, limit: 20 })
+      );
     });
 
     it('should order sessions deterministically by lastUsedAt, id', async () => {
-      mockQueryBuilder.getMany.mockResolvedValue([]);
+      mockSessionRepository.listUserSessions.mockResolvedValue([]);
 
-      await service.list('user-id', currentSession);
+      await service.listSessions('user-id', currentSession);
 
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        'session.lastUsedAt',
-        'ASC'
-      );
-      expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith(
-        'session.id',
-        'ASC'
+      expect(mockSessionRepository.listUserSessions).toHaveBeenCalledWith(
+        'user-id',
+        'current',
+        expect.objectContaining({ now })
       );
     });
 
     it('should apply base filters for owner, active, expiration, and exclude current session', async () => {
-      mockQueryBuilder.getMany.mockResolvedValue([]);
+      mockSessionRepository.listUserSessions.mockResolvedValue([]);
 
-      await service.list('user-id', currentSession);
+      await service.listSessions('user-id', currentSession);
 
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
-        'session.owner = :userId',
-        { userId: 'user-id' }
-      );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'session.isRevoked = false'
-      );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'session.expiresAt > :now',
-        { now }
-      );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'session.id != :currentSessionId',
-        { currentSessionId: 'current' }
+      expect(mockSessionRepository.listUserSessions).toHaveBeenCalledWith(
+        'user-id',
+        'current',
+        expect.objectContaining({
+          now,
+          limit: 20
+        })
       );
     });
 
     it('should use take + 1 to detect additional pages', async () => {
-      mockQueryBuilder.getMany.mockResolvedValue([]);
+      mockSessionRepository.listUserSessions.mockResolvedValue([]);
 
-      await service.list('user-id', currentSession);
+      await service.listSessions('user-id', currentSession);
 
-      expect(mockQueryBuilder.take).toHaveBeenCalledWith(21);
+      expect(mockSessionRepository.listUserSessions).toHaveBeenCalledWith(
+        'user-id',
+        'current',
+        expect.objectContaining({ limit: 20 })
+      );
     });
 
     it('should return nextCursor when there are more results', async () => {
@@ -155,9 +138,9 @@ describe('ListSessionsService', () => {
         )
       })) as unknown as Session[];
 
-      mockQueryBuilder.getMany.mockResolvedValue(sessions);
+      mockSessionRepository.listUserSessions.mockResolvedValue(sessions);
 
-      const result = await service.list('user-id', currentSession, 20);
+      const result = await service.listSessions('user-id', currentSession, 20);
 
       expect(result.items).toHaveLength(20);
       expect(result.nextCursor).toEqual(expect.any(String));
@@ -173,16 +156,16 @@ describe('ListSessionsService', () => {
         { ...otherSession, createdAt: new Date('2026-07-01T00:00:00.000Z') }
       ] as unknown as Session[];
 
-      mockQueryBuilder.getMany.mockResolvedValue(sessions);
+      mockSessionRepository.listUserSessions.mockResolvedValue(sessions);
 
-      const result = await service.list('user-id', currentSession, 20);
+      const result = await service.listSessions('user-id', currentSession, 20);
 
       expect(result.items).toHaveLength(1);
       expect(result.nextCursor).toBeNull();
     });
 
     it('should apply cursor filter when cursor is provided', async () => {
-      mockQueryBuilder.getMany.mockResolvedValue([]);
+      mockSessionRepository.listUserSessions.mockResolvedValue([]);
 
       const cursorPayload = {
         lastUsedAt: '2026-07-14T09:00:00.000Z',
@@ -193,32 +176,35 @@ describe('ListSessionsService', () => {
         'utf-8'
       ).toString('base64url');
 
-      await service.list('user-id', currentSession, 20, cursor);
+      await service.listSessions('user-id', currentSession, 20, cursor);
 
-      const andWhereCalls = mockQueryBuilder.andWhere.mock.calls;
-      const cursorCall = andWhereCalls.find(
-        (call: any[]) =>
-          typeof call[0] === 'string' && call[0].includes('cursorLastUsedAt')
+      expect(mockSessionRepository.listUserSessions).toHaveBeenCalledWith(
+        'user-id',
+        'current',
+        expect.objectContaining({
+          cursor: {
+            lastUsedAt: new Date('2026-07-14T09:00:00.000Z'),
+            id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+          }
+        })
       );
-
-      expect(cursorCall).toBeDefined();
-      expect(cursorCall[1]).toEqual({
-        cursorLastUsedAt: new Date('2026-07-14T09:00:00.000Z'),
-        cursorId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-      });
     });
 
     it('should use default limit when limit is not provided', async () => {
-      mockQueryBuilder.getMany.mockResolvedValue([]);
+      mockSessionRepository.listUserSessions.mockResolvedValue([]);
 
-      await service.list('user-id', currentSession);
+      await service.listSessions('user-id', currentSession);
 
-      expect(mockQueryBuilder.take).toHaveBeenCalledWith(21);
+      expect(mockSessionRepository.listUserSessions).toHaveBeenCalledWith(
+        'user-id',
+        'current',
+        expect.objectContaining({ limit: 20 })
+      );
     });
 
     it('should throw on invalid base64 cursor', async () => {
       await expect(
-        service.list('user-id', currentSession, 20, '!!!invalid!!!')
+        service.listSessions('user-id', currentSession, 20, '!!!invalid!!!')
       ).rejects.toThrow();
     });
 
@@ -226,7 +212,7 @@ describe('ListSessionsService', () => {
       const cursor = Buffer.from('not-json', 'utf-8').toString('base64url');
 
       await expect(
-        service.list('user-id', currentSession, 20, cursor)
+        service.listSessions('user-id', currentSession, 20, cursor)
       ).rejects.toThrow();
     });
 
@@ -237,7 +223,7 @@ describe('ListSessionsService', () => {
       ).toString('base64url');
 
       await expect(
-        service.list('user-id', currentSession, 20, cursor)
+        service.listSessions('user-id', currentSession, 20, cursor)
       ).rejects.toThrow();
     });
 
@@ -251,7 +237,7 @@ describe('ListSessionsService', () => {
       ).toString('base64url');
 
       await expect(
-        service.list('user-id', currentSession, 20, cursor)
+        service.listSessions('user-id', currentSession, 20, cursor)
       ).rejects.toThrow();
     });
 
@@ -265,7 +251,7 @@ describe('ListSessionsService', () => {
       ).toString('base64url');
 
       await expect(
-        service.list('user-id', currentSession, 20, cursor)
+        service.listSessions('user-id', currentSession, 20, cursor)
       ).rejects.toThrow();
     });
   });

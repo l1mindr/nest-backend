@@ -30,13 +30,13 @@ export class ChangePasswordService implements IChangePasswordService {
     this.logger.setContext(ChangePasswordService.name);
   }
 
-  async changePassword(
+  async changeUserPassword(
     userId: string,
     sessionId: string,
     { currentPassword, newPassword }: ChangePasswordRequestDto
   ): Promise<void> {
     const userWithPassword =
-      await this.userRepository.findByIdWithPassword(userId);
+      await this.userRepository.findUserWithPassword(userId);
 
     if (!userWithPassword) throw TokenErrors.invalidToken();
 
@@ -58,8 +58,8 @@ export class ChangePasswordService implements IChangePasswordService {
 
     try {
       await this.dataSource.transaction(async (manager) => {
-        await this.userRepository.setPassword(userId, password, manager);
-        await this.terminateOtherSessionsService.terminateOthers(
+        await this.userRepository.updatePasswordHash(userId, password, manager);
+        await this.terminateOtherSessionsService.terminateOtherSessions(
           userId,
           sessionId,
           manager

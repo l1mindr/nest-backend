@@ -35,7 +35,7 @@ export class RefreshTokenService implements IRefreshTokenService {
     this.logger.setContext(RefreshTokenService.name);
   }
 
-  async refresh(refreshToken: string): Promise<AuthTokens> {
+  async refreshTokens(refreshToken: string): Promise<AuthTokens> {
     const { sub, sessionId } =
       await this.tokenService.verifyRefreshToken(refreshToken);
 
@@ -49,7 +49,10 @@ export class RefreshTokenService implements IRefreshTokenService {
     }
 
     try {
-      const session = await this.sessionRepository.getActive(sub, sessionId);
+      const session = await this.sessionRepository.findActiveSession(
+        sub,
+        sessionId
+      );
 
       if (!session) {
         throw SessionErrors.sessionExpired();
@@ -61,7 +64,7 @@ export class RefreshTokenService implements IRefreshTokenService {
       );
 
       if (!isValid) {
-        await this.revokeSessionService.revoke(sub, sessionId);
+        await this.revokeSessionService.revokeSession(sub, sessionId);
         throw SessionErrors.sessionReuseDetected(sessionId);
       }
 
@@ -78,7 +81,7 @@ export class RefreshTokenService implements IRefreshTokenService {
         tokens.refreshToken
       );
 
-      const ok = await this.sessionRepository.rotateAtomic(
+      const ok = await this.sessionRepository.rotateRefreshToken(
         session.id,
         session.version,
         session.refreshTokenHash,

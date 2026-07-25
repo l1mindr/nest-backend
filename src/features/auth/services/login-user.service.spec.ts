@@ -2,7 +2,6 @@ import { ClockService } from '@core/clock/clock.service';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import { createHash } from 'crypto';
-import { DataSource } from 'typeorm';
 import { AuthErrors } from '../errors/auth-errors';
 import { LoginUserService } from './login-user.service';
 
@@ -31,7 +30,7 @@ describe('LoginUserService', () => {
   };
 
   const mockIssueSessionService = {
-    issue: jest.fn()
+    createSession: jest.fn()
   };
 
   const mockTokenService = {
@@ -39,11 +38,11 @@ describe('LoginUserService', () => {
   };
 
   const mockUserRepository = {
-    findByIdentifierForAuth: jest.fn()
+    findByEmailOrUsernameForAuth: jest.fn()
   };
 
-  const mockDataSource = {
-    getRepository: jest.fn()
+  const mockSessionRepository = {
+    saveRefreshTokenHash: jest.fn()
   };
 
   const mockLogger = {
@@ -78,14 +77,14 @@ describe('LoginUserService', () => {
       mockIssueSessionService as any,
       mockTokenService as any,
       mockUserRepository as any,
-      mockDataSource as unknown as DataSource,
+      mockSessionRepository as any,
       mockLogger as any
     );
   });
 
-  describe('login', () => {
+  describe('loginUser', () => {
     it('should login successfully', async () => {
-      mockUserRepository.findByIdentifierForAuth.mockResolvedValue({
+      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
         id: 'user-id',
         password: 'hashed-password',
         status: UserStatus.ACTIVATE
@@ -93,7 +92,7 @@ describe('LoginUserService', () => {
 
       mockHashingProvider.compare.mockResolvedValue(true);
 
-      mockIssueSessionService.issue.mockResolvedValue({
+      mockIssueSessionService.createSession.mockResolvedValue({
         id: 'session-id'
       });
 
@@ -102,12 +101,9 @@ describe('LoginUserService', () => {
         refreshToken: 'refresh-token'
       });
 
-      const mockSessionRepo = {
-        save: jest.fn()
-      };
-      mockDataSource.getRepository.mockReturnValue(mockSessionRepo);
+      mockSessionRepository.saveRefreshTokenHash.mockResolvedValue(undefined);
 
-      const result = await service.login(
+      const result = await service.loginUser(
         {
           email: 'test@test.com',
           password: '123456'
@@ -120,7 +116,7 @@ describe('LoginUserService', () => {
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       });
-      expect(mockSessionRepo.save).toHaveBeenCalledWith(
+      expect(mockSessionRepository.saveRefreshTokenHash).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'session-id',
           refreshTokenHash: sha256('refresh-token')
@@ -129,10 +125,10 @@ describe('LoginUserService', () => {
     });
 
     it('should throw when user not found', async () => {
-      mockUserRepository.findByIdentifierForAuth.mockResolvedValue(null);
+      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue(null);
 
       await expect(
-        service.login(
+        service.loginUser(
           {
             email: 'test@test.com',
             password: '123456'
@@ -144,7 +140,7 @@ describe('LoginUserService', () => {
     });
 
     it('should throw when password mismatch', async () => {
-      mockUserRepository.findByIdentifierForAuth.mockResolvedValue({
+      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
         id: 'user-id',
         password: 'hash'
       });
@@ -152,7 +148,7 @@ describe('LoginUserService', () => {
       mockHashingProvider.compare.mockResolvedValue(false);
 
       await expect(
-        service.login(
+        service.loginUser(
           {
             email: 'test@test.com',
             password: '123456'
@@ -166,7 +162,7 @@ describe('LoginUserService', () => {
     it.each([UserStatus.DEACTIVATE, UserStatus.SUSPEND])(
       'should reject login for %s users with invalidCredentials and issue no tokens',
       async (status) => {
-        mockUserRepository.findByIdentifierForAuth.mockResolvedValue({
+        mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
           id: 'user-id',
           password: 'hashed-password',
           status
@@ -175,7 +171,7 @@ describe('LoginUserService', () => {
         mockHashingProvider.compare.mockResolvedValue(true);
 
         await expect(
-          service.login(
+          service.loginUser(
             {
               email: 'test@test.com',
               password: '123456'
@@ -185,7 +181,7 @@ describe('LoginUserService', () => {
           )
         ).rejects.toEqual(AuthErrors.invalidCredentials());
 
-        expect(mockIssueSessionService.issue).not.toHaveBeenCalled();
+        expect(mockIssueSessionService.createSession).not.toHaveBeenCalled();
         expect(mockTokenService.issuePair).not.toHaveBeenCalled();
       }
     );

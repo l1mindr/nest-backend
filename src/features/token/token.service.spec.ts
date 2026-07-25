@@ -15,8 +15,8 @@ describe('TokenService', () => {
   };
 
   const mockSessionRepository = {
-    getActive: jest.fn(),
-    getUserAndActiveSession: jest.fn()
+    findActiveSession: jest.fn(),
+    findUserWithActiveSession: jest.fn()
   };
 
   const jwtConfiguration = {
@@ -162,7 +162,7 @@ describe('TokenService', () => {
     );
   });
 
-  describe('validatePayload', () => {
+  describe('findUserAndActiveSession', () => {
     it('should return user and session', async () => {
       const user = {
         id: 'user-id',
@@ -173,12 +173,12 @@ describe('TokenService', () => {
         id: 'session-id'
       };
 
-      mockSessionRepository.getUserAndActiveSession.mockResolvedValue({
+      mockSessionRepository.findUserWithActiveSession.mockResolvedValue({
         user,
         session
       });
 
-      const result = await service.validatePayload({
+      const result = await service.findUserAndActiveSession({
         sub: 'user-id',
         sessionId: 'session-id'
       });
@@ -187,38 +187,47 @@ describe('TokenService', () => {
     });
 
     it('should throw invalidToken when user does not exist', async () => {
-      mockSessionRepository.getUserAndActiveSession.mockResolvedValue({
+      mockSessionRepository.findUserWithActiveSession.mockResolvedValue({
         user: null,
         session: null
       });
 
       await expect(
-        service.validatePayload({ sub: 'user-id', sessionId: 'session-id' })
+        service.findUserAndActiveSession({
+          sub: 'user-id',
+          sessionId: 'session-id'
+        })
       ).rejects.toEqual(TokenErrors.invalidToken());
     });
 
     it.each([UserStatus.DEACTIVATE, UserStatus.SUSPEND])(
       'should throw invalidToken when the account is %s',
       async (status) => {
-        mockSessionRepository.getUserAndActiveSession.mockResolvedValue({
+        mockSessionRepository.findUserWithActiveSession.mockResolvedValue({
           user: { id: 'user-id', status },
           session: { id: 'session-id' }
         });
 
         await expect(
-          service.validatePayload({ sub: 'user-id', sessionId: 'session-id' })
+          service.findUserAndActiveSession({
+            sub: 'user-id',
+            sessionId: 'session-id'
+          })
         ).rejects.toEqual(TokenErrors.invalidToken());
       }
     );
 
     it('should throw sessionExpired when session does not exist', async () => {
-      mockSessionRepository.getUserAndActiveSession.mockResolvedValue({
+      mockSessionRepository.findUserWithActiveSession.mockResolvedValue({
         user: { id: 'user-id', status: UserStatus.ACTIVATE },
         session: null
       });
 
       await expect(
-        service.validatePayload({ sub: 'user-id', sessionId: 'session-id' })
+        service.findUserAndActiveSession({
+          sub: 'user-id',
+          sessionId: 'session-id'
+        })
       ).rejects.toEqual(SessionErrors.sessionExpired('session-id'));
     });
   });

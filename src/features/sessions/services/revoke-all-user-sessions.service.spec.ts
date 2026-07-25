@@ -1,5 +1,4 @@
-import { DataSource, EntityManager } from 'typeorm';
-import { Session } from '../entities/session.entity';
+import { EntityManager } from 'typeorm';
 import { RevokeAllUserSessionsService } from './revoke-all-user-sessions.service';
 
 describe('RevokeAllUserSessionsService', () => {
@@ -12,61 +11,44 @@ describe('RevokeAllUserSessionsService', () => {
     error: jest.fn()
   };
 
-  const mockRepository = {
-    update: jest.fn()
-  };
-
-  const mockDataSource = {
-    getRepository: jest.fn().mockReturnValue(mockRepository)
+  const mockSessionRepository = {
+    revokeAllSessionsForUser: jest.fn()
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     service = new RevokeAllUserSessionsService(
-      mockDataSource as unknown as DataSource,
+      mockSessionRepository as any,
       mockLogger as any
     );
   });
 
-  describe('revokeAllForUser', () => {
+  describe('revokeAllSessionsForUser', () => {
     it('should revoke every active session belonging to the user', async () => {
-      mockRepository.update.mockResolvedValue(undefined);
-
-      await service.revokeAllForUser('user-id');
-
-      expect(mockRepository.update).toHaveBeenCalledWith(
-        {
-          owner: { id: 'user-id' },
-          isRevoked: false
-        },
-        {
-          isRevoked: true
-        }
+      mockSessionRepository.revokeAllSessionsForUser.mockResolvedValue(
+        undefined
       );
+
+      await service.revokeAllSessionsForUser('user-id');
+
+      expect(
+        mockSessionRepository.revokeAllSessionsForUser
+      ).toHaveBeenCalledWith('user-id', undefined);
     });
 
-    it('should use the transaction manager repository when provided', async () => {
-      const transactionRepository = {
-        update: jest.fn().mockResolvedValue(undefined)
-      };
-      const manager = {
-        getRepository: jest.fn().mockReturnValue(transactionRepository)
-      } as unknown as EntityManager;
+    it('should pass the transaction manager when provided', async () => {
+      const manager = {} as EntityManager;
 
-      await service.revokeAllForUser('user-id', manager);
-
-      expect(manager.getRepository).toHaveBeenCalledWith(Session);
-      expect(transactionRepository.update).toHaveBeenCalledWith(
-        {
-          owner: { id: 'user-id' },
-          isRevoked: false
-        },
-        {
-          isRevoked: true
-        }
+      mockSessionRepository.revokeAllSessionsForUser.mockResolvedValue(
+        undefined
       );
-      expect(mockRepository.update).not.toHaveBeenCalled();
+
+      await service.revokeAllSessionsForUser('user-id', manager);
+
+      expect(
+        mockSessionRepository.revokeAllSessionsForUser
+      ).toHaveBeenCalledWith('user-id', manager);
     });
   });
 });

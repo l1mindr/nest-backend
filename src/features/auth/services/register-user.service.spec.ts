@@ -8,7 +8,7 @@ describe('RegisterUserService', () => {
   };
 
   const mockCreateUserService = {
-    create: jest.fn()
+    createUser: jest.fn()
   };
 
   beforeEach(() => {
@@ -20,18 +20,18 @@ describe('RegisterUserService', () => {
     );
   });
 
-  describe('register', () => {
+  describe('registerUser', () => {
     it('should hash password and register user', async () => {
       mockHashingProvider.hash.mockResolvedValue('hashed-password');
 
-      await service.register({
+      await service.registerUser({
         email: 'test@test.com',
         password: '123456'
       } as any);
 
       expect(mockHashingProvider.hash).toHaveBeenCalledWith('123456');
 
-      expect(mockCreateUserService.create).toHaveBeenCalledWith(
+      expect(mockCreateUserService.createUser).toHaveBeenCalledWith(
         expect.objectContaining({
           password: 'hashed-password'
         })
@@ -41,10 +41,10 @@ describe('RegisterUserService', () => {
     it('should propagate registration errors', async () => {
       const error = new Error('duplicate email');
       mockHashingProvider.hash.mockResolvedValue('hashed');
-      mockCreateUserService.create.mockRejectedValue(error);
+      mockCreateUserService.createUser.mockRejectedValue(error);
 
       await expect(
-        service.register({
+        service.registerUser({
           email: 'test@test.com',
           password: '123456'
         } as any)

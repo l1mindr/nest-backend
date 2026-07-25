@@ -88,8 +88,11 @@ export class TokenService implements ITokenService {
     }
   }
 
-  async validatePayload({ sub, sessionId }: IJwtPayload): Promise<CustomAuth> {
-    const result = await this.sessionRepository.getUserAndActiveSession(
+  async findUserAndActiveSession({
+    sub,
+    sessionId
+  }: IJwtPayload): Promise<CustomAuth> {
+    const result = await this.sessionRepository.findUserWithActiveSession(
       sub,
       sessionId
     );

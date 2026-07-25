@@ -60,8 +60,8 @@ export class AuthController {
   @RateLimit({ limit: 5, ttl: 60 })
   @SkipCsrf()
   @ApiRegisterUser()
-  signUpUser(@Body() dto: RegisterUserRequestDto) {
-    return this.registerUserService.register(dto);
+  registerUser(@Body() dto: RegisterUserRequestDto) {
+    return this.registerUserService.registerUser(dto);
   }
 
   @Public()
@@ -71,12 +71,12 @@ export class AuthController {
   @RateLimit({ limit: 5, ttl: 60 })
   @SkipCsrf()
   @ApiLoginUser()
-  async signInUser(
+  async loginUser(
     @Body() dto: LoginUserRequestDto,
     @IpAddress() ipAddress: string,
     @Device() device: DeviceContext
   ) {
-    return await this.loginUserService.login(dto, ipAddress, device);
+    return await this.loginUserService.loginUser(dto, ipAddress, device);
   }
 
   @Public()
@@ -86,8 +86,10 @@ export class AuthController {
   @RateLimit({ limit: 20, ttl: 60 })
   @SkipCsrf()
   @ApiLoginUser()
-  async refreshSession(@Req() req: Request) {
-    return await this.refreshTokenService.refresh(req.cookies.refresh_token);
+  async refreshTokens(@Req() req: Request) {
+    return await this.refreshTokenService.refreshTokens(
+      req.cookies.refresh_token
+    );
   }
 
   @Post('change-password')
@@ -97,11 +99,15 @@ export class AuthController {
     ttl: 300
   })
   @ApiChangePassword()
-  changePassword(
+  changeUserPassword(
     @User() user: UserEntity,
     @Session() session: SessionEntity,
     @Body() dto: ChangePasswordRequestDto
   ) {
-    return this.changePasswordService.changePassword(user.id, session.id, dto);
+    return this.changePasswordService.changeUserPassword(
+      user.id,
+      session.id,
+      dto
+    );
   }
 }

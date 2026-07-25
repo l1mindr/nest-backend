@@ -1,4 +1,3 @@
-import { DataSource } from 'typeorm';
 import { RevokeSessionService } from './revoke-session.service';
 
 describe('RevokeSessionService', () => {
@@ -11,37 +10,28 @@ describe('RevokeSessionService', () => {
     error: jest.fn()
   };
 
-  const mockRepository = {
-    update: jest.fn()
-  };
-
-  const mockDataSource = {
-    getRepository: jest.fn().mockReturnValue(mockRepository)
+  const mockSessionRepository = {
+    revokeSession: jest.fn()
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     service = new RevokeSessionService(
-      mockDataSource as unknown as DataSource,
+      mockSessionRepository as any,
       mockLogger as any
     );
   });
 
-  describe('revoke', () => {
+  describe('revokeSession', () => {
     it('should revoke session', async () => {
-      mockRepository.update.mockResolvedValue(undefined);
+      mockSessionRepository.revokeSession.mockResolvedValue(undefined);
 
-      await service.revoke('user-id', 'session-id');
+      await service.revokeSession('user-id', 'session-id');
 
-      expect(mockRepository.update).toHaveBeenCalledWith(
-        {
-          owner: { id: 'user-id' },
-          id: 'session-id'
-        },
-        {
-          isRevoked: true
-        }
+      expect(mockSessionRepository.revokeSession).toHaveBeenCalledWith(
+        'user-id',
+        'session-id'
       );
     });
   });

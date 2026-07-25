@@ -15,10 +15,10 @@ export class RegisterUserService implements IRegisterUserService {
     private readonly createUserService: ICreateUserService
   ) {}
 
-  async register(dto: RegisterUserRequestDto): Promise<void> {
+  async registerUser(dto: RegisterUserRequestDto): Promise<void> {
     const password = await this.hashingProvider.hash(dto.password);
 
-    return this.createUserService.create({
+    return this.createUserService.createUser({
       ...dto,
       password
     });

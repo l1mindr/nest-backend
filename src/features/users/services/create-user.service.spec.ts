@@ -5,7 +5,7 @@ describe('CreateUserService', () => {
   let service: CreateUserService;
 
   const mockUserRepository = {
-    create: jest.fn()
+    insertUser: jest.fn()
   };
 
   beforeEach(() => {
@@ -14,46 +14,46 @@ describe('CreateUserService', () => {
     service = new CreateUserService(mockUserRepository as any);
   });
 
-  describe('create', () => {
+  describe('createUser', () => {
     it('should create user', async () => {
-      mockUserRepository.create.mockResolvedValue(undefined);
+      mockUserRepository.insertUser.mockResolvedValue(undefined);
 
-      await service.create({
+      await service.createUser({
         email: 'test@test.com',
         username: 'test',
         password: 'hash'
       } as any);
 
-      expect(mockUserRepository.create).toHaveBeenCalled();
+      expect(mockUserRepository.insertUser).toHaveBeenCalled();
     });
 
     it('should throw emailAlreadyExists', async () => {
-      mockUserRepository.create.mockRejectedValue({
+      mockUserRepository.insertUser.mockRejectedValue({
         code: '23505',
         detail: 'email'
       });
 
-      await expect(service.create({} as any)).rejects.toEqual(
+      await expect(service.createUser({} as any)).rejects.toEqual(
         UserErrors.emailAlreadyExists()
       );
     });
 
     it('should throw usernameAlreadyExists', async () => {
-      mockUserRepository.create.mockRejectedValue({
+      mockUserRepository.insertUser.mockRejectedValue({
         code: '23505',
         detail: 'username'
       });
 
-      await expect(service.create({} as any)).rejects.toEqual(
+      await expect(service.createUser({} as any)).rejects.toEqual(
         UserErrors.usernameAlreadyExists()
       );
     });
 
     it('should rethrow unknown errors', async () => {
       const error = new Error('unknown');
-      mockUserRepository.create.mockRejectedValue(error);
+      mockUserRepository.insertUser.mockRejectedValue(error);
 
-      await expect(service.create({} as any)).rejects.toThrow(error);
+      await expect(service.createUser({} as any)).rejects.toThrow(error);
     });
   });
 });

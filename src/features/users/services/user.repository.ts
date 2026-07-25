@@ -29,18 +29,18 @@ export class UserRepository implements IUserRepository {
     registryDates: { createdAt: true, updatedAt: true, deleteAt: true }
   };
 
-  async create(dto: CreateUserRequestDto): Promise<void> {
+  async insertUser(dto: CreateUserRequestDto): Promise<void> {
     await this.userRepo.save(this.userRepo.create(dto));
   }
 
-  async findById(id: string): Promise<User | null> {
+  async findUserById(id: string): Promise<User | null> {
     return this.userRepo.findOne({
       where: { id },
       select: { id: true }
     });
   }
 
-  async findByIdentifierForAuth(identifier: string): Promise<User | null> {
+  async findByEmailOrUsernameForAuth(identifier: string): Promise<User | null> {
     return this.userRepo.findOne({
       where: [{ email: identifier }, { username: identifier }],
       select: {
@@ -51,21 +51,24 @@ export class UserRepository implements IUserRepository {
     });
   }
 
-  async findByIdWithPassword(userId: string): Promise<User | null> {
+  async findUserWithPassword(userId: string): Promise<User | null> {
     return this.userRepo.findOne({
       where: { id: userId },
       select: { id: true, password: true }
     });
   }
 
-  async findByIdForAdmin(id: string): Promise<User | null> {
+  async findUserForAdmin(id: string): Promise<User | null> {
     return this.userRepo.findOne({
       where: { id },
       select: UserRepository.ADMIN_VIEW_SELECT
     });
   }
 
-  async findForAdmin(cursorId: string | null, limit: number): Promise<User[]> {
+  async findUsersForAdmin(
+    cursorId: string | null,
+    limit: number
+  ): Promise<User[]> {
     return this.userRepo.find({
       select: UserRepository.ADMIN_VIEW_SELECT,
       where: cursorId ? { id: MoreThan(cursorId) } : undefined,
@@ -74,11 +77,14 @@ export class UserRepository implements IUserRepository {
     });
   }
 
-  async update(id: string, dto: UpdateProfileRequestDto): Promise<void> {
+  async updateUserProfile(
+    id: string,
+    dto: UpdateProfileRequestDto
+  ): Promise<void> {
     await this.userRepo.update({ id }, dto);
   }
 
-  async setPassword(
+  async updatePasswordHash(
     userId: string,
     hashPassword: string,
     manager?: EntityManager

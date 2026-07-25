@@ -41,8 +41,8 @@ export class AdminUsersController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiAdminGetAllUsers()
-  async getAll(@Query() query: AdminUsersListRequestDto) {
-    const { items, nextCursor } = await this.listUsersAdminService.list(
+  async listUsers(@Query() query: AdminUsersListRequestDto) {
+    const { items, nextCursor } = await this.listUsersAdminService.listUsers(
       query.cursor,
       query.limit
     );
@@ -59,10 +59,10 @@ export class AdminUsersController {
   @HttpCode(HttpStatus.OK)
   @ApiAdminGetUser()
   @Serialize(AdminUserResponseDto)
-  get(
+  getUser(
     @Param()
     { id }: IdDto
   ) {
-    return this.findUserAdminService.findById(id);
+    return this.findUserAdminService.findUserById(id);
   }
 }

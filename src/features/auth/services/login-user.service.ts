@@ -1,10 +1,11 @@
 import { ClockService } from '@core/clock/clock.service';
 import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
-import { Session } from '@features/sessions/entities/session.entity';
 import {
+  ISessionRepository,
   IIssueSessionService,
-  ISSUE_SESSION_SERVICE
+  ISSUE_SESSION_SERVICE,
+  SESSION_REPOSITORY
 } from '@features/sessions/interfaces/sessions.interface';
 import {
   ITokenService,
@@ -18,7 +19,6 @@ import {
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { DataSource } from 'typeorm';
 import { LoginUserRequestDto } from '../dto/request/login-user.request.dto';
 import { AuthErrors } from '../errors/auth-errors';
 import { AuthTokens, ILoginUserService } from '../interfaces/auth.interface';
@@ -38,18 +38,19 @@ export class LoginUserService implements ILoginUserService {
     private readonly tokenService: ITokenService,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
-    private readonly dataSource: DataSource,
+    @Inject(SESSION_REPOSITORY)
+    private readonly sessionRepository: ISessionRepository,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(LoginUserService.name);
   }
 
-  async login(
+  async loginUser(
     { email, password }: LoginUserRequestDto,
     ipAddress: string,
     device: DeviceContext
   ): Promise<AuthTokens> {
-    const user = await this.userRepository.findByIdentifierForAuth(email);
+    const user = await this.userRepository.findByEmailOrUsernameForAuth(email);
 
     if (!user) throw AuthErrors.invalidCredentials();
 
@@ -64,7 +65,7 @@ export class LoginUserService implements ILoginUserService {
     const { now, expiresAt } = this.clockService.snapshot();
     const userAgent = this.deviceMapper.toSessionUserAgent(device);
 
-    const session = await this.issueSessionService.issue(
+    const session = await this.issueSessionService.createSession(
       user.id,
       ipAddress,
       userAgent,
@@ -81,7 +82,7 @@ export class LoginUserService implements ILoginUserService {
     const refreshTokenHash = this.refreshTokenHasher.hash(refreshToken);
 
     session.refreshTokenHash = refreshTokenHash;
-    await this.dataSource.getRepository(Session).save(session);
+    await this.sessionRepository.saveRefreshTokenHash(session);
 
     this.logger.info(
       {

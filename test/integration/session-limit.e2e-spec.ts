@@ -69,7 +69,7 @@ describe('Session limit concurrency (e2e)', () => {
       const expiresAt = clockService.snapshot().expiresAt;
       for (let index = 0; index < concurrentIssues; index += 1) {
         issuePromises.push(
-          issueSessionService.issue(
+          issueSessionService.createSession(
             user.id,
             `127.0.0.${index + 1}`,
             {
@@ -170,7 +170,7 @@ describe('Session limit concurrency (e2e)', () => {
 
       const expiresAt = clockService.snapshot().expiresAt;
       pendingIssues.push(
-        issueSessionService.issue(
+        issueSessionService.createSession(
           firstUser.id,
           '127.0.0.1',
           {
@@ -185,7 +185,7 @@ describe('Session limit concurrency (e2e)', () => {
 
       await waitForLockWaiters(dataSource, 1);
 
-      const secondIssue = issueSessionService.issue(
+      const secondIssue = issueSessionService.createSession(
         secondUser.id,
         '127.0.0.2',
         {
@@ -235,7 +235,7 @@ describe('Session limit concurrency (e2e)', () => {
 
     try {
       configService.set('MAX_ACTIVE_SESSIONS', 3);
-      const phone = await issueSessionService.issue(
+      const phone = await issueSessionService.createSession(
         user.id,
         '127.0.0.1',
         {
@@ -246,7 +246,7 @@ describe('Session limit concurrency (e2e)', () => {
         },
         expiresAt
       );
-      const laptop = await issueSessionService.issue(
+      const laptop = await issueSessionService.createSession(
         user.id,
         '127.0.0.2',
         {
@@ -276,7 +276,7 @@ describe('Session limit concurrency (e2e)', () => {
       ]);
 
       configService.set('MAX_ACTIVE_SESSIONS', 2);
-      const newest = await issueSessionService.issue(
+      const newest = await issueSessionService.createSession(
         user.id,
         '127.0.0.3',
         {
@@ -298,10 +298,10 @@ describe('Session limit concurrency (e2e)', () => {
       expect(storedLaptop.isRevoked).toBe(true);
       expect(storedNewest.isRevoked).toBe(false);
       await expect(
-        sessionRepository.getActive(user.id, phone.id)
+        sessionRepository.findActiveSession(user.id, phone.id)
       ).resolves.toEqual(expect.objectContaining({ id: phone.id }));
       await expect(
-        sessionRepository.getActive(user.id, laptop.id)
+        sessionRepository.findActiveSession(user.id, laptop.id)
       ).resolves.toBeNull();
     } finally {
       restoreSessionLimit(configService, previousLimit);
@@ -323,7 +323,7 @@ describe('Session limit concurrency (e2e)', () => {
 
     try {
       configService.set('MAX_ACTIVE_SESSIONS', 3);
-      const older = await issueSessionService.issue(
+      const older = await issueSessionService.createSession(
         user.id,
         '127.0.0.1',
         {
@@ -334,7 +334,7 @@ describe('Session limit concurrency (e2e)', () => {
         },
         expiresAt
       );
-      const newer = await issueSessionService.issue(
+      const newer = await issueSessionService.createSession(
         user.id,
         '127.0.0.2',
         {
@@ -365,7 +365,7 @@ describe('Session limit concurrency (e2e)', () => {
       ]);
 
       configService.set('MAX_ACTIVE_SESSIONS', 2);
-      await issueSessionService.issue(
+      await issueSessionService.createSession(
         user.id,
         '127.0.0.3',
         {

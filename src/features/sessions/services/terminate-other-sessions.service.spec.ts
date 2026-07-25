@@ -1,48 +1,48 @@
-import { DataSource, EntityManager } from 'typeorm';
-import { Session } from '../entities/session.entity';
+import { EntityManager } from 'typeorm';
 import { TerminateOtherSessionsService } from './terminate-other-sessions.service';
 
 describe('TerminateOtherSessionsService', () => {
   let service: TerminateOtherSessionsService;
 
-  const mockRepository = {
-    update: jest.fn()
-  };
-
-  const mockDataSource = {
-    getRepository: jest.fn().mockReturnValue(mockRepository)
+  const mockSessionRepository = {
+    revokeSessionsExceptCurrent: jest.fn()
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    service = new TerminateOtherSessionsService(
-      mockDataSource as unknown as DataSource
-    );
+    service = new TerminateOtherSessionsService(mockSessionRepository as any);
   });
 
-  describe('terminateOthers', () => {
+  describe('terminateOtherSessions', () => {
     it('should revoke all other sessions', async () => {
-      mockRepository.update.mockResolvedValue(undefined);
+      mockSessionRepository.revokeSessionsExceptCurrent.mockResolvedValue(
+        undefined
+      );
 
-      await service.terminateOthers('user-id', 'current-session');
+      await service.terminateOtherSessions('user-id', 'current-session');
 
-      expect(mockRepository.update).toHaveBeenCalled();
+      expect(
+        mockSessionRepository.revokeSessionsExceptCurrent
+      ).toHaveBeenCalledWith('user-id', 'current-session', undefined);
     });
 
-    it('should use the transaction manager repository when provided', async () => {
-      const transactionRepository = {
-        update: jest.fn().mockResolvedValue(undefined)
-      };
-      const manager = {
-        getRepository: jest.fn().mockReturnValue(transactionRepository)
-      } as unknown as EntityManager;
+    it('should pass the transaction manager when provided', async () => {
+      const manager = {} as EntityManager;
 
-      await service.terminateOthers('user-id', 'current-session', manager);
+      mockSessionRepository.revokeSessionsExceptCurrent.mockResolvedValue(
+        undefined
+      );
 
-      expect(manager.getRepository).toHaveBeenCalledWith(Session);
-      expect(transactionRepository.update).toHaveBeenCalled();
-      expect(mockRepository.update).not.toHaveBeenCalled();
+      await service.terminateOtherSessions(
+        'user-id',
+        'current-session',
+        manager
+      );
+
+      expect(
+        mockSessionRepository.revokeSessionsExceptCurrent
+      ).toHaveBeenCalledWith('user-id', 'current-session', manager);
     });
   });
 });

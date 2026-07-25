@@ -18,11 +18,11 @@ export class UpdateProfileService implements IUpdateProfileService {
     userId: string,
     dto: UpdateProfileRequestDto
   ): Promise<void> {
-    const user = await this.userRepository.findById(userId);
+    const user = await this.userRepository.findUserById(userId);
     if (!user) throw UserErrors.userNotFound(userId);
 
     try {
-      await this.userRepository.update(userId, dto);
+      await this.userRepository.updateUserProfile(userId, dto);
     } catch (error: unknown) {
       this.handleUniqueConstraintError(error);
     }

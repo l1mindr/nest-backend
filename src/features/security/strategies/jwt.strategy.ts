@@ -22,6 +22,6 @@ export class JwtStrategy {
 
     const payload = await this.tokenService.verifyAccessToken(token);
 
-    return this.tokenService.validatePayload(payload);
+    return this.tokenService.findUserAndActiveSession(payload);
   }
 }
