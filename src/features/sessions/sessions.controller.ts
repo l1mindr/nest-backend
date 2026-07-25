@@ -17,8 +17,12 @@ import { SessionListRequestDto } from './dto/request/session-list-request.dto';
 import { SessionResponseDto } from './dto/response/session.response.dto';
 import { Session as SessionEntity } from './entities/session.entity';
 import {
-  ISessionsService,
-  SESSION_SERVICE
+  IListSessionsService,
+  IRevokeSessionService,
+  ITerminateOtherSessionsService,
+  LIST_SESSIONS_SERVICE,
+  REVOKE_SESSION_SERVICE,
+  TERMINATE_OTHER_SESSIONS_SERVICE
 } from './interfaces/sessions.interface';
 import {
   ApiGetSessions,
@@ -32,8 +36,12 @@ import {
 })
 export class SessionsController {
   constructor(
-    @Inject(SESSION_SERVICE)
-    private readonly sessionsService: ISessionsService
+    @Inject(LIST_SESSIONS_SERVICE)
+    private readonly listSessionsService: IListSessionsService,
+    @Inject(REVOKE_SESSION_SERVICE)
+    private readonly revokeSessionService: IRevokeSessionService,
+    @Inject(TERMINATE_OTHER_SESSIONS_SERVICE)
+    private readonly terminateOtherSessionsService: ITerminateOtherSessionsService
   ) {}
 
   @Get()
@@ -45,7 +53,7 @@ export class SessionsController {
     @Query() query: SessionListRequestDto
   ) {
     const { currentSession, items, nextCursor } =
-      await this.sessionsService.list(
+      await this.listSessionsService.list(
         user.id,
         session,
         query.limit,
@@ -68,13 +76,16 @@ export class SessionsController {
   @UseInterceptors(ClearCsrfCookieInterceptor)
   @ApiRevokeCurrentSession()
   revoke(@User() user: UserEntity, @Session() session: SessionEntity) {
-    return this.sessionsService.revoke(user.id, session.id);
+    return this.revokeSessionService.revoke(user.id, session.id);
   }
 
   @Delete('others')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiTerminateOtherSessions()
   terminateOthers(@User() user: UserEntity, @Session() session: SessionEntity) {
-    return this.sessionsService.terminateOthers(user.id, session.id);
+    return this.terminateOtherSessionsService.terminateOthers(
+      user.id,
+      session.id
+    );
   }
 }
