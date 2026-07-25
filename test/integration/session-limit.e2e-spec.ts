@@ -1,8 +1,10 @@
 import { ClockService } from '@core/clock/clock.service';
 import { Session } from '@features/sessions/entities/session.entity';
 import {
-  ISessionsService,
-  SESSION_SERVICE
+  IIssueSessionService,
+  ISessionRepository,
+  ISSUE_SESSION_SERVICE,
+  SESSION_REPOSITORY
 } from '@features/sessions/interfaces/sessions.interface';
 import { User } from '@features/users/entities/user.entity';
 import { INestApplication } from '@nestjs/common';
@@ -18,7 +20,8 @@ describe('Session limit concurrency (e2e)', () => {
   let clockService: ClockService;
   let configService: ConfigService;
   let dataSource: DataSource;
-  let sessionsService: ISessionsService;
+  let issueSessionService: IIssueSessionService;
+  let sessionRepository: ISessionRepository;
 
   beforeAll(async () => {
     const { app: testApp, dataSource: testDataSource } = await createTestApp();
@@ -28,7 +31,8 @@ describe('Session limit concurrency (e2e)', () => {
     clockService = app.get(ClockService);
     configService = app.get(ConfigService);
     dataSource = testDataSource;
-    sessionsService = app.get<ISessionsService>(SESSION_SERVICE);
+    issueSessionService = app.get<IIssueSessionService>(ISSUE_SESSION_SERVICE);
+    sessionRepository = app.get<ISessionRepository>(SESSION_REPOSITORY);
   });
 
   beforeEach(async () => {
@@ -65,7 +69,7 @@ describe('Session limit concurrency (e2e)', () => {
       const expiresAt = clockService.snapshot().expiresAt;
       for (let index = 0; index < concurrentIssues; index += 1) {
         issuePromises.push(
-          sessionsService.issue(
+          issueSessionService.issue(
             user.id,
             `127.0.0.${index + 1}`,
             {
@@ -166,7 +170,7 @@ describe('Session limit concurrency (e2e)', () => {
 
       const expiresAt = clockService.snapshot().expiresAt;
       pendingIssues.push(
-        sessionsService.issue(
+        issueSessionService.issue(
           firstUser.id,
           '127.0.0.1',
           {
@@ -181,7 +185,7 @@ describe('Session limit concurrency (e2e)', () => {
 
       await waitForLockWaiters(dataSource, 1);
 
-      const secondIssue = sessionsService.issue(
+      const secondIssue = issueSessionService.issue(
         secondUser.id,
         '127.0.0.2',
         {
@@ -231,7 +235,7 @@ describe('Session limit concurrency (e2e)', () => {
 
     try {
       configService.set('MAX_ACTIVE_SESSIONS', 3);
-      const phone = await sessionsService.issue(
+      const phone = await issueSessionService.issue(
         user.id,
         '127.0.0.1',
         {
@@ -242,7 +246,7 @@ describe('Session limit concurrency (e2e)', () => {
         },
         expiresAt
       );
-      const laptop = await sessionsService.issue(
+      const laptop = await issueSessionService.issue(
         user.id,
         '127.0.0.2',
         {
@@ -272,7 +276,7 @@ describe('Session limit concurrency (e2e)', () => {
       ]);
 
       configService.set('MAX_ACTIVE_SESSIONS', 2);
-      const newest = await sessionsService.issue(
+      const newest = await issueSessionService.issue(
         user.id,
         '127.0.0.3',
         {
@@ -294,10 +298,10 @@ describe('Session limit concurrency (e2e)', () => {
       expect(storedLaptop.isRevoked).toBe(true);
       expect(storedNewest.isRevoked).toBe(false);
       await expect(
-        sessionsService.getActive(user.id, phone.id)
+        sessionRepository.getActive(user.id, phone.id)
       ).resolves.toEqual(expect.objectContaining({ id: phone.id }));
       await expect(
-        sessionsService.getActive(user.id, laptop.id)
+        sessionRepository.getActive(user.id, laptop.id)
       ).resolves.toBeNull();
     } finally {
       restoreSessionLimit(configService, previousLimit);
@@ -319,7 +323,7 @@ describe('Session limit concurrency (e2e)', () => {
 
     try {
       configService.set('MAX_ACTIVE_SESSIONS', 3);
-      const older = await sessionsService.issue(
+      const older = await issueSessionService.issue(
         user.id,
         '127.0.0.1',
         {
@@ -330,7 +334,7 @@ describe('Session limit concurrency (e2e)', () => {
         },
         expiresAt
       );
-      const newer = await sessionsService.issue(
+      const newer = await issueSessionService.issue(
         user.id,
         '127.0.0.2',
         {
@@ -361,7 +365,7 @@ describe('Session limit concurrency (e2e)', () => {
       ]);
 
       configService.set('MAX_ACTIVE_SESSIONS', 2);
-      await sessionsService.issue(
+      await issueSessionService.issue(
         user.id,
         '127.0.0.3',
         {
