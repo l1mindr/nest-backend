@@ -1,4 +1,4 @@
-import { UserAgentParser } from './user-agent.parser';
+import { UserAgentParser } from '../user-agent.parser';
 
 describe('UserAgentParser', () => {
   let parser: UserAgentParser;

@@ -1,5 +1,5 @@
-import { DeviceContext } from '../context/device-context.interface';
-import { FingerprintService } from './fingerprint.service';
+import { DeviceContext } from '../../context/device-context.interface';
+import { FingerprintService } from '../fingerprint.service';
 
 describe('FingerprintService', () => {
   let service: FingerprintService;

@@ -1,4 +1,4 @@
-import { normalizeUA } from './normalize-ua.util';
+import { normalizeUA } from '../normalize-ua.util';
 
 describe('normalizeUA', () => {
   it('should return empty string for undefined input', () => {

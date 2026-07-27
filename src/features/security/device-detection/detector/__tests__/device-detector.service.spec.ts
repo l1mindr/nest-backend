@@ -1,4 +1,4 @@
-import { DeviceDetectorService } from './device-detector.service';
+import { DeviceDetectorService } from '../device-detector.service';
 
 describe('DeviceDetectorService', () => {
   let service: DeviceDetectorService;

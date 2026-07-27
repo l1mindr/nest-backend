@@ -1,7 +1,7 @@
 import { Reflector } from '@nestjs/core';
 import { ExecutionContext } from '@nestjs/common';
-import { CsrfGuard } from './csrf.guard';
-import { CsrfValidationService } from '../services/csrf-validation.service';
+import { CsrfGuard } from '../csrf.guard';
+import { CsrfValidationService } from '../../services/csrf-validation.service';
 
 describe('CsrfGuard', () => {
   let guard: CsrfGuard;

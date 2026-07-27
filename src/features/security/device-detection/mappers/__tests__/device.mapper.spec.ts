@@ -1,4 +1,4 @@
-import { DeviceMapper } from './device.mapper';
+import { DeviceMapper } from '../device.mapper';
 
 describe('DeviceMapper', () => {
   let mapper: DeviceMapper;

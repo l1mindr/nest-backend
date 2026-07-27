@@ -6,7 +6,7 @@ import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { ArgumentsHost, HttpStatus } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
-import { GlobalExceptionFilter } from './global-exception.filter';
+import { GlobalExceptionFilter } from '../global-exception.filter';
 
 describe('GlobalExceptionFilter', () => {
   let filter: GlobalExceptionFilter;
