@@ -25,14 +25,14 @@ import {
   ApiRegisterUser
 } from './auth.swagger';
 import {
-  CHANGE_PASSWORD_SERVICE,
-  IChangePasswordService,
-  ILoginUserService,
-  IRefreshTokenService,
-  IRegisterUserService,
-  LOGIN_USER_SERVICE,
-  REFRESH_TOKEN_SERVICE,
-  REGISTER_USER_SERVICE
+  CHANGE_PASSWORD,
+  IChangePassword,
+  ILogin,
+  IRefresh,
+  IRegister,
+  LOGIN,
+  REFRESH,
+  REGISTER
 } from './interfaces/auth.interface';
 import { IpAddress } from './decorators/ipAddress.decorator';
 import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
@@ -44,14 +44,14 @@ import { AuthCookieInterceptor } from './interceptors/auth-cookie.interceptor';
 @ApiTags('auth')
 export class AuthController {
   constructor(
-    @Inject(REGISTER_USER_SERVICE)
-    private readonly registerUserService: IRegisterUserService,
-    @Inject(LOGIN_USER_SERVICE)
-    private readonly loginUserService: ILoginUserService,
-    @Inject(CHANGE_PASSWORD_SERVICE)
-    private readonly changePasswordService: IChangePasswordService,
-    @Inject(REFRESH_TOKEN_SERVICE)
-    private readonly refreshTokenService: IRefreshTokenService
+    @Inject(REGISTER)
+    private readonly registerUseCase: IRegister,
+    @Inject(LOGIN)
+    private readonly loginUseCase: ILogin,
+    @Inject(CHANGE_PASSWORD)
+    private readonly changePasswordUseCase: IChangePassword,
+    @Inject(REFRESH)
+    private readonly refreshUseCase: IRefresh
   ) {}
 
   @Public()
@@ -61,7 +61,7 @@ export class AuthController {
   @SkipCsrf()
   @ApiRegisterUser()
   registerUser(@Body() dto: RegisterUserRequestDto) {
-    return this.registerUserService.registerUser(dto);
+    return this.registerUseCase.register(dto);
   }
 
   @Public()
@@ -76,7 +76,7 @@ export class AuthController {
     @IpAddress() ipAddress: string,
     @Device() device: DeviceContext
   ) {
-    return await this.loginUserService.loginUser(dto, ipAddress, device);
+    return await this.loginUseCase.login(dto, ipAddress, device);
   }
 
   @Public()
@@ -87,9 +87,7 @@ export class AuthController {
   @SkipCsrf()
   @ApiLoginUser()
   async refreshTokens(@Req() req: Request) {
-    return await this.refreshTokenService.refreshTokens(
-      req.cookies.refresh_token
-    );
+    return await this.refreshUseCase.refresh(req.cookies.refresh_token);
   }
 
   @Post('change-password')
@@ -104,10 +102,6 @@ export class AuthController {
     @Session() session: SessionEntity,
     @Body() dto: ChangePasswordRequestDto
   ) {
-    return this.changePasswordService.changeUserPassword(
-      user.id,
-      session.id,
-      dto
-    );
+    return this.changePasswordUseCase.changePassword(user.id, session.id, dto);
   }
 }

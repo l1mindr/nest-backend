@@ -8,34 +8,34 @@ export type AuthTokens = {
   refreshToken: string;
 };
 
-export const REGISTER_USER_SERVICE = Symbol('IRegisterUserService');
+export const REGISTER = Symbol('IRegister');
 
-export interface IRegisterUserService {
-  registerUser(dto: RegisterUserRequestDto): Promise<void>;
+export interface IRegister {
+  register(dto: RegisterUserRequestDto): Promise<void>;
 }
 
-export const LOGIN_USER_SERVICE = Symbol('ILoginUserService');
+export const LOGIN = Symbol('ILogin');
 
-export interface ILoginUserService {
-  loginUser(
+export interface ILogin {
+  login(
     dto: LoginUserRequestDto,
     ipAddress: string,
     device: DeviceContext
   ): Promise<AuthTokens>;
 }
 
-export const CHANGE_PASSWORD_SERVICE = Symbol('IChangePasswordService');
+export const CHANGE_PASSWORD = Symbol('IChangePassword');
 
-export interface IChangePasswordService {
-  changeUserPassword(
+export interface IChangePassword {
+  changePassword(
     userId: string,
     sessionId: string,
     dto: ChangePasswordRequestDto
   ): Promise<void>;
 }
 
-export const REFRESH_TOKEN_SERVICE = Symbol('IRefreshTokenService');
+export const REFRESH = Symbol('IRefresh');
 
-export interface IRefreshTokenService {
-  refreshTokens(refreshToken: string): Promise<AuthTokens>;
+export interface IRefresh {
+  refresh(refreshToken: string): Promise<AuthTokens>;
 }

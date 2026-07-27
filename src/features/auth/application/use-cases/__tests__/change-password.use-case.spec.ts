@@ -1,10 +1,10 @@
 import { TokenErrors } from '@features/token/errors/token-errors';
 import { DataSource, EntityManager } from 'typeorm';
-import { AuthErrors } from '../errors/auth-errors';
-import { ChangePasswordService } from './change-password.service';
+import { AuthErrors } from '../../../errors/auth-errors';
+import { ChangePassword } from '../change-password.use-case';
 
-describe('ChangePasswordService', () => {
-  let service: ChangePasswordService;
+describe('ChangePassword', () => {
+  let service: ChangePassword;
 
   const mockHashingProvider = {
     compare: jest.fn(),
@@ -39,7 +39,7 @@ describe('ChangePasswordService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    service = new ChangePasswordService(
+    service = new ChangePassword(
       mockHashingProvider as any,
       mockUserRepository as any,
       mockTerminateOtherSessionsService as any,
@@ -48,7 +48,7 @@ describe('ChangePasswordService', () => {
     );
   });
 
-  describe('changeUserPassword', () => {
+  describe('changePassword', () => {
     it('should change password successfully', async () => {
       mockUserRepository.findUserWithPassword.mockResolvedValue({
         id: 'user-id',
@@ -61,7 +61,7 @@ describe('ChangePasswordService', () => {
 
       mockHashingProvider.hash.mockResolvedValue('new-hash');
 
-      await service.changeUserPassword('user-id', 'session-id', {
+      await service.changePassword('user-id', 'session-id', {
         currentPassword: 'old-password',
         newPassword: 'new-password'
       });
@@ -94,7 +94,7 @@ describe('ChangePasswordService', () => {
       );
 
       await expect(
-        service.changeUserPassword('user-id', 'session-id', {
+        service.changePassword('user-id', 'session-id', {
           currentPassword: 'old-password',
           newPassword: 'new-password'
         })
@@ -118,7 +118,7 @@ describe('ChangePasswordService', () => {
       mockUserRepository.findUserWithPassword.mockResolvedValue(null);
 
       await expect(
-        service.changeUserPassword('user-id', 'session-id', {
+        service.changePassword('user-id', 'session-id', {
           currentPassword: 'old',
           newPassword: 'new'
         })
@@ -133,7 +133,7 @@ describe('ChangePasswordService', () => {
       mockHashingProvider.compare.mockResolvedValue(false);
 
       await expect(
-        service.changeUserPassword('user-id', 'session-id', {
+        service.changePassword('user-id', 'session-id', {
           currentPassword: 'wrong',
           newPassword: 'new'
         })
@@ -150,7 +150,7 @@ describe('ChangePasswordService', () => {
         .mockResolvedValueOnce(true);
 
       await expect(
-        service.changeUserPassword('user-id', 'session-id', {
+        service.changePassword('user-id', 'session-id', {
           currentPassword: 'old',
           newPassword: 'old'
         })

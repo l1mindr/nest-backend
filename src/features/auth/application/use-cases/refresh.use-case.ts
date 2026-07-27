@@ -15,11 +15,11 @@ import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.ser
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { AuthTokens, IRefreshTokenService } from '../interfaces/auth.interface';
-import { RefreshTokenHasher } from '../providers/refresh-token-hasher.provider';
+import { AuthTokens, IRefresh } from '../../interfaces/auth.interface';
+import { RefreshTokenHasher } from '../../providers/refresh-token-hasher.provider';
 
 @Injectable()
-export class RefreshTokenService implements IRefreshTokenService {
+export class Refresh implements IRefresh {
   constructor(
     @Inject(TOKEN_SERVICE)
     private readonly tokenService: ITokenService,
@@ -32,10 +32,10 @@ export class RefreshTokenService implements IRefreshTokenService {
     private readonly revokeSessionService: IRevokeSessionService,
     private readonly logger: PinoLogger
   ) {
-    this.logger.setContext(RefreshTokenService.name);
+    this.logger.setContext(Refresh.name);
   }
 
-  async refreshTokens(refreshToken: string): Promise<AuthTokens> {
+  async refresh(refreshToken: string): Promise<AuthTokens> {
     const { sub, sessionId } =
       await this.tokenService.verifyRefreshToken(refreshToken);
 

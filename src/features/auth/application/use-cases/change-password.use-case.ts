@@ -11,13 +11,13 @@ import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { DataSource } from 'typeorm';
-import { ChangePasswordRequestDto } from '../dto/request/change-password.request.dto';
-import { AuthErrors } from '../errors/auth-errors';
-import { IChangePasswordService } from '../interfaces/auth.interface';
-import { HashingProvider } from '../providers/hashing.provider';
+import { ChangePasswordRequestDto } from '../../dto/request/change-password.request.dto';
+import { AuthErrors } from '../../errors/auth-errors';
+import { IChangePassword } from '../../interfaces/auth.interface';
+import { HashingProvider } from '../../providers/hashing.provider';
 
 @Injectable()
-export class ChangePasswordService implements IChangePasswordService {
+export class ChangePassword implements IChangePassword {
   constructor(
     private readonly hashingProvider: HashingProvider,
     @Inject(USER_REPOSITORY)
@@ -27,10 +27,10 @@ export class ChangePasswordService implements IChangePasswordService {
     private readonly dataSource: DataSource,
     private readonly logger: PinoLogger
   ) {
-    this.logger.setContext(ChangePasswordService.name);
+    this.logger.setContext(ChangePassword.name);
   }
 
-  async changeUserPassword(
+  async changePassword(
     userId: string,
     sessionId: string,
     { currentPassword, newPassword }: ChangePasswordRequestDto

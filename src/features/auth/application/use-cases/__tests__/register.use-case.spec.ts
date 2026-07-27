@@ -1,7 +1,7 @@
-import { RegisterUserService } from './register-user.service';
+import { Register } from '../register.use-case';
 
-describe('RegisterUserService', () => {
-  let service: RegisterUserService;
+describe('Register', () => {
+  let service: Register;
 
   const mockHashingProvider = {
     hash: jest.fn()
@@ -14,17 +14,17 @@ describe('RegisterUserService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    service = new RegisterUserService(
+    service = new Register(
       mockHashingProvider as any,
       mockCreateUserService as any
     );
   });
 
-  describe('registerUser', () => {
+  describe('register', () => {
     it('should hash password and register user', async () => {
       mockHashingProvider.hash.mockResolvedValue('hashed-password');
 
-      await service.registerUser({
+      await service.register({
         email: 'test@test.com',
         password: '123456'
       } as any);
@@ -44,7 +44,7 @@ describe('RegisterUserService', () => {
       mockCreateUserService.createUser.mockRejectedValue(error);
 
       await expect(
-        service.registerUser({
+        service.register({
           email: 'test@test.com',
           password: '123456'
         } as any)

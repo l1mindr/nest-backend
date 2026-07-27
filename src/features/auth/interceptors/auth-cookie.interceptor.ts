@@ -7,46 +7,20 @@ import {
 import { Response } from 'express';
 import { map, Observable } from 'rxjs';
 import { AuthTokens } from '../interfaces/auth.interface';
-import { CsrfService } from '@features/security/csrf/csrf.service';
-import { decodeSessionId } from '@features/security/csrf/utils/session-id.util';
-import { IS_PRODUCTION } from '@infrastructure/config/env/env.constants';
+import { AuthCookieService } from '../application/services/auth-cookie.service';
 
 @Injectable()
 export class AuthCookieInterceptor implements NestInterceptor {
-  constructor(private readonly csrfService: CsrfService) {}
+  constructor(private readonly authCookieService: AuthCookieService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<void> {
     const ctx = context.switchToHttp();
     const res = ctx.getResponse<Response>();
 
     return next.handle().pipe(
-      map(({ accessToken, refreshToken }: AuthTokens) => {
-        if (accessToken && refreshToken) {
-          res.cookie('access_token', accessToken, {
-            httpOnly: true,
-            secure: IS_PRODUCTION,
-            sameSite: IS_PRODUCTION ? 'strict' : 'lax',
-            maxAge: 15 * 60 * 1000 // 15 minutes
-          });
-
-          res.cookie('refresh_token', refreshToken, {
-            httpOnly: true,
-            secure: IS_PRODUCTION,
-            sameSite: IS_PRODUCTION ? 'strict' : 'lax',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-          });
-
-          const sessionId = decodeSessionId(accessToken);
-
-          if (sessionId) {
-            const csrfToken = this.csrfService.generateToken(sessionId);
-
-            res.cookie('csrf_token', csrfToken, {
-              httpOnly: false,
-              secure: IS_PRODUCTION,
-              sameSite: IS_PRODUCTION ? 'strict' : 'lax'
-            });
-          }
+      map((tokens: AuthTokens) => {
+        if (tokens?.accessToken && tokens?.refreshToken) {
+          this.authCookieService.set(res, tokens);
         }
 
         return;

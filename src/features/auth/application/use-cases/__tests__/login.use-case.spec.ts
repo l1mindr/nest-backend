@@ -2,16 +2,16 @@ import { ClockService } from '@core/clock/clock.service';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import { createHash } from 'crypto';
-import { AuthErrors } from '../errors/auth-errors';
-import { LoginUserService } from './login-user.service';
+import { AuthErrors } from '../../../errors/auth-errors';
+import { Login } from '../login.use-case';
 
 const sha256 = (value: string) =>
   createHash('sha256').update(value).digest('hex');
 const NOW_MS = 1710000000000;
 const EXPIRES_AT = new Date(NOW_MS + 1000);
 
-describe('LoginUserService', () => {
-  let service: LoginUserService;
+describe('Login', () => {
+  let service: Login;
 
   const mockDeviceMapper = {
     toSessionUserAgent: jest.fn()
@@ -69,7 +69,7 @@ describe('LoginUserService', () => {
 
     mockRefreshTokenHasher.hash.mockImplementation((t: string) => sha256(t));
 
-    service = new LoginUserService(
+    service = new Login(
       mockDeviceMapper as unknown as DeviceMapper,
       mockClockService as unknown as ClockService,
       mockHashingProvider as any,
@@ -82,7 +82,7 @@ describe('LoginUserService', () => {
     );
   });
 
-  describe('loginUser', () => {
+  describe('login', () => {
     it('should login successfully', async () => {
       mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
         id: 'user-id',
@@ -103,7 +103,7 @@ describe('LoginUserService', () => {
 
       mockSessionRepository.saveRefreshTokenHash.mockResolvedValue(undefined);
 
-      const result = await service.loginUser(
+      const result = await service.login(
         {
           email: 'test@test.com',
           password: '123456'
@@ -128,7 +128,7 @@ describe('LoginUserService', () => {
       mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue(null);
 
       await expect(
-        service.loginUser(
+        service.login(
           {
             email: 'test@test.com',
             password: '123456'
@@ -148,7 +148,7 @@ describe('LoginUserService', () => {
       mockHashingProvider.compare.mockResolvedValue(false);
 
       await expect(
-        service.loginUser(
+        service.login(
           {
             email: 'test@test.com',
             password: '123456'
@@ -171,7 +171,7 @@ describe('LoginUserService', () => {
         mockHashingProvider.compare.mockResolvedValue(true);
 
         await expect(
-          service.loginUser(
+          service.login(
             {
               email: 'test@test.com',
               password: '123456'

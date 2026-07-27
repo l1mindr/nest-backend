@@ -5,19 +5,20 @@ import { TokenModule } from '@features/token/token.module';
 import { Module } from '@nestjs/common';
 import { UsersModule } from './../users/users.module';
 import { AuthController } from './auth.controller';
+import { AuthCookieService } from './application/services/auth-cookie.service';
+import { ChangePassword } from './application/use-cases/change-password.use-case';
+import { Login } from './application/use-cases/login.use-case';
+import { Refresh } from './application/use-cases/refresh.use-case';
+import { Register } from './application/use-cases/register.use-case';
 import {
-  CHANGE_PASSWORD_SERVICE,
-  LOGIN_USER_SERVICE,
-  REFRESH_TOKEN_SERVICE,
-  REGISTER_USER_SERVICE
+  CHANGE_PASSWORD,
+  LOGIN,
+  REFRESH,
+  REGISTER
 } from './interfaces/auth.interface';
 import { BcryptProvider } from './providers/bcrypt.provider';
 import { HashingProvider } from './providers/hashing.provider';
 import { RefreshTokenHasher } from './providers/refresh-token-hasher.provider';
-import { ChangePasswordService } from './services/change-password.service';
-import { LoginUserService } from './services/login-user.service';
-import { RefreshTokenService } from './services/refresh-token.service';
-import { RegisterUserService } from './services/register-user.service';
 
 @Module({
   imports: [
@@ -29,14 +30,15 @@ import { RegisterUserService } from './services/register-user.service';
   ],
   controllers: [AuthController],
   providers: [
-    RegisterUserService,
-    { provide: REGISTER_USER_SERVICE, useExisting: RegisterUserService },
-    LoginUserService,
-    { provide: LOGIN_USER_SERVICE, useExisting: LoginUserService },
-    ChangePasswordService,
-    { provide: CHANGE_PASSWORD_SERVICE, useExisting: ChangePasswordService },
-    RefreshTokenService,
-    { provide: REFRESH_TOKEN_SERVICE, useExisting: RefreshTokenService },
+    Register,
+    { provide: REGISTER, useExisting: Register },
+    Login,
+    { provide: LOGIN, useExisting: Login },
+    ChangePassword,
+    { provide: CHANGE_PASSWORD, useExisting: ChangePassword },
+    Refresh,
+    { provide: REFRESH, useExisting: Refresh },
+    AuthCookieService,
     RefreshTokenHasher,
     {
       provide: HashingProvider,

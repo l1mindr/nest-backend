@@ -19,14 +19,14 @@ import {
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { LoginUserRequestDto } from '../dto/request/login-user.request.dto';
-import { AuthErrors } from '../errors/auth-errors';
-import { AuthTokens, ILoginUserService } from '../interfaces/auth.interface';
-import { HashingProvider } from '../providers/hashing.provider';
-import { RefreshTokenHasher } from '../providers/refresh-token-hasher.provider';
+import { LoginUserRequestDto } from '../../dto/request/login-user.request.dto';
+import { AuthErrors } from '../../errors/auth-errors';
+import { AuthTokens, ILogin } from '../../interfaces/auth.interface';
+import { HashingProvider } from '../../providers/hashing.provider';
+import { RefreshTokenHasher } from '../../providers/refresh-token-hasher.provider';
 
 @Injectable()
-export class LoginUserService implements ILoginUserService {
+export class Login implements ILogin {
   constructor(
     private readonly deviceMapper: DeviceMapper,
     private readonly clockService: ClockService,
@@ -42,10 +42,10 @@ export class LoginUserService implements ILoginUserService {
     private readonly sessionRepository: ISessionRepository,
     private readonly logger: PinoLogger
   ) {
-    this.logger.setContext(LoginUserService.name);
+    this.logger.setContext(Login.name);
   }
 
-  async loginUser(
+  async login(
     { email, password }: LoginUserRequestDto,
     ipAddress: string,
     device: DeviceContext
