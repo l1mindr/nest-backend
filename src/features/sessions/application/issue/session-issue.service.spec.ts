@@ -1,9 +1,9 @@
 import { ClockService } from '@core/clock/clock.service';
 import { DataSource } from 'typeorm';
-import { Session } from '../entities/session.entity';
-import { IssueSessionService } from './issue-session.service';
+import { Session } from '../../entities/session.entity';
+import { SessionIssueService } from './session-issue.service';
 
-describe('IssueSessionService', () => {
+describe('SessionIssueService', () => {
   const now = new Date('2026-07-21T08:00:00.000Z');
   const expiresAt = new Date('2026-07-28T08:00:00.000Z');
 
@@ -75,14 +75,14 @@ describe('IssueSessionService', () => {
     );
   });
 
-  const service = new IssueSessionService(
+  const service = new SessionIssueService(
     mockClockService as unknown as ClockService,
     mockConfigService as any,
     mockDataSource as unknown as DataSource,
     mockSessionRepository as any
   );
 
-  describe('createSession', () => {
+  describe('issue', () => {
     it('should create and save session', async () => {
       const session = {
         id: 'session-id'
@@ -90,7 +90,7 @@ describe('IssueSessionService', () => {
 
       mockSessionRepository.createSession.mockResolvedValue(session);
 
-      const result = await service.createSession(
+      const result = await service.issue(
         'user-id',
         '127.0.0.1',
         {
@@ -123,7 +123,7 @@ describe('IssueSessionService', () => {
     });
 
     it('should lock the user row within transaction', async () => {
-      await service.createSession('user-id', '127.0.0.1', {} as any, expiresAt);
+      await service.issue('user-id', '127.0.0.1', {} as any, expiresAt);
 
       expect(mockManager.getRepository).toHaveBeenCalled();
       expect(mockUserQb.setLock).toHaveBeenCalledWith('pessimistic_write');
@@ -135,7 +135,7 @@ describe('IssueSessionService', () => {
       mockSessionRepository.countActiveSessions.mockResolvedValue(3);
       mockSessionQb.getMany.mockResolvedValue([{ id: 'old1' }]);
 
-      await service.createSession('user-id', '127.0.0.1', {} as any, expiresAt);
+      await service.issue('user-id', '127.0.0.1', {} as any, expiresAt);
 
       expect(mockSessionRepository.countActiveSessions).toHaveBeenCalledWith(
         'user-id',

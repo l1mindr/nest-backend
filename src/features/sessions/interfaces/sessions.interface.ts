@@ -9,21 +9,10 @@ export interface SessionListResult extends PaginatedResult<SessionListItem> {
   currentSession: SessionListItem;
 }
 
-export const LIST_SESSIONS_SERVICE = Symbol('IListSessionsService');
+export const SESSION_ISSUE_SERVICE = Symbol('ISessionIssueService');
 
-export interface IListSessionsService {
-  listSessions(
-    userId: string,
-    session: SessionContext,
-    limit?: number,
-    cursor?: string
-  ): Promise<SessionListResult>;
-}
-
-export const ISSUE_SESSION_SERVICE = Symbol('IIssueSessionService');
-
-export interface IIssueSessionService {
-  createSession(
+export interface ISessionIssueService {
+  issue(
     userId: string,
     ipAddress: string,
     device: ISessionDevice,
@@ -31,33 +20,53 @@ export interface IIssueSessionService {
   ): Promise<Session>;
 }
 
-export const REVOKE_SESSION_SERVICE = Symbol('IRevokeSessionService');
+export const SESSION_QUERY_SERVICE = Symbol('ISessionQueryService');
 
-export interface IRevokeSessionService {
-  revokeSession(userId: string, sessionId: string): Promise<void>;
+export interface ISessionQueryService {
+  findActive(userId: string, sessionId: string): Promise<Session | null>;
 }
 
-export const TERMINATE_OTHER_SESSIONS_SERVICE = Symbol(
-  'ITerminateOtherSessionsService'
-);
+export const SESSION_LIST_SERVICE = Symbol('ISessionListService');
 
-export interface ITerminateOtherSessionsService {
-  terminateOtherSessions(
+export interface ISessionListService {
+  list(
+    userId: string,
+    session: SessionContext,
+    limit?: number,
+    cursor?: string
+  ): Promise<SessionListResult>;
+}
+
+export const SESSION_ROTATION_SERVICE = Symbol('ISessionRotationService');
+
+export interface ISessionRotationService {
+  rotate(
+    sessionId: string,
+    version: number,
+    oldHash: string,
+    newHash: string,
+    meta: { now: number; expiresAt: Date }
+  ): Promise<boolean>;
+  saveHash(session: Session): Promise<Session>;
+}
+
+export const SESSION_REVOCATION_SERVICE = Symbol('ISessionRevocationService');
+
+export interface ISessionRevocationService {
+  revoke(userId: string, sessionId: string): Promise<void>;
+  revokeAll(userId: string, manager?: EntityManager): Promise<void>;
+  terminateOthers(
     userId: string,
     sessionId: string,
     manager?: EntityManager
   ): Promise<void>;
 }
 
-export const REVOKE_ALL_USER_SESSIONS_SERVICE = Symbol(
-  'IRevokeAllUserSessionsService'
-);
+export const SESSION_CURSOR_SERVICE = Symbol('ISessionCursorService');
 
-export interface IRevokeAllUserSessionsService {
-  revokeAllSessionsForUser(
-    userId: string,
-    manager?: EntityManager
-  ): Promise<void>;
+export interface ISessionCursorService {
+  encode(data: { lastUsedAt: Date; id: string }): string;
+  decode(cursor?: string): { lastUsedAt: Date; id: string } | null;
 }
 
 export const SESSION_REPOSITORY = Symbol('ISessionRepository');

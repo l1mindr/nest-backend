@@ -1,6 +1,6 @@
 import {
-  IRevokeAllUserSessionsService,
-  REVOKE_ALL_USER_SESSIONS_SERVICE
+  ISessionRevocationService,
+  SESSION_REVOCATION_SERVICE
 } from '@features/sessions/interfaces/sessions.interface';
 import { User } from '@features/users/entities/user.entity';
 import { Inject, Injectable } from '@nestjs/common';
@@ -17,8 +17,8 @@ export class DeleteAccountService implements IDeleteAccountService {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
-    @Inject(REVOKE_ALL_USER_SESSIONS_SERVICE)
-    private readonly revokeAllUserSessionsService: IRevokeAllUserSessionsService,
+    @Inject(SESSION_REVOCATION_SERVICE)
+    private readonly revocationService: ISessionRevocationService,
     private readonly dataSource: DataSource
   ) {}
 
@@ -28,10 +28,7 @@ export class DeleteAccountService implements IDeleteAccountService {
 
     await this.dataSource.transaction(async (manager) => {
       await manager.getRepository(User).softRemove(user);
-      await this.revokeAllUserSessionsService.revokeAllSessionsForUser(
-        userId,
-        manager
-      );
+      await this.revocationService.revokeAll(userId, manager);
     });
   }
 }

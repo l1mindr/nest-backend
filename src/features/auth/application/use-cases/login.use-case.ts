@@ -2,10 +2,10 @@ import { ClockService } from '@core/clock/clock.service';
 import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import {
-  ISessionRepository,
-  IIssueSessionService,
-  ISSUE_SESSION_SERVICE,
-  SESSION_REPOSITORY
+  ISessionIssueService,
+  ISessionRotationService,
+  SESSION_ISSUE_SERVICE,
+  SESSION_ROTATION_SERVICE
 } from '@features/sessions/interfaces/sessions.interface';
 import {
   ITokenService,
@@ -32,14 +32,14 @@ export class Login implements ILogin {
     private readonly clockService: ClockService,
     private readonly hashingProvider: HashingProvider,
     private readonly refreshTokenHasher: RefreshTokenHasher,
-    @Inject(ISSUE_SESSION_SERVICE)
-    private readonly issueSessionService: IIssueSessionService,
+    @Inject(SESSION_ISSUE_SERVICE)
+    private readonly sessionIssueService: ISessionIssueService,
     @Inject(TOKEN_SERVICE)
     private readonly tokenService: ITokenService,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
-    @Inject(SESSION_REPOSITORY)
-    private readonly sessionRepository: ISessionRepository,
+    @Inject(SESSION_ROTATION_SERVICE)
+    private readonly sessionRotationService: ISessionRotationService,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(Login.name);
@@ -65,7 +65,7 @@ export class Login implements ILogin {
     const { now, expiresAt } = this.clockService.snapshot();
     const userAgent = this.deviceMapper.toSessionUserAgent(device);
 
-    const session = await this.issueSessionService.createSession(
+    const session = await this.sessionIssueService.issue(
       user.id,
       ipAddress,
       userAgent,
@@ -82,7 +82,7 @@ export class Login implements ILogin {
     const refreshTokenHash = this.refreshTokenHasher.hash(refreshToken);
 
     session.refreshTokenHash = refreshTokenHash;
-    await this.sessionRepository.saveRefreshTokenHash(session);
+    await this.sessionRotationService.saveHash(session);
 
     this.logger.info(
       {

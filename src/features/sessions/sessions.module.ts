@@ -1,52 +1,56 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SessionCursorService } from './application/cursor/session-cursor.service';
+import { SessionIssueService } from './application/issue/session-issue.service';
+import { SessionMapper } from './application/mapping/session.mapper';
+import { SessionListService } from './application/query/session-list.service';
+import { SessionQueryService } from './application/query/session-query.service';
+import { SessionRevocationService } from './application/revocation/session-revocation.service';
+import { SessionRotationService } from './application/rotation/session-rotation.service';
 import { Session } from './entities/session.entity';
 import {
-  ISSUE_SESSION_SERVICE,
-  LIST_SESSIONS_SERVICE,
-  REVOKE_ALL_USER_SESSIONS_SERVICE,
-  REVOKE_SESSION_SERVICE,
+  SESSION_CURSOR_SERVICE,
+  SESSION_ISSUE_SERVICE,
+  SESSION_LIST_SERVICE,
+  SESSION_QUERY_SERVICE,
   SESSION_REPOSITORY,
-  TERMINATE_OTHER_SESSIONS_SERVICE
+  SESSION_REVOCATION_SERVICE,
+  SESSION_ROTATION_SERVICE
 } from './interfaces/sessions.interface';
-import { IssueSessionService } from './services/issue-session.service';
-import { ListSessionsService } from './services/list-sessions.service';
-import { RevokeAllUserSessionsService } from './services/revoke-all-user-sessions.service';
-import { RevokeSessionService } from './services/revoke-session.service';
 import { SessionRepository } from './repositories/session.repository';
 import { SessionsController } from './sessions.controller';
-import { TerminateOtherSessionsService } from './services/terminate-other-sessions.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Session])],
   providers: [
     SessionRepository,
     { provide: SESSION_REPOSITORY, useExisting: SessionRepository },
-    IssueSessionService,
-    { provide: ISSUE_SESSION_SERVICE, useExisting: IssueSessionService },
-    ListSessionsService,
-    { provide: LIST_SESSIONS_SERVICE, useExisting: ListSessionsService },
-    RevokeSessionService,
-    { provide: REVOKE_SESSION_SERVICE, useExisting: RevokeSessionService },
-    TerminateOtherSessionsService,
+    SessionCursorService,
+    { provide: SESSION_CURSOR_SERVICE, useExisting: SessionCursorService },
+    SessionMapper,
+    SessionQueryService,
+    { provide: SESSION_QUERY_SERVICE, useExisting: SessionQueryService },
+    SessionListService,
+    { provide: SESSION_LIST_SERVICE, useExisting: SessionListService },
+    SessionIssueService,
+    { provide: SESSION_ISSUE_SERVICE, useExisting: SessionIssueService },
+    SessionRotationService,
+    { provide: SESSION_ROTATION_SERVICE, useExisting: SessionRotationService },
+    SessionRevocationService,
     {
-      provide: TERMINATE_OTHER_SESSIONS_SERVICE,
-      useExisting: TerminateOtherSessionsService
-    },
-    RevokeAllUserSessionsService,
-    {
-      provide: REVOKE_ALL_USER_SESSIONS_SERVICE,
-      useExisting: RevokeAllUserSessionsService
+      provide: SESSION_REVOCATION_SERVICE,
+      useExisting: SessionRevocationService
     }
   ],
   controllers: [SessionsController],
   exports: [
     SESSION_REPOSITORY,
-    ISSUE_SESSION_SERVICE,
-    LIST_SESSIONS_SERVICE,
-    REVOKE_SESSION_SERVICE,
-    TERMINATE_OTHER_SESSIONS_SERVICE,
-    REVOKE_ALL_USER_SESSIONS_SERVICE
+    SESSION_CURSOR_SERVICE,
+    SESSION_QUERY_SERVICE,
+    SESSION_LIST_SERVICE,
+    SESSION_ISSUE_SERVICE,
+    SESSION_ROTATION_SERVICE,
+    SESSION_REVOCATION_SERVICE
   ]
 })
 export class SessionsModule {}

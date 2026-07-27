@@ -12,17 +12,14 @@ import {
   Query,
   UseInterceptors
 } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
+import { SessionMapper } from './application/mapping/session.mapper';
 import { SessionListRequestDto } from './dto/request/session-list-request.dto';
-import { SessionResponseDto } from './dto/response/session.response.dto';
 import { Session as SessionEntity } from './entities/session.entity';
 import {
-  IListSessionsService,
-  IRevokeSessionService,
-  ITerminateOtherSessionsService,
-  LIST_SESSIONS_SERVICE,
-  REVOKE_SESSION_SERVICE,
-  TERMINATE_OTHER_SESSIONS_SERVICE
+  ISessionListService,
+  ISessionRevocationService,
+  SESSION_LIST_SERVICE,
+  SESSION_REVOCATION_SERVICE
 } from './interfaces/sessions.interface';
 import {
   ApiGetSessions,
@@ -36,12 +33,11 @@ import {
 })
 export class SessionsController {
   constructor(
-    @Inject(LIST_SESSIONS_SERVICE)
-    private readonly listSessionsService: IListSessionsService,
-    @Inject(REVOKE_SESSION_SERVICE)
-    private readonly revokeSessionService: IRevokeSessionService,
-    @Inject(TERMINATE_OTHER_SESSIONS_SERVICE)
-    private readonly terminateOtherSessionsService: ITerminateOtherSessionsService
+    @Inject(SESSION_LIST_SERVICE)
+    private readonly listService: ISessionListService,
+    @Inject(SESSION_REVOCATION_SERVICE)
+    private readonly revocationService: ISessionRevocationService,
+    private readonly sessionMapper: SessionMapper
   ) {}
 
   @Get()
@@ -52,21 +48,16 @@ export class SessionsController {
     @Session() session: SessionEntity,
     @Query() query: SessionListRequestDto
   ) {
-    const { currentSession, items, nextCursor } =
-      await this.listSessionsService.listSessions(
-        user.id,
-        session,
-        query.limit,
-        query.cursor
-      );
+    const { currentSession, items, nextCursor } = await this.listService.list(
+      user.id,
+      session,
+      query.limit,
+      query.cursor
+    );
 
     return {
-      currentSession: plainToInstance(SessionResponseDto, currentSession, {
-        excludeExtraneousValues: true
-      }),
-      items: plainToInstance(SessionResponseDto, items, {
-        excludeExtraneousValues: true
-      }),
+      currentSession: this.sessionMapper.toResponse(currentSession),
+      items: this.sessionMapper.toResponseList(items),
       nextCursor
     };
   }
@@ -76,7 +67,7 @@ export class SessionsController {
   @UseInterceptors(ClearCsrfCookieInterceptor)
   @ApiRevokeCurrentSession()
   revokeSession(@User() user: UserEntity, @Session() session: SessionEntity) {
-    return this.revokeSessionService.revokeSession(user.id, session.id);
+    return this.revocationService.revoke(user.id, session.id);
   }
 
   @Delete('others')
@@ -86,9 +77,6 @@ export class SessionsController {
     @User() user: UserEntity,
     @Session() session: SessionEntity
   ) {
-    return this.terminateOtherSessionsService.terminateOtherSessions(
-      user.id,
-      session.id
-    );
+    return this.revocationService.terminateOthers(user.id, session.id);
   }
 }

@@ -3,16 +3,15 @@ import { User } from '@features/users/entities/user.entity';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, In } from 'typeorm';
-import { Session } from '../entities/session.entity';
-import { ISessionDevice } from '../interfaces/session-device.interface';
+import { Session } from '../../entities/session.entity';
+import { ISessionDevice } from '../../interfaces/session-device.interface';
 import {
-  IIssueSessionService,
   ISessionRepository,
   SESSION_REPOSITORY
-} from '../interfaces/sessions.interface';
+} from '../../interfaces/sessions.interface';
 
 @Injectable()
-export class IssueSessionService implements IIssueSessionService {
+export class SessionIssueService {
   constructor(
     private readonly clockService: ClockService,
     private readonly configService: ConfigService,
@@ -21,7 +20,7 @@ export class IssueSessionService implements IIssueSessionService {
     private readonly sessionRepository: ISessionRepository
   ) {}
 
-  async createSession(
+  async issue(
     userId: string,
     ipAddress: string,
     device: ISessionDevice,

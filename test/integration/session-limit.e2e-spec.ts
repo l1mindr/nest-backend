@@ -1,9 +1,9 @@
 import { ClockService } from '@core/clock/clock.service';
 import { Session } from '@features/sessions/entities/session.entity';
 import {
-  IIssueSessionService,
+  ISessionIssueService,
   ISessionRepository,
-  ISSUE_SESSION_SERVICE,
+  SESSION_ISSUE_SERVICE,
   SESSION_REPOSITORY
 } from '@features/sessions/interfaces/sessions.interface';
 import { User } from '@features/users/entities/user.entity';
@@ -20,7 +20,7 @@ describe('Session limit concurrency (e2e)', () => {
   let clockService: ClockService;
   let configService: ConfigService;
   let dataSource: DataSource;
-  let issueSessionService: IIssueSessionService;
+  let sessionIssueService: ISessionIssueService;
   let sessionRepository: ISessionRepository;
 
   beforeAll(async () => {
@@ -31,7 +31,7 @@ describe('Session limit concurrency (e2e)', () => {
     clockService = app.get(ClockService);
     configService = app.get(ConfigService);
     dataSource = testDataSource;
-    issueSessionService = app.get<IIssueSessionService>(ISSUE_SESSION_SERVICE);
+    sessionIssueService = app.get<ISessionIssueService>(SESSION_ISSUE_SERVICE);
     sessionRepository = app.get<ISessionRepository>(SESSION_REPOSITORY);
   });
 
@@ -71,7 +71,7 @@ describe('Session limit concurrency (e2e)', () => {
       const expiresAt = clockService.snapshot().expiresAt;
       for (let index = 0; index < concurrentIssues; index += 1) {
         issuePromises.push(
-          issueSessionService.createSession(
+          sessionIssueService.issue(
             user.id,
             `127.0.0.${index + 1}`,
             {
@@ -175,7 +175,7 @@ describe('Session limit concurrency (e2e)', () => {
 
       const expiresAt = clockService.snapshot().expiresAt;
       pendingIssues.push(
-        issueSessionService.createSession(
+        sessionIssueService.issue(
           firstUser.id,
           '127.0.0.1',
           {
@@ -190,7 +190,7 @@ describe('Session limit concurrency (e2e)', () => {
 
       await waitForLockWaiters(dataSource, 1);
 
-      const secondIssue = issueSessionService.createSession(
+      const secondIssue = sessionIssueService.issue(
         secondUser.id,
         '127.0.0.2',
         {
@@ -237,7 +237,7 @@ describe('Session limit concurrency (e2e)', () => {
 
     try {
       configService.set('MAX_ACTIVE_SESSIONS', 3);
-      const phone = await issueSessionService.createSession(
+      const phone = await sessionIssueService.issue(
         user.id,
         '127.0.0.1',
         {
@@ -248,7 +248,7 @@ describe('Session limit concurrency (e2e)', () => {
         },
         expiresAt
       );
-      const laptop = await issueSessionService.createSession(
+      const laptop = await sessionIssueService.issue(
         user.id,
         '127.0.0.2',
         {
@@ -278,7 +278,7 @@ describe('Session limit concurrency (e2e)', () => {
       ]);
 
       configService.set('MAX_ACTIVE_SESSIONS', 2);
-      const newest = await issueSessionService.createSession(
+      const newest = await sessionIssueService.issue(
         user.id,
         '127.0.0.3',
         {
@@ -325,7 +325,7 @@ describe('Session limit concurrency (e2e)', () => {
 
     try {
       configService.set('MAX_ACTIVE_SESSIONS', 3);
-      const older = await issueSessionService.createSession(
+      const older = await sessionIssueService.issue(
         user.id,
         '127.0.0.1',
         {
@@ -336,7 +336,7 @@ describe('Session limit concurrency (e2e)', () => {
         },
         expiresAt
       );
-      const newer = await issueSessionService.createSession(
+      const newer = await sessionIssueService.issue(
         user.id,
         '127.0.0.2',
         {
@@ -367,7 +367,7 @@ describe('Session limit concurrency (e2e)', () => {
       ]);
 
       configService.set('MAX_ACTIVE_SESSIONS', 2);
-      await issueSessionService.createSession(
+      await sessionIssueService.issue(
         user.id,
         '127.0.0.3',
         {

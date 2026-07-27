@@ -21,9 +21,8 @@ describe('Refresh', () => {
     release: jest.fn()
   };
 
-  const mockSessionRepository = {
-    findActiveSession: jest.fn(),
-    rotateRefreshToken: jest.fn()
+  const mockSessionQueryService = {
+    findActive: jest.fn()
   };
 
   const mockRefreshTokenHasher = {
@@ -35,8 +34,12 @@ describe('Refresh', () => {
     snapshot: jest.fn()
   };
 
-  const mockRevokeSessionService = {
-    revokeSession: jest.fn()
+  const mockRevocationService = {
+    revoke: jest.fn()
+  };
+
+  const mockSessionRotationService = {
+    rotate: jest.fn()
   };
 
   const mockLogger = {
@@ -64,10 +67,11 @@ describe('Refresh', () => {
     service = new Refresh(
       mockTokenService as any,
       mockRedisLockService as any,
-      mockSessionRepository as any,
+      mockSessionQueryService as any,
       mockRefreshTokenHasher as any,
       mockClockService as unknown as ClockService,
-      mockRevokeSessionService as any,
+      mockRevocationService as any,
+      mockSessionRotationService as any,
       mockLogger as any
     );
   });
@@ -84,7 +88,7 @@ describe('Refresh', () => {
         token: 'lock-token'
       });
 
-      mockSessionRepository.findActiveSession.mockResolvedValue({
+      mockSessionQueryService.findActive.mockResolvedValue({
         id: 'session-id',
         refreshTokenHash: sha256('refresh-token'),
         owner: {
@@ -97,7 +101,7 @@ describe('Refresh', () => {
         refreshToken: 'new-refresh'
       });
 
-      mockSessionRepository.rotateRefreshToken.mockResolvedValue(true);
+      mockSessionRotationService.rotate.mockResolvedValue(true);
 
       const result = await service.refresh('refresh-token');
 
@@ -106,7 +110,7 @@ describe('Refresh', () => {
         refreshToken: 'new-refresh'
       });
 
-      expect(mockSessionRepository.rotateRefreshToken).toHaveBeenCalledWith(
+      expect(mockSessionRotationService.rotate).toHaveBeenCalledWith(
         'session-id',
         undefined,
         sha256('refresh-token'),
@@ -126,7 +130,7 @@ describe('Refresh', () => {
         token: 'lock-token'
       });
 
-      mockSessionRepository.findActiveSession.mockResolvedValue(null);
+      mockSessionQueryService.findActive.mockResolvedValue(null);
 
       await expect(service.refresh('token')).rejects.toEqual(
         SessionErrors.sessionExpired()
@@ -165,19 +169,19 @@ describe('Refresh', () => {
         token: 'lock-token'
       });
 
-      mockSessionRepository.findActiveSession.mockResolvedValue(session);
+      mockSessionQueryService.findActive.mockResolvedValue(session);
 
       await expect(service.refresh('token')).rejects.toEqual(
         SessionErrors.sessionReuseDetected('session-id')
       );
 
-      expect(mockRevokeSessionService.revokeSession).toHaveBeenCalledWith(
+      expect(mockRevocationService.revoke).toHaveBeenCalledWith(
         'user-id',
         'session-id'
       );
     });
 
-    it('should throw when rotateRefreshToken fails', async () => {
+    it('should throw when rotate fails', async () => {
       mockTokenService.verifyRefreshToken.mockResolvedValue({
         sub: 'user-id',
         sessionId: 'session-id'
@@ -188,7 +192,7 @@ describe('Refresh', () => {
         token: 'lock-token'
       });
 
-      mockSessionRepository.findActiveSession.mockResolvedValue({
+      mockSessionQueryService.findActive.mockResolvedValue({
         id: 'session-id',
         refreshTokenHash: sha256('token'),
         owner: {
@@ -206,7 +210,7 @@ describe('Refresh', () => {
         refreshToken: 'refresh'
       });
 
-      mockSessionRepository.rotateRefreshToken.mockResolvedValue(false);
+      mockSessionRotationService.rotate.mockResolvedValue(false);
 
       await expect(service.refresh('token')).rejects.toEqual(
         SessionErrors.sessionReuseDetected('session-id')

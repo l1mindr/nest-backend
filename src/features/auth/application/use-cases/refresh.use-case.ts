@@ -1,9 +1,11 @@
 import { ClockService } from '@core/clock/clock.service';
 import {
-  ISessionRepository,
-  IRevokeSessionService,
-  SESSION_REPOSITORY,
-  REVOKE_SESSION_SERVICE
+  ISessionQueryService,
+  ISessionRevocationService,
+  ISessionRotationService,
+  SESSION_QUERY_SERVICE,
+  SESSION_REVOCATION_SERVICE,
+  SESSION_ROTATION_SERVICE
 } from '@features/sessions/interfaces/sessions.interface';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import {
@@ -24,12 +26,14 @@ export class Refresh implements IRefresh {
     @Inject(TOKEN_SERVICE)
     private readonly tokenService: ITokenService,
     private readonly redisLockService: RedisLockService,
-    @Inject(SESSION_REPOSITORY)
-    private readonly sessionRepository: ISessionRepository,
+    @Inject(SESSION_QUERY_SERVICE)
+    private readonly sessionQueryService: ISessionQueryService,
     private readonly refreshTokenHasher: RefreshTokenHasher,
     private readonly clockService: ClockService,
-    @Inject(REVOKE_SESSION_SERVICE)
-    private readonly revokeSessionService: IRevokeSessionService,
+    @Inject(SESSION_REVOCATION_SERVICE)
+    private readonly revocationService: ISessionRevocationService,
+    @Inject(SESSION_ROTATION_SERVICE)
+    private readonly sessionRotationService: ISessionRotationService,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(Refresh.name);
@@ -49,10 +53,7 @@ export class Refresh implements IRefresh {
     }
 
     try {
-      const session = await this.sessionRepository.findActiveSession(
-        sub,
-        sessionId
-      );
+      const session = await this.sessionQueryService.findActive(sub, sessionId);
 
       if (!session) {
         throw SessionErrors.sessionExpired();
@@ -64,7 +65,7 @@ export class Refresh implements IRefresh {
       );
 
       if (!isValid) {
-        await this.revokeSessionService.revokeSession(sub, sessionId);
+        await this.revocationService.revoke(sub, sessionId);
         throw SessionErrors.sessionReuseDetected(sessionId);
       }
 
@@ -81,7 +82,7 @@ export class Refresh implements IRefresh {
         tokens.refreshToken
       );
 
-      const ok = await this.sessionRepository.rotateRefreshToken(
+      const ok = await this.sessionRotationService.rotate(
         session.id,
         session.version,
         session.refreshTokenHash,

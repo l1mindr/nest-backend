@@ -1,6 +1,6 @@
 import {
-  ITerminateOtherSessionsService,
-  TERMINATE_OTHER_SESSIONS_SERVICE
+  ISessionRevocationService,
+  SESSION_REVOCATION_SERVICE
 } from '@features/sessions/interfaces/sessions.interface';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import {
@@ -22,8 +22,8 @@ export class ChangePassword implements IChangePassword {
     private readonly hashingProvider: HashingProvider,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
-    @Inject(TERMINATE_OTHER_SESSIONS_SERVICE)
-    private readonly terminateOtherSessionsService: ITerminateOtherSessionsService,
+    @Inject(SESSION_REVOCATION_SERVICE)
+    private readonly revocationService: ISessionRevocationService,
     private readonly dataSource: DataSource,
     private readonly logger: PinoLogger
   ) {
@@ -59,7 +59,7 @@ export class ChangePassword implements IChangePassword {
     try {
       await this.dataSource.transaction(async (manager) => {
         await this.userRepository.updatePasswordHash(userId, password, manager);
-        await this.terminateOtherSessionsService.terminateOtherSessions(
+        await this.revocationService.terminateOthers(
           userId,
           sessionId,
           manager

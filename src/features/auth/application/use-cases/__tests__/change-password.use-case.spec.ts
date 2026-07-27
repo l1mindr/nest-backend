@@ -16,8 +16,8 @@ describe('ChangePassword', () => {
     updatePasswordHash: jest.fn()
   };
 
-  const mockTerminateOtherSessionsService = {
-    terminateOtherSessions: jest.fn()
+  const mockRevocationService = {
+    terminateOthers: jest.fn()
   };
 
   const mockTransactionManager = {} as EntityManager;
@@ -42,7 +42,7 @@ describe('ChangePassword', () => {
     service = new ChangePassword(
       mockHashingProvider as any,
       mockUserRepository as any,
-      mockTerminateOtherSessionsService as any,
+      mockRevocationService as any,
       mockDataSource as unknown as DataSource,
       mockLogger as any
     );
@@ -72,9 +72,11 @@ describe('ChangePassword', () => {
         mockTransactionManager
       );
 
-      expect(
-        mockTerminateOtherSessionsService.terminateOtherSessions
-      ).toHaveBeenCalledWith('user-id', 'session-id', mockTransactionManager);
+      expect(mockRevocationService.terminateOthers).toHaveBeenCalledWith(
+        'user-id',
+        'session-id',
+        mockTransactionManager
+      );
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
     });
 
@@ -89,9 +91,7 @@ describe('ChangePassword', () => {
         .mockResolvedValueOnce(true)
         .mockResolvedValueOnce(false);
       mockHashingProvider.hash.mockResolvedValue('new-hash');
-      mockTerminateOtherSessionsService.terminateOtherSessions.mockRejectedValueOnce(
-        error
-      );
+      mockRevocationService.terminateOthers.mockRejectedValueOnce(error);
 
       await expect(
         service.changePassword('user-id', 'session-id', {
@@ -105,9 +105,11 @@ describe('ChangePassword', () => {
         'new-hash',
         mockTransactionManager
       );
-      expect(
-        mockTerminateOtherSessionsService.terminateOtherSessions
-      ).toHaveBeenCalledWith('user-id', 'session-id', mockTransactionManager);
+      expect(mockRevocationService.terminateOthers).toHaveBeenCalledWith(
+        'user-id',
+        'session-id',
+        mockTransactionManager
+      );
       expect(mockLogger.info).not.toHaveBeenCalledWith(
         expect.objectContaining({ event: 'password.changed' }),
         expect.any(String)

@@ -1,4 +1,4 @@
-import { IRevokeAllUserSessionsService } from '@features/sessions/interfaces/sessions.interface';
+import { ISessionRevocationService } from '@features/sessions/interfaces/sessions.interface';
 import { DataSource, EntityManager } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { UserErrors } from '../errors/user-errors';
@@ -19,8 +19,8 @@ describe('DeleteAccountService', () => {
     getRepository: jest.fn().mockReturnValue(mockRepository)
   };
 
-  const mockRevokeAllUserSessionsService = {
-    revokeAllSessionsForUser: jest.fn()
+  const mockRevocationService = {
+    revokeAll: jest.fn()
   };
 
   const mockDataSource = {
@@ -36,7 +36,7 @@ describe('DeleteAccountService', () => {
 
     service = new DeleteAccountService(
       mockUserRepository as any,
-      mockRevokeAllUserSessionsService as unknown as IRevokeAllUserSessionsService,
+      mockRevocationService as unknown as ISessionRevocationService,
       mockDataSource as unknown as DataSource
     );
   });
@@ -50,9 +50,10 @@ describe('DeleteAccountService', () => {
 
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
       expect(mockRepository.softRemove).toHaveBeenCalledWith(user);
-      expect(
-        mockRevokeAllUserSessionsService.revokeAllSessionsForUser
-      ).toHaveBeenCalledWith('1', mockTransactionManager);
+      expect(mockRevocationService.revokeAll).toHaveBeenCalledWith(
+        '1',
+        mockTransactionManager
+      );
     });
 
     it('should throw when user does not exist', async () => {
@@ -63,9 +64,7 @@ describe('DeleteAccountService', () => {
       );
 
       expect(mockRepository.softRemove).not.toHaveBeenCalled();
-      expect(
-        mockRevokeAllUserSessionsService.revokeAllSessionsForUser
-      ).not.toHaveBeenCalled();
+      expect(mockRevocationService.revokeAll).not.toHaveBeenCalled();
     });
 
     it('should propagate transaction failures', async () => {

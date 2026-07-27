@@ -29,8 +29,8 @@ describe('Login', () => {
     hash: jest.fn()
   };
 
-  const mockIssueSessionService = {
-    createSession: jest.fn()
+  const mockSessionIssueService = {
+    issue: jest.fn()
   };
 
   const mockTokenService = {
@@ -41,8 +41,8 @@ describe('Login', () => {
     findByEmailOrUsernameForAuth: jest.fn()
   };
 
-  const mockSessionRepository = {
-    saveRefreshTokenHash: jest.fn()
+  const mockSessionRotationService = {
+    saveHash: jest.fn()
   };
 
   const mockLogger = {
@@ -74,10 +74,10 @@ describe('Login', () => {
       mockClockService as unknown as ClockService,
       mockHashingProvider as any,
       mockRefreshTokenHasher as any,
-      mockIssueSessionService as any,
+      mockSessionIssueService as any,
       mockTokenService as any,
       mockUserRepository as any,
-      mockSessionRepository as any,
+      mockSessionRotationService as any,
       mockLogger as any
     );
   });
@@ -92,7 +92,7 @@ describe('Login', () => {
 
       mockHashingProvider.compare.mockResolvedValue(true);
 
-      mockIssueSessionService.createSession.mockResolvedValue({
+      mockSessionIssueService.issue.mockResolvedValue({
         id: 'session-id'
       });
 
@@ -101,7 +101,7 @@ describe('Login', () => {
         refreshToken: 'refresh-token'
       });
 
-      mockSessionRepository.saveRefreshTokenHash.mockResolvedValue(undefined);
+      mockSessionRotationService.saveHash.mockResolvedValue(undefined);
 
       const result = await service.login(
         {
@@ -116,7 +116,7 @@ describe('Login', () => {
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       });
-      expect(mockSessionRepository.saveRefreshTokenHash).toHaveBeenCalledWith(
+      expect(mockSessionRotationService.saveHash).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'session-id',
           refreshTokenHash: sha256('refresh-token')
@@ -181,7 +181,7 @@ describe('Login', () => {
           )
         ).rejects.toEqual(AuthErrors.invalidCredentials());
 
-        expect(mockIssueSessionService.createSession).not.toHaveBeenCalled();
+        expect(mockSessionIssueService.issue).not.toHaveBeenCalled();
         expect(mockTokenService.issuePair).not.toHaveBeenCalled();
       }
     );
