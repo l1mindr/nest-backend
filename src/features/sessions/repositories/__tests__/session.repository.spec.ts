@@ -1,7 +1,7 @@
 import { ClockService } from '@core/clock/clock.service';
 import { DataSource } from 'typeorm';
-import { Session } from '../../../entities/session.entity';
-import { SessionRepository } from '../../../repositories/session.repository';
+import { Session } from '../../entities/session.entity';
+import { SessionRepository } from '../session.repository';
 
 describe('SessionRepository', () => {
   let repository: SessionRepository;
