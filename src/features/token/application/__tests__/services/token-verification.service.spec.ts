@@ -1,7 +1,7 @@
 import { JwtService } from '@nestjs/jwt';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
-import { TokenErrors } from '../../errors/token-errors';
-import { TokenVerificationService } from './token-verification.service';
+import { TokenErrors } from '../../../errors/token-errors';
+import { TokenVerificationService } from '../../services/token-verification.service';
 
 describe('TokenVerificationService', () => {
   let service: TokenVerificationService;

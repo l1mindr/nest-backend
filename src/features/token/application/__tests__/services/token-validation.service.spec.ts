@@ -2,8 +2,8 @@ import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { ISessionRepository } from '@features/sessions/interfaces/sessions.interface';
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import { IUserQueryService } from '@features/users/interfaces/users.interface';
-import { TokenErrors } from '../../errors/token-errors';
-import { TokenValidationService } from './token-validation.service';
+import { TokenErrors } from '../../../errors/token-errors';
+import { TokenValidationService } from '../../services/token-validation.service';
 
 describe('TokenValidationService', () => {
   let service: TokenValidationService;

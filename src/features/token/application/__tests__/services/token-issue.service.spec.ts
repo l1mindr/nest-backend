@@ -1,5 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
-import { TokenIssueService } from './token-issue.service';
+import { TokenIssueService } from '../../services/token-issue.service';
 
 describe('TokenIssueService', () => {
   let service: TokenIssueService;
