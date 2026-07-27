@@ -3,18 +3,16 @@ import { RedisCounterService } from '@infrastructure/databases/redis/redis-count
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
-export class RateLimitService {
+export class RateLimitCounterService {
   constructor(private readonly redisCounterService: RedisCounterService) {}
 
   private buildKey(route: string, ip: string) {
     return `${RedisKey.RATE_LIMIT}:${route}:${ip}`;
   }
 
-  async consume(route: string, ip: string, limit: number, ttl: number) {
+  async increment(route: string, ip: string, ttl: number): Promise<number> {
     const key = this.buildKey(route, ip);
 
-    const count = await this.redisCounterService.increment(key, ttl);
-
-    return count <= limit;
+    return this.redisCounterService.increment(key, ttl);
   }
 }

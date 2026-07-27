@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { SecurityErrors } from '../../errors/security-errors';
-import { CsrfService } from '../csrf.service';
+import { CsrfValidationService } from '../services/csrf-validation.service';
 import { SKIP_CSRF_KEY } from '../decorators/skip-csrf.decorator';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -11,7 +11,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 export class CsrfGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly csrfService: CsrfService
+    private readonly csrfValidationService: CsrfValidationService
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -36,7 +36,7 @@ export class CsrfGuard implements CanActivate {
 
     const sessionId = request.session?.id;
 
-    const valid = this.csrfService.validate(
+    const valid = this.csrfValidationService.validate(
       cookieToken,
       headerToken,
       sessionId

@@ -5,13 +5,13 @@ import {
   RATE_LIMIT_KEY,
   RateLimitOptions
 } from '../decorators/rate-limit.decorator';
-import { RateLimitService } from '../rate-limit.service';
+import { RateLimitCheckService } from '../services/rate-limit-check.service';
 
 @Injectable()
 export class RateLimitGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly rateLimitService: RateLimitService
+    private readonly rateLimitCheckService: RateLimitCheckService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -30,7 +30,7 @@ export class RateLimitGuard implements CanActivate {
 
     const route = request.route?.path ?? request.url;
 
-    const allowed = await this.rateLimitService.consume(
+    const allowed = await this.rateLimitCheckService.consume(
       route,
       ip,
       options.limit,

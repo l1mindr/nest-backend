@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { RateLimitGuard } from './guards/rate-limit.guard';
-import { RateLimitService } from './rate-limit.service';
+import { RateLimitCheckService } from './services/rate-limit-check.service';
+import { RateLimitCounterService } from './services/rate-limit-counter.service';
 
 @Module({
   providers: [
-    RateLimitService,
+    RateLimitCounterService,
+    RateLimitCheckService,
     {
       provide: APP_GUARD,
       useClass: RateLimitGuard

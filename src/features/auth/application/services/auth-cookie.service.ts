@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Response } from 'express';
-import { CsrfService } from '@features/security/csrf/csrf.service';
+import { CsrfTokenService } from '@features/security/csrf/services/csrf-token.service';
 import { decodeSessionId } from '@features/security/csrf/utils/session-id.util';
 import { IS_PRODUCTION } from '@infrastructure/config/env/env.constants';
 import { AuthTokens } from '../../interfaces/auth.interface';
 
 @Injectable()
 export class AuthCookieService {
-  constructor(private readonly csrfService: CsrfService) {}
+  constructor(private readonly csrfTokenService: CsrfTokenService) {}
 
   set(res: Response, tokens: AuthTokens): void {
     const { accessToken, refreshToken } = tokens;
@@ -29,7 +29,7 @@ export class AuthCookieService {
     const sessionId = decodeSessionId(accessToken);
 
     if (sessionId) {
-      const csrfToken = this.csrfService.generateToken(sessionId);
+      const csrfToken = this.csrfTokenService.issue(sessionId);
 
       res.cookie('csrf_token', csrfToken, {
         httpOnly: false,
