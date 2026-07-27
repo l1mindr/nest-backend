@@ -1,4 +1,4 @@
-import { UserErrors } from '../errors/user-errors';
+import { UserErrors } from '../../errors/user-errors';
 import { CreateUserService } from './create-user.service';
 
 describe('CreateUserService', () => {
@@ -14,11 +14,11 @@ describe('CreateUserService', () => {
     service = new CreateUserService(mockUserRepository as any);
   });
 
-  describe('createUser', () => {
+  describe('create', () => {
     it('should create user', async () => {
       mockUserRepository.insertUser.mockResolvedValue(undefined);
 
-      await service.createUser({
+      await service.create({
         email: 'test@test.com',
         username: 'test',
         password: 'hash'
@@ -33,7 +33,7 @@ describe('CreateUserService', () => {
         detail: 'email'
       });
 
-      await expect(service.createUser({} as any)).rejects.toEqual(
+      await expect(service.create({} as any)).rejects.toEqual(
         UserErrors.emailAlreadyExists()
       );
     });
@@ -44,7 +44,7 @@ describe('CreateUserService', () => {
         detail: 'username'
       });
 
-      await expect(service.createUser({} as any)).rejects.toEqual(
+      await expect(service.create({} as any)).rejects.toEqual(
         UserErrors.usernameAlreadyExists()
       );
     });
@@ -53,7 +53,7 @@ describe('CreateUserService', () => {
       const error = new Error('unknown');
       mockUserRepository.insertUser.mockRejectedValue(error);
 
-      await expect(service.createUser({} as any)).rejects.toThrow(error);
+      await expect(service.create({} as any)).rejects.toThrow(error);
     });
   });
 });

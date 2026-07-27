@@ -54,13 +54,13 @@ export class UsersController {
     @User() user: UserEntity,
     @Body() dto: UpdateProfileRequestDto
   ) {
-    return this.updateProfileService.updateProfile(user.id, dto);
+    return this.updateProfileService.update(user.id, dto);
   }
 
   @Delete('delete-account')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteAccount()
   deleteAccount(@User() user: UserEntity) {
-    return this.deleteAccountService.deleteAccount(user.id);
+    return this.deleteAccountService.remove(user.id);
   }
 }

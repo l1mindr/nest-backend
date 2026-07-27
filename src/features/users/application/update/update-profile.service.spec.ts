@@ -1,5 +1,5 @@
-import { User } from '../entities/user.entity';
-import { UserErrors } from '../errors/user-errors';
+import { User } from '../../entities/user.entity';
+import { UserErrors } from '../../errors/user-errors';
 import { UpdateProfileService } from './update-profile.service';
 
 describe('UpdateProfileService', () => {
@@ -16,12 +16,12 @@ describe('UpdateProfileService', () => {
     service = new UpdateProfileService(mockUserRepository as any);
   });
 
-  describe('updateProfile', () => {
+  describe('update', () => {
     it('should update profile', async () => {
       mockUserRepository.findUserById.mockResolvedValue({ id: '1' } as User);
       mockUserRepository.updateUserProfile.mockResolvedValue(undefined);
 
-      await service.updateProfile('1', { name: 'Ali' } as any);
+      await service.update('1', { name: 'Ali' } as any);
 
       expect(mockUserRepository.findUserById).toHaveBeenCalledWith('1');
       expect(mockUserRepository.updateUserProfile).toHaveBeenCalledWith('1', {
@@ -32,7 +32,7 @@ describe('UpdateProfileService', () => {
     it('should throw when user not found', async () => {
       mockUserRepository.findUserById.mockResolvedValue(null);
 
-      await expect(service.updateProfile('1', {} as any)).rejects.toEqual(
+      await expect(service.update('1', {} as any)).rejects.toEqual(
         UserErrors.userNotFound('1')
       );
 
@@ -46,7 +46,7 @@ describe('UpdateProfileService', () => {
         detail: 'email'
       });
 
-      await expect(service.updateProfile('1', {} as any)).rejects.toEqual(
+      await expect(service.update('1', {} as any)).rejects.toEqual(
         UserErrors.emailAlreadyExists()
       );
     });
@@ -58,7 +58,7 @@ describe('UpdateProfileService', () => {
         detail: 'username'
       });
 
-      await expect(service.updateProfile('1', {} as any)).rejects.toEqual(
+      await expect(service.update('1', {} as any)).rejects.toEqual(
         UserErrors.usernameAlreadyExists()
       );
     });
@@ -68,9 +68,7 @@ describe('UpdateProfileService', () => {
       mockUserRepository.findUserById.mockResolvedValue({ id: '1' } as User);
       mockUserRepository.updateUserProfile.mockRejectedValue(error);
 
-      await expect(service.updateProfile('1', {} as any)).rejects.toThrow(
-        error
-      );
+      await expect(service.update('1', {} as any)).rejects.toThrow(error);
     });
   });
 });

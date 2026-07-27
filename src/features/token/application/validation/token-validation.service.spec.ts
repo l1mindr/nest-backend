@@ -1,7 +1,7 @@
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { ISessionRepository } from '@features/sessions/interfaces/sessions.interface';
 import { UserStatus } from '@features/users/enums/user-status.enum';
-import { IUserRepository } from '@features/users/interfaces/users.interface';
+import { IUserQueryService } from '@features/users/interfaces/users.interface';
 import { TokenErrors } from '../../errors/token-errors';
 import { TokenValidationService } from './token-validation.service';
 
@@ -12,15 +12,15 @@ describe('TokenValidationService', () => {
     findActiveSession: jest.fn()
   };
 
-  const mockUserRepository = {
-    findUserForTokenValidation: jest.fn()
+  const mockUserQueryService = {
+    findForTokenValidation: jest.fn()
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     service = new TokenValidationService(
-      mockUserRepository as unknown as IUserRepository,
+      mockUserQueryService as unknown as IUserQueryService,
       mockSessionRepository as unknown as ISessionRepository
     );
   });
@@ -36,7 +36,7 @@ describe('TokenValidationService', () => {
         id: 'session-id'
       };
 
-      mockUserRepository.findUserForTokenValidation.mockResolvedValue(user);
+      mockUserQueryService.findForTokenValidation.mockResolvedValue(user);
       mockSessionRepository.findActiveSession.mockResolvedValue(session);
 
       const result = await service.validate({
@@ -45,9 +45,9 @@ describe('TokenValidationService', () => {
       });
 
       expect(result).toEqual({ user, session });
-      expect(
-        mockUserRepository.findUserForTokenValidation
-      ).toHaveBeenCalledWith('user-id');
+      expect(mockUserQueryService.findForTokenValidation).toHaveBeenCalledWith(
+        'user-id'
+      );
       expect(mockSessionRepository.findActiveSession).toHaveBeenCalledWith(
         'user-id',
         'session-id'
@@ -55,7 +55,7 @@ describe('TokenValidationService', () => {
     });
 
     it('should throw invalidToken when user does not exist', async () => {
-      mockUserRepository.findUserForTokenValidation.mockResolvedValue(null);
+      mockUserQueryService.findForTokenValidation.mockResolvedValue(null);
 
       await expect(
         service.validate({
@@ -68,7 +68,7 @@ describe('TokenValidationService', () => {
     it.each([UserStatus.DEACTIVATE, UserStatus.SUSPEND])(
       'should throw invalidToken when the account is %s',
       async (status) => {
-        mockUserRepository.findUserForTokenValidation.mockResolvedValue({
+        mockUserQueryService.findForTokenValidation.mockResolvedValue({
           id: 'user-id',
           status
         });
@@ -86,7 +86,7 @@ describe('TokenValidationService', () => {
     );
 
     it('should throw sessionExpired when session does not exist', async () => {
-      mockUserRepository.findUserForTokenValidation.mockResolvedValue({
+      mockUserQueryService.findForTokenValidation.mockResolvedValue({
         id: 'user-id',
         status: UserStatus.ACTIVATE
       });

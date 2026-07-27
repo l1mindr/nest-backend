@@ -5,27 +5,24 @@ import {
   isValidUUID
 } from '@core/pagination/cursor.util';
 import { paginate } from '@core/pagination/paginate.util';
-import { ADMIN_USERS_PAGE_SIZE_DEFAULT } from '../dto/request/admin-users-list.request.dto';
-import { UserErrors } from '../errors/user-errors';
+import { ADMIN_USERS_PAGE_SIZE_DEFAULT } from '../../dto/request/admin-users-list.request.dto';
+import { UserErrors } from '../../errors/user-errors';
+import { User } from '../../entities/user.entity';
 import {
-  IListUsersAdminService,
+  IAdminUsersService,
   IUserRepository,
   PaginatedResult,
   USER_REPOSITORY
-} from '../interfaces/users.interface';
-import { User } from '../entities/user.entity';
+} from '../../interfaces/users.interface';
 
 @Injectable()
-export class ListUsersAdminService implements IListUsersAdminService {
+export class AdminUsersService implements IAdminUsersService {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository
   ) {}
 
-  async listUsers(
-    cursor?: string,
-    limit?: number
-  ): Promise<PaginatedResult<User>> {
+  async list(cursor?: string, limit?: number): Promise<PaginatedResult<User>> {
     const take = limit ?? ADMIN_USERS_PAGE_SIZE_DEFAULT;
     const cursorId = this.parseCursor(cursor);
 
@@ -35,6 +32,12 @@ export class ListUsersAdminService implements IListUsersAdminService {
     );
 
     return paginate(items, take, (user) => encodeCursor(user.id));
+  }
+
+  async findById(id: string): Promise<User> {
+    const user = await this.userRepository.findUserForAdmin(id);
+    if (!user) throw UserErrors.userNotFound(id);
+    return user;
   }
 
   private parseCursor(cursor?: string): string | null {

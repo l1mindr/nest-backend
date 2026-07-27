@@ -37,8 +37,8 @@ describe('Login', () => {
     issuePair: jest.fn()
   };
 
-  const mockUserRepository = {
-    findByEmailOrUsernameForAuth: jest.fn()
+  const mockUserQueryService = {
+    findByEmailOrUsername: jest.fn()
   };
 
   const mockSessionRotationService = {
@@ -76,7 +76,7 @@ describe('Login', () => {
       mockRefreshTokenHasher as any,
       mockSessionIssueService as any,
       mockTokenIssueService as any,
-      mockUserRepository as any,
+      mockUserQueryService as any,
       mockSessionRotationService as any,
       mockLogger as any
     );
@@ -84,7 +84,7 @@ describe('Login', () => {
 
   describe('login', () => {
     it('should login successfully', async () => {
-      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
+      mockUserQueryService.findByEmailOrUsername.mockResolvedValue({
         id: 'user-id',
         password: 'hashed-password',
         status: UserStatus.ACTIVATE
@@ -125,7 +125,7 @@ describe('Login', () => {
     });
 
     it('should throw when user not found', async () => {
-      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue(null);
+      mockUserQueryService.findByEmailOrUsername.mockResolvedValue(null);
 
       await expect(
         service.login(
@@ -140,7 +140,7 @@ describe('Login', () => {
     });
 
     it('should throw when password mismatch', async () => {
-      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
+      mockUserQueryService.findByEmailOrUsername.mockResolvedValue({
         id: 'user-id',
         password: 'hash'
       });
@@ -162,7 +162,7 @@ describe('Login', () => {
     it.each([UserStatus.DEACTIVATE, UserStatus.SUSPEND])(
       'should reject login for %s users with invalidCredentials and issue no tokens',
       async (status) => {
-        mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
+        mockUserQueryService.findByEmailOrUsername.mockResolvedValue({
           id: 'user-id',
           password: 'hashed-password',
           status

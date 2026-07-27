@@ -12,16 +12,14 @@ import {
   Query,
   UseGuards
 } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
 import { AdminUsersListRequestDto } from './dto/request/admin-users-list.request.dto';
 import { AdminUserResponseDto } from './dto/response/admin-user.response.dto';
 import { UserRole } from './enums/user-role.enum';
 import {
-  FIND_USER_ADMIN_SERVICE,
-  IFindUserAdminService,
-  IListUsersAdminService,
-  LIST_USERS_ADMIN_SERVICE
+  ADMIN_USERS_SERVICE,
+  IAdminUsersService
 } from './interfaces/users.interface';
+import { UserMapper } from './application/mapping/user.mapper';
 import { ApiAdminGetAllUsers, ApiAdminGetUser } from './users.swagger';
 
 @Controller({
@@ -32,25 +30,21 @@ import { ApiAdminGetAllUsers, ApiAdminGetUser } from './users.swagger';
 @Roles(UserRole.ADMIN)
 export class AdminUsersController {
   constructor(
-    @Inject(LIST_USERS_ADMIN_SERVICE)
-    private readonly listUsersAdminService: IListUsersAdminService,
-    @Inject(FIND_USER_ADMIN_SERVICE)
-    private readonly findUserAdminService: IFindUserAdminService
+    @Inject(ADMIN_USERS_SERVICE)
+    private readonly adminUsersService: IAdminUsersService
   ) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiAdminGetAllUsers()
   async listUsers(@Query() query: AdminUsersListRequestDto) {
-    const { items, nextCursor } = await this.listUsersAdminService.listUsers(
+    const { items, nextCursor } = await this.adminUsersService.list(
       query.cursor,
       query.limit
     );
 
     return {
-      items: plainToInstance(AdminUserResponseDto, items, {
-        excludeExtraneousValues: true
-      }),
+      items: UserMapper.toAdminList(items),
       nextCursor
     };
   }
@@ -63,6 +57,6 @@ export class AdminUsersController {
     @Param()
     { id }: IdDto
   ) {
-    return this.findUserAdminService.findUserById(id);
+    return this.adminUsersService.findById(id);
   }
 }

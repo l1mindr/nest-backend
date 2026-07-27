@@ -18,7 +18,7 @@ export class Register implements IRegister {
   async register(dto: RegisterUserRequestDto): Promise<void> {
     const password = await this.hashingProvider.hash(dto.password);
 
-    return this.createUserService.createUser({
+    return this.createUserService.create({
       ...dto,
       password
     });

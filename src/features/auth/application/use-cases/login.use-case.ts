@@ -13,8 +13,8 @@ import {
 } from '@features/token/interfaces/token.interface';
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import {
-  IUserRepository,
-  USER_REPOSITORY
+  IUserQueryService,
+  USER_QUERY_SERVICE
 } from '@features/users/interfaces/users.interface';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
@@ -36,8 +36,8 @@ export class Login implements ILogin {
     private readonly sessionIssueService: ISessionIssueService,
     @Inject(TOKEN_ISSUE_SERVICE)
     private readonly tokenIssueService: ITokenIssueService,
-    @Inject(USER_REPOSITORY)
-    private readonly userRepository: IUserRepository,
+    @Inject(USER_QUERY_SERVICE)
+    private readonly userQueryService: IUserQueryService,
     @Inject(SESSION_ROTATION_SERVICE)
     private readonly sessionRotationService: ISessionRotationService,
     private readonly logger: PinoLogger
@@ -50,7 +50,7 @@ export class Login implements ILogin {
     ipAddress: string,
     device: DeviceContext
   ): Promise<AuthTokens> {
-    const user = await this.userRepository.findByEmailOrUsernameForAuth(email);
+    const user = await this.userQueryService.findByEmailOrUsername(email);
 
     if (!user) throw AuthErrors.invalidCredentials();
 

@@ -24,32 +24,35 @@ export interface IUserRepository {
   ): Promise<void>;
 }
 
+export const USER_QUERY_SERVICE = Symbol('IUserQueryService');
+
+export interface IUserQueryService {
+  findById(id: string): Promise<User | null>;
+  findByEmailOrUsername(identifier: string): Promise<User | null>;
+  findForTokenValidation(id: string): Promise<User | null>;
+}
+
 export const CREATE_USER_SERVICE = Symbol('ICreateUserService');
 
 export interface ICreateUserService {
-  createUser(dto: CreateUserRequestDto): Promise<void>;
+  create(dto: CreateUserRequestDto): Promise<void>;
 }
 
 export const UPDATE_PROFILE_SERVICE = Symbol('IUpdateProfileService');
 
 export interface IUpdateProfileService {
-  updateProfile(userId: string, dto: UpdateProfileRequestDto): Promise<void>;
+  update(userId: string, dto: UpdateProfileRequestDto): Promise<void>;
 }
 
 export const DELETE_ACCOUNT_SERVICE = Symbol('IDeleteAccountService');
 
 export interface IDeleteAccountService {
-  deleteAccount(userId: string): Promise<void>;
+  remove(userId: string): Promise<void>;
 }
 
-export const LIST_USERS_ADMIN_SERVICE = Symbol('IListUsersAdminService');
+export const ADMIN_USERS_SERVICE = Symbol('IAdminUsersService');
 
-export interface IListUsersAdminService {
-  listUsers(cursor?: string, limit?: number): Promise<PaginatedResult<User>>;
-}
-
-export const FIND_USER_ADMIN_SERVICE = Symbol('IFindUserAdminService');
-
-export interface IFindUserAdminService {
-  findUserById(id: string): Promise<User>;
+export interface IAdminUsersService {
+  list(cursor?: string, limit?: number): Promise<PaginatedResult<User>>;
+  findById(id: string): Promise<User>;
 }

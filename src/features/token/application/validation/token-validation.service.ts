@@ -5,8 +5,8 @@ import {
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import {
-  IUserRepository,
-  USER_REPOSITORY
+  IUserQueryService,
+  USER_QUERY_SERVICE
 } from '@features/users/interfaces/users.interface';
 import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
 import { Inject, Injectable } from '@nestjs/common';
@@ -17,14 +17,14 @@ import { ITokenValidationService } from '../../interfaces/token.interface';
 @Injectable()
 export class TokenValidationService implements ITokenValidationService {
   constructor(
-    @Inject(USER_REPOSITORY)
-    private readonly userRepository: IUserRepository,
+    @Inject(USER_QUERY_SERVICE)
+    private readonly userQueryService: IUserQueryService,
     @Inject(SESSION_REPOSITORY)
     private readonly sessionRepository: ISessionRepository
   ) {}
 
   async validate({ sub, sessionId }: IJwtPayload): Promise<CustomAuth> {
-    const user = await this.userRepository.findUserForTokenValidation(sub);
+    const user = await this.userQueryService.findForTokenValidation(sub);
 
     if (!user) throw TokenErrors.invalidToken();
 

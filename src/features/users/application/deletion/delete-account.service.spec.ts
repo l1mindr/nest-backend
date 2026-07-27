@@ -1,7 +1,7 @@
 import { ISessionRevocationService } from '@features/sessions/interfaces/sessions.interface';
 import { DataSource, EntityManager } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { UserErrors } from '../errors/user-errors';
+import { User } from '../../entities/user.entity';
+import { UserErrors } from '../../errors/user-errors';
 import { DeleteAccountService } from './delete-account.service';
 
 describe('DeleteAccountService', () => {
@@ -41,12 +41,12 @@ describe('DeleteAccountService', () => {
     );
   });
 
-  describe('deleteAccount', () => {
+  describe('remove', () => {
     it('should soft delete user and revoke all sessions in one transaction', async () => {
       const user = { id: '1' } as User;
       mockUserRepository.findUserById.mockResolvedValue(user);
 
-      await service.deleteAccount('1');
+      await service.remove('1');
 
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
       expect(mockRepository.softRemove).toHaveBeenCalledWith(user);
@@ -59,7 +59,7 @@ describe('DeleteAccountService', () => {
     it('should throw when user does not exist', async () => {
       mockUserRepository.findUserById.mockResolvedValue(null);
 
-      await expect(service.deleteAccount('1')).rejects.toEqual(
+      await expect(service.remove('1')).rejects.toEqual(
         UserErrors.userNotFound('1')
       );
 
@@ -74,7 +74,7 @@ describe('DeleteAccountService', () => {
       mockUserRepository.findUserById.mockResolvedValue(user);
       mockRepository.softRemove.mockRejectedValue(error);
 
-      await expect(service.deleteAccount('1')).rejects.toThrow(error);
+      await expect(service.remove('1')).rejects.toThrow(error);
     });
   });
 });
