@@ -8,6 +8,7 @@ import { REDACT_PATHS } from './logging.constants';
 export function loggerFactory(config: ConfigService): Params {
   const isProduction = config.get<string>('NODE_ENV') === 'production';
   const isTest = config.get<string>('NODE_ENV') === 'test';
+  const enableHttpLogs = config.get<string>('ENABLE_HTTP_LOGS') !== 'false';
 
   return {
     pinoHttp: {
@@ -57,7 +58,7 @@ export function loggerFactory(config: ConfigService): Params {
         censor: '[REDACTED]'
       },
 
-      autoLogging: !isTest,
+      autoLogging: enableHttpLogs && !isTest,
       quietReqLogger: true
     }
   };
