@@ -2,10 +2,10 @@ import { ClockService } from '@core/clock/clock.service';
 import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import {
-  ISessionIssueService,
-  ISessionRotationService,
-  SESSION_ISSUE_SERVICE,
-  SESSION_ROTATION_SERVICE
+  ISessionIssueUseCase,
+  ISessionRotationUseCase,
+  SESSION_ISSUE_USE_CASE,
+  SESSION_ROTATION_USE_CASE
 } from '@features/sessions/interfaces/sessions.interface';
 import {
   ITokenIssueService,
@@ -32,14 +32,14 @@ export class Login implements ILogin {
     private readonly clockService: ClockService,
     private readonly hashingProvider: HashingProvider,
     private readonly refreshTokenHasher: RefreshTokenHasher,
-    @Inject(SESSION_ISSUE_SERVICE)
-    private readonly sessionIssueService: ISessionIssueService,
+    @Inject(SESSION_ISSUE_USE_CASE)
+    private readonly sessionIssueUseCase: ISessionIssueUseCase,
     @Inject(TOKEN_ISSUE_SERVICE)
     private readonly tokenIssueService: ITokenIssueService,
     @Inject(USER_QUERY_SERVICE)
     private readonly userQueryService: IUserQueryService,
-    @Inject(SESSION_ROTATION_SERVICE)
-    private readonly sessionRotationService: ISessionRotationService,
+    @Inject(SESSION_ROTATION_USE_CASE)
+    private readonly sessionRotationUseCase: ISessionRotationUseCase,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(Login.name);
@@ -65,7 +65,7 @@ export class Login implements ILogin {
     const { now, expiresAt } = this.clockService.snapshot();
     const userAgent = this.deviceMapper.toSessionUserAgent(device);
 
-    const session = await this.sessionIssueService.issue(
+    const session = await this.sessionIssueUseCase.execute(
       user.id,
       ipAddress,
       userAgent,
@@ -83,7 +83,7 @@ export class Login implements ILogin {
     const refreshTokenHash = this.refreshTokenHasher.hash(refreshToken);
 
     session.refreshTokenHash = refreshTokenHash;
-    await this.sessionRotationService.saveHash(session);
+    await this.sessionRotationUseCase.saveHash(session);
 
     this.logger.info(
       {

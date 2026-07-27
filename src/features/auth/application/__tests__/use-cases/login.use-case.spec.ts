@@ -3,7 +3,7 @@ import { DeviceMapper } from '@features/security/device-detection/mappers/device
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import { createHash } from 'crypto';
 import { AuthErrors } from '../../../errors/auth-errors';
-import { Login } from '../login.use-case';
+import { Login } from '../../use-cases/login.use-case';
 
 const sha256 = (value: string) =>
   createHash('sha256').update(value).digest('hex');
@@ -29,8 +29,8 @@ describe('Login', () => {
     hash: jest.fn()
   };
 
-  const mockSessionIssueService = {
-    issue: jest.fn()
+  const mockSessionIssueUseCase = {
+    execute: jest.fn()
   };
 
   const mockTokenIssueService = {
@@ -41,7 +41,7 @@ describe('Login', () => {
     findByEmailOrUsername: jest.fn()
   };
 
-  const mockSessionRotationService = {
+  const mockSessionRotationUseCase = {
     saveHash: jest.fn()
   };
 
@@ -74,10 +74,10 @@ describe('Login', () => {
       mockClockService as unknown as ClockService,
       mockHashingProvider as any,
       mockRefreshTokenHasher as any,
-      mockSessionIssueService as any,
+      mockSessionIssueUseCase as any,
       mockTokenIssueService as any,
       mockUserQueryService as any,
-      mockSessionRotationService as any,
+      mockSessionRotationUseCase as any,
       mockLogger as any
     );
   });
@@ -92,7 +92,7 @@ describe('Login', () => {
 
       mockHashingProvider.compare.mockResolvedValue(true);
 
-      mockSessionIssueService.issue.mockResolvedValue({
+      mockSessionIssueUseCase.execute.mockResolvedValue({
         id: 'session-id'
       });
 
@@ -101,7 +101,7 @@ describe('Login', () => {
         refreshToken: 'refresh-token'
       });
 
-      mockSessionRotationService.saveHash.mockResolvedValue(undefined);
+      mockSessionRotationUseCase.saveHash.mockResolvedValue(undefined);
 
       const result = await service.login(
         {
@@ -116,7 +116,7 @@ describe('Login', () => {
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       });
-      expect(mockSessionRotationService.saveHash).toHaveBeenCalledWith(
+      expect(mockSessionRotationUseCase.saveHash).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'session-id',
           refreshTokenHash: sha256('refresh-token')
@@ -181,7 +181,7 @@ describe('Login', () => {
           )
         ).rejects.toEqual(AuthErrors.invalidCredentials());
 
-        expect(mockSessionIssueService.issue).not.toHaveBeenCalled();
+        expect(mockSessionIssueUseCase.execute).not.toHaveBeenCalled();
         expect(mockTokenIssueService.issuePair).not.toHaveBeenCalled();
       }
     );

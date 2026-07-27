@@ -1,7 +1,7 @@
 import { TokenErrors } from '@features/token/errors/token-errors';
 import { DataSource, EntityManager } from 'typeorm';
 import { AuthErrors } from '../../../errors/auth-errors';
-import { ChangePassword } from '../change-password.use-case';
+import { ChangePassword } from '../../use-cases/change-password.use-case';
 
 describe('ChangePassword', () => {
   let service: ChangePassword;
@@ -16,7 +16,7 @@ describe('ChangePassword', () => {
     updatePasswordHash: jest.fn()
   };
 
-  const mockRevocationService = {
+  const mockRevocationUseCase = {
     terminateOthers: jest.fn()
   };
 
@@ -42,7 +42,7 @@ describe('ChangePassword', () => {
     service = new ChangePassword(
       mockHashingProvider as any,
       mockUserRepository as any,
-      mockRevocationService as any,
+      mockRevocationUseCase as any,
       mockDataSource as unknown as DataSource,
       mockLogger as any
     );
@@ -72,7 +72,7 @@ describe('ChangePassword', () => {
         mockTransactionManager
       );
 
-      expect(mockRevocationService.terminateOthers).toHaveBeenCalledWith(
+      expect(mockRevocationUseCase.terminateOthers).toHaveBeenCalledWith(
         'user-id',
         'session-id',
         mockTransactionManager
@@ -91,7 +91,7 @@ describe('ChangePassword', () => {
         .mockResolvedValueOnce(true)
         .mockResolvedValueOnce(false);
       mockHashingProvider.hash.mockResolvedValue('new-hash');
-      mockRevocationService.terminateOthers.mockRejectedValueOnce(error);
+      mockRevocationUseCase.terminateOthers.mockRejectedValueOnce(error);
 
       await expect(
         service.changePassword('user-id', 'session-id', {
@@ -105,7 +105,7 @@ describe('ChangePassword', () => {
         'new-hash',
         mockTransactionManager
       );
-      expect(mockRevocationService.terminateOthers).toHaveBeenCalledWith(
+      expect(mockRevocationUseCase.terminateOthers).toHaveBeenCalledWith(
         'user-id',
         'session-id',
         mockTransactionManager

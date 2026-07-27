@@ -1,11 +1,11 @@
 import { ClockService } from '@core/clock/clock.service';
 import {
   ISessionQueryService,
-  ISessionRevocationService,
-  ISessionRotationService,
+  ISessionRevocationUseCase,
+  ISessionRotationUseCase,
   SESSION_QUERY_SERVICE,
-  SESSION_REVOCATION_SERVICE,
-  SESSION_ROTATION_SERVICE
+  SESSION_REVOCATION_USE_CASE,
+  SESSION_ROTATION_USE_CASE
 } from '@features/sessions/interfaces/sessions.interface';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import {
@@ -32,10 +32,10 @@ export class Refresh implements IRefresh {
     private readonly sessionQueryService: ISessionQueryService,
     private readonly refreshTokenHasher: RefreshTokenHasher,
     private readonly clockService: ClockService,
-    @Inject(SESSION_REVOCATION_SERVICE)
-    private readonly revocationService: ISessionRevocationService,
-    @Inject(SESSION_ROTATION_SERVICE)
-    private readonly sessionRotationService: ISessionRotationService,
+    @Inject(SESSION_REVOCATION_USE_CASE)
+    private readonly revocationUseCase: ISessionRevocationUseCase,
+    @Inject(SESSION_ROTATION_USE_CASE)
+    private readonly sessionRotationUseCase: ISessionRotationUseCase,
     @Inject(TOKEN_ISSUE_SERVICE)
     private readonly tokenIssueService: ITokenIssueService,
     private readonly logger: PinoLogger
@@ -69,7 +69,7 @@ export class Refresh implements IRefresh {
       );
 
       if (!isValid) {
-        await this.revocationService.revoke(sub, sessionId);
+        await this.revocationUseCase.revoke(sub, sessionId);
         throw SessionErrors.sessionReuseDetected(sessionId);
       }
 
@@ -86,7 +86,7 @@ export class Refresh implements IRefresh {
         tokens.refreshToken
       );
 
-      const ok = await this.sessionRotationService.rotate(
+      const ok = await this.sessionRotationUseCase.execute(
         session.id,
         session.version,
         session.refreshTokenHash,

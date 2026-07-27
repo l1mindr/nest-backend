@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { RefreshTokenHasher } from './refresh-token-hasher.provider';
+import { RefreshTokenHasher } from '../../../providers/refresh-token-hasher.provider';
 
 describe('RefreshTokenHasher', () => {
   let hasher: RefreshTokenHasher;
