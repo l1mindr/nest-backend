@@ -1,7 +1,7 @@
 import { ClockService } from '@core/clock/clock.service';
-import { Session } from '../../entities/session.entity';
-import { SessionCursorService } from '../cursor/session-cursor.service';
-import { SessionListService } from './session-list.service';
+import { Session } from '../../../entities/session.entity';
+import { SessionCursorService } from '../../services/session-cursor.service';
+import { SessionListService } from '../../services/session-list.service';
 
 describe('SessionListService', () => {
   let service: SessionListService;

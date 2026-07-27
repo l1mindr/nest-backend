@@ -2,17 +2,18 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Session } from '../../entities/session.entity';
 import {
   ISessionRepository,
+  ISessionRotationUseCase,
   SESSION_REPOSITORY
 } from '../../interfaces/sessions.interface';
 
 @Injectable()
-export class SessionRotationService {
+export class SessionRotationUseCase implements ISessionRotationUseCase {
   constructor(
     @Inject(SESSION_REPOSITORY)
     private readonly sessionRepository: ISessionRepository
   ) {}
 
-  rotate(
+  async execute(
     sessionId: string,
     version: number,
     oldHash: string,
@@ -28,7 +29,7 @@ export class SessionRotationService {
     );
   }
 
-  saveHash(session: Session): Promise<Session> {
+  async saveHash(session: Session): Promise<Session> {
     return this.sessionRepository.saveRefreshTokenHash(session);
   }
 }

@@ -1,5 +1,5 @@
-import { Session } from '../../entities/session.entity';
-import { SessionQueryService } from './session-query.service';
+import { Session } from '../../../entities/session.entity';
+import { SessionQueryService } from '../../services/session-query.service';
 
 describe('SessionQueryService', () => {
   const mockSessionRepository = {

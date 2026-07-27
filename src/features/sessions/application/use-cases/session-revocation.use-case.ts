@@ -4,17 +4,18 @@ import { PinoLogger } from 'nestjs-pino';
 import { EntityManager } from 'typeorm';
 import {
   ISessionRepository,
+  ISessionRevocationUseCase,
   SESSION_REPOSITORY
 } from '../../interfaces/sessions.interface';
 
 @Injectable()
-export class SessionRevocationService {
+export class SessionRevocationUseCase implements ISessionRevocationUseCase {
   constructor(
     @Inject(SESSION_REPOSITORY)
     private readonly sessionRepository: ISessionRepository,
     private readonly logger: PinoLogger
   ) {
-    this.logger.setContext(SessionRevocationService.name);
+    this.logger.setContext(SessionRevocationUseCase.name);
   }
 
   async revoke(userId: string, sessionId: string): Promise<void> {

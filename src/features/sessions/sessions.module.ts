@@ -1,21 +1,21 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SessionCursorService } from './application/cursor/session-cursor.service';
-import { SessionIssueService } from './application/issue/session-issue.service';
-import { SessionMapper } from './application/mapping/session.mapper';
-import { SessionListService } from './application/query/session-list.service';
-import { SessionQueryService } from './application/query/session-query.service';
-import { SessionRevocationService } from './application/revocation/session-revocation.service';
-import { SessionRotationService } from './application/rotation/session-rotation.service';
+import { SessionCursorService } from './application/services/session-cursor.service';
+import { SessionQueryService } from './application/services/session-query.service';
+import { SessionListService } from './application/services/session-list.service';
+import { SessionMapper } from './application/mappers/session.mapper';
+import { SessionIssueUseCase } from './application/use-cases/session-issue.use-case';
+import { SessionRevocationUseCase } from './application/use-cases/session-revocation.use-case';
+import { SessionRotationUseCase } from './application/use-cases/session-rotation.use-case';
 import { Session } from './entities/session.entity';
 import {
   SESSION_CURSOR_SERVICE,
-  SESSION_ISSUE_SERVICE,
+  SESSION_ISSUE_USE_CASE,
   SESSION_LIST_SERVICE,
   SESSION_QUERY_SERVICE,
   SESSION_REPOSITORY,
-  SESSION_REVOCATION_SERVICE,
-  SESSION_ROTATION_SERVICE
+  SESSION_REVOCATION_USE_CASE,
+  SESSION_ROTATION_USE_CASE
 } from './interfaces/sessions.interface';
 import { SessionRepository } from './repositories/session.repository';
 import { SessionsController } from './sessions.controller';
@@ -32,14 +32,14 @@ import { SessionsController } from './sessions.controller';
     { provide: SESSION_QUERY_SERVICE, useExisting: SessionQueryService },
     SessionListService,
     { provide: SESSION_LIST_SERVICE, useExisting: SessionListService },
-    SessionIssueService,
-    { provide: SESSION_ISSUE_SERVICE, useExisting: SessionIssueService },
-    SessionRotationService,
-    { provide: SESSION_ROTATION_SERVICE, useExisting: SessionRotationService },
-    SessionRevocationService,
+    SessionIssueUseCase,
+    { provide: SESSION_ISSUE_USE_CASE, useExisting: SessionIssueUseCase },
+    SessionRotationUseCase,
+    { provide: SESSION_ROTATION_USE_CASE, useExisting: SessionRotationUseCase },
+    SessionRevocationUseCase,
     {
-      provide: SESSION_REVOCATION_SERVICE,
-      useExisting: SessionRevocationService
+      provide: SESSION_REVOCATION_USE_CASE,
+      useExisting: SessionRevocationUseCase
     }
   ],
   controllers: [SessionsController],
@@ -48,9 +48,9 @@ import { SessionsController } from './sessions.controller';
     SESSION_CURSOR_SERVICE,
     SESSION_QUERY_SERVICE,
     SESSION_LIST_SERVICE,
-    SESSION_ISSUE_SERVICE,
-    SESSION_ROTATION_SERVICE,
-    SESSION_REVOCATION_SERVICE
+    SESSION_ISSUE_USE_CASE,
+    SESSION_ROTATION_USE_CASE,
+    SESSION_REVOCATION_USE_CASE
   ]
 })
 export class SessionsModule {}

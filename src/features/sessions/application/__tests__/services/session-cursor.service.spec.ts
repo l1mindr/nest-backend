@@ -1,4 +1,4 @@
-import { SessionCursorService } from './session-cursor.service';
+import { SessionCursorService } from '../../services/session-cursor.service';
 
 describe('SessionCursorService', () => {
   const service = new SessionCursorService();

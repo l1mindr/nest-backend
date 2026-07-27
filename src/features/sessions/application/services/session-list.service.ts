@@ -3,7 +3,7 @@ import { ClockService } from '@core/clock/clock.service';
 import { paginate } from '@core/pagination/paginate.util';
 import { Inject, Injectable } from '@nestjs/common';
 import { SESSION_PAGE_SIZE_DEFAULT } from '../../dto/request/session-list-request.dto';
-import { SessionCursorService } from '../cursor/session-cursor.service';
+import { SessionCursorService } from './session-cursor.service';
 import {
   ISessionRepository,
   SESSION_REPOSITORY,

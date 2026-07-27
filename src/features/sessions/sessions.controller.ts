@@ -12,14 +12,14 @@ import {
   Query,
   UseInterceptors
 } from '@nestjs/common';
-import { SessionMapper } from './application/mapping/session.mapper';
+import { SessionMapper } from './application/mappers/session.mapper';
 import { SessionListRequestDto } from './dto/request/session-list-request.dto';
 import { Session as SessionEntity } from './entities/session.entity';
 import {
   ISessionListService,
-  ISessionRevocationService,
+  ISessionRevocationUseCase,
   SESSION_LIST_SERVICE,
-  SESSION_REVOCATION_SERVICE
+  SESSION_REVOCATION_USE_CASE
 } from './interfaces/sessions.interface';
 import {
   ApiGetSessions,
@@ -35,8 +35,8 @@ export class SessionsController {
   constructor(
     @Inject(SESSION_LIST_SERVICE)
     private readonly listService: ISessionListService,
-    @Inject(SESSION_REVOCATION_SERVICE)
-    private readonly revocationService: ISessionRevocationService,
+    @Inject(SESSION_REVOCATION_USE_CASE)
+    private readonly revocationUseCase: ISessionRevocationUseCase,
     private readonly sessionMapper: SessionMapper
   ) {}
 
@@ -67,7 +67,7 @@ export class SessionsController {
   @UseInterceptors(ClearCsrfCookieInterceptor)
   @ApiRevokeCurrentSession()
   revokeSession(@User() user: UserEntity, @Session() session: SessionEntity) {
-    return this.revocationService.revoke(user.id, session.id);
+    return this.revocationUseCase.revoke(user.id, session.id);
   }
 
   @Delete('others')
@@ -77,6 +77,6 @@ export class SessionsController {
     @User() user: UserEntity,
     @Session() session: SessionEntity
   ) {
-    return this.revocationService.terminateOthers(user.id, session.id);
+    return this.revocationUseCase.terminateOthers(user.id, session.id);
   }
 }

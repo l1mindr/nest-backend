@@ -1,23 +1,23 @@
-import { Session } from '../../entities/session.entity';
-import { SessionRotationService } from './session-rotation.service';
+import { Session } from '../../../entities/session.entity';
+import { SessionRotationUseCase } from '../../use-cases/session-rotation.use-case';
 
-describe('SessionRotationService', () => {
+describe('SessionRotationUseCase', () => {
   const mockSessionRepository = {
     rotateRefreshToken: jest.fn(),
     saveRefreshTokenHash: jest.fn()
   };
 
-  const service = new SessionRotationService(mockSessionRepository as any);
+  const service = new SessionRotationUseCase(mockSessionRepository as any);
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('rotate', () => {
+  describe('execute', () => {
     it('should delegate to repository rotateRefreshToken', async () => {
       mockSessionRepository.rotateRefreshToken.mockResolvedValue(true);
 
-      const result = await service.rotate(
+      const result = await service.execute(
         'session-id',
         1,
         'old-hash',

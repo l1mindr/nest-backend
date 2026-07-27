@@ -9,10 +9,9 @@ export interface SessionListResult extends PaginatedResult<SessionListItem> {
   currentSession: SessionListItem;
 }
 
-export const SESSION_ISSUE_SERVICE = Symbol('ISessionIssueService');
-
-export interface ISessionIssueService {
-  issue(
+export const SESSION_ISSUE_USE_CASE = Symbol('ISessionIssueUseCase');
+export interface ISessionIssueUseCase {
+  execute(
     userId: string,
     ipAddress: string,
     device: ISessionDevice,
@@ -21,13 +20,11 @@ export interface ISessionIssueService {
 }
 
 export const SESSION_QUERY_SERVICE = Symbol('ISessionQueryService');
-
 export interface ISessionQueryService {
   findActive(userId: string, sessionId: string): Promise<Session | null>;
 }
 
 export const SESSION_LIST_SERVICE = Symbol('ISessionListService');
-
 export interface ISessionListService {
   list(
     userId: string,
@@ -37,10 +34,9 @@ export interface ISessionListService {
   ): Promise<SessionListResult>;
 }
 
-export const SESSION_ROTATION_SERVICE = Symbol('ISessionRotationService');
-
-export interface ISessionRotationService {
-  rotate(
+export const SESSION_ROTATION_USE_CASE = Symbol('ISessionRotationUseCase');
+export interface ISessionRotationUseCase {
+  execute(
     sessionId: string,
     version: number,
     oldHash: string,
@@ -50,9 +46,8 @@ export interface ISessionRotationService {
   saveHash(session: Session): Promise<Session>;
 }
 
-export const SESSION_REVOCATION_SERVICE = Symbol('ISessionRevocationService');
-
-export interface ISessionRevocationService {
+export const SESSION_REVOCATION_USE_CASE = Symbol('ISessionRevocationUseCase');
+export interface ISessionRevocationUseCase {
   revoke(userId: string, sessionId: string): Promise<void>;
   revokeAll(userId: string, manager?: EntityManager): Promise<void>;
   terminateOthers(
@@ -63,14 +58,12 @@ export interface ISessionRevocationService {
 }
 
 export const SESSION_CURSOR_SERVICE = Symbol('ISessionCursorService');
-
 export interface ISessionCursorService {
   encode(data: { lastUsedAt: Date; id: string }): string;
   decode(cursor?: string): { lastUsedAt: Date; id: string } | null;
 }
 
 export const SESSION_REPOSITORY = Symbol('ISessionRepository');
-
 export interface ISessionRepository {
   findActiveSession(userId: string, sessionId: string): Promise<Session | null>;
   rotateRefreshToken(

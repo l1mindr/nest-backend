@@ -1,8 +1,8 @@
 import { EntityManager } from 'typeorm';
-import { SessionRevocationService } from './session-revocation.service';
+import { SessionRevocationUseCase } from '../../use-cases/session-revocation.use-case';
 
-describe('SessionRevocationService', () => {
-  let service: SessionRevocationService;
+describe('SessionRevocationUseCase', () => {
+  let service: SessionRevocationUseCase;
 
   const mockLogger = {
     setContext: jest.fn(),
@@ -20,7 +20,7 @@ describe('SessionRevocationService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    service = new SessionRevocationService(
+    service = new SessionRevocationUseCase(
       mockSessionRepository as any,
       mockLogger as any
     );
