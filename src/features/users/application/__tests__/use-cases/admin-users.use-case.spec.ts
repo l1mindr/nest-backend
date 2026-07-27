@@ -1,9 +1,9 @@
-import { User } from '../../entities/user.entity';
-import { UserErrors } from '../../errors/user-errors';
-import { AdminUsersService } from './admin-users.service';
+import { User } from '../../../entities/user.entity';
+import { UserErrors } from '../../../errors/user-errors';
+import { AdminUsersUseCase } from '../../use-cases/admin-users.use-case';
 
-describe('AdminUsersService', () => {
-  let service: AdminUsersService;
+describe('AdminUsersUseCase', () => {
+  let service: AdminUsersUseCase;
 
   const mockUserRepository = {
     findUsersForAdmin: jest.fn(),
@@ -13,7 +13,7 @@ describe('AdminUsersService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    service = new AdminUsersService(mockUserRepository as any);
+    service = new AdminUsersUseCase(mockUserRepository as any);
   });
 
   describe('list', () => {

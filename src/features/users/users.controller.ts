@@ -15,10 +15,10 @@ import { ApiTags } from '@nestjs/swagger';
 import { UpdateProfileRequestDto } from './dto/request/update-profile.request.dto';
 import { UserProfileResponseDto } from './dto/response/user-profile.response.dto';
 import {
-  DELETE_ACCOUNT_SERVICE,
-  IDeleteAccountService,
-  IUpdateProfileService,
-  UPDATE_PROFILE_SERVICE
+  DELETE_ACCOUNT_USE_CASE,
+  IDeleteAccountUseCase,
+  IUpdateProfileUseCase,
+  UPDATE_PROFILE_USE_CASE
 } from './interfaces/users.interface';
 import {
   ApiChangeProfile,
@@ -33,10 +33,10 @@ import {
 @ApiTags('user')
 export class UsersController {
   constructor(
-    @Inject(UPDATE_PROFILE_SERVICE)
-    private readonly updateProfileService: IUpdateProfileService,
-    @Inject(DELETE_ACCOUNT_SERVICE)
-    private readonly deleteAccountService: IDeleteAccountService
+    @Inject(UPDATE_PROFILE_USE_CASE)
+    private readonly updateProfileUseCase: IUpdateProfileUseCase,
+    @Inject(DELETE_ACCOUNT_USE_CASE)
+    private readonly deleteAccountUseCase: IDeleteAccountUseCase
   ) {}
 
   @Get('me')
@@ -54,13 +54,13 @@ export class UsersController {
     @User() user: UserEntity,
     @Body() dto: UpdateProfileRequestDto
   ) {
-    return this.updateProfileService.update(user.id, dto);
+    return this.updateProfileUseCase.execute(user.id, dto);
   }
 
   @Delete('delete-account')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteAccount()
   deleteAccount(@User() user: UserEntity) {
-    return this.deleteAccountService.remove(user.id);
+    return this.deleteAccountUseCase.execute(user.id);
   }
 }

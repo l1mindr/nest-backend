@@ -16,10 +16,10 @@ import { AdminUsersListRequestDto } from './dto/request/admin-users-list.request
 import { AdminUserResponseDto } from './dto/response/admin-user.response.dto';
 import { UserRole } from './enums/user-role.enum';
 import {
-  ADMIN_USERS_SERVICE,
-  IAdminUsersService
+  ADMIN_USERS_USE_CASE,
+  IAdminUsersUseCase
 } from './interfaces/users.interface';
-import { UserMapper } from './application/mapping/user.mapper';
+import { UserMapper } from './application/mappers/user.mapper';
 import { ApiAdminGetAllUsers, ApiAdminGetUser } from './users.swagger';
 
 @Controller({
@@ -30,21 +30,22 @@ import { ApiAdminGetAllUsers, ApiAdminGetUser } from './users.swagger';
 @Roles(UserRole.ADMIN)
 export class AdminUsersController {
   constructor(
-    @Inject(ADMIN_USERS_SERVICE)
-    private readonly adminUsersService: IAdminUsersService
+    @Inject(ADMIN_USERS_USE_CASE)
+    private readonly adminUsersUseCase: IAdminUsersUseCase,
+    private readonly userMapper: UserMapper
   ) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiAdminGetAllUsers()
   async listUsers(@Query() query: AdminUsersListRequestDto) {
-    const { items, nextCursor } = await this.adminUsersService.list(
+    const { items, nextCursor } = await this.adminUsersUseCase.list(
       query.cursor,
       query.limit
     );
 
     return {
-      items: UserMapper.toAdminList(items),
+      items: this.userMapper.toAdminList(items),
       nextCursor
     };
   }
@@ -57,6 +58,6 @@ export class AdminUsersController {
     @Param()
     { id }: IdDto
   ) {
-    return this.adminUsersService.findById(id);
+    return this.adminUsersUseCase.findById(id);
   }
 }

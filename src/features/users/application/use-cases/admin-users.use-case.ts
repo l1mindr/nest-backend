@@ -9,14 +9,14 @@ import { ADMIN_USERS_PAGE_SIZE_DEFAULT } from '../../dto/request/admin-users-lis
 import { UserErrors } from '../../errors/user-errors';
 import { User } from '../../entities/user.entity';
 import {
-  IAdminUsersService,
+  IAdminUsersUseCase,
   IUserRepository,
   PaginatedResult,
   USER_REPOSITORY
 } from '../../interfaces/users.interface';
 
 @Injectable()
-export class AdminUsersService implements IAdminUsersService {
+export class AdminUsersUseCase implements IAdminUsersUseCase {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository

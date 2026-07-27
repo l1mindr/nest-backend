@@ -32,27 +32,27 @@ export interface IUserQueryService {
   findForTokenValidation(id: string): Promise<User | null>;
 }
 
-export const CREATE_USER_SERVICE = Symbol('ICreateUserService');
+export const CREATE_USER_USE_CASE = Symbol('ICreateUserUseCase');
 
-export interface ICreateUserService {
-  create(dto: CreateUserRequestDto): Promise<void>;
+export interface ICreateUserUseCase {
+  execute(dto: CreateUserRequestDto): Promise<void>;
 }
 
-export const UPDATE_PROFILE_SERVICE = Symbol('IUpdateProfileService');
+export const UPDATE_PROFILE_USE_CASE = Symbol('IUpdateProfileUseCase');
 
-export interface IUpdateProfileService {
-  update(userId: string, dto: UpdateProfileRequestDto): Promise<void>;
+export interface IUpdateProfileUseCase {
+  execute(userId: string, dto: UpdateProfileRequestDto): Promise<void>;
 }
 
-export const DELETE_ACCOUNT_SERVICE = Symbol('IDeleteAccountService');
+export const DELETE_ACCOUNT_USE_CASE = Symbol('IDeleteAccountUseCase');
 
-export interface IDeleteAccountService {
-  remove(userId: string): Promise<void>;
+export interface IDeleteAccountUseCase {
+  execute(userId: string): Promise<void>;
 }
 
-export const ADMIN_USERS_SERVICE = Symbol('IAdminUsersService');
+export const ADMIN_USERS_USE_CASE = Symbol('IAdminUsersUseCase');
 
-export interface IAdminUsersService {
+export interface IAdminUsersUseCase {
   list(cursor?: string, limit?: number): Promise<PaginatedResult<User>>;
   findById(id: string): Promise<User>;
 }

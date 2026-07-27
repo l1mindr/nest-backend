@@ -1,9 +1,9 @@
-import { User } from '../../entities/user.entity';
-import { UserErrors } from '../../errors/user-errors';
-import { UpdateProfileService } from './update-profile.service';
+import { User } from '../../../entities/user.entity';
+import { UserErrors } from '../../../errors/user-errors';
+import { UpdateProfileUseCase } from '../../use-cases/update-profile.use-case';
 
-describe('UpdateProfileService', () => {
-  let service: UpdateProfileService;
+describe('UpdateProfileUseCase', () => {
+  let service: UpdateProfileUseCase;
 
   const mockUserRepository = {
     findUserById: jest.fn(),
@@ -13,15 +13,15 @@ describe('UpdateProfileService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    service = new UpdateProfileService(mockUserRepository as any);
+    service = new UpdateProfileUseCase(mockUserRepository as any);
   });
 
-  describe('update', () => {
+  describe('execute', () => {
     it('should update profile', async () => {
       mockUserRepository.findUserById.mockResolvedValue({ id: '1' } as User);
       mockUserRepository.updateUserProfile.mockResolvedValue(undefined);
 
-      await service.update('1', { name: 'Ali' } as any);
+      await service.execute('1', { name: 'Ali' } as any);
 
       expect(mockUserRepository.findUserById).toHaveBeenCalledWith('1');
       expect(mockUserRepository.updateUserProfile).toHaveBeenCalledWith('1', {
@@ -32,7 +32,7 @@ describe('UpdateProfileService', () => {
     it('should throw when user not found', async () => {
       mockUserRepository.findUserById.mockResolvedValue(null);
 
-      await expect(service.update('1', {} as any)).rejects.toEqual(
+      await expect(service.execute('1', {} as any)).rejects.toEqual(
         UserErrors.userNotFound('1')
       );
 
@@ -46,7 +46,7 @@ describe('UpdateProfileService', () => {
         detail: 'email'
       });
 
-      await expect(service.update('1', {} as any)).rejects.toEqual(
+      await expect(service.execute('1', {} as any)).rejects.toEqual(
         UserErrors.emailAlreadyExists()
       );
     });
@@ -58,7 +58,7 @@ describe('UpdateProfileService', () => {
         detail: 'username'
       });
 
-      await expect(service.update('1', {} as any)).rejects.toEqual(
+      await expect(service.execute('1', {} as any)).rejects.toEqual(
         UserErrors.usernameAlreadyExists()
       );
     });
@@ -68,7 +68,7 @@ describe('UpdateProfileService', () => {
       mockUserRepository.findUserById.mockResolvedValue({ id: '1' } as User);
       mockUserRepository.updateUserProfile.mockRejectedValue(error);
 
-      await expect(service.update('1', {} as any)).rejects.toThrow(error);
+      await expect(service.execute('1', {} as any)).rejects.toThrow(error);
     });
   });
 });

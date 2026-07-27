@@ -1,5 +1,5 @@
-import { User } from '../../entities/user.entity';
-import { UserQueryService } from './user-query.service';
+import { User } from '../../../entities/user.entity';
+import { UserQueryService } from '../../services/user-query.service';
 
 describe('UserQueryService', () => {
   let service: UserQueryService;
