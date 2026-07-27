@@ -11,9 +11,8 @@ const EXPIRES_AT = new Date(NOW_MS + 1000);
 describe('Refresh', () => {
   let service: Refresh;
 
-  const mockTokenService = {
-    verifyRefreshToken: jest.fn(),
-    issuePair: jest.fn()
+  const mockTokenVerificationService = {
+    verifyRefresh: jest.fn()
   };
 
   const mockRedisLockService = {
@@ -42,6 +41,10 @@ describe('Refresh', () => {
     rotate: jest.fn()
   };
 
+  const mockTokenIssueService = {
+    issuePair: jest.fn()
+  };
+
   const mockLogger = {
     setContext: jest.fn(),
     info: jest.fn(),
@@ -65,20 +68,21 @@ describe('Refresh', () => {
     );
 
     service = new Refresh(
-      mockTokenService as any,
+      mockTokenVerificationService as any,
       mockRedisLockService as any,
       mockSessionQueryService as any,
       mockRefreshTokenHasher as any,
       mockClockService as unknown as ClockService,
       mockRevocationService as any,
       mockSessionRotationService as any,
+      mockTokenIssueService as any,
       mockLogger as any
     );
   });
 
   describe('refresh', () => {
     it('should refresh successfully', async () => {
-      mockTokenService.verifyRefreshToken.mockResolvedValue({
+      mockTokenVerificationService.verifyRefresh.mockResolvedValue({
         sub: 'user-id',
         sessionId: 'session-id'
       });
@@ -96,7 +100,7 @@ describe('Refresh', () => {
         }
       });
 
-      mockTokenService.issuePair.mockResolvedValue({
+      mockTokenIssueService.issuePair.mockResolvedValue({
         accessToken: 'new-access',
         refreshToken: 'new-refresh'
       });
@@ -120,7 +124,7 @@ describe('Refresh', () => {
     });
 
     it('should throw sessionExpired', async () => {
-      mockTokenService.verifyRefreshToken.mockResolvedValue({
+      mockTokenVerificationService.verifyRefresh.mockResolvedValue({
         sub: 'user-id',
         sessionId: 'session-id'
       });
@@ -138,7 +142,7 @@ describe('Refresh', () => {
     });
 
     it('should throw refreshRateLimited', async () => {
-      mockTokenService.verifyRefreshToken.mockResolvedValue({
+      mockTokenVerificationService.verifyRefresh.mockResolvedValue({
         sub: 'user-id',
         sessionId: 'session-id'
       });
@@ -159,7 +163,7 @@ describe('Refresh', () => {
         }
       };
 
-      mockTokenService.verifyRefreshToken.mockResolvedValue({
+      mockTokenVerificationService.verifyRefresh.mockResolvedValue({
         sub: 'user-id',
         sessionId: 'session-id'
       });
@@ -182,7 +186,7 @@ describe('Refresh', () => {
     });
 
     it('should throw when rotate fails', async () => {
-      mockTokenService.verifyRefreshToken.mockResolvedValue({
+      mockTokenVerificationService.verifyRefresh.mockResolvedValue({
         sub: 'user-id',
         sessionId: 'session-id'
       });
@@ -205,7 +209,7 @@ describe('Refresh', () => {
         expiresAt: EXPIRES_AT
       });
 
-      mockTokenService.issuePair.mockResolvedValue({
+      mockTokenIssueService.issuePair.mockResolvedValue({
         accessToken: 'access',
         refreshToken: 'refresh'
       });

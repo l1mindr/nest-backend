@@ -8,8 +8,8 @@ import {
   SESSION_ROTATION_SERVICE
 } from '@features/sessions/interfaces/sessions.interface';
 import {
-  ITokenService,
-  TOKEN_SERVICE
+  ITokenIssueService,
+  TOKEN_ISSUE_SERVICE
 } from '@features/token/interfaces/token.interface';
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import {
@@ -34,8 +34,8 @@ export class Login implements ILogin {
     private readonly refreshTokenHasher: RefreshTokenHasher,
     @Inject(SESSION_ISSUE_SERVICE)
     private readonly sessionIssueService: ISessionIssueService,
-    @Inject(TOKEN_SERVICE)
-    private readonly tokenService: ITokenService,
+    @Inject(TOKEN_ISSUE_SERVICE)
+    private readonly tokenIssueService: ITokenIssueService,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
     @Inject(SESSION_ROTATION_SERVICE)
@@ -72,12 +72,13 @@ export class Login implements ILogin {
       expiresAt
     );
 
-    const { accessToken, refreshToken } = await this.tokenService.issuePair(
-      user.id,
-      session.id,
-      now,
-      expiresAt
-    );
+    const { accessToken, refreshToken } =
+      await this.tokenIssueService.issuePair(
+        user.id,
+        session.id,
+        now,
+        expiresAt
+      );
 
     const refreshTokenHash = this.refreshTokenHasher.hash(refreshToken);
 

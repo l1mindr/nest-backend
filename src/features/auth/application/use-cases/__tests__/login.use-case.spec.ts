@@ -33,7 +33,7 @@ describe('Login', () => {
     issue: jest.fn()
   };
 
-  const mockTokenService = {
+  const mockTokenIssueService = {
     issuePair: jest.fn()
   };
 
@@ -75,7 +75,7 @@ describe('Login', () => {
       mockHashingProvider as any,
       mockRefreshTokenHasher as any,
       mockSessionIssueService as any,
-      mockTokenService as any,
+      mockTokenIssueService as any,
       mockUserRepository as any,
       mockSessionRotationService as any,
       mockLogger as any
@@ -96,7 +96,7 @@ describe('Login', () => {
         id: 'session-id'
       });
 
-      mockTokenService.issuePair.mockResolvedValue({
+      mockTokenIssueService.issuePair.mockResolvedValue({
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       });
@@ -182,7 +182,7 @@ describe('Login', () => {
         ).rejects.toEqual(AuthErrors.invalidCredentials());
 
         expect(mockSessionIssueService.issue).not.toHaveBeenCalled();
-        expect(mockTokenService.issuePair).not.toHaveBeenCalled();
+        expect(mockTokenIssueService.issuePair).not.toHaveBeenCalled();
       }
     );
   });

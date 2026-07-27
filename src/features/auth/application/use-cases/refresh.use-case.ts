@@ -9,8 +9,10 @@ import {
 } from '@features/sessions/interfaces/sessions.interface';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import {
-  ITokenService,
-  TOKEN_SERVICE
+  ITokenIssueService,
+  ITokenVerificationService,
+  TOKEN_ISSUE_SERVICE,
+  TOKEN_VERIFICATION_SERVICE
 } from '@features/token/interfaces/token.interface';
 import { RedisKey } from '@infrastructure/databases/redis/keys/redis-key.enum';
 import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.service';
@@ -23,8 +25,8 @@ import { RefreshTokenHasher } from '../../providers/refresh-token-hasher.provide
 @Injectable()
 export class Refresh implements IRefresh {
   constructor(
-    @Inject(TOKEN_SERVICE)
-    private readonly tokenService: ITokenService,
+    @Inject(TOKEN_VERIFICATION_SERVICE)
+    private readonly tokenVerificationService: ITokenVerificationService,
     private readonly redisLockService: RedisLockService,
     @Inject(SESSION_QUERY_SERVICE)
     private readonly sessionQueryService: ISessionQueryService,
@@ -34,6 +36,8 @@ export class Refresh implements IRefresh {
     private readonly revocationService: ISessionRevocationService,
     @Inject(SESSION_ROTATION_SERVICE)
     private readonly sessionRotationService: ISessionRotationService,
+    @Inject(TOKEN_ISSUE_SERVICE)
+    private readonly tokenIssueService: ITokenIssueService,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(Refresh.name);
@@ -41,7 +45,7 @@ export class Refresh implements IRefresh {
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
     const { sub, sessionId } =
-      await this.tokenService.verifyRefreshToken(refreshToken);
+      await this.tokenVerificationService.verifyRefresh(refreshToken);
 
     const lockToken = await this.redisLockService.acquire(
       RedisKey.REFRESH_LOCK,
@@ -71,7 +75,7 @@ export class Refresh implements IRefresh {
 
       const { now, expiresAt } = this.clockService.snapshot();
 
-      const tokens = await this.tokenService.issuePair(
+      const tokens = await this.tokenIssueService.issuePair(
         sub,
         session.id,
         now,

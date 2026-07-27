@@ -1,6 +1,8 @@
 import {
-  ITokenService,
-  TOKEN_SERVICE
+  ITokenVerificationService,
+  TOKEN_VERIFICATION_SERVICE,
+  ITokenValidationService,
+  TOKEN_VALIDATION_SERVICE
 } from '@features/token/interfaces/token.interface';
 import { Inject, Injectable } from '@nestjs/common';
 import { Request } from 'express';
@@ -9,8 +11,10 @@ import { SecurityErrors } from '../errors/security-errors';
 @Injectable()
 export class JwtStrategy {
   constructor(
-    @Inject(TOKEN_SERVICE)
-    private readonly tokenService: ITokenService
+    @Inject(TOKEN_VERIFICATION_SERVICE)
+    private readonly verificationService: ITokenVerificationService,
+    @Inject(TOKEN_VALIDATION_SERVICE)
+    private readonly validationService: ITokenValidationService
   ) {}
 
   async authenticate(req: Request) {
@@ -20,8 +24,8 @@ export class JwtStrategy {
       throw SecurityErrors.authenticationRequired();
     }
 
-    const payload = await this.tokenService.verifyAccessToken(token);
+    const payload = await this.verificationService.verifyAccess(token);
 
-    return this.tokenService.findUserAndActiveSession(payload);
+    return this.validationService.validate(payload);
   }
 }
