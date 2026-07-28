@@ -41,6 +41,51 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
   DATA_SOURCE_PORT: Joi.number().integer().min(1).max(65535).required(),
   DATA_SOURCE_DATABASE: Joi.string().min(1).required(),
 
+  DATA_SOURCE_POOL_SIZE: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .default(10)
+    .optional()
+    .messages({
+      'number.base': 'DATA_SOURCE_POOL_SIZE must be a valid integer.',
+      'number.integer': 'DATA_SOURCE_POOL_SIZE must be a valid integer.',
+      'number.min': 'DATA_SOURCE_POOL_SIZE must be between 1 and 100.',
+      'number.max': 'DATA_SOURCE_POOL_SIZE must be between 1 and 100.'
+    }),
+  DATA_SOURCE_CONNECT_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .max(60000)
+    .default(10000)
+    .optional()
+    .messages({
+      'number.base':
+        'DATA_SOURCE_CONNECT_TIMEOUT_MS must be a valid integer in milliseconds.',
+      'number.integer':
+        'DATA_SOURCE_CONNECT_TIMEOUT_MS must be a valid integer in milliseconds.',
+      'number.min':
+        'DATA_SOURCE_CONNECT_TIMEOUT_MS must be between 1000 and 60000 milliseconds.',
+      'number.max':
+        'DATA_SOURCE_CONNECT_TIMEOUT_MS must be between 1000 and 60000 milliseconds.'
+    }),
+  DATA_SOURCE_IDLE_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .max(600000)
+    .default(30000)
+    .optional()
+    .messages({
+      'number.base':
+        'DATA_SOURCE_IDLE_TIMEOUT_MS must be a valid integer in milliseconds.',
+      'number.integer':
+        'DATA_SOURCE_IDLE_TIMEOUT_MS must be a valid integer in milliseconds.',
+      'number.min':
+        'DATA_SOURCE_IDLE_TIMEOUT_MS must be between 1000 and 600000 milliseconds.',
+      'number.max':
+        'DATA_SOURCE_IDLE_TIMEOUT_MS must be between 1000 and 600000 milliseconds.'
+    }),
+
   REDIS_HOST: Joi.alternatives()
     .try(Joi.string().hostname(), Joi.string().ip())
     .required(),
