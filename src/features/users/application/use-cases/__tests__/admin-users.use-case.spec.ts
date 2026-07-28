@@ -1,5 +1,5 @@
-import { User } from '../../../entities/user.entity';
-import { UserErrors } from '../../../errors/user-errors';
+import { User } from '../../../domain/entities/user.entity';
+import { UserErrors } from '../../../domain/errors/user-errors';
 import { AdminUsersUseCase } from '../../use-cases/admin-users.use-case';
 
 describe('AdminUsersUseCase', () => {

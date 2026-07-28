@@ -1,7 +1,7 @@
 import {
   CREATE_USER_USE_CASE,
   ICreateUserUseCase
-} from '@features/users/interfaces/users.interface';
+} from '@features/users/application/interfaces/users.interface';
 import { Inject, Injectable } from '@nestjs/common';
 import { RegisterUserRequestDto } from '../../presentation/dto/request/register-user.request.dto';
 import { IRegister } from '../interfaces/auth.interface';

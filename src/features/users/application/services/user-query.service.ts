@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { User } from '../../entities/user.entity';
+import { User } from '../../domain/entities/user.entity';
 import {
   IUserRepository,
   IUserQueryService,
   USER_REPOSITORY
-} from '../../interfaces/users.interface';
+} from '../interfaces/users.interface';
 
 @Injectable()
 export class UserQueryService implements IUserQueryService {

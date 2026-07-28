@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';
-import { SwaggerUserProperties as UserProps } from '../users.swagger';
+import { SwaggerUserProperties as UserProps } from '../../presentation/swagger/users.swagger';
 
 @Entity()
 @Unique('users_email_unique', ['email'])

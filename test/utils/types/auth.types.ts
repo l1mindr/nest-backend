@@ -1,4 +1,4 @@
-import { UserRole } from '@features/users/enums/user-role.enum';
+import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import { TestUser } from './user.types';
 
 export type LoginIdentifier = 'email' | 'username';

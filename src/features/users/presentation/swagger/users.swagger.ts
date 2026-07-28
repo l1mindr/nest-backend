@@ -2,12 +2,12 @@ import { RegistryDatesOrm } from '@infrastructure/databases/postgres/embedded/re
 import { ErrorResponseDto } from '@infrastructure/http/dto/error-response.dto';
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
-import { Session } from './../sessions/domain/entities/session.entity';
-import { AdminUsersListResponseDto } from './dto/response/admin-users-list.response.dto';
-import { AdminUserResponseDto } from './dto/response/admin-user.response.dto';
-import { UserProfileResponseDto } from './dto/response/user-profile.response.dto';
-import { UserRole } from './enums/user-role.enum';
-import { UserStatus } from './enums/user-status.enum';
+import { Session } from '@features/sessions/domain/entities/session.entity';
+import { AdminUsersListResponseDto } from '../dto/response/admin-users-list.response.dto';
+import { AdminUserResponseDto } from '../dto/response/admin-user.response.dto';
+import { UserProfileResponseDto } from '../dto/response/user-profile.response.dto';
+import { UserRole } from '../../domain/enums/user-role.enum';
+import { UserStatus } from '../../domain/enums/user-status.enum';
 
 export const SwaggerUserProperties = {
   id: { description: 'UUID of the user', example: 'uuid', readOnly: true },

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { AdminUserResponseDto } from '../../dto/response/admin-user.response.dto';
-import { User } from '../../entities/user.entity';
+import { AdminUserResponseDto } from '../../presentation/dto/response/admin-user.response.dto';
+import { User } from '../../domain/entities/user.entity';
 
 @Injectable()
 export class UserMapper {

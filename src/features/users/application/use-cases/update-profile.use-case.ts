@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { UpdateProfileRequestDto } from '../../dto/request/update-profile.request.dto';
-import { UserErrors } from '../../errors/user-errors';
+import { UpdateProfileRequestDto } from '../../presentation/dto/request/update-profile.request.dto';
+import { UserErrors } from '../../domain/errors/user-errors';
 import {
   IUpdateProfileUseCase,
   IUserRepository,
   USER_REPOSITORY
-} from '../../interfaces/users.interface';
-import { throwOnUniqueConstraint } from '../../providers/unique-constraint.handler';
+} from '../interfaces/users.interface';
+import { throwOnUniqueConstraint } from '../../infrastructure/providers/unique-constraint.handler';
 
 @Injectable()
 export class UpdateProfileUseCase implements IUpdateProfileUseCase {

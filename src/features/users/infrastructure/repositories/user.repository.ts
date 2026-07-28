@@ -1,4 +1,4 @@
-import { User } from '@features/users/entities/user.entity';
+import { User } from '@features/users/domain/entities/user.entity';
 import { Injectable } from '@nestjs/common';
 import {
   DataSource,
@@ -7,9 +7,9 @@ import {
   MoreThan,
   Repository
 } from 'typeorm';
-import { CreateUserRequestDto } from '../dto/request/create-user.request.dto';
-import { UpdateProfileRequestDto } from '../dto/request/update-profile.request.dto';
-import { IUserRepository } from '../interfaces/users.interface';
+import { CreateUserRequestDto } from '../../presentation/dto/request/create-user.request.dto';
+import { UpdateProfileRequestDto } from '../../presentation/dto/request/update-profile.request.dto';
+import { IUserRepository } from '../../application/interfaces/users.interface';
 
 @Injectable()
 export class UserRepository implements IUserRepository {

@@ -5,15 +5,15 @@ import {
   isValidUUID
 } from '@core/pagination/cursor.util';
 import { paginate } from '@core/pagination/paginate.util';
-import { ADMIN_USERS_PAGE_SIZE_DEFAULT } from '../../dto/request/admin-users-list.request.dto';
-import { UserErrors } from '../../errors/user-errors';
-import { User } from '../../entities/user.entity';
+import { ADMIN_USERS_PAGE_SIZE_DEFAULT } from '../../presentation/dto/request/admin-users-list.request.dto';
+import { UserErrors } from '../../domain/errors/user-errors';
+import { User } from '../../domain/entities/user.entity';
 import {
   IAdminUsersUseCase,
   IUserRepository,
   PaginatedResult,
   USER_REPOSITORY
-} from '../../interfaces/users.interface';
+} from '../interfaces/users.interface';
 
 @Injectable()
 export class AdminUsersUseCase implements IAdminUsersUseCase {

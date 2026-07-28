@@ -1,5 +1,5 @@
-import { User } from '../../../entities/user.entity';
-import { UserErrors } from '../../../errors/user-errors';
+import { User } from '../../../domain/entities/user.entity';
+import { UserErrors } from '../../../domain/errors/user-errors';
 import { UpdateProfileUseCase } from '../../use-cases/update-profile.use-case';
 
 describe('UpdateProfileUseCase', () => {

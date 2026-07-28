@@ -12,15 +12,15 @@ import {
   Query,
   UseGuards
 } from '@nestjs/common';
-import { AdminUsersListRequestDto } from './dto/request/admin-users-list.request.dto';
-import { AdminUserResponseDto } from './dto/response/admin-user.response.dto';
-import { UserRole } from './enums/user-role.enum';
+import { AdminUsersListRequestDto } from '../dto/request/admin-users-list.request.dto';
+import { AdminUserResponseDto } from '../dto/response/admin-user.response.dto';
+import { UserRole } from '../../domain/enums/user-role.enum';
 import {
   ADMIN_USERS_USE_CASE,
   IAdminUsersUseCase
-} from './interfaces/users.interface';
-import { UserMapper } from './application/mappers/user.mapper';
-import { ApiAdminGetAllUsers, ApiAdminGetUser } from './users.swagger';
+} from '../../application/interfaces/users.interface';
+import { UserMapper } from '../../application/mappers/user.mapper';
+import { ApiAdminGetAllUsers, ApiAdminGetUser } from '../swagger/users.swagger';
 
 @Controller({
   path: 'admin/users',

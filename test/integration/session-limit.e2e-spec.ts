@@ -6,7 +6,7 @@ import {
   SESSION_ISSUE_USE_CASE,
   SESSION_REPOSITORY
 } from '@features/sessions/application/interfaces/sessions.interface';
-import { User } from '@features/users/entities/user.entity';
+import { User } from '@features/users/domain/entities/user.entity';
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, MoreThan, QueryRunner } from 'typeorm';

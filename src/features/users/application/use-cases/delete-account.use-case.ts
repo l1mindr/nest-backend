@@ -2,15 +2,15 @@ import {
   ISessionRevocationUseCase,
   SESSION_REVOCATION_USE_CASE
 } from '@features/sessions/application/interfaces/sessions.interface';
-import { User } from '../../entities/user.entity';
+import { User } from '../../domain/entities/user.entity';
 import { Inject, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { UserErrors } from '../../errors/user-errors';
+import { UserErrors } from '../../domain/errors/user-errors';
 import {
   IDeleteAccountUseCase,
   IUserRepository,
   USER_REPOSITORY
-} from '../../interfaces/users.interface';
+} from '../interfaces/users.interface';
 
 @Injectable()
 export class DeleteAccountUseCase implements IDeleteAccountUseCase {

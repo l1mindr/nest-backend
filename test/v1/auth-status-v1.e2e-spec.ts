@@ -1,5 +1,5 @@
-import { User } from '@features/users/entities/user.entity';
-import { UserStatus } from '@features/users/enums/user-status.enum';
+import { User } from '@features/users/domain/entities/user.entity';
+import { UserStatus } from '@features/users/domain/enums/user-status.enum';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createMigratedTestApp } from '../bootstrap/test-app';

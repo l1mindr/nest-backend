@@ -1,14 +1,14 @@
 import { SessionsModule } from '@features/sessions/sessions.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AdminUsersController } from './admin.users.controller';
+import { AdminUsersController } from './presentation/controllers/admin.users.controller';
 import { AdminUsersUseCase } from './application/use-cases/admin-users.use-case';
 import { CreateUserUseCase } from './application/use-cases/create-user.use-case';
 import { DeleteAccountUseCase } from './application/use-cases/delete-account.use-case';
 import { UpdateProfileUseCase } from './application/use-cases/update-profile.use-case';
 import { UserQueryService } from './application/services/user-query.service';
 import { UserMapper } from './application/mappers/user.mapper';
-import { User } from './entities/user.entity';
+import { User } from './domain/entities/user.entity';
 import {
   ADMIN_USERS_USE_CASE,
   CREATE_USER_USE_CASE,
@@ -16,9 +16,9 @@ import {
   UPDATE_PROFILE_USE_CASE,
   USER_QUERY_SERVICE,
   USER_REPOSITORY
-} from './interfaces/users.interface';
-import { UserRepository } from './repositories/user.repository';
-import { UsersController } from './users.controller';
+} from './application/interfaces/users.interface';
+import { UserRepository } from './infrastructure/repositories/user.repository';
+import { UsersController } from './presentation/controllers/users.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User]), SessionsModule],

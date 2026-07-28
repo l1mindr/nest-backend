@@ -1,4 +1,4 @@
-import { User } from '@features/users/entities/user.entity';
+import { User } from '@features/users/domain/entities/user.entity';
 import { ErrorResponseDto } from '@infrastructure/http/dto/error-response.dto';
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';

@@ -1,6 +1,6 @@
 import { ClockService } from '@core/clock/clock.service';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
-import { UserStatus } from '@features/users/enums/user-status.enum';
+import { UserStatus } from '@features/users/domain/enums/user-status.enum';
 import { createHash } from 'crypto';
 import { AuthErrors } from '../../../domain/errors/auth-errors';
 import { Login } from '../../use-cases/login.use-case';

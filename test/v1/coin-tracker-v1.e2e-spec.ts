@@ -12,7 +12,7 @@ import { AlertDirection } from '@features/coin-tracker/enums/alert-direction.enu
 import { AlertStatus } from '@features/coin-tracker/enums/alert-status.enum';
 import { AlertTriggerMode } from '@features/coin-tracker/enums/alert-trigger-mode.enum';
 import { NotificationChannel } from '@features/coin-tracker/enums/notification-channel.enum';
-import { User } from '@features/users/entities/user.entity';
+import { User } from '@features/users/domain/entities/user.entity';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createMigratedTestApp } from '../bootstrap/test-app';

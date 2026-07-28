@@ -1,4 +1,4 @@
-import { User } from '../../../entities/user.entity';
+import { User } from '../../../domain/entities/user.entity';
 import { UserQueryService } from '../../services/user-query.service';
 
 describe('UserQueryService', () => {

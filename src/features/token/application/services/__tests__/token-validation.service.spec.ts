@@ -1,7 +1,7 @@
 import { SessionErrors } from '@features/sessions/domain/errors/session-errors';
 import { ISessionRepository } from '@features/sessions/application/interfaces/sessions.interface';
-import { UserStatus } from '@features/users/enums/user-status.enum';
-import { IUserQueryService } from '@features/users/interfaces/users.interface';
+import { UserStatus } from '@features/users/domain/enums/user-status.enum';
+import { IUserQueryService } from '@features/users/application/interfaces/users.interface';
 import { TokenErrors } from '../../../errors/token-errors';
 import { TokenValidationService } from '../../services/token-validation.service';
 

@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { User } from '../../entities/user.entity';
+import { User } from '../../../domain/entities/user.entity';
 import { UserRepository } from '../user.repository';
 
 describe('UserRepository', () => {

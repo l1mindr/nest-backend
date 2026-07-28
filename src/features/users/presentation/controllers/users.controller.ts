@@ -1,5 +1,5 @@
 import { User } from '@features/security/decorators/user.decorator';
-import { User as UserEntity } from '@features/users/entities/user.entity';
+import { User as UserEntity } from '@features/users/domain/entities/user.entity';
 import { Serialize } from '@infrastructure/http/interceptors/decorators/serialize.decorator';
 import {
   Body,
@@ -12,19 +12,19 @@ import {
   Put
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { UpdateProfileRequestDto } from './dto/request/update-profile.request.dto';
-import { UserProfileResponseDto } from './dto/response/user-profile.response.dto';
+import { UpdateProfileRequestDto } from '../dto/request/update-profile.request.dto';
+import { UserProfileResponseDto } from '../dto/response/user-profile.response.dto';
 import {
   DELETE_ACCOUNT_USE_CASE,
   IDeleteAccountUseCase,
   IUpdateProfileUseCase,
   UPDATE_PROFILE_USE_CASE
-} from './interfaces/users.interface';
+} from '../../application/interfaces/users.interface';
 import {
   ApiChangeProfile,
   ApiDeleteAccount,
   ApiGetProfile
-} from './users.swagger';
+} from '../swagger/users.swagger';
 
 @Controller({
   path: 'user',

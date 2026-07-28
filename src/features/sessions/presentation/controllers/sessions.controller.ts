@@ -1,7 +1,7 @@
 import { ClearCsrfCookieInterceptor } from '@features/security/csrf/interceptors/clear-csrf-cookie.interceptor';
 import { Session } from '@features/security/decorators/session.decorator';
 import { User } from '@features/security/decorators/user.decorator';
-import { User as UserEntity } from '@features/users/entities/user.entity';
+import { User as UserEntity } from '@features/users/domain/entities/user.entity';
 import {
   Controller,
   Delete,

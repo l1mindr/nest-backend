@@ -1,4 +1,4 @@
-import { UserRole } from '@features/users/enums/user-role.enum';
+import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import {

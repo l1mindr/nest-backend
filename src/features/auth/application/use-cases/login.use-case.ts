@@ -11,11 +11,11 @@ import {
   ITokenIssueService,
   TOKEN_ISSUE_SERVICE
 } from '@features/token/interfaces/token.interface';
-import { UserStatus } from '@features/users/enums/user-status.enum';
+import { UserStatus } from '@features/users/domain/enums/user-status.enum';
 import {
   IUserQueryService,
   USER_QUERY_SERVICE
-} from '@features/users/interfaces/users.interface';
+} from '@features/users/application/interfaces/users.interface';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';

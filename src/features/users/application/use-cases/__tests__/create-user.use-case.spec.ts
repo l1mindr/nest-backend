@@ -1,4 +1,4 @@
-import { UserErrors } from '../../../errors/user-errors';
+import { UserErrors } from '../../../domain/errors/user-errors';
 import { CreateUserUseCase } from '../../use-cases/create-user.use-case';
 
 describe('CreateUserUseCase', () => {

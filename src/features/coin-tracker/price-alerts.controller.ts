@@ -1,5 +1,5 @@
 import { User } from '@features/security/decorators/user.decorator';
-import { User as UserEntity } from '@features/users/entities/user.entity';
+import { User as UserEntity } from '@features/users/domain/entities/user.entity';
 import {
   Body,
   Controller,

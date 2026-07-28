@@ -1,7 +1,7 @@
 import { TimestampResponseDto } from '@infrastructure/http/serialization/dto/timestamp-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
-import { UserRole } from '../../enums/user-role.enum';
+import { UserRole } from '../../../domain/enums/user-role.enum';
 
 export class UserProfileResponseDto extends TimestampResponseDto {
   @ApiProperty({

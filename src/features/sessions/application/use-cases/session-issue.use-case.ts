@@ -1,5 +1,5 @@
 import { ClockService } from '@core/clock/clock.service';
-import { User } from '@features/users/entities/user.entity';
+import { User } from '@features/users/domain/entities/user.entity';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, In } from 'typeorm';

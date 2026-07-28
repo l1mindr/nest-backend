@@ -6,7 +6,7 @@ import { TokenErrors } from '@features/token/errors/token-errors';
 import {
   IUserRepository,
   USER_REPOSITORY
-} from '@features/users/interfaces/users.interface';
+} from '@features/users/application/interfaces/users.interface';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';

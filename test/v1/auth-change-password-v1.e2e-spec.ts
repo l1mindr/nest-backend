@@ -1,5 +1,5 @@
 import { Session } from '@features/sessions/domain/entities/session.entity';
-import { User } from '@features/users/entities/user.entity';
+import { User } from '@features/users/domain/entities/user.entity';
 import { INestApplication } from '@nestjs/common';
 import { compare } from 'bcrypt';
 import { DataSource } from 'typeorm';
