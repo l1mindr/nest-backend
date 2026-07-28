@@ -1,7 +1,7 @@
 import { AppError } from '@core/errors/app.error';
 import { ErrorMapper } from '@core/errors/error-mapper';
 import { AuthErrorCode } from '@features/auth/domain/errors/auth-error-code.enum';
-import { SessionErrorCode } from '@features/sessions/errors/session-error-code.enum';
+import { SessionErrorCode } from '@features/sessions/domain/errors/session-error-code.enum';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { Request, Response } from 'express';

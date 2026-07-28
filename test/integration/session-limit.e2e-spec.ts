@@ -1,11 +1,11 @@
 import { ClockService } from '@core/clock/clock.service';
-import { Session } from '@features/sessions/entities/session.entity';
+import { Session } from '@features/sessions/domain/entities/session.entity';
 import {
   ISessionIssueUseCase,
   ISessionRepository,
   SESSION_ISSUE_USE_CASE,
   SESSION_REPOSITORY
-} from '@features/sessions/interfaces/sessions.interface';
+} from '@features/sessions/application/interfaces/sessions.interface';
 import { User } from '@features/users/entities/user.entity';
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

@@ -1,6 +1,6 @@
 import { ClockService } from '@core/clock/clock.service';
 import { DataSource } from 'typeorm';
-import { Session } from '../../entities/session.entity';
+import { Session } from '../../../domain/entities/session.entity';
 import { SessionRepository } from '../session.repository';
 
 describe('SessionRepository', () => {

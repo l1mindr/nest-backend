@@ -1,4 +1,4 @@
-import { Session } from '@features/sessions/entities/session.entity';
+import { Session } from '@features/sessions/domain/entities/session.entity';
 import { RegistryDatesOrm } from '@infrastructure/databases/postgres/embedded/registry-dates.embedded';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {

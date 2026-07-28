@@ -1,7 +1,7 @@
 import {
   ISessionRevocationUseCase,
   SESSION_REVOCATION_USE_CASE
-} from '@features/sessions/interfaces/sessions.interface';
+} from '@features/sessions/application/interfaces/sessions.interface';
 import { TokenErrors } from '@features/token/errors/token-errors';
 import {
   IUserRepository,

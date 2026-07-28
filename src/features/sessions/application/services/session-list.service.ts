@@ -2,14 +2,14 @@ import { SessionContext } from '@core/http/session-context.interface';
 import { ClockService } from '@core/clock/clock.service';
 import { paginate } from '@core/pagination/paginate.util';
 import { Inject, Injectable } from '@nestjs/common';
-import { SESSION_PAGE_SIZE_DEFAULT } from '../../dto/request/session-list-request.dto';
+import { SESSION_PAGE_SIZE_DEFAULT } from '../../presentation/dto/request/session-list-request.dto';
 import { SessionCursorService } from './session-cursor.service';
 import {
   ISessionRepository,
   SESSION_REPOSITORY,
   SessionListResult
-} from '../../interfaces/sessions.interface';
-import { SessionListItem } from '../../types/session-list-item.type';
+} from '../interfaces/sessions.interface';
+import { SessionListItem } from '../../domain/types/session-list-item.type';
 
 @Injectable()
 export class SessionListService {

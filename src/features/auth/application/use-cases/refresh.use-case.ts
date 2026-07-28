@@ -6,8 +6,8 @@ import {
   SESSION_QUERY_SERVICE,
   SESSION_REVOCATION_USE_CASE,
   SESSION_ROTATION_USE_CASE
-} from '@features/sessions/interfaces/sessions.interface';
-import { SessionErrors } from '@features/sessions/errors/session-errors';
+} from '@features/sessions/application/interfaces/sessions.interface';
+import { SessionErrors } from '@features/sessions/domain/errors/session-errors';
 import {
   ITokenIssueService,
   ITokenVerificationService,

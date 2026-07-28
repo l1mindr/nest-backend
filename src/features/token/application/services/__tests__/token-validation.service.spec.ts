@@ -1,5 +1,5 @@
-import { SessionErrors } from '@features/sessions/errors/session-errors';
-import { ISessionRepository } from '@features/sessions/interfaces/sessions.interface';
+import { SessionErrors } from '@features/sessions/domain/errors/session-errors';
+import { ISessionRepository } from '@features/sessions/application/interfaces/sessions.interface';
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import { IUserQueryService } from '@features/users/interfaces/users.interface';
 import { TokenErrors } from '../../../errors/token-errors';

@@ -1,4 +1,4 @@
-import { ISessionDevice } from '@features/sessions/interfaces/session-device.interface';
+import { ISessionDevice } from '@features/sessions/application/interfaces/session-device.interface';
 import { Injectable } from '@nestjs/common';
 import { DeviceContext } from '../context/device-context.interface';
 

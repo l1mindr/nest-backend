@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { SessionResponseDto } from '../../dto/response/session.response.dto';
-import { SessionListItem } from '../../types/session-list-item.type';
+import { SessionResponseDto } from '../../presentation/dto/response/session.response.dto';
+import { SessionListItem } from '../../domain/types/session-list-item.type';
 
 @Injectable()
 export class SessionMapper {

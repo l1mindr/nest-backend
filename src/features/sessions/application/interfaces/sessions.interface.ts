@@ -1,8 +1,8 @@
 import { SessionContext } from '@core/http/session-context.interface';
 import { PaginatedResult } from '@core/pagination/paginated-result.interface';
 import type { EntityManager } from 'typeorm';
-import { Session } from '../entities/session.entity';
-import { SessionListItem } from '../types/session-list-item.type';
+import { Session } from '../../domain/entities/session.entity';
+import { SessionListItem } from '../../domain/types/session-list-item.type';
 import { ISessionDevice } from './session-device.interface';
 
 export interface SessionListResult extends PaginatedResult<SessionListItem> {

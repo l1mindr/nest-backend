@@ -5,7 +5,7 @@ import { User } from '@features/security/decorators/user.decorator';
 import { DeviceContext } from '@core/http/device-context.interface';
 import { Device } from '@features/security/device-detection/decorators/device.decorator';
 import { RateLimit } from '@features/security/rate-limit/decorators/rate-limit.decorator';
-import { Session as SessionEntity } from '@features/sessions/entities/session.entity';
+import { Session as SessionEntity } from '@features/sessions/domain/entities/session.entity';
 import { User as UserEntity } from '@features/users/entities/user.entity';
 import {
   Body,

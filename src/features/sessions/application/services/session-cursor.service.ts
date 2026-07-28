@@ -4,7 +4,7 @@ import {
   isValidUUID
 } from '@core/pagination/cursor.util';
 import { Injectable } from '@nestjs/common';
-import { SessionErrors } from '../../errors/session-errors';
+import { SessionErrors } from '../../domain/errors/session-errors';
 
 @Injectable()
 export class SessionCursorService {

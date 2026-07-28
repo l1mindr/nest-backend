@@ -1,6 +1,6 @@
 import { ClockService } from '@core/clock/clock.service';
 import { DataSource } from 'typeorm';
-import { Session } from '../../../entities/session.entity';
+import { Session } from '../../../domain/entities/session.entity';
 import { SessionIssueUseCase } from '../../use-cases/session-issue.use-case';
 
 describe('SessionIssueUseCase', () => {

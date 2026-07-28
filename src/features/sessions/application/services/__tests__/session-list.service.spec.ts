@@ -1,5 +1,5 @@
 import { ClockService } from '@core/clock/clock.service';
-import { Session } from '../../../entities/session.entity';
+import { Session } from '../../../domain/entities/session.entity';
 import { SessionCursorService } from '../../services/session-cursor.service';
 import { SessionListService } from '../../services/session-list.service';
 

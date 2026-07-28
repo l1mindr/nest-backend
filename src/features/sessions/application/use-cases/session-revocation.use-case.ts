@@ -6,7 +6,7 @@ import {
   ISessionRepository,
   ISessionRevocationUseCase,
   SESSION_REPOSITORY
-} from '../../interfaces/sessions.interface';
+} from '../interfaces/sessions.interface';
 
 @Injectable()
 export class SessionRevocationUseCase implements ISessionRevocationUseCase {

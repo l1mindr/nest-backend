@@ -3,13 +3,13 @@ import { User } from '@features/users/entities/user.entity';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, In } from 'typeorm';
-import { Session } from '../../entities/session.entity';
-import { ISessionDevice } from '../../interfaces/session-device.interface';
+import { Session } from '../../domain/entities/session.entity';
+import { ISessionDevice } from '../interfaces/session-device.interface';
 import {
   ISessionIssueUseCase,
   ISessionRepository,
   SESSION_REPOSITORY
-} from '../../interfaces/sessions.interface';
+} from '../interfaces/sessions.interface';
 
 @Injectable()
 export class SessionIssueUseCase implements ISessionIssueUseCase {

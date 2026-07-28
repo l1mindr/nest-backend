@@ -1,5 +1,5 @@
 import { IRequest } from '@infrastructure/http/interfaces/custom-request.interface';
-import { Session as SessionEntity } from '@features/sessions/entities/session.entity';
+import { Session as SessionEntity } from '@features/sessions/domain/entities/session.entity';
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export const Session = createParamDecorator(

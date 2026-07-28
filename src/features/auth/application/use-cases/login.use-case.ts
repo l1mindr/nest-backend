@@ -6,7 +6,7 @@ import {
   ISessionRotationUseCase,
   SESSION_ISSUE_USE_CASE,
   SESSION_ROTATION_USE_CASE
-} from '@features/sessions/interfaces/sessions.interface';
+} from '@features/sessions/application/interfaces/sessions.interface';
 import {
   ITokenIssueService,
   TOKEN_ISSUE_SERVICE

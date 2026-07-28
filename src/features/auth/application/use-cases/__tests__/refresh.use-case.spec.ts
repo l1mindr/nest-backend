@@ -1,5 +1,5 @@
 import { ClockService } from '@core/clock/clock.service';
-import { SessionErrors } from '@features/sessions/errors/session-errors';
+import { SessionErrors } from '@features/sessions/domain/errors/session-errors';
 import { createHash } from 'crypto';
 import { Refresh } from '../../use-cases/refresh.use-case';
 

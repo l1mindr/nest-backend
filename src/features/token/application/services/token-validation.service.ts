@@ -1,8 +1,8 @@
 import {
   ISessionRepository,
   SESSION_REPOSITORY
-} from '@features/sessions/interfaces/sessions.interface';
-import { SessionErrors } from '@features/sessions/errors/session-errors';
+} from '@features/sessions/application/interfaces/sessions.interface';
+import { SessionErrors } from '@features/sessions/domain/errors/session-errors';
 import { UserStatus } from '@features/users/enums/user-status.enum';
 import {
   IUserQueryService,

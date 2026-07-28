@@ -1,5 +1,5 @@
 import { ClockService } from '@core/clock/clock.service';
-import { Session } from '@features/sessions/entities/session.entity';
+import { Session } from '@features/sessions/domain/entities/session.entity';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';

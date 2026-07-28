@@ -1,9 +1,9 @@
 import { ClockService } from '@core/clock/clock.service';
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager, MoreThan, Not, Repository } from 'typeorm';
-import { Session } from '../entities/session.entity';
-import { ISessionDevice } from '../interfaces/session-device.interface';
-import { ISessionRepository } from '../interfaces/sessions.interface';
+import { Session } from '../../domain/entities/session.entity';
+import { ISessionDevice } from '../../application/interfaces/session-device.interface';
+import { ISessionRepository } from '../../application/interfaces/sessions.interface';
 
 @Injectable()
 export class SessionRepository implements ISessionRepository {

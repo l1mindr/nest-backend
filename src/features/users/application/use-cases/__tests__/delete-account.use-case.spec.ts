@@ -1,4 +1,4 @@
-import { ISessionRevocationUseCase } from '@features/sessions/interfaces/sessions.interface';
+import { ISessionRevocationUseCase } from '@features/sessions/application/interfaces/sessions.interface';
 import { DataSource, EntityManager } from 'typeorm';
 import { User } from '../../../entities/user.entity';
 import { UserErrors } from '../../../errors/user-errors';

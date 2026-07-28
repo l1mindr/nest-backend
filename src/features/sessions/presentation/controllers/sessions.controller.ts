@@ -12,20 +12,20 @@ import {
   Query,
   UseInterceptors
 } from '@nestjs/common';
-import { SessionMapper } from './application/mappers/session.mapper';
-import { SessionListRequestDto } from './dto/request/session-list-request.dto';
-import { Session as SessionEntity } from './entities/session.entity';
+import { SessionMapper } from '../../application/mappers/session.mapper';
+import { SessionListRequestDto } from '../dto/request/session-list-request.dto';
+import { Session as SessionEntity } from '../../domain/entities/session.entity';
 import {
   ISessionListService,
   ISessionRevocationUseCase,
   SESSION_LIST_SERVICE,
   SESSION_REVOCATION_USE_CASE
-} from './interfaces/sessions.interface';
+} from '../../application/interfaces/sessions.interface';
 import {
   ApiGetSessions,
   ApiRevokeCurrentSession,
   ApiTerminateOtherSessions
-} from './sessions.swagger';
+} from '../swagger/sessions.swagger';
 
 @Controller({
   path: 'sessions',

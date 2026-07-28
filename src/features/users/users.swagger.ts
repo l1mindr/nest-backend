@@ -2,7 +2,7 @@ import { RegistryDatesOrm } from '@infrastructure/databases/postgres/embedded/re
 import { ErrorResponseDto } from '@infrastructure/http/dto/error-response.dto';
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
-import { Session } from './../sessions/entities/session.entity';
+import { Session } from './../sessions/domain/entities/session.entity';
 import { AdminUsersListResponseDto } from './dto/response/admin-users-list.response.dto';
 import { AdminUserResponseDto } from './dto/response/admin-user.response.dto';
 import { UserProfileResponseDto } from './dto/response/user-profile.response.dto';

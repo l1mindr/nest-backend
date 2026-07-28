@@ -1,4 +1,4 @@
-import { ISessionDevice } from '../interfaces/session-device.interface';
+import { ISessionDevice } from '../../application/interfaces/session-device.interface';
 
 export type SessionListItem = {
   sessionId: string;

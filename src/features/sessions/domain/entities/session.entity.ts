@@ -9,8 +9,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from 'typeorm';
-import { ISessionDevice } from '../interfaces/session-device.interface';
-import { SwaggerSessionProperties as SessionProps } from '../sessions.swagger';
+import { ISessionDevice } from '../../application/interfaces/session-device.interface';
+import { SwaggerSessionProperties as SessionProps } from '../../presentation/swagger/sessions.swagger';
 
 @Entity()
 @Index('IDX_session_owner_active', ['owner', 'isRevoked', 'expiresAt'])

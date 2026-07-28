@@ -1,4 +1,4 @@
-import { Session } from '@features/sessions/entities/session.entity';
+import { Session } from '@features/sessions/domain/entities/session.entity';
 import { User } from '@features/users/entities/user.entity';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';

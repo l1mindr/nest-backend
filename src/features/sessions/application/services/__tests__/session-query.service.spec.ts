@@ -1,4 +1,4 @@
-import { Session } from '../../../entities/session.entity';
+import { Session } from '../../../domain/entities/session.entity';
 import { SessionQueryService } from '../../services/session-query.service';
 
 describe('SessionQueryService', () => {

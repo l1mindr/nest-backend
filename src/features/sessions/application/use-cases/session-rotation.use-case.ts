@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Session } from '../../entities/session.entity';
+import { Session } from '../../domain/entities/session.entity';
 import {
   ISessionRepository,
   ISessionRotationUseCase,
   SESSION_REPOSITORY
-} from '../../interfaces/sessions.interface';
+} from '../interfaces/sessions.interface';
 
 @Injectable()
 export class SessionRotationUseCase implements ISessionRotationUseCase {

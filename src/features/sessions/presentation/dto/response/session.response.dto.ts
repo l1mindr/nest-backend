@@ -1,4 +1,4 @@
-import { ISessionDevice } from '@features/sessions/interfaces/session-device.interface';
+import { ISessionDevice } from '../../../application/interfaces/session-device.interface';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 

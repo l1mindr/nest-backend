@@ -1,4 +1,4 @@
-import { Session } from '../../../entities/session.entity';
+import { Session } from '../../../domain/entities/session.entity';
 import { SessionRotationUseCase } from '../../use-cases/session-rotation.use-case';
 
 describe('SessionRotationUseCase', () => {

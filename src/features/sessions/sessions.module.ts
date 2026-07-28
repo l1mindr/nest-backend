@@ -7,7 +7,7 @@ import { SessionMapper } from './application/mappers/session.mapper';
 import { SessionIssueUseCase } from './application/use-cases/session-issue.use-case';
 import { SessionRevocationUseCase } from './application/use-cases/session-revocation.use-case';
 import { SessionRotationUseCase } from './application/use-cases/session-rotation.use-case';
-import { Session } from './entities/session.entity';
+import { Session } from './domain/entities/session.entity';
 import {
   SESSION_CURSOR_SERVICE,
   SESSION_ISSUE_USE_CASE,
@@ -16,9 +16,9 @@ import {
   SESSION_REPOSITORY,
   SESSION_REVOCATION_USE_CASE,
   SESSION_ROTATION_USE_CASE
-} from './interfaces/sessions.interface';
-import { SessionRepository } from './repositories/session.repository';
-import { SessionsController } from './sessions.controller';
+} from './application/interfaces/sessions.interface';
+import { SessionRepository } from './infrastructure/repositories/session.repository';
+import { SessionsController } from './presentation/controllers/sessions.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Session])],
