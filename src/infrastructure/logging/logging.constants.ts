@@ -13,6 +13,24 @@ export enum LogEvent {
 
   SESSION_REVOKED = 'session.revoked',
 
+  COIN_SYNC_STARTED = 'coin_tracker.sync.started',
+  COIN_SYNC_COMPLETED = 'coin_tracker.sync.completed',
+  COIN_SYNC_FAILED = 'coin_tracker.sync.failed',
+  COIN_SYNC_SKIPPED = 'coin_tracker.sync.skipped',
+
+  PRICE_ALERT_CREATED = 'coin_tracker.alert.created',
+  PRICE_ALERT_UPDATED = 'coin_tracker.alert.updated',
+  PRICE_ALERT_TRIGGERED = 'coin_tracker.alert.triggered',
+  PRICE_ALERT_EXPIRED = 'coin_tracker.alert.expired',
+  PRICE_ALERT_CANCELLED = 'coin_tracker.alert.cancelled',
+  PRICE_ALERT_SKIPPED = 'coin_tracker.alert.skipped',
+  PRICE_CHECK_STARTED = 'coin_tracker.price_check.started',
+  PRICE_CHECK_COMPLETED = 'coin_tracker.price_check.completed',
+  PRICE_CHECK_FAILED = 'coin_tracker.price_check.failed',
+  PRICE_CHECK_SKIPPED = 'coin_tracker.price_check.skipped',
+
+  NOTIFICATION_SENT = 'coin_tracker.notification.sent',
+
   RATE_LIMIT_EXCEEDED = 'security.rate_limit.exceeded',
   AUTHENTICATION_FAILED = 'security.authentication.failed',
   AUTHORIZATION_FAILED = 'security.authorization.failed'
