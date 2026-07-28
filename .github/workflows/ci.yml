@@ -37,6 +37,8 @@ jobs:
 
       - name: Unit Tests
         run: pnpm run test:unit
+        env:
+          CI: 'true'
 
       - name: Production Image
         run: docker build --tag nest-backend:ci .

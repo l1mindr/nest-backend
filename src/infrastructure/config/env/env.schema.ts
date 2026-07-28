@@ -54,7 +54,10 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
 
   MAX_ACTIVE_SESSIONS: Joi.number().integer().min(5).required(),
 
-  ENABLE_HTTP_LOGS: Joi.string().valid('true', 'false').default('true'),
+  LOG_LEVEL: Joi.string()
+    .valid('info', 'debug', 'warn', 'error', 'silent')
+    .optional(),
+  E2E_LOGS: Joi.string().valid('true', 'false').optional(),
 
   // Strong secrets with entropy checks. In production require longer/more entropy.
   ACCESS_TOKEN_SECRET: Joi.when('NODE_ENV', {

@@ -37,6 +37,7 @@ services:
       REDIS_PORT: 6379
       MAX_ACTIVE_SESSIONS: 10
       ENABLE_HTTP_LOGS: 'false'
+      LOG_LEVEL: error
       # REDIS_PASSWORD: ''
       # REDIS_DB: 0
 

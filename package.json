@@ -20,6 +20,7 @@
     "test:cov": "NODE_ENV=test jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "NODE_ENV=test LOG_LEVEL=error jest --config jest.e2e.config.ts --runInBand",
+    "test:e2e:debug": "NODE_ENV=test LOG_LEVEL=debug E2E_LOGS=true jest --config jest.e2e.config.ts --runInBand",
     "test:e2e:docker": "pnpm run build && pnpm run test:e2e",
     "generate:secrets": "pnpm exec ts-node scripts/generate-secrets.ts",
     "migration:create": "pnpm exec typeorm migration:create",
