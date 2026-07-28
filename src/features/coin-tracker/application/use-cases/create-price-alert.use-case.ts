@@ -2,16 +2,16 @@ import { ClockService } from '@core/clock/clock.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { CoinTrackerErrors } from '../../errors/coin-tracker-errors';
-import { PriceAlert } from '../../entities/price-alert.entity';
+import { CoinTrackerErrors } from '../../domain/errors/coin-tracker-errors';
+import { PriceAlert } from '../../domain/entities/price-alert.entity';
 import {
   ICoinRepository,
   ICreatePriceAlertUseCase,
   IPriceAlertRepository,
   COIN_REPOSITORY,
   PRICE_ALERT_REPOSITORY
-} from '../../interfaces/coin-tracker.interface';
-import { CreatePriceAlertRequestDto } from '../../dto/request/create-price-alert.request.dto';
+} from '../interfaces/coin-tracker.interface';
+import { CreatePriceAlertRequestDto } from '../../presentation/dto/request/create-price-alert.request.dto';
 
 @Injectable()
 export class CreatePriceAlertUseCase implements ICreatePriceAlertUseCase {

@@ -1,13 +1,13 @@
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { CoinTrackerErrors } from '../../errors/coin-tracker-errors';
-import { AlertStatus } from '../../enums/alert-status.enum';
+import { CoinTrackerErrors } from '../../domain/errors/coin-tracker-errors';
+import { AlertStatus } from '../../domain/enums/alert-status.enum';
 import {
   IPriceAlertRepository,
   ICancelPriceAlertUseCase,
   PRICE_ALERT_REPOSITORY
-} from '../../interfaces/coin-tracker.interface';
+} from '../interfaces/coin-tracker.interface';
 
 @Injectable()
 export class CancelPriceAlertUseCase implements ICancelPriceAlertUseCase {

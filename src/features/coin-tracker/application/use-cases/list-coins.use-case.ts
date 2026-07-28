@@ -1,16 +1,16 @@
 import { paginate } from '@core/pagination/paginate.util';
 import { Inject, Injectable } from '@nestjs/common';
-import { COIN_PAGE_SIZE_DEFAULT } from '../../dto/request/coin-list.request.dto';
-import { Coin } from '../../entities/coin.entity';
-import { CoinSortField } from '../../enums/coin-sort-field.enum';
-import { SortOrder } from '../../enums/sort-order.enum';
+import { COIN_PAGE_SIZE_DEFAULT } from '../../presentation/dto/request/coin-list.request.dto';
+import { Coin } from '../../domain/entities/coin.entity';
+import { CoinSortField } from '../../domain/enums/coin-sort-field.enum';
+import { SortOrder } from '../../domain/enums/sort-order.enum';
 import {
   COIN_CURSOR_SERVICE,
   COIN_REPOSITORY,
   ICoinCursorService,
   ICoinRepository,
   IListCoinsUseCase
-} from '../../interfaces/coin-tracker.interface';
+} from '../interfaces/coin-tracker.interface';
 
 @Injectable()
 export class ListCoinsUseCase implements IListCoinsUseCase {

@@ -1,9 +1,9 @@
 import { ClockService } from '@core/clock/clock.service';
-import { PriceAlert } from '../../../entities/price-alert.entity';
-import { AlertDirection } from '../../../enums/alert-direction.enum';
-import { AlertStatus } from '../../../enums/alert-status.enum';
-import { AlertTriggerMode } from '../../../enums/alert-trigger-mode.enum';
-import { NotificationChannel } from '../../../enums/notification-channel.enum';
+import { PriceAlert } from '../../../domain/entities/price-alert.entity';
+import { AlertDirection } from '../../../domain/enums/alert-direction.enum';
+import { AlertStatus } from '../../../domain/enums/alert-status.enum';
+import { AlertTriggerMode } from '../../../domain/enums/alert-trigger-mode.enum';
+import { NotificationChannel } from '../../../domain/enums/notification-channel.enum';
 import { PriceAlertEvaluatorService } from '../price-alert-evaluator.service';
 import { PriceCheckService } from '../price-check.service';
 

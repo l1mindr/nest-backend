@@ -2,7 +2,7 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CoinGeckoApiClient } from './coingecko/coingecko.client';
+import { CoinGeckoApiClient } from './infrastructure/coingecko/coingecko.client';
 import { ListCoinsUseCase } from './application/use-cases/list-coins.use-case';
 import { SyncCoinsUseCase } from './application/use-cases/sync-coins.use-case';
 import { CreatePriceAlertUseCase } from './application/use-cases/create-price-alert.use-case';
@@ -14,8 +14,8 @@ import { CoinCursorService } from './application/services/coin-cursor.service';
 import { PriceAlertEvaluatorService } from './application/services/price-alert-evaluator.service';
 import { CoinMapper } from './application/mappers/coin.mapper';
 import { PriceAlertMapper } from './application/mappers/price-alert.mapper';
-import { Coin } from './entities/coin.entity';
-import { PriceAlert } from './entities/price-alert.entity';
+import { Coin } from './domain/entities/coin.entity';
+import { PriceAlert } from './domain/entities/price-alert.entity';
 import {
   COIN_REPOSITORY,
   PRICE_ALERT_REPOSITORY,
@@ -29,14 +29,14 @@ import {
   NOTIFICATION_SERVICE,
   COINGECKO_CLIENT,
   COIN_CURSOR_SERVICE
-} from './interfaces/coin-tracker.interface';
-import { CoinRepository } from './repositories/coin.repository';
-import { PriceAlertRepository } from './repositories/price-alert.repository';
-import { LoggerNotificationService } from './notifications/logger-notification.service';
-import { CoinsController } from './coins.controller';
-import { PriceAlertsController } from './price-alerts.controller';
-import { CoinSyncScheduler } from './schedulers/coin-sync.scheduler';
-import { PriceCheckScheduler } from './schedulers/price-check.scheduler';
+} from './application/interfaces/coin-tracker.interface';
+import { CoinRepository } from './infrastructure/repositories/coin.repository';
+import { PriceAlertRepository } from './infrastructure/repositories/price-alert.repository';
+import { LoggerNotificationService } from './infrastructure/notifications/logger-notification.service';
+import { CoinsController } from './presentation/controllers/coins.controller';
+import { PriceAlertsController } from './presentation/controllers/price-alerts.controller';
+import { CoinSyncScheduler } from './infrastructure/schedulers/coin-sync.scheduler';
+import { PriceCheckScheduler } from './infrastructure/schedulers/price-check.scheduler';
 
 @Module({
   imports: [

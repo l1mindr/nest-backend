@@ -1,17 +1,17 @@
-import { IPriceCheckService } from '@features/coin-tracker/interfaces/coin-tracker.interface';
+import { IPriceCheckService } from '@features/coin-tracker/application/interfaces/coin-tracker.interface';
 import {
   COINGECKO_CLIENT,
   ICoinGeckoClient,
   INotificationService,
   NOTIFICATION_SERVICE,
   PRICE_CHECK_SERVICE
-} from '@features/coin-tracker/interfaces/coin-tracker.interface';
-import { Coin } from '@features/coin-tracker/entities/coin.entity';
-import { PriceAlert } from '@features/coin-tracker/entities/price-alert.entity';
-import { AlertDirection } from '@features/coin-tracker/enums/alert-direction.enum';
-import { AlertStatus } from '@features/coin-tracker/enums/alert-status.enum';
-import { AlertTriggerMode } from '@features/coin-tracker/enums/alert-trigger-mode.enum';
-import { NotificationChannel } from '@features/coin-tracker/enums/notification-channel.enum';
+} from '@features/coin-tracker/application/interfaces/coin-tracker.interface';
+import { Coin } from '@features/coin-tracker/domain/entities/coin.entity';
+import { PriceAlert } from '@features/coin-tracker/domain/entities/price-alert.entity';
+import { AlertDirection } from '@features/coin-tracker/domain/enums/alert-direction.enum';
+import { AlertStatus } from '@features/coin-tracker/domain/enums/alert-status.enum';
+import { AlertTriggerMode } from '@features/coin-tracker/domain/enums/alert-trigger-mode.enum';
+import { NotificationChannel } from '@features/coin-tracker/domain/enums/notification-channel.enum';
 import { User } from '@features/users/domain/entities/user.entity';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';

@@ -1,6 +1,6 @@
-import { PriceAlert } from '../../../entities/price-alert.entity';
-import { AlertStatus } from '../../../enums/alert-status.enum';
-import { CoinTrackerErrorCode } from '../../../errors/coin-tracker-error-code.enum';
+import { PriceAlert } from '../../../domain/entities/price-alert.entity';
+import { AlertStatus } from '../../../domain/enums/alert-status.enum';
+import { CoinTrackerErrorCode } from '../../../domain/errors/coin-tracker-error-code.enum';
 import { CancelPriceAlertUseCase } from '../cancel-price-alert.use-case';
 
 describe('CancelPriceAlertUseCase', () => {

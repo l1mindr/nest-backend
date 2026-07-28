@@ -1,10 +1,10 @@
-import { Coin } from '../../../entities/coin.entity';
-import { PriceAlert } from '../../../entities/price-alert.entity';
-import { AlertDirection } from '../../../enums/alert-direction.enum';
-import { AlertStatus } from '../../../enums/alert-status.enum';
-import { CoinSortField } from '../../../enums/coin-sort-field.enum';
-import { SortOrder } from '../../../enums/sort-order.enum';
-import { CoinTrackerErrorCode } from '../../../errors/coin-tracker-error-code.enum';
+import { Coin } from '../../../domain/entities/coin.entity';
+import { PriceAlert } from '../../../domain/entities/price-alert.entity';
+import { AlertDirection } from '../../../domain/enums/alert-direction.enum';
+import { AlertStatus } from '../../../domain/enums/alert-status.enum';
+import { CoinSortField } from '../../../domain/enums/coin-sort-field.enum';
+import { SortOrder } from '../../../domain/enums/sort-order.enum';
+import { CoinTrackerErrorCode } from '../../../domain/errors/coin-tracker-error-code.enum';
 import { ListCoinsUseCase } from '../list-coins.use-case';
 import { ListPriceAlertsUseCase } from '../list-price-alerts.use-case';
 

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { PriceAlert } from '../../entities/price-alert.entity';
-import { PriceAlertResponseDto } from '../../dto/response/price-alert.response.dto';
+import { PriceAlert } from '../../domain/entities/price-alert.entity';
+import { PriceAlertResponseDto } from '../../presentation/dto/response/price-alert.response.dto';
 
 @Injectable()
 export class PriceAlertMapper {

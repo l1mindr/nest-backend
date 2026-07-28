@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { Coin } from '../../entities/coin.entity';
-import { CoinResponseDto } from '../../dto/response/coin.response.dto';
+import { Coin } from '../../domain/entities/coin.entity';
+import { CoinResponseDto } from '../../presentation/dto/response/coin.response.dto';
 
 @Injectable()
 export class CoinMapper {

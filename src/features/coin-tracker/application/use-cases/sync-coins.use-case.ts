@@ -3,7 +3,7 @@ import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { DataSource } from 'typeorm';
-import { CoinTrackerErrors } from '../../errors/coin-tracker-errors';
+import { CoinTrackerErrors } from '../../domain/errors/coin-tracker-errors';
 import {
   CoinGeckoCoin,
   CoinSyncData,
@@ -12,7 +12,7 @@ import {
   ICoinGeckoClient,
   ICoinRepository,
   ISyncCoinsUseCase
-} from '../../interfaces/coin-tracker.interface';
+} from '../interfaces/coin-tracker.interface';
 
 @Injectable()
 export class SyncCoinsUseCase implements ISyncCoinsUseCase {

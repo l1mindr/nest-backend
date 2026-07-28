@@ -1,4 +1,4 @@
-import { AlertDirection } from '../../../enums/alert-direction.enum';
+import { AlertDirection } from '../../../domain/enums/alert-direction.enum';
 import { PriceAlertEvaluatorService } from '../price-alert-evaluator.service';
 
 describe('PriceAlertEvaluatorService', () => {

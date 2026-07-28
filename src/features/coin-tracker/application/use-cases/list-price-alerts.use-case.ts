@@ -2,16 +2,16 @@ import { Inject, Injectable } from '@nestjs/common';
 import { paginate } from '@core/pagination/paginate.util';
 import { decodeCursor, encodeCursor } from '@core/pagination/cursor.util';
 import { isValidUUID } from '@core/pagination/cursor.util';
-import { PRICE_ALERT_PAGE_SIZE_DEFAULT } from '../../dto/request/list-price-alerts.request.dto';
-import { CoinTrackerErrors } from '../../errors/coin-tracker-errors';
-import { PriceAlert } from '../../entities/price-alert.entity';
-import { AlertStatus } from '../../enums/alert-status.enum';
-import { AlertDirection } from '../../enums/alert-direction.enum';
+import { PRICE_ALERT_PAGE_SIZE_DEFAULT } from '../../presentation/dto/request/list-price-alerts.request.dto';
+import { CoinTrackerErrors } from '../../domain/errors/coin-tracker-errors';
+import { PriceAlert } from '../../domain/entities/price-alert.entity';
+import { AlertStatus } from '../../domain/enums/alert-status.enum';
+import { AlertDirection } from '../../domain/enums/alert-direction.enum';
 import {
   IListPriceAlertsUseCase,
   IPriceAlertRepository,
   PRICE_ALERT_REPOSITORY
-} from '../../interfaces/coin-tracker.interface';
+} from '../interfaces/coin-tracker.interface';
 
 @Injectable()
 export class ListPriceAlertsUseCase implements IListPriceAlertsUseCase {

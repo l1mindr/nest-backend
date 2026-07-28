@@ -1,6 +1,6 @@
 import { ClockService } from '@core/clock/clock.service';
 import { DataSource } from 'typeorm';
-import { CoinTrackerErrorCode } from '../../../errors/coin-tracker-error-code.enum';
+import { CoinTrackerErrorCode } from '../../../domain/errors/coin-tracker-error-code.enum';
 import { SyncCoinsUseCase } from '../sync-coins.use-case';
 
 describe('SyncCoinsUseCase', () => {

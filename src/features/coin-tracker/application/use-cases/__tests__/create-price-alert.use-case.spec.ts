@@ -1,10 +1,10 @@
 import { ClockService } from '@core/clock/clock.service';
-import { PriceAlert } from '../../../entities/price-alert.entity';
-import { AlertDirection } from '../../../enums/alert-direction.enum';
-import { AlertStatus } from '../../../enums/alert-status.enum';
-import { AlertTriggerMode } from '../../../enums/alert-trigger-mode.enum';
-import { NotificationChannel } from '../../../enums/notification-channel.enum';
-import { CoinTrackerErrorCode } from '../../../errors/coin-tracker-error-code.enum';
+import { PriceAlert } from '../../../domain/entities/price-alert.entity';
+import { AlertDirection } from '../../../domain/enums/alert-direction.enum';
+import { AlertStatus } from '../../../domain/enums/alert-status.enum';
+import { AlertTriggerMode } from '../../../domain/enums/alert-trigger-mode.enum';
+import { NotificationChannel } from '../../../domain/enums/notification-channel.enum';
+import { CoinTrackerErrorCode } from '../../../domain/errors/coin-tracker-error-code.enum';
 import { CreatePriceAlertUseCase } from '../create-price-alert.use-case';
 
 describe('CreatePriceAlertUseCase', () => {

@@ -1,7 +1,7 @@
-import { Coin } from '../../../entities/coin.entity';
-import { CoinSortField } from '../../../enums/coin-sort-field.enum';
-import { SortOrder } from '../../../enums/sort-order.enum';
-import { CoinTrackerErrorCode } from '../../../errors/coin-tracker-error-code.enum';
+import { Coin } from '../../../domain/entities/coin.entity';
+import { CoinSortField } from '../../../domain/enums/coin-sort-field.enum';
+import { SortOrder } from '../../../domain/enums/sort-order.enum';
+import { CoinTrackerErrorCode } from '../../../domain/errors/coin-tracker-error-code.enum';
 import { CoinCursorService } from '../coin-cursor.service';
 
 describe('CoinCursorService', () => {

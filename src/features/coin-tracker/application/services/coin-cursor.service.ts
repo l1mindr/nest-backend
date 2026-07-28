@@ -1,13 +1,13 @@
 import { decodeCursor, encodeCursor } from '@core/pagination/cursor.util';
 import { Injectable } from '@nestjs/common';
-import { Coin } from '../../entities/coin.entity';
-import { CoinSortField } from '../../enums/coin-sort-field.enum';
-import { SortOrder } from '../../enums/sort-order.enum';
-import { CoinTrackerErrors } from '../../errors/coin-tracker-errors';
+import { Coin } from '../../domain/entities/coin.entity';
+import { CoinSortField } from '../../domain/enums/coin-sort-field.enum';
+import { SortOrder } from '../../domain/enums/sort-order.enum';
+import { CoinTrackerErrors } from '../../domain/errors/coin-tracker-errors';
 import {
   CoinCursor,
   ICoinCursorService
-} from '../../interfaces/coin-tracker.interface';
+} from '../interfaces/coin-tracker.interface';
 
 @Injectable()
 export class CoinCursorService implements ICoinCursorService {

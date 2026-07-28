@@ -2,8 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ClockService } from '@core/clock/clock.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { PinoLogger } from 'nestjs-pino';
-import { AlertStatus } from '../../enums/alert-status.enum';
-import { AlertTriggerMode } from '../../enums/alert-trigger-mode.enum';
+import { AlertStatus } from '../../domain/enums/alert-status.enum';
+import { AlertTriggerMode } from '../../domain/enums/alert-trigger-mode.enum';
 import {
   COINGECKO_CLIENT,
   ICoinGeckoClient,
@@ -12,9 +12,9 @@ import {
   IPriceCheckService,
   NOTIFICATION_SERVICE,
   PRICE_ALERT_REPOSITORY
-} from '../../interfaces/coin-tracker.interface';
-import { NotificationChannel } from '../../enums/notification-channel.enum';
-import { PriceAlert } from '../../entities/price-alert.entity';
+} from '../interfaces/coin-tracker.interface';
+import { NotificationChannel } from '../../domain/enums/notification-channel.enum';
+import { PriceAlert } from '../../domain/entities/price-alert.entity';
 import { PriceAlertEvaluatorService } from './price-alert-evaluator.service';
 
 const PRICE_REQUEST_BATCH_SIZE = 50;
