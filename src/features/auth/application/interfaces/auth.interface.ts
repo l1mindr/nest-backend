@@ -1,7 +1,7 @@
 import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
-import { ChangePasswordRequestDto } from '../dto/request/change-password.request.dto';
-import { LoginUserRequestDto } from '../dto/request/login-user.request.dto';
-import { RegisterUserRequestDto } from '../dto/request/register-user.request.dto';
+import { ChangePasswordRequestDto } from '../../presentation/dto/request/change-password.request.dto';
+import { LoginUserRequestDto } from '../../presentation/dto/request/login-user.request.dto';
+import { RegisterUserRequestDto } from '../../presentation/dto/request/register-user.request.dto';
 
 export type AuthTokens = {
   accessToken: string;

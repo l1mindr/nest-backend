@@ -4,7 +4,7 @@ import { SessionsModule } from '@features/sessions/sessions.module';
 import { TokenModule } from '@features/token/token.module';
 import { Module } from '@nestjs/common';
 import { UsersModule } from './../users/users.module';
-import { AuthController } from './auth.controller';
+import { AuthController } from './presentation/controllers/auth.controller';
 import { AuthCookieService } from './application/services/auth-cookie.service';
 import { ChangePassword } from './application/use-cases/change-password.use-case';
 import { Login } from './application/use-cases/login.use-case';
@@ -15,10 +15,10 @@ import {
   LOGIN,
   REFRESH,
   REGISTER
-} from './interfaces/auth.interface';
-import { BcryptProvider } from './providers/bcrypt.provider';
-import { HashingProvider } from './providers/hashing.provider';
-import { RefreshTokenHasher } from './providers/refresh-token-hasher.provider';
+} from './application/interfaces/auth.interface';
+import { BcryptProvider } from './infrastructure/providers/bcrypt.provider';
+import { HashingProvider } from './infrastructure/providers/hashing.provider';
+import { RefreshTokenHasher } from './infrastructure/providers/refresh-token-hasher.provider';
 
 @Module({
   imports: [

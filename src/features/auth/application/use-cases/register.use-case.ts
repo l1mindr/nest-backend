@@ -3,9 +3,9 @@ import {
   ICreateUserUseCase
 } from '@features/users/interfaces/users.interface';
 import { Inject, Injectable } from '@nestjs/common';
-import { RegisterUserRequestDto } from '../../dto/request/register-user.request.dto';
-import { IRegister } from '../../interfaces/auth.interface';
-import { HashingProvider } from '../../providers/hashing.provider';
+import { RegisterUserRequestDto } from '../../presentation/dto/request/register-user.request.dto';
+import { IRegister } from '../interfaces/auth.interface';
+import { HashingProvider } from '../../infrastructure/providers/hashing.provider';
 
 @Injectable()
 export class Register implements IRegister {

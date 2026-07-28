@@ -23,7 +23,7 @@ import {
   ApiChangePassword,
   ApiLoginUser,
   ApiRegisterUser
-} from './auth.swagger';
+} from '../swagger/auth.swagger';
 import {
   CHANGE_PASSWORD,
   IChangePassword,
@@ -33,12 +33,12 @@ import {
   LOGIN,
   REFRESH,
   REGISTER
-} from './interfaces/auth.interface';
-import { IpAddress } from './decorators/ipAddress.decorator';
-import { ChangePasswordRequestDto } from './dto/request/change-password.request.dto';
-import { LoginUserRequestDto } from './dto/request/login-user.request.dto';
-import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
-import { AuthCookieInterceptor } from './interceptors/auth-cookie.interceptor';
+} from '../../application/interfaces/auth.interface';
+import { IpAddress } from '../decorators/ipAddress.decorator';
+import { ChangePasswordRequestDto } from '../dto/request/change-password.request.dto';
+import { LoginUserRequestDto } from '../dto/request/login-user.request.dto';
+import { RegisterUserRequestDto } from '../dto/request/register-user.request.dto';
+import { AuthCookieInterceptor } from '../interceptors/auth-cookie.interceptor';
 
 @Controller({ path: 'auth', version: '1' })
 @ApiTags('auth')

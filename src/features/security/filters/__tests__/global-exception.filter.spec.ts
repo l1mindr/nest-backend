@@ -1,6 +1,6 @@
 import { AppError } from '@core/errors/app.error';
 import { ErrorDomain } from '@core/errors/error-domain.enum';
-import { AuthErrors } from '@features/auth/errors/auth-errors';
+import { AuthErrors } from '@features/auth/domain/errors/auth-errors';
 import { SecurityErrors } from '@features/security/errors/security-errors';
 import { SessionErrors } from '@features/sessions/errors/session-errors';
 import { ArgumentsHost, HttpStatus } from '@nestjs/common';

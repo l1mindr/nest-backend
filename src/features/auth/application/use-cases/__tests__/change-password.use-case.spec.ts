@@ -1,6 +1,6 @@
 import { TokenErrors } from '@features/token/errors/token-errors';
 import { DataSource, EntityManager } from 'typeorm';
-import { AuthErrors } from '../../../errors/auth-errors';
+import { AuthErrors } from '../../../domain/errors/auth-errors';
 import { ChangePassword } from '../../use-cases/change-password.use-case';
 
 describe('ChangePassword', () => {

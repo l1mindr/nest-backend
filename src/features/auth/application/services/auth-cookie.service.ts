@@ -3,7 +3,7 @@ import { Response } from 'express';
 import { CsrfTokenService } from '@features/security/csrf/services/csrf-token.service';
 import { decodeSessionId } from '@features/security/csrf/utils/session-id.util';
 import { IS_PRODUCTION } from '@infrastructure/config/env/env.constants';
-import { AuthTokens } from '../../interfaces/auth.interface';
+import { AuthTokens } from '../interfaces/auth.interface';
 
 @Injectable()
 export class AuthCookieService {

@@ -11,10 +11,10 @@ import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { DataSource } from 'typeorm';
-import { ChangePasswordRequestDto } from '../../dto/request/change-password.request.dto';
-import { AuthErrors } from '../../errors/auth-errors';
-import { IChangePassword } from '../../interfaces/auth.interface';
-import { HashingProvider } from '../../providers/hashing.provider';
+import { ChangePasswordRequestDto } from '../../presentation/dto/request/change-password.request.dto';
+import { AuthErrors } from '../../domain/errors/auth-errors';
+import { IChangePassword } from '../interfaces/auth.interface';
+import { HashingProvider } from '../../infrastructure/providers/hashing.provider';
 
 @Injectable()
 export class ChangePassword implements IChangePassword {

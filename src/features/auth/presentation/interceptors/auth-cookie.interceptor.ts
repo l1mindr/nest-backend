@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { map, Observable } from 'rxjs';
-import { AuthTokens } from '../interfaces/auth.interface';
-import { AuthCookieService } from '../application/services/auth-cookie.service';
+import { AuthTokens } from '../../application/interfaces/auth.interface';
+import { AuthCookieService } from '../../application/services/auth-cookie.service';
 
 @Injectable()
 export class AuthCookieInterceptor implements NestInterceptor {

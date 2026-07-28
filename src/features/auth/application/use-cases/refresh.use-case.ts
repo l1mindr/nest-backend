@@ -19,8 +19,8 @@ import { RedisLockService } from '@infrastructure/databases/redis/redis-lock.ser
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { AuthTokens, IRefresh } from '../../interfaces/auth.interface';
-import { RefreshTokenHasher } from '../../providers/refresh-token-hasher.provider';
+import { AuthTokens, IRefresh } from '../interfaces/auth.interface';
+import { RefreshTokenHasher } from '../../infrastructure/providers/refresh-token-hasher.provider';
 
 @Injectable()
 export class Refresh implements IRefresh {

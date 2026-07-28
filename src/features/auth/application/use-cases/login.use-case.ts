@@ -19,11 +19,11 @@ import {
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { LoginUserRequestDto } from '../../dto/request/login-user.request.dto';
-import { AuthErrors } from '../../errors/auth-errors';
-import { AuthTokens, ILogin } from '../../interfaces/auth.interface';
-import { HashingProvider } from '../../providers/hashing.provider';
-import { RefreshTokenHasher } from '../../providers/refresh-token-hasher.provider';
+import { LoginUserRequestDto } from '../../presentation/dto/request/login-user.request.dto';
+import { AuthErrors } from '../../domain/errors/auth-errors';
+import { AuthTokens, ILogin } from '../interfaces/auth.interface';
+import { HashingProvider } from '../../infrastructure/providers/hashing.provider';
+import { RefreshTokenHasher } from '../../infrastructure/providers/refresh-token-hasher.provider';
 
 @Injectable()
 export class Login implements ILogin {
