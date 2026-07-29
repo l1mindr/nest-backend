@@ -34,23 +34,23 @@ describe('Auth Status Enforcement (e2e) version: 1', () => {
     await app?.close();
   });
 
-  it('registers users with UserStatus.DEACTIVATE', async () => {
+  it('registers users with UserStatus.PENDING_VERIFICATION', async () => {
     const { user } = await UserFactory.register(app);
 
     const persisted = await getUser(user.email);
 
-    expect(persisted.status).toBe(UserStatus.DEACTIVATE);
+    expect(persisted.status).toBe(UserStatus.PENDING_VERIFICATION);
   });
 
-  it('rejects login for a newly registered (DEACTIVATE) user and issues no tokens', async () => {
+  it('rejects login for unverified (PENDING_VERIFICATION) user with 403', async () => {
     const { user, client } = await UserFactory.register(app);
 
     const res = await client.post('/v1/auth/login', {
       body: { email: user.email, password: user.password }
     });
 
-    expect(res.status).toBe(401);
-    expect(res.headers['set-cookie']).toBeUndefined();
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('ACCOUNT_NOT_VERIFIED');
   });
 
   it('allows login after email verification promotes the user to ACTIVATE', async () => {
@@ -67,7 +67,19 @@ describe('Auth Status Enforcement (e2e) version: 1', () => {
     expect(res.headers['set-cookie'][1]).toContain('refresh_token');
   });
 
-  it('rejects login for a SUSPEND user and issues no tokens', async () => {
+  it('rejects login for a DEACTIVATE user with generic 401', async () => {
+    const { user, client } = await UserFactory.register(app);
+    await setStatus(user.email, UserStatus.DEACTIVATE);
+
+    const res = await client.post('/v1/auth/login', {
+      body: { email: user.email, password: user.password }
+    });
+
+    expect(res.status).toBe(401);
+    expect(res.headers['set-cookie']).toBeUndefined();
+  });
+
+  it('rejects login for a SUSPEND user with generic 401', async () => {
     const { user, client } = await UserFactory.register(app);
     await setStatus(user.email, UserStatus.SUSPEND);
 
@@ -89,8 +101,6 @@ describe('Auth Status Enforcement (e2e) version: 1', () => {
 
     expect(login.status).toBe(200);
 
-    // The access token is still valid and unexpired: the request agent keeps
-    // the access_token cookie, so this call reuses the exact JWT minted above.
     const before = await client.get('/v1/user/me');
     expect(before.status).toBe(200);
 
