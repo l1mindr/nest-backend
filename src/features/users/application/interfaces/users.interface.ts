@@ -23,6 +23,7 @@ export interface IUserRepository {
     hashPassword: string,
     manager?: EntityManager
   ): Promise<void>;
+  updateStatus(userId: string, status: string): Promise<void>;
 }
 
 export const VERIFICATION_CODE_REPOSITORY = Symbol(

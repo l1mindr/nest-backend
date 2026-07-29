@@ -99,6 +99,10 @@ export class UserRepository implements IUserRepository {
     await this.userRepo.update({ id }, dto);
   }
 
+  async updateStatus(userId: string, status: string): Promise<void> {
+    await this.userRepo.update({ id: userId }, { status: status as any });
+  }
+
   async updatePasswordHash(
     userId: string,
     hashPassword: string,

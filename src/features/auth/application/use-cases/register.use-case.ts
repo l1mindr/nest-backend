@@ -1,6 +1,6 @@
 import {
-  CREATE_USER_USE_CASE,
-  ICreateUserUseCase
+  INITIATE_REGISTRATION_USE_CASE,
+  IInitiateRegistrationUseCase
 } from '@features/users/application/interfaces/users.interface';
 import { Inject, Injectable } from '@nestjs/common';
 import { RegisterUserRequestDto } from '../../presentation/dto/request/register-user.request.dto';
@@ -11,14 +11,14 @@ import { HashingProvider } from '../../infrastructure/providers/hashing.provider
 export class Register implements IRegister {
   constructor(
     private readonly hashingProvider: HashingProvider,
-    @Inject(CREATE_USER_USE_CASE)
-    private readonly createUserUseCase: ICreateUserUseCase
+    @Inject(INITIATE_REGISTRATION_USE_CASE)
+    private readonly initiateRegistrationUseCase: IInitiateRegistrationUseCase
   ) {}
 
   async register(dto: RegisterUserRequestDto): Promise<void> {
     const password = await this.hashingProvider.hash(dto.password);
 
-    return this.createUserUseCase.execute({
+    return this.initiateRegistrationUseCase.execute({
       ...dto,
       password
     });
