@@ -1,4 +1,4 @@
-import { ClockService } from '@core/clock/clock.service';
+import { ClockService } from '@infrastructure/services/clock.service';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import { UserStatus } from '@features/users/domain/enums/user-status.enum';
 import { createHash } from 'crypto';

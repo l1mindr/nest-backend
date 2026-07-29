@@ -1,4 +1,8 @@
-import type { AuthSession, AuthUser, DeviceContext } from '@core/http';
+import type {
+  AuthSession,
+  AuthUser,
+  DeviceContext
+} from '@presentation/interfaces/context';
 
 /**
  * Augments the Express request with the properties this application attaches

@@ -1,4 +1,4 @@
-import { ClockService } from '@core/clock/clock.service';
+import { ClockService } from '@infrastructure/services/clock.service';
 import { SessionErrors } from '@features/sessions/domain/errors/session-errors';
 import { createHash } from 'crypto';
 import { Refresh } from '../../use-cases/refresh.use-case';

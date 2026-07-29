@@ -1,4 +1,4 @@
-import { ClockService } from '@core/clock/clock.service';
+import { ClockService } from '@infrastructure/services/clock.service';
 import { User } from '@features/users/domain/entities/user.entity';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

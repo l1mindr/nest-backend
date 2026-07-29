@@ -1,4 +1,4 @@
-import { SessionContext } from '@core/http/session-context.interface';
+import { SessionContext } from '@presentation/interfaces/context/session-context.interface';
 import { PaginatedResult } from '@core/pagination/paginated-result.interface';
 import type { EntityManager } from 'typeorm';
 import { Session } from '../../domain/entities/session.entity';

@@ -1,4 +1,4 @@
-import { ClockService } from '@core/clock/clock.service';
+import { ClockService } from '@infrastructure/services/clock.service';
 import { Session } from '@features/sessions/domain/entities/session.entity';
 import {
   ISessionIssueUseCase,

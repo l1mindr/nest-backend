@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { AppError } from './app.error';
-import { DomainErrorCode } from './domain-error-code.enum';
-import { ErrorDomain } from './error-domain.enum';
+import { AppError } from '@core/errors/app.error';
+import { DomainErrorCode } from '@core/errors/domain-error-code.enum';
+import { ErrorDomain } from '@core/errors/error-domain.enum';
 
 export class ErrorMapper {
   static from(error: unknown): AppError {

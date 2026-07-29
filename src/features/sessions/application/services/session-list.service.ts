@@ -1,5 +1,5 @@
-import { SessionContext } from '@core/http/session-context.interface';
-import { ClockService } from '@core/clock/clock.service';
+import { SessionContext } from '@presentation/interfaces/context/session-context.interface';
+import { ClockService } from '@infrastructure/services/clock.service';
 import { paginate } from '@core/pagination/paginate.util';
 import { Inject, Injectable } from '@nestjs/common';
 import { SESSION_PAGE_SIZE_DEFAULT } from '../../presentation/dto/request/session-list-request.dto';

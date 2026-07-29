@@ -1,4 +1,4 @@
-import { ClockService } from '@core/clock/clock.service';
+import { ClockService } from '@infrastructure/services/clock.service';
 import { CSRF_TOKEN_TTL_MS, CsrfTokenService } from '../csrf-token.service';
 import { CsrfValidationService } from '../csrf-validation.service';
 

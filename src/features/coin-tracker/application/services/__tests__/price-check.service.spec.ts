@@ -1,4 +1,4 @@
-import { ClockService } from '@core/clock/clock.service';
+import { ClockService } from '@infrastructure/services/clock.service';
 import { PriceAlert } from '../../../domain/entities/price-alert.entity';
 import { AlertDirection } from '../../../domain/enums/alert-direction.enum';
 import { AlertStatus } from '../../../domain/enums/alert-status.enum';

@@ -1,4 +1,4 @@
-import { ClockService } from '@core/clock/clock.service';
+import { ClockService } from '@infrastructure/services/clock.service';
 import { DataSource } from 'typeorm';
 import { Session } from '../../../domain/entities/session.entity';
 import { SessionIssueUseCase } from '../../use-cases/session-issue.use-case';

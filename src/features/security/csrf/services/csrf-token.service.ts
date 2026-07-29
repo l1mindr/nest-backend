@@ -1,4 +1,4 @@
-import { ClockService } from '@core/clock/clock.service';
+import { ClockService } from '@infrastructure/services/clock.service';
 import { TimeConstants } from '@core/clock/time.constants';
 import csrfConfig from '@infrastructure/config/security/csrf.config';
 import { Inject, Injectable } from '@nestjs/common';

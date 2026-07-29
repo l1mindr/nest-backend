@@ -1,4 +1,4 @@
-import type { AuthSession, AuthUser } from '@core/http';
+import type { AuthSession, AuthUser } from '@presentation/interfaces/context';
 import { Request } from 'express';
 
 export interface CustomAuth {

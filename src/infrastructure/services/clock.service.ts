@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { TimeConstants } from './time.constants';
+import { TimeConstants } from '@core/clock/time.constants';
 
 @Injectable()
 export class ClockService {

@@ -1,5 +1,5 @@
+import { TimeConstants } from '@core/clock/time.constants';
 import { ClockService } from './clock.service';
-import { TimeConstants } from './time.constants';
 
 describe('ClockService', () => {
   let service: ClockService;
