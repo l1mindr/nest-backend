@@ -24,6 +24,7 @@ export interface IUserRepository {
     manager?: EntityManager
   ): Promise<void>;
   updateStatus(userId: string, status: string): Promise<void>;
+  findPendingOlderThan(cutoff: Date): Promise<User[]>;
 }
 
 export const VERIFICATION_CODE_REPOSITORY = Symbol(
@@ -94,4 +95,12 @@ export const RESEND_VERIFICATION_USE_CASE = Symbol(
 
 export interface IResendVerificationUseCase {
   execute(email: string): Promise<void>;
+}
+
+export const CLEANUP_PENDING_USERS_USE_CASE = Symbol(
+  'ICleanupPendingUsersUseCase'
+);
+
+export interface ICleanupPendingUsersUseCase {
+  execute(): Promise<void>;
 }

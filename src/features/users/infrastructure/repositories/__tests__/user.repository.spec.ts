@@ -1,4 +1,5 @@
 import { DataSource } from 'typeorm';
+import { UserStatus } from '../../../domain/enums/user-status.enum';
 import { User } from '../../../domain/entities/user.entity';
 import { UserRepository } from '../user.repository';
 
@@ -75,7 +76,13 @@ describe('UserRepository', () => {
       expect(result).toEqual(user);
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: [{ email: 'test@test.com' }, { username: 'test@test.com' }],
-        select: { id: true, email: true, password: true, status: true }
+        select: {
+          id: true,
+          email: true,
+          password: true,
+          status: true,
+          registryDates: { createdAt: true }
+        }
       });
     });
 
@@ -176,6 +183,30 @@ describe('UserRepository', () => {
         { id: '1' },
         { name: 'Ali' }
       );
+    });
+  });
+
+  describe('findPendingOlderThan', () => {
+    it('should find pending users older than cutoff', async () => {
+      const cutoff = new Date('2024-01-01T00:00:00Z');
+      const users = [{ id: '1' }, { id: '2' }] as User[];
+      mockRepository.find.mockResolvedValue(users);
+
+      const result = await repository.findPendingOlderThan(cutoff);
+
+      expect(result).toEqual(users);
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: {
+          status: UserStatus.PENDING_VERIFICATION,
+          registryDates: { createdAt: expect.any(Object) }
+        },
+        select: {
+          id: true,
+          email: true,
+          status: true,
+          registryDates: { createdAt: true }
+        }
+      });
     });
   });
 });

@@ -1,9 +1,11 @@
+import { UserStatus } from '@features/users/domain/enums/user-status.enum';
 import { User } from '@features/users/domain/entities/user.entity';
 import { Injectable } from '@nestjs/common';
 import {
   DataSource,
   EntityManager,
   FindOptionsSelect,
+  LessThan,
   MoreThan,
   Repository
 } from 'typeorm';
@@ -62,7 +64,8 @@ export class UserRepository implements IUserRepository {
         id: true,
         email: true,
         password: true,
-        status: true
+        status: true,
+        registryDates: { createdAt: true }
       }
     });
   }
@@ -111,5 +114,20 @@ export class UserRepository implements IUserRepository {
   ): Promise<void> {
     const repository = manager?.getRepository(User) ?? this.userRepo;
     await repository.update({ id: userId }, { password: hashPassword });
+  }
+
+  async findPendingOlderThan(cutoff: Date): Promise<User[]> {
+    return this.userRepo.find({
+      where: {
+        status: UserStatus.PENDING_VERIFICATION,
+        registryDates: { createdAt: LessThan(cutoff) }
+      },
+      select: {
+        id: true,
+        email: true,
+        status: true,
+        registryDates: { createdAt: true }
+      }
+    });
   }
 }

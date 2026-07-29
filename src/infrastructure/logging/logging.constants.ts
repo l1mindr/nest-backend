@@ -33,7 +33,12 @@ export enum LogEvent {
 
   RATE_LIMIT_EXCEEDED = 'security.rate_limit.exceeded',
   AUTHENTICATION_FAILED = 'security.authentication.failed',
-  AUTHORIZATION_FAILED = 'security.authorization.failed'
+  AUTHORIZATION_FAILED = 'security.authorization.failed',
+
+  PENDING_USER_CLEANUP_STARTED = 'users.cleanup.pending.started',
+  PENDING_USER_CLEANUP_COMPLETED = 'users.cleanup.pending.completed',
+  PENDING_USER_CLEANUP_FAILED = 'users.cleanup.pending.failed',
+  PENDING_USER_DEACTIVATED = 'users.cleanup.pending.deactivated'
 }
 
 export const REDACT_PATHS = [
