@@ -18,7 +18,8 @@ describe('Login', () => {
   };
 
   const mockClockService = {
-    snapshot: jest.fn()
+    snapshot: jest.fn(),
+    nowDate: jest.fn()
   };
 
   const mockHashingProvider = {
@@ -49,11 +50,35 @@ describe('Login', () => {
     execute: jest.fn()
   };
 
+  const mockUserRepository = {
+    updateStatus: jest.fn()
+  };
+
   const mockLogger = {
     setContext: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn()
+  };
+
+  const pendingUserWithinWindow = {
+    id: 'user-id',
+    email: 'test@test.com',
+    password: 'hashed-password',
+    status: UserStatus.PENDING_VERIFICATION,
+    registryDates: {
+      createdAt: new Date(NOW_MS - 60_000) // 1 minute ago
+    }
+  };
+
+  const pendingUserExpired = {
+    id: 'user-id',
+    email: 'test@test.com',
+    password: 'hashed-password',
+    status: UserStatus.PENDING_VERIFICATION,
+    registryDates: {
+      createdAt: new Date(NOW_MS - 25 * 60 * 60 * 1000) // 25 hours ago
+    }
   };
 
   beforeEach(() => {
@@ -63,6 +88,8 @@ describe('Login', () => {
       now: NOW_MS,
       expiresAt: EXPIRES_AT
     });
+
+    mockClockService.nowDate.mockReturnValue(new Date(NOW_MS));
 
     mockDeviceMapper.toSessionUserAgent.mockReturnValue({
       browserName: 'Chrome',
@@ -83,6 +110,7 @@ describe('Login', () => {
       mockUserQueryService as any,
       mockSessionRotationUseCase as any,
       mockResendVerificationUseCase as any,
+      mockUserRepository as any,
       mockLogger as any
     );
   });
@@ -194,13 +222,10 @@ describe('Login', () => {
       }
     );
 
-    it('should reject login for PENDING_VERIFICATION users, resend verification, and issue no tokens', async () => {
-      mockUserQueryService.findByEmailOrUsername.mockResolvedValue({
-        id: 'user-id',
-        email: 'test@test.com',
-        password: 'hashed-password',
-        status: UserStatus.PENDING_VERIFICATION
-      });
+    it('should resend verification for PENDING_VERIFICATION user within 24h window', async () => {
+      mockUserQueryService.findByEmailOrUsername.mockResolvedValue(
+        pendingUserWithinWindow
+      );
 
       mockHashingProvider.compare.mockResolvedValue(true);
 
@@ -218,8 +243,61 @@ describe('Login', () => {
       expect(mockResendVerificationUseCase.execute).toHaveBeenCalledWith(
         'test@test.com'
       );
+      expect(mockUserRepository.updateStatus).not.toHaveBeenCalled();
       expect(mockSessionIssueUseCase.execute).not.toHaveBeenCalled();
       expect(mockTokenIssueService.issuePair).not.toHaveBeenCalled();
+    });
+
+    it('should deactivate PENDING_VERIFICATION user older than 24h and return generic error', async () => {
+      mockUserQueryService.findByEmailOrUsername.mockResolvedValue(
+        pendingUserExpired
+      );
+
+      mockHashingProvider.compare.mockResolvedValue(true);
+
+      await expect(
+        service.login(
+          {
+            email: 'test@test.com',
+            password: '123456'
+          },
+          '127.0.0.1',
+          {} as any
+        )
+      ).rejects.toEqual(AuthErrors.invalidCredentials());
+
+      expect(mockUserRepository.updateStatus).toHaveBeenCalledWith(
+        'user-id',
+        UserStatus.DEACTIVATE
+      );
+      expect(mockResendVerificationUseCase.execute).not.toHaveBeenCalled();
+      expect(mockSessionIssueUseCase.execute).not.toHaveBeenCalled();
+      expect(mockTokenIssueService.issuePair).not.toHaveBeenCalled();
+    });
+
+    it('should not deactivate SUSPEND users even if created long ago', async () => {
+      mockUserQueryService.findByEmailOrUsername.mockResolvedValue({
+        id: 'user-id',
+        email: 'test@test.com',
+        password: 'hashed-password',
+        status: UserStatus.SUSPEND
+      });
+
+      mockHashingProvider.compare.mockResolvedValue(true);
+
+      await expect(
+        service.login(
+          {
+            email: 'test@test.com',
+            password: '123456'
+          },
+          '127.0.0.1',
+          {} as any
+        )
+      ).rejects.toEqual(AuthErrors.invalidCredentials());
+
+      expect(mockUserRepository.updateStatus).not.toHaveBeenCalled();
+      expect(mockResendVerificationUseCase.execute).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,4 +1,5 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { TimeConstants } from '@infrastructure/clock/time.constants';
 import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import {
@@ -15,8 +16,10 @@ import { UserStatus } from '@features/users/domain/enums/user-status.enum';
 import {
   IResendVerificationUseCase,
   IUserQueryService,
+  IUserRepository,
   RESEND_VERIFICATION_USE_CASE,
-  USER_QUERY_SERVICE
+  USER_QUERY_SERVICE,
+  USER_REPOSITORY
 } from '@features/users/application/interfaces/users.interface';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
@@ -44,6 +47,8 @@ export class Login implements ILogin {
     private readonly sessionRotationUseCase: ISessionRotationUseCase,
     @Inject(RESEND_VERIFICATION_USE_CASE)
     private readonly resendVerificationUseCase: IResendVerificationUseCase,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: IUserRepository,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(Login.name);
@@ -63,6 +68,16 @@ export class Login implements ILogin {
     if (!isMatch) throw AuthErrors.invalidCredentials();
 
     if (user.status === UserStatus.PENDING_VERIFICATION) {
+      const createdAt = user.registryDates.createdAt;
+      const now = this.clockService.nowDate();
+      const windowExpired =
+        now.getTime() - createdAt.getTime() >= TimeConstants.MS_PER_DAY;
+
+      if (windowExpired) {
+        await this.userRepository.updateStatus(user.id, UserStatus.DEACTIVATE);
+        throw AuthErrors.invalidCredentials();
+      }
+
       await this.resendVerificationUseCase.execute(user.email);
       throw AuthErrors.accountNotVerified();
     }
