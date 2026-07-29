@@ -104,3 +104,9 @@ export const CLEANUP_PENDING_USERS_USE_CASE = Symbol(
 export interface ICleanupPendingUsersUseCase {
   execute(): Promise<void>;
 }
+
+export const SUSPEND_USER_USE_CASE = Symbol('ISuspendUserUseCase');
+
+export interface ISuspendUserUseCase {
+  execute(adminId: string, userId: string, reason: string): Promise<void>;
+}

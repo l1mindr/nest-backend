@@ -77,4 +77,14 @@ export class UserErrors {
       'Account is already verified'
     );
   }
+
+  static userAlreadySuspended() {
+    return new AppError(
+      UserErrorCode.USER_ALREADY_SUSPENDED,
+      ErrorDomain.USER,
+      HttpStatus.CONFLICT,
+      undefined,
+      'User is already suspended'
+    );
+  }
 }

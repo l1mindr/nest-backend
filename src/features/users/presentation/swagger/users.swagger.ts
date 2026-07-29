@@ -164,6 +164,37 @@ export const ApiAdminGetAllUsers = () =>
     })
   );
 
+/** Admin - Suspend User Swagger */
+export const ApiAdminSuspendUser = () =>
+  applyDecorators(
+    ApiOperation({ summary: '[Admin] Suspend a user' }),
+    ApiParam({
+      name: 'id',
+      type: String,
+      required: true,
+      description: 'User ID'
+    }),
+    ApiResponse({
+      status: 204,
+      description: 'User suspended successfully (no content)'
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'User not found',
+      type: ErrorResponseDto
+    }),
+    ApiResponse({
+      status: 409,
+      description: 'User is already suspended',
+      type: ErrorResponseDto
+    }),
+    ApiResponse({
+      status: 500,
+      description: 'Internal Server Error',
+      type: ErrorResponseDto
+    })
+  );
+
 /** Admin - Get Single User Swagger */
 export const ApiAdminGetUser = () =>
   applyDecorators(

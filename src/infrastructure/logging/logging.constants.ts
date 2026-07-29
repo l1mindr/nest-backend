@@ -12,6 +12,7 @@ export enum LogEvent {
   REFRESH_REUSE_DETECTED = 'auth.refresh.reuse_detected',
 
   SESSION_REVOKED = 'session.revoked',
+  USER_SUSPENDED = 'user.suspended',
 
   COIN_SYNC_STARTED = 'coin_tracker.sync.started',
   COIN_SYNC_COMPLETED = 'coin_tracker.sync.completed',
