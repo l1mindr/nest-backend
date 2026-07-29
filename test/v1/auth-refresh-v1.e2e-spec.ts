@@ -1,4 +1,4 @@
-import { ClockService } from '@infrastructure/services/clock.service';
+import { ClockService } from '@infrastructure/clock/clock.service';
 import { Session } from '@features/sessions/domain/entities/session.entity';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';

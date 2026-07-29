@@ -1,4 +1,4 @@
-import { TimeConstants } from '@core/clock/time.constants';
+import { TimeConstants } from './time.constants';
 import { ClockService } from './clock.service';
 
 describe('ClockService', () => {

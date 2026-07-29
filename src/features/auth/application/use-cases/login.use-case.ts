@@ -1,4 +1,4 @@
-import { ClockService } from '@infrastructure/services/clock.service';
+import { ClockService } from '@infrastructure/clock/clock.service';
 import { DeviceContext } from '@features/security/device-detection/context/device-context.interface';
 import { DeviceMapper } from '@features/security/device-detection/mappers/device.mapper';
 import {

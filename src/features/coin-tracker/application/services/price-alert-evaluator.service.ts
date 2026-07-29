@@ -1,4 +1,4 @@
-import { TimeConstants } from '@core/clock/time.constants';
+import { TimeConstants } from '@infrastructure/clock/time.constants';
 import { Injectable } from '@nestjs/common';
 import { AlertDirection } from '../../domain/enums/alert-direction.enum';
 

@@ -1,4 +1,4 @@
-import { ClockService } from '@infrastructure/services/clock.service';
+import { ClockService } from '@infrastructure/clock/clock.service';
 import { DataSource } from 'typeorm';
 import { CoinTrackerErrorCode } from '../../../domain/errors/coin-tracker-error-code.enum';
 import { SyncCoinsUseCase } from '../sync-coins.use-case';

@@ -1,4 +1,4 @@
-import { ClockService } from '@infrastructure/services/clock.service';
+import { ClockService } from '@infrastructure/clock/clock.service';
 import { CSRF_TOKEN_TTL_MS, CsrfTokenService } from '../csrf-token.service';
 
 describe('CsrfTokenService', () => {

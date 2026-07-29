@@ -1,4 +1,4 @@
-import { ClockService } from '@infrastructure/services/clock.service';
+import { ClockService } from '@infrastructure/clock/clock.service';
 import { Session } from '../../../domain/entities/session.entity';
 import { SessionCursorService } from '../../services/session-cursor.service';
 import { SessionListService } from '../../services/session-list.service';

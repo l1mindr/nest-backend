@@ -1,4 +1,4 @@
-import { ClockService } from '@infrastructure/services/clock.service';
+import { ClockService } from '@infrastructure/clock/clock.service';
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager, MoreThan, Not, Repository } from 'typeorm';
 import { Session } from '../../domain/entities/session.entity';

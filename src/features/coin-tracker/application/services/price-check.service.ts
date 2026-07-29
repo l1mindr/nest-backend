@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ClockService } from '@infrastructure/services/clock.service';
+import { ClockService } from '@infrastructure/clock/clock.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { PinoLogger } from 'nestjs-pino';
 import { AlertStatus } from '../../domain/enums/alert-status.enum';
