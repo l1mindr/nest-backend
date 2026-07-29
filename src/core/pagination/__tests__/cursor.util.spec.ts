@@ -3,7 +3,7 @@ import {
   encodeCursor,
   isValidUUID,
   UUID_RE
-} from './cursor.util';
+} from '../cursor.util';
 
 describe('cursor.util', () => {
   describe('UUID_RE', () => {

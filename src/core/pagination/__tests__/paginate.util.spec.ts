@@ -1,4 +1,4 @@
-import { paginate } from './paginate.util';
+import { paginate } from '../paginate.util';
 
 describe('paginate', () => {
   it('should return all items when they fit within the limit', () => {
