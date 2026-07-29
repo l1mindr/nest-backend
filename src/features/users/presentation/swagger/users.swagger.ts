@@ -1,4 +1,4 @@
-import { RegistryDatesOrm } from '@infrastructure/databases/postgres/embedded/registry-dates.embedded';
+import { RegistryDates } from '@core/registry-dates';
 import { ErrorResponseDto } from '@presentation/dto/error-response.dto';
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
@@ -32,7 +32,7 @@ export const SwaggerUserProperties = {
   role: { description: 'User role', enum: UserRole, example: 'USER' },
   registryDates: {
     description: 'Registry dates',
-    type: () => RegistryDatesOrm
+    type: () => RegistryDates
   },
   sessions: { description: 'User sessions', type: () => [Session] },
   isDeleted: {
