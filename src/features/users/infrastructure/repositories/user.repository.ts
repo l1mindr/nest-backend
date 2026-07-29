@@ -60,6 +60,7 @@ export class UserRepository implements IUserRepository {
       where: [{ email: identifier }, { username: identifier }],
       select: {
         id: true,
+        email: true,
         password: true,
         status: true
       }

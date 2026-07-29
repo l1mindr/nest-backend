@@ -45,6 +45,10 @@ describe('Login', () => {
     saveHash: jest.fn()
   };
 
+  const mockResendVerificationUseCase = {
+    execute: jest.fn()
+  };
+
   const mockLogger = {
     setContext: jest.fn(),
     info: jest.fn(),
@@ -78,6 +82,7 @@ describe('Login', () => {
       mockTokenIssueService as any,
       mockUserQueryService as any,
       mockSessionRotationUseCase as any,
+      mockResendVerificationUseCase as any,
       mockLogger as any
     );
   });
@@ -86,6 +91,7 @@ describe('Login', () => {
     it('should login successfully', async () => {
       mockUserQueryService.findByEmailOrUsername.mockResolvedValue({
         id: 'user-id',
+        email: 'test@test.com',
         password: 'hashed-password',
         status: UserStatus.ACTIVATE
       });
@@ -164,6 +170,7 @@ describe('Login', () => {
       async (status) => {
         mockUserQueryService.findByEmailOrUsername.mockResolvedValue({
           id: 'user-id',
+          email: 'test@test.com',
           password: 'hashed-password',
           status
         });
@@ -183,7 +190,36 @@ describe('Login', () => {
 
         expect(mockSessionIssueUseCase.execute).not.toHaveBeenCalled();
         expect(mockTokenIssueService.issuePair).not.toHaveBeenCalled();
+        expect(mockResendVerificationUseCase.execute).not.toHaveBeenCalled();
       }
     );
+
+    it('should reject login for PENDING_VERIFICATION users, resend verification, and issue no tokens', async () => {
+      mockUserQueryService.findByEmailOrUsername.mockResolvedValue({
+        id: 'user-id',
+        email: 'test@test.com',
+        password: 'hashed-password',
+        status: UserStatus.PENDING_VERIFICATION
+      });
+
+      mockHashingProvider.compare.mockResolvedValue(true);
+
+      await expect(
+        service.login(
+          {
+            email: 'test@test.com',
+            password: '123456'
+          },
+          '127.0.0.1',
+          {} as any
+        )
+      ).rejects.toEqual(AuthErrors.accountNotVerified());
+
+      expect(mockResendVerificationUseCase.execute).toHaveBeenCalledWith(
+        'test@test.com'
+      );
+      expect(mockSessionIssueUseCase.execute).not.toHaveBeenCalled();
+      expect(mockTokenIssueService.issuePair).not.toHaveBeenCalled();
+    });
   });
 });

@@ -13,7 +13,9 @@ import {
 } from '@features/token/interfaces/token.interface';
 import { UserStatus } from '@features/users/domain/enums/user-status.enum';
 import {
+  IResendVerificationUseCase,
   IUserQueryService,
+  RESEND_VERIFICATION_USE_CASE,
   USER_QUERY_SERVICE
 } from '@features/users/application/interfaces/users.interface';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
@@ -40,6 +42,8 @@ export class Login implements ILogin {
     private readonly userQueryService: IUserQueryService,
     @Inject(SESSION_ROTATION_USE_CASE)
     private readonly sessionRotationUseCase: ISessionRotationUseCase,
+    @Inject(RESEND_VERIFICATION_USE_CASE)
+    private readonly resendVerificationUseCase: IResendVerificationUseCase,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(Login.name);
@@ -57,6 +61,11 @@ export class Login implements ILogin {
     const isMatch = await this.hashingProvider.compare(password, user.password);
 
     if (!isMatch) throw AuthErrors.invalidCredentials();
+
+    if (user.status === UserStatus.PENDING_VERIFICATION) {
+      await this.resendVerificationUseCase.execute(user.email);
+      throw AuthErrors.accountNotVerified();
+    }
 
     if (user.status !== UserStatus.ACTIVATE) {
       throw AuthErrors.invalidCredentials();

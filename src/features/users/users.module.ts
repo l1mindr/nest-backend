@@ -6,7 +6,9 @@ import { AdminUsersUseCase } from './application/use-cases/admin-users.use-case'
 import { CreateUserUseCase } from './application/use-cases/create-user.use-case';
 import { DeleteAccountUseCase } from './application/use-cases/delete-account.use-case';
 import { InitiateRegistrationUseCase } from './application/use-cases/initiate-registration.use-case';
+import { ResendVerificationUseCase } from './application/use-cases/resend-verification.use-case';
 import { UpdateProfileUseCase } from './application/use-cases/update-profile.use-case';
+import { VerifyEmailUseCase } from './application/use-cases/verify-email.use-case';
 import { UserQueryService } from './application/services/user-query.service';
 import { VerificationCodeService } from './application/services/verification-code.service';
 import { UserMapper } from './application/mappers/user.mapper';
@@ -17,10 +19,12 @@ import {
   CREATE_USER_USE_CASE,
   DELETE_ACCOUNT_USE_CASE,
   INITIATE_REGISTRATION_USE_CASE,
+  RESEND_VERIFICATION_USE_CASE,
   UPDATE_PROFILE_USE_CASE,
   USER_QUERY_SERVICE,
   USER_REPOSITORY,
-  VERIFICATION_CODE_REPOSITORY
+  VERIFICATION_CODE_REPOSITORY,
+  VERIFY_EMAIL_USE_CASE
 } from './application/interfaces/users.interface';
 import { UserRepository } from './infrastructure/repositories/user.repository';
 import { VerificationCodeRepository } from './infrastructure/repositories/verification-code.repository';
@@ -55,6 +59,16 @@ import { UsersController } from './presentation/controllers/users.controller';
       provide: INITIATE_REGISTRATION_USE_CASE,
       useExisting: InitiateRegistrationUseCase
     },
+    ResendVerificationUseCase,
+    {
+      provide: RESEND_VERIFICATION_USE_CASE,
+      useExisting: ResendVerificationUseCase
+    },
+    VerifyEmailUseCase,
+    {
+      provide: VERIFY_EMAIL_USE_CASE,
+      useExisting: VerifyEmailUseCase
+    },
     VerificationCodeService,
     UserMapper
   ],
@@ -63,7 +77,8 @@ import { UsersController } from './presentation/controllers/users.controller';
     CREATE_USER_USE_CASE,
     USER_QUERY_SERVICE,
     VERIFICATION_CODE_REPOSITORY,
-    INITIATE_REGISTRATION_USE_CASE
+    INITIATE_REGISTRATION_USE_CASE,
+    RESEND_VERIFICATION_USE_CASE
   ]
 })
 export class UsersModule {}

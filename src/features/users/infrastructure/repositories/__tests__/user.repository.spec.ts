@@ -75,7 +75,7 @@ describe('UserRepository', () => {
       expect(result).toEqual(user);
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: [{ email: 'test@test.com' }, { username: 'test@test.com' }],
-        select: { id: true, password: true, status: true }
+        select: { id: true, email: true, password: true, status: true }
       });
     });
 

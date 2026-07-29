@@ -45,4 +45,14 @@ export class AuthErrors {
       'Failed to change password'
     );
   }
+
+  static accountNotVerified() {
+    return new AppError(
+      AuthErrorCode.ACCOUNT_NOT_VERIFIED,
+      ErrorDomain.AUTH,
+      HttpStatus.FORBIDDEN,
+      undefined,
+      'Account not verified. A new verification code has been sent to your email.'
+    );
+  }
 }
