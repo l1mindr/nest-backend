@@ -14,7 +14,7 @@ import {
   Query
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { IdDto } from '@infrastructure/http/dto/id.dto';
+import { IdDto } from '@presentation/dto/id.dto';
 import { PriceAlertMapper } from '../../application/mappers/price-alert.mapper';
 import { CreatePriceAlertRequestDto } from '../dto/request/create-price-alert.request.dto';
 import { UpdatePriceAlertRequestDto } from '../dto/request/update-price-alert.request.dto';

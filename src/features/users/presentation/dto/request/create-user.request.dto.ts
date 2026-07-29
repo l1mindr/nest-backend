@@ -1,7 +1,7 @@
 import { UserStatus } from '@features/users/domain/enums/user-status.enum';
-import { EmailField } from '@infrastructure/http/validation/fields/email-field.decorator';
-import { PasswordField } from '@infrastructure/http/validation/fields/password-field.decorator';
-import { UsernameField } from '@infrastructure/http/validation/fields/username-field.decorator';
+import { EmailField } from '@presentation/validation/fields/email-field.decorator';
+import { PasswordField } from '@presentation/validation/fields/password-field.decorator';
+import { UsernameField } from '@presentation/validation/fields/username-field.decorator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 

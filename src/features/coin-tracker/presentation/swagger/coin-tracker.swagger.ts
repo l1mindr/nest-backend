@@ -1,4 +1,4 @@
-import { ErrorResponseDto } from '@infrastructure/http/dto/error-response.dto';
+import { ErrorResponseDto } from '@presentation/dto/error-response.dto';
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { CoinListResponseDto } from '../dto/response/coin-list.response.dto';

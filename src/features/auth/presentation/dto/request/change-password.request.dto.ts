@@ -1,4 +1,4 @@
-import { PasswordField } from '@infrastructure/http/validation/fields/password-field.decorator';
+import { PasswordField } from '@presentation/validation/fields/password-field.decorator';
 
 export class ChangePasswordRequestDto {
   @PasswordField({

@@ -1,6 +1,6 @@
 import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import { UserStatus } from '@features/users/domain/enums/user-status.enum';
-import { TimestampResponseDto } from '@infrastructure/http/serialization/dto/timestamp-response.dto';
+import { TimestampResponseDto } from '@presentation/dto/timestamp-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
 

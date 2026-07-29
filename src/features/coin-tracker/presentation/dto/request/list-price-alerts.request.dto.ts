@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TrimLowercase } from '@infrastructure/http/validation/decorators/trim-lowercase.decorator';
+import { TrimLowercase } from '@presentation/validation/decorators/trim-lowercase.decorator';
 import { AlertDirection } from '../../../domain/enums/alert-direction.enum';
 import { AlertStatus } from '../../../domain/enums/alert-status.enum';
 

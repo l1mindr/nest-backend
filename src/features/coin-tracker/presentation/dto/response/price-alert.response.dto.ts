@@ -1,4 +1,4 @@
-import { TimestampResponseDto } from '@infrastructure/http/serialization/dto/timestamp-response.dto';
+import { TimestampResponseDto } from '@presentation/dto/timestamp-response.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { AlertDirection } from '../../../domain/enums/alert-direction.enum';

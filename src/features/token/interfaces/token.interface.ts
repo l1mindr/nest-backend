@@ -1,4 +1,4 @@
-import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
+import { CustomAuth } from '@presentation/interfaces/custom-request.interface';
 import { IJwtClaims, IJwtPayload } from './jwt-payload.interface';
 
 export type IssuedTokens = {

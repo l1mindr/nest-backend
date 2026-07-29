@@ -1,5 +1,5 @@
 import { RegistryDatesOrm } from '@infrastructure/databases/postgres/embedded/registry-dates.embedded';
-import { ErrorResponseDto } from '@infrastructure/http/dto/error-response.dto';
+import { ErrorResponseDto } from '@presentation/dto/error-response.dto';
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { Session } from '@features/sessions/domain/entities/session.entity';

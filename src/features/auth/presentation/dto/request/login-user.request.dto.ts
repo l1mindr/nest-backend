@@ -1,5 +1,5 @@
-import { PasswordField } from '@infrastructure/http/validation/fields/password-field.decorator';
-import { TrimLowercase } from '@infrastructure/http/validation/decorators/trim-lowercase.decorator';
+import { PasswordField } from '@presentation/validation/fields/password-field.decorator';
+import { TrimLowercase } from '@presentation/validation/decorators/trim-lowercase.decorator';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 

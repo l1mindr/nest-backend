@@ -1,5 +1,5 @@
 import { User } from '@features/users/domain/entities/user.entity';
-import { ErrorResponseDto } from '@infrastructure/http/dto/error-response.dto';
+import { ErrorResponseDto } from '@presentation/dto/error-response.dto';
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { SESSION_PAGE_SIZE_MAX } from '../dto/request/session-list-request.dto';

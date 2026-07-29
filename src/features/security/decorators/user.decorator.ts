@@ -1,4 +1,4 @@
-import { IRequest } from '@infrastructure/http/interfaces/custom-request.interface';
+import { IRequest } from '@presentation/interfaces/custom-request.interface';
 import { User as UserEntity } from '@features/users/domain/entities/user.entity';
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 

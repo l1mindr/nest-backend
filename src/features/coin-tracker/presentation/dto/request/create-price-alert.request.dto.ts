@@ -12,7 +12,7 @@ import {
   IsString,
   Validate
 } from 'class-validator';
-import { TrimLowercase } from '@infrastructure/http/validation/decorators/trim-lowercase.decorator';
+import { TrimLowercase } from '@presentation/validation/decorators/trim-lowercase.decorator';
 import { AlertDirection } from '../../../domain/enums/alert-direction.enum';
 import { AlertTriggerMode } from '../../../domain/enums/alert-trigger-mode.enum';
 import { NotificationChannel } from '../../../domain/enums/notification-channel.enum';

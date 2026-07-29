@@ -1,4 +1,4 @@
-import { IRequest } from '@infrastructure/http/interfaces/custom-request.interface';
+import { IRequest } from '@presentation/interfaces/custom-request.interface';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';

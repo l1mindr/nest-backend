@@ -8,7 +8,7 @@ import {
   IUserQueryService,
   USER_QUERY_SERVICE
 } from '@features/users/application/interfaces/users.interface';
-import { CustomAuth } from '@infrastructure/http/interfaces/custom-request.interface';
+import { CustomAuth } from '@presentation/interfaces/custom-request.interface';
 import { Inject, Injectable } from '@nestjs/common';
 import { TokenErrors } from '../../errors/token-errors';
 import { IJwtPayload } from '../../interfaces/jwt-payload.interface';

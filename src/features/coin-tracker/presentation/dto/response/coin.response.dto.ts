@@ -1,4 +1,4 @@
-import { TimestampResponseDto } from '@infrastructure/http/serialization/dto/timestamp-response.dto';
+import { TimestampResponseDto } from '@presentation/dto/timestamp-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 

@@ -9,7 +9,7 @@ import {
   MinLength
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TrimLowercase } from '@infrastructure/http/validation/decorators/trim-lowercase.decorator';
+import { TrimLowercase } from '@presentation/validation/decorators/trim-lowercase.decorator';
 import { CoinSortField } from '../../../domain/enums/coin-sort-field.enum';
 import { SortOrder } from '../../../domain/enums/sort-order.enum';
 

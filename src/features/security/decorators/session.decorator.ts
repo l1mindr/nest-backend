@@ -1,4 +1,4 @@
-import { IRequest } from '@infrastructure/http/interfaces/custom-request.interface';
+import { IRequest } from '@presentation/interfaces/custom-request.interface';
 import { Session as SessionEntity } from '@features/sessions/domain/entities/session.entity';
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
