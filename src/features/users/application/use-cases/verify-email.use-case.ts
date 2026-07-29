@@ -29,6 +29,13 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
       throw UserErrors.invalidVerificationCode();
     }
 
+    if (user.status !== UserStatus.PENDING_VERIFICATION) {
+      if (user.status === UserStatus.ACTIVATE) {
+        throw UserErrors.alreadyVerified();
+      }
+      throw UserErrors.invalidVerificationCode();
+    }
+
     const verification =
       await this.verificationCodeRepository.findLatestByUserId(user.id);
 

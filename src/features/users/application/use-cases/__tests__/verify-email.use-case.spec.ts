@@ -40,7 +40,8 @@ describe('VerifyEmailUseCase', () => {
       const now = new Date('2024-01-01T00:00:00Z');
       mockClockService.nowDate.mockReturnValue(now);
       mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
-        id: 'user-id'
+        id: 'user-id',
+        status: UserStatus.PENDING_VERIFICATION
       });
       mockVerificationCodeRepository.findLatestByUserId.mockResolvedValue({
         id: 'code-id',
@@ -74,9 +75,43 @@ describe('VerifyEmailUseCase', () => {
       ).rejects.toEqual(UserErrors.invalidVerificationCode());
     });
 
+    it('should throw already verified when user status is ACTIVATE', async () => {
+      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
+        id: 'user-id',
+        status: UserStatus.ACTIVATE
+      });
+
+      await expect(useCase.execute('test@test.com', '123456')).rejects.toEqual(
+        UserErrors.alreadyVerified()
+      );
+    });
+
+    it('should throw invalid verification code when user is DEACTIVATE', async () => {
+      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
+        id: 'user-id',
+        status: UserStatus.DEACTIVATE
+      });
+
+      await expect(useCase.execute('test@test.com', '123456')).rejects.toEqual(
+        UserErrors.invalidVerificationCode()
+      );
+    });
+
+    it('should throw invalid verification code when user is SUSPEND', async () => {
+      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
+        id: 'user-id',
+        status: UserStatus.SUSPEND
+      });
+
+      await expect(useCase.execute('test@test.com', '123456')).rejects.toEqual(
+        UserErrors.invalidVerificationCode()
+      );
+    });
+
     it('should throw invalid verification code when no pending verification', async () => {
       mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
-        id: 'user-id'
+        id: 'user-id',
+        status: UserStatus.PENDING_VERIFICATION
       });
       mockVerificationCodeRepository.findLatestByUserId.mockResolvedValue(null);
 
@@ -87,7 +122,8 @@ describe('VerifyEmailUseCase', () => {
 
     it('should throw expired verification code', async () => {
       mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
-        id: 'user-id'
+        id: 'user-id',
+        status: UserStatus.PENDING_VERIFICATION
       });
       mockVerificationCodeRepository.findLatestByUserId.mockResolvedValue({
         id: 'code-id',
@@ -108,7 +144,8 @@ describe('VerifyEmailUseCase', () => {
 
     it('should throw invalid verification code when code does not match', async () => {
       mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
-        id: 'user-id'
+        id: 'user-id',
+        status: UserStatus.PENDING_VERIFICATION
       });
       mockVerificationCodeRepository.findLatestByUserId.mockResolvedValue({
         id: 'code-id',
