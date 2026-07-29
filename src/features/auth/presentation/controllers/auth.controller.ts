@@ -34,7 +34,7 @@ import {
   REFRESH,
   REGISTER
 } from '../../application/interfaces/auth.interface';
-import { IpAddress } from '../decorators/ipAddress.decorator';
+import { IpAddress } from '../decorators/ip-address.decorator';
 import { ChangePasswordRequestDto } from '../dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from '../dto/request/login-user.request.dto';
 import { RegisterUserRequestDto } from '../dto/request/register-user.request.dto';
