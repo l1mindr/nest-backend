@@ -9,23 +9,34 @@ import { UpdateProfileUseCase } from './application/use-cases/update-profile.use
 import { UserQueryService } from './application/services/user-query.service';
 import { UserMapper } from './application/mappers/user.mapper';
 import { User } from './domain/entities/user.entity';
+import { UserVerificationCode } from './domain/entities/user-verification-code.entity';
 import {
   ADMIN_USERS_USE_CASE,
   CREATE_USER_USE_CASE,
   DELETE_ACCOUNT_USE_CASE,
   UPDATE_PROFILE_USE_CASE,
   USER_QUERY_SERVICE,
-  USER_REPOSITORY
+  USER_REPOSITORY,
+  VERIFICATION_CODE_REPOSITORY
 } from './application/interfaces/users.interface';
 import { UserRepository } from './infrastructure/repositories/user.repository';
+import { VerificationCodeRepository } from './infrastructure/repositories/verification-code.repository';
 import { UsersController } from './presentation/controllers/users.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), SessionsModule],
+  imports: [
+    TypeOrmModule.forFeature([User, UserVerificationCode]),
+    SessionsModule
+  ],
   controllers: [UsersController, AdminUsersController],
   providers: [
     UserRepository,
     { provide: USER_REPOSITORY, useExisting: UserRepository },
+    VerificationCodeRepository,
+    {
+      provide: VERIFICATION_CODE_REPOSITORY,
+      useExisting: VerificationCodeRepository
+    },
     UserQueryService,
     { provide: USER_QUERY_SERVICE, useExisting: UserQueryService },
     CreateUserUseCase,
@@ -38,6 +49,11 @@ import { UsersController } from './presentation/controllers/users.controller';
     { provide: ADMIN_USERS_USE_CASE, useExisting: AdminUsersUseCase },
     UserMapper
   ],
-  exports: [USER_REPOSITORY, CREATE_USER_USE_CASE, USER_QUERY_SERVICE]
+  exports: [
+    USER_REPOSITORY,
+    CREATE_USER_USE_CASE,
+    USER_QUERY_SERVICE,
+    VERIFICATION_CODE_REPOSITORY
+  ]
 })
 export class UsersModule {}

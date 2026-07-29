@@ -47,4 +47,34 @@ export class UserErrors {
       'Invalid cursor'
     );
   }
+
+  static invalidVerificationCode() {
+    return new AppError(
+      UserErrorCode.INVALID_VERIFICATION_CODE,
+      ErrorDomain.USER,
+      HttpStatus.BAD_REQUEST,
+      { field: 'code' },
+      'Invalid verification code'
+    );
+  }
+
+  static expiredVerificationCode() {
+    return new AppError(
+      UserErrorCode.EXPIRED_VERIFICATION_CODE,
+      ErrorDomain.USER,
+      HttpStatus.BAD_REQUEST,
+      { field: 'code' },
+      'Verification code has expired'
+    );
+  }
+
+  static alreadyVerified() {
+    return new AppError(
+      UserErrorCode.ALREADY_VERIFIED,
+      ErrorDomain.USER,
+      HttpStatus.CONFLICT,
+      undefined,
+      'Account is already verified'
+    );
+  }
 }

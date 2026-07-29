@@ -1,6 +1,7 @@
 import { CreateUserRequestDto } from '../../presentation/dto/request/create-user.request.dto';
 import { UpdateProfileRequestDto } from '../../presentation/dto/request/update-profile.request.dto';
 import { User } from '../../domain/entities/user.entity';
+import { UserVerificationCode } from '../../domain/entities/user-verification-code.entity';
 import type { EntityManager } from 'typeorm';
 import type { PaginatedResult } from '@core/pagination/paginated-result.interface';
 
@@ -9,7 +10,7 @@ export type { PaginatedResult } from '@core/pagination/paginated-result.interfac
 export const USER_REPOSITORY = Symbol('IUserRepository');
 
 export interface IUserRepository {
-  insertUser(dto: CreateUserRequestDto): Promise<void>;
+  insertUser(dto: CreateUserRequestDto): Promise<User>;
   findUserById(id: string): Promise<User | null>;
   findUserForTokenValidation(id: string): Promise<User | null>;
   findByEmailOrUsernameForAuth(identifier: string): Promise<User | null>;
@@ -22,6 +23,21 @@ export interface IUserRepository {
     hashPassword: string,
     manager?: EntityManager
   ): Promise<void>;
+}
+
+export const VERIFICATION_CODE_REPOSITORY = Symbol(
+  'IVerificationCodeRepository'
+);
+
+export interface IVerificationCodeRepository {
+  store(
+    userId: string,
+    codeHash: string,
+    expiresAt: Date
+  ): Promise<UserVerificationCode>;
+  findLatestByUserId(userId: string): Promise<UserVerificationCode | null>;
+  markVerified(id: string, verifiedAt: Date): Promise<void>;
+  invalidatePreviousCodes(userId: string, now: Date): Promise<void>;
 }
 
 export const USER_QUERY_SERVICE = Symbol('IUserQueryService');
@@ -55,4 +71,26 @@ export const ADMIN_USERS_USE_CASE = Symbol('IAdminUsersUseCase');
 export interface IAdminUsersUseCase {
   list(cursor?: string, limit?: number): Promise<PaginatedResult<User>>;
   findById(id: string): Promise<User>;
+}
+
+export const INITIATE_REGISTRATION_USE_CASE = Symbol(
+  'IInitiateRegistrationUseCase'
+);
+
+export interface IInitiateRegistrationUseCase {
+  execute(dto: CreateUserRequestDto): Promise<void>;
+}
+
+export const VERIFY_EMAIL_USE_CASE = Symbol('IVerifyEmailUseCase');
+
+export interface IVerifyEmailUseCase {
+  execute(email: string, code: string): Promise<void>;
+}
+
+export const RESEND_VERIFICATION_USE_CASE = Symbol(
+  'IResendVerificationUseCase'
+);
+
+export interface IResendVerificationUseCase {
+  execute(email: string): Promise<void>;
 }

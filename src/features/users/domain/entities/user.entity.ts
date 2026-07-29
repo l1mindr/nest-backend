@@ -37,7 +37,11 @@ export class User {
   password!: string;
 
   @ApiPropertyOptional(UserProps.status)
-  @Column({ type: 'enum', enum: UserStatus, default: UserStatus.DEACTIVATE })
+  @Column({
+    type: 'enum',
+    enum: UserStatus,
+    default: UserStatus.PENDING_VERIFICATION
+  })
   status!: UserStatus;
 
   @ApiPropertyOptional(UserProps.role)
