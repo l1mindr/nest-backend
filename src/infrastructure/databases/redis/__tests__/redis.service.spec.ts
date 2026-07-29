@@ -1,4 +1,4 @@
-import { RedisService } from './redis.service';
+import { RedisService } from '../redis.service';
 
 describe('RedisService', () => {
   let service: RedisService;

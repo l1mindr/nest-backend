@@ -1,6 +1,6 @@
-import { RedisKey } from './keys/redis-key.enum';
-import { RedisLockService } from './redis-lock.service';
-import { RedisService } from './redis.service';
+import { RedisKey } from '../keys/redis-key.enum';
+import { RedisLockService } from '../redis-lock.service';
+import { RedisService } from '../redis.service';
 
 describe('RedisLockService', () => {
   let service: RedisLockService;

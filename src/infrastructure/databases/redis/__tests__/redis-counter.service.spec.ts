@@ -1,5 +1,5 @@
-import { RedisCounterService } from './redis-counter.service';
-import { RedisService } from './redis.service';
+import { RedisCounterService } from '../redis-counter.service';
+import { RedisService } from '../redis.service';
 
 describe('RedisCounterService', () => {
   let service: RedisCounterService;

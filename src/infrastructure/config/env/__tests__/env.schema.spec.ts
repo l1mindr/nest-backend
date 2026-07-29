@@ -1,5 +1,5 @@
 import { ConfigModule } from '@nestjs/config';
-import { ENV_VALIDATION_SCHEMA } from './env.schema';
+import { ENV_VALIDATION_SCHEMA } from '../env.schema';
 
 const VALID_ENV = {
   DATA_SOURCE_USERNAME: 'postgres',
