@@ -1,120 +1,225 @@
 # Project Structure
 
-This document explains the repository layout and where to find the main implementation details.
+## Repository Layout
 
-## Top-Level Layout
-
-```text
-.
-├── src/                         # Application source
-├── test/                        # E2E test bootstrap, helpers, factories, and scenarios
-├── docs/                        # Handwritten project documentation
-├── documentation/               # Generated Compodoc output
-├── docker/                      # Development and test Docker Compose files
-├── Dockerfile                   # Multi-stage image definition
-├── package.json                 # Scripts, dependencies, package metadata
-├── tsconfig.json                # TypeScript compiler options and path aliases
-├── tsconfig.build.json          # Build-specific TypeScript config
-├── nest-cli.json                # Nest CLI config
-├── jest.config.ts               # General Jest config
-├── jest.unit.config.ts          # Unit-test Jest config
-├── jest.e2e.config.ts           # E2E-test Jest config
-├── eslint.config.mjs            # ESLint flat config
-├── commitlint.config.ts         # Conventional commit rules
-└── pnpm-workspace.yaml          # pnpm build-policy and dependency overrides
 ```
+nest-backend/
+├── docs/                   # Architecture documentation
+├── docker/                 # Docker Compose files
+│   ├── development/
+│   ├── production/
+│   └── test/
+├── scripts/                # Utility scripts
+├── src/                    # Application source
+├── test/                   # E2E and integration tests
+├── Dockerfile              # Multi-stage build
+├── commitlint.config.ts
+├── eslint.config.mjs       # Flat config with architecture rules
+├── jest.config.ts
+├── jest.e2e.config.ts
+├── jest.unit.config.ts
+├── tsconfig.json
+├── tsconfig.build.json
+├── tsconfig.eslint.json
+└── package.json
+```
+
+---
 
 ## Source Layout
 
-```text
+```
 src/
-├── main.ts
-├── bootstrap.ts
-├── app.module.ts
-├── core/
-├── features/
-└── infrastructure/
+├── main.ts                         # Bootstrap entry point
+├── bootstrap.ts                    # App setup (Swagger, Helmet, etc.)
+├── app.module.ts                   # Composition root
+│
+├── core/                           # Framework-agnostic pure TypeScript
+│   ├── errors/
+│   │   ├── app.error.ts
+│   │   ├── domain-error-code.enum.ts
+│   │   └── error-domain.enum.ts
+│   ├── pagination/
+│   │   ├── __tests__/
+│   │   ├── cursor.util.ts
+│   │   ├── paginate.util.ts
+│   │   └── paginated-result.interface.ts
+│   ├── utils/
+│   │   └── to-boolean.ts
+│   ├── validation/
+│   │   └── rules/
+│   │       ├── password.rules.ts
+│   │       └── username.rules.ts
+│   └── registry-dates.ts
+│
+├── presentation/                   # Shared HTTP concerns
+│   ├── dto/
+│   │   ├── error-response.dto.ts
+│   │   ├── id.dto.ts
+│   │   └── timestamp-response.dto.ts
+│   ├── interfaces/
+│   │   ├── context/                # Auth, device, session context
+│   │   └── custom-request.interface.ts
+│   ├── interceptors/
+│   │   ├── decorators/
+│   │   │   └── serialize.decorator.ts
+│   │   ├── data-response.interceptor.ts
+│   │   └── serialize.interceptor.ts
+│   ├── validation/
+│   │   ├── decorators/
+│   │   ├── fields/
+│   │   └── pipe/
+│   └── presentation.module.ts
+│
+├── infrastructure/                 # External adapters & framework integrations
+│   ├── clock/
+│   ├── config/
+│   │   ├── databases/
+│   │   ├── env/
+│   │   ├── jsonwebtoken/
+│   │   └── security/
+│   ├── databases/
+│   │   ├── postgres/
+│   │   │   ├── embedded/
+│   │   │   ├── migrations/
+│   │   │   ├── data-source.ts
+│   │   │   └── postgres.module.ts
+│   │   └── redis/
+│   │       ├── __tests__/
+│   │       ├── keys/
+│   │       ├── redis-counter.service.ts
+│   │       ├── redis-lock.service.ts
+│   │       ├── redis.service.ts
+│   │       └── redis.module.ts
+│   ├── email/
+│   ├── errors/
+│   ├── http/
+│   ├── logging/
+│   └── infrastructure.module.ts
+│
+├── features/                       # Business feature modules
+│   ├── auth/
+│   ├── coin-tracker/
+│   ├── security/
+│   ├── sessions/
+│   ├── token/
+│   ├── users/
+│   └── features.module.ts
+│
+└── types/
+    └── express.d.ts                # Express Request augmentation
 ```
 
-### Entry Points
+---
 
-- [src/main.ts](../src/main.ts): creates the Nest app and listens on port `8080`.
-- [src/bootstrap.ts](../src/bootstrap.ts): applies Swagger in development, Helmet, compression, URI versioning, and cookie parsing.
-- [src/app.module.ts](../src/app.module.ts): imports `CoreModule`, `InfrastructureModule`, and `FeaturesModule`.
+## Feature Module Layout
 
-### Core
+Every business feature follows a consistent internal structure.
 
-[src/core](../src/core) contains:
+### Standard feature:
 
-- `clock/`: `ClockService`, `ClockModule`, and time constants.
-- `errors/`: `AppError`, error domains, general error codes, and `ErrorMapper`.
-- `validation/rules/`: username and password regex rules.
-- `registry-dates.ts`: shared timestamp shape.
-- `utils/to-boolean.ts`: boolean coercion utility.
-
-### Features
-
-[src/features](../src/features) contains domain modules:
-
-- `auth/`: registration, login, refresh, password change, auth cookies, hashing provider.
-- `security/`: guards, decorators, exception filter, CSRF, rate limiting, device detection.
-- `sessions/`: session entity, service, controller, DTOs, errors.
-- `token/`: token service, JWT payload types, token errors.
-- `users/`: user entity, service, controllers, DTOs, enums, errors.
-
-### Infrastructure
-
-[src/infrastructure](../src/infrastructure) contains external integrations and HTTP infrastructure:
-
-- `config/`: Joi env validation and typed config factories for JWT and Redis; PostgreSQL config factory.
-- `databases/postgres/`: TypeORM module, data source, migrations, embedded timestamp entity.
-- `databases/redis/`: Redis provider, Redis wrapper service, counter service, lock helper.
-- `http/`: shared DTOs, validation decorators, interceptors, request interfaces, Helmet config.
-- `infrastructure.module.ts`: registers environment/database modules plus global validation and response wrapping.
-
-## Tests
-
-```text
-test/
-├── bootstrap/test-app.ts
-├── factories/
-├── helpers/
-├── utils/
-└── v1/
+```
+feature/
+├── application/
+│   ├── interfaces/       # Ports (Symbol tokens) and contracts
+│   ├── mappers/          # Entity-to-DTO mapping
+│   ├── services/         # Reusable application services
+│   └── use-cases/        # Business orchestration
+│       └── __tests__/    # Colocated unit tests
+├── domain/
+│   ├── entities/         # Domain entities (TypeORM decorated)
+│   ├── enums/            # Statuses, roles, etc.
+│   ├── errors/           # Domain error factories
+│   └── types/            # Shared domain types (optional)
+├── infrastructure/
+│   └── repositories/     # Data access implementation
+│       └── __tests__/    # Colocated repository tests
+├── presentation/
+│   ├── controllers/      # HTTP entry points
+│   ├── decorators/       # Feature-specific param decorators
+│   ├── dto/              # Request/response DTOs
+│   │   ├── request/
+│   │   └── response/
+│   └── swagger/          # API documentation decorators
+└── feature.module.ts
 ```
 
-- Unit tests live beside their implementation files as `*.spec.ts`.
-- E2E tests live under [test/v1](../test/v1).
-- `test/bootstrap/test-app.ts` creates an in-process `INestApplication`.
-- Helpers manage migrations, database truncation, Redis cleanup, cookies, and API clients.
+### Security module (cross-cutting):
 
-## Documentation
-
-- [docs](.) contains source-derived Markdown documentation.
-- [documentation](../documentation) contains generated Compodoc HTML output and assets.
-
-## Docker
-
-```text
-docker/
-├── production/
-│   ├── deploy.sh
-│   └── docker-compose.yml
-├── development/docker-compose.yml
-└── test/
-    ├── e2e/docker-compose.yml
-    └── unit/docker-compose.yml
+```
+security/
+├── csrf/                 # CSRF token service, guard, interceptors
+├── device-detection/     # Device fingerprinting, user-agent parsing
+├── errors/               # Security domain errors
+├── filters/              # Global exception filter
+├── guards/               # JwtGuard, RolesGuard
+├── rate-limit/           # Rate limiting guard and services
+├── strategies/           # JwtStrategy
+├── decorators/           # @Public, @Roles, @User, @Session
+└── security.module.ts
 ```
 
-The production Compose file gates application startup on a one-shot migration
-job from the same immutable image. The e2e Compose file is used by CI.
+### Token module (reusable library):
+
+```
+token/
+├── application/
+│   └── services/         # Token issue, verification, validation
+├── errors/               # Token domain errors
+├── interfaces/           # JWT payload interfaces
+└── token.module.ts
+```
+
+---
+
+## Test Colocation
+
+Unit tests are **colocated** inside `__tests__/` directories at the same level as the implementation file:
+
+```
+correct:
+  pagination/
+  ├── __tests__/
+  │   ├── cursor.util.spec.ts
+  │   └── paginate.util.spec.ts
+  ├── cursor.util.ts
+  ├── paginate.util.ts
+  └── paginated-result.interface.ts
+
+incorrect:
+  pagination/
+  ├── cursor.util.spec.ts       # Alongside implementation
+  ├── cursor.util.ts
+  └── paginate.util.ts
+```
+
+Test files are named after the file they test:
+- `cursor.util.spec.ts` → tests `cursor.util.ts`
+- `create-user.use-case.spec.ts` → tests `create-user.use-case.ts`
+- `redis.service.spec.ts` → tests `redis.service.ts`
+
+---
 
 ## Path Aliases
 
-[tsconfig.json](../tsconfig.json) defines:
+Configured in `tsconfig.json` and jest configs:
 
-- `@features/*` -> `src/features/*`
-- `@infrastructure/*` -> `src/infrastructure/*`
-- `@core/*` -> `src/core/*`
+| Alias | Path |
+|-------|------|
+| `@features/*` | `./src/features/*` |
+| `@infrastructure/*` | `./src/infrastructure/*` |
+| `@presentation/*` | `./src/presentation/*` |
+| `@core/*` | `./src/core/*` |
 
-Jest maps these aliases through `pathsToModuleNameMapper` in the Jest config files.
+---
+
+## Test Directories
+
+```
+test/
+├── bootstrap/            # createTestApp() helper
+├── helpers/              # PostgreSQL, Redis, API client utilities
+├── factories/            # UserFactory, AuthFactory
+├── integration/          # Integration tests (e2e)
+└── v1/                   # API version 1 e2e tests
+```

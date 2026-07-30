@@ -1,100 +1,52 @@
-# Redis, Caching, and Ephemeral State
+# Caching
 
-The current project uses Redis for counters and a refresh-flow key helper. No general-purpose caching layer is implemented.
+## Redis Infrastructure
 
-## Relevant Files
+Redis is used for rate limiting, distributed locking, and atomic counters. Not used for general-purpose caching (no cache-aside pattern).
 
-- [src/infrastructure/config/databases/redis.config.ts](../src/infrastructure/config/databases/redis.config.ts)
-- [src/infrastructure/databases/redis/redis.module.ts](../src/infrastructure/databases/redis/redis.module.ts)
-- [src/infrastructure/databases/redis/redis.provider.ts](../src/infrastructure/databases/redis/redis.provider.ts)
-- [src/infrastructure/databases/redis/redis.service.ts](../src/infrastructure/databases/redis/redis.service.ts)
-- [src/infrastructure/databases/redis/redis-counter.service.ts](../src/infrastructure/databases/redis/redis-counter.service.ts)
-- [src/infrastructure/databases/redis/redis-lock.service.ts](../src/infrastructure/databases/redis/redis-lock.service.ts)
-- [src/infrastructure/databases/redis/keys/redis-key.enum.ts](../src/infrastructure/databases/redis/keys/redis-key.enum.ts)
+## Services
 
-## Redis Configuration
-
-The Redis config factory reads:
-
-- `REDIS_HOST`, default `localhost`.
-- `REDIS_PORT`, default `6379`.
-- `REDIS_PASSWORD`, optional.
-- `REDIS_DB`, default `0`.
-
-`redisProvider` creates an `ioredis` client with those values.
-
-## RedisModule
-
-`RedisModule` is global and provides:
-
-- `RedisService`
-- `RedisLockService`
-- `RedisCounterService`
-
-It exports:
-
-- `RedisLockService`
-- `RedisCounterService`
-
-## RedisService
-
-`RedisService` wraps the Redis client and exposes:
-
-- `client`: raw `ioredis` instance.
-- `set(key, value)`.
-- `setWithExpiry(key, value, ttlSeconds)`.
-- `del(key)`.
-- `get(key)`.
-- `onModuleDestroy()`: calls `redis.quit()`.
-
-## RedisCounterService
-
-Used by rate limiting.
-
-Methods:
-
-- `get(key)`.
-- `increment(key, ttl?)`.
-
-`increment()` calls Redis `INCR`. If the value becomes `1` and a TTL was provided, it sets the expiry.
+| Service | Purpose | Key Pattern |
+|---------|---------|-------------|
+| `RedisService` | Core Redis client wrapper. `get`, `set`, `setWithExpiry`, `del`, `compareAndDelete`, `eval` | Generic |
+| `RedisCounterService` | Atomic increment with TTL via Lua script. Used for rate limiting. | `rate:limit:{route}:{ip}` |
+| `RedisLockService` | Distributed lock with acquire/release. Used for refresh flow synchronization. | `refresh:lock:{sessionId}` |
 
 ## Rate Limiting
 
-`RateLimitService` builds keys as:
+`RateLimitCounterService.increment(key)`:
+1. `INCR` the Redis key
+2. Set TTL on first increment (if previous TTL was -1)
+3. Return current count
 
-```text
-rate:limit:{route}:{ip}
+Keys auto-expire after the rate limit window.
+
+## Refresh Lock
+
+`RedisLockService`:
+- `acquire(key, ttl)` — `SET key value EX ttl` (without `NX`)
+- `release(key)` — `DEL key`
+
+**Known limitation**: Lock does not use `NX`, so it is not a strict distributed lock. The authoritative mechanism is the database conditional update on session rotation. The Redis lock is a best-effort optimization to reduce contention.
+
+## Key Management
+
+Keys are defined in `RedisKey` enum:
+
+```typescript
+enum RedisKey {
+  COIN_SYNC_LOCK = 'coin-tracker:sync:lock',
+  PRICE_CHECK_LOCK = 'coin-tracker:price-check:lock',
+  REFRESH_LOCK = 'refresh:lock',
+  RATE_LIMIT = 'rate:limit'
+}
 ```
 
-It increments the key and checks whether the count is within the configured route limit.
+## Configuration
 
-`RedisKey.RATE_LIMIT` is `rate:limit`.
-
-## RedisLockService
-
-Used by `AuthService.refresh()`.
-
-Keys are built as:
-
-```text
-refresh:lock:{sessionId}
-```
-
-`RedisKey.REFRESH_LOCK` is `refresh:lock`.
-
-Current behavior:
-
-- `acquire()` calls `setWithExpiry()`, which uses Redis `SET key value EX ttl`.
-- It returns true when Redis returns `OK`.
-- `release()` deletes the key.
-
-Important limitation: `acquire()` does not use `NX` and does not store a unique lock value, so it does not guarantee mutual exclusion. If strict locking is needed, the implementation should use `SET key value NX EX ttl` and release only when the stored value matches the caller's token.
-
-## What Is Not Implemented
-
-- No cache-aside wrapper exists.
-- No serialization/deserialization cache helper exists.
-- No Redis namespace/prefix beyond the enum key strings exists.
-- No Redis cluster/sentinel configuration exists.
-- No Redis retry/backoff customization was found.
-- No metrics or tracing around Redis operations was found.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REDIS_HOST` | localhost | Redis server host |
+| `REDIS_PORT` | 6379 | Redis server port |
+| `REDIS_PASSWORD` | - | Redis password |
+| `REDIS_DB` | 0 | Redis database index |

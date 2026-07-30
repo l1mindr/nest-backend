@@ -1,152 +1,187 @@
-# Entities and DTOs
+# Entities & DTOs
 
-This document describes persisted entities, embedded data, and important request/response DTOs.
+## Core Entities
 
-## User Entity
+### User
 
-File: [src/features/users/entities/user.entity.ts](../src/features/users/entities/user.entity.ts)
+```typescript
+@Entity()
+class User {
+  id: string;              // UUID primary key
+  name: string | null;     // Optional, `select: false`
+  email: string;           // Unique, indexed
+  username: string;        // Unique, max 30 chars
+  password: string;        // `select: false`, bcrypt hashed
+  status: UserStatus;      // Default PENDING_VERIFICATION
+  role: UserRole;          // Default USER
+  registryDates: RegistryDatesOrm;  // createdAt, updatedAt, deleteAt
+  sessions: Session[];     // OneToMany, cascade soft-remove/recover
+}
+```
 
-The `User` entity represents an account.
+**Domain methods:**
+- `unsuspend()` — Validates status is `SUSPEND`, transitions to `ACTIVATE`. Throws `invalidStatusTransition` for any other current status.
 
-| Property | Decorators / Type | Notes |
-| --- | --- | --- |
-| `id` | `@PrimaryGeneratedColumn('uuid')` | Primary key. |
-| `name` | `@Column({ length: 50, nullable: true, select: false })` | Optional display name, excluded by default queries. |
-| `email` | `@Column({ unique: true })` | Unique email. |
-| `username` | `@Column({ unique: true, length: 30 })` | Unique username. |
-| `password` | `@Column({ select: false })` | Password hash, excluded by default queries. |
-| `status` | enum `UserStatus` | Defaults to `DEACTIVATE`. |
-| `role` | enum `UserRole` | Defaults to `USER`. |
-| `registryDates` | embedded `RegistryDatesOrm` | `createdAt`, `updatedAt`, `deleteAt`. |
-| `sessions` | `@OneToMany(() => Session)` | Cascades soft-remove and recover. |
-| `isDeleted` | getter | Returns `!!registryDates.deleteAt`. |
+### Session
 
-Unique constraints:
+```typescript
+@Entity()
+class Session {
+  id: string;                    // UUID primary key
+  refreshTokenHash: string;      // SHA-256 of refresh JWT
+  device: ISessionDevice | null; // JSONB — browser, OS, device type
+  ipAddress: string;             // Client IP
+  isRevoked: boolean;            // Default false
+  expiresAt: Date;               // 7 days from creation
+  lastUsedAt: Date;              // Updated on refresh
+  version: number;               // Optimistic concurrency, increments on rotation
+  rotatedAt: Date;               // Timestamp of last rotation
+  createdAt: Date;
+  updatedAt: Date;
+  owner: User;                   // ManyToOne, indexed (owner, isRevoked, expiresAt)
+}
+```
 
-- `users_email_unique`
-- `users_username_unique`
+### UserVerificationCode
 
-Enums:
+```typescript
+@Entity()
+class UserVerificationCode {
+  id: string;              // UUID primary key
+  userId: string;          // Foreign key to User
+  codeHash: string;        // SHA-256 hash of verification code
+  expiresAt: Date;         // 3 minutes from creation
+  verifiedAt: Date | null; // Null until verified
+  createdAt: Date;
+}
+```
 
-- [UserRole](../src/features/users/enums/user-role.enum.ts): `ADMIN`, `USER`.
-- [UserStatus](../src/features/users/enums/user-status.enum.ts): `ACTIVATE`, `DEACTIVATE`, `SUSPEND`.
+---
 
-Current note: `status` is stored and exposed in admin responses, but the authentication flow does not enforce status values.
+## Embedded Types
 
-## Session Entity
+### RegistryDates (core — framework-agnostic)
 
-File: [src/features/sessions/entities/session.entity.ts](../src/features/sessions/entities/session.entity.ts)
+```typescript
+class RegistryDates {
+  createdAt: Date;
+  updatedAt: Date;
+  deleteAt?: Date;
+}
+```
 
-The `Session` entity tracks a login session and refresh-token state.
+### RegistryDatesOrm (infrastructure — TypeORM decorated)
 
-| Property | Decorators / Type | Notes |
-| --- | --- | --- |
-| `id` | `@PrimaryGeneratedColumn('uuid')` | Primary key. |
-| `refreshTokenHash` | `@Column()` | Hash of current refresh token. |
-| `device` | `@Column({ type: 'jsonb' })` | `ISessionDevice`. |
-| `ipAddress` | `@Column()` | IP at login. |
-| `isRevoked` | `@Column({ default: false })` | Revocation flag. |
-| `expiresAt` | timestamp column | Session expiry. |
-| `lastUsedAt` | timestamp column | Last activity. |
-| `version` | `@Column({ default: 0 })` | Refresh rotation version. |
-| `rotatedAt` | nullable timestamp | Latest rotation. |
-| `createdAt` | `@CreateDateColumn()` | Created timestamp. |
-| `updatedAt` | `@UpdateDateColumn()` | Updated timestamp. |
-| `owner` | `@ManyToOne(() => User)` | Required owner relation. |
+```typescript
+class RegistryDatesOrm extends RegistryDates {
+  @CreateDateColumn() createdAt: Date;
+  @UpdateDateColumn() updatedAt: Date;
+  @DeleteDateColumn() deleteAt: Date;
+}
+```
 
-## Embedded Timestamp Data
+---
 
-Files:
+## Enums
 
-- [src/core/registry-dates.ts](../src/core/registry-dates.ts)
-- [src/infrastructure/databases/postgres/embedded/registry-dates.embedded.ts](../src/infrastructure/databases/postgres/embedded/registry-dates.embedded.ts)
+### UserStatus
 
-`RegistryDatesOrm` extends `RegistryDates` and maps:
+| Value | Description |
+|-------|-------------|
+| `ACTIVATE` | Active, can authenticate |
+| `DEACTIVATE` | Deactivated (default on creation — migrated to PENDING_VERIFICATION) |
+| `SUSPEND` | Suspended, cannot authenticate |
+| `PENDING_VERIFICATION` | Registered but email not yet verified |
 
-- `createdAt` through `@CreateDateColumn()`.
-- `updatedAt` through `@UpdateDateColumn()`.
-- `deleteAt` through `@DeleteDateColumn()`.
+**Transitions:**
 
-`User` embeds these dates with `prefix: false`, so columns are stored directly on the `user` table.
+```
+PENDING_VERIFICATION → ACTIVATE (email verified)
+ACTIVATE             → SUSPEND   (admin suspend)
+SUSPEND              → ACTIVATE  (admin unsuspend)
+```
 
-## Request DTOs
+Invalid transitions throw `INVALID_STATUS_TRANSITION` domain error. Status logic is owned by the `User.unsuspend()` domain method.
 
-### Auth DTOs
+### UserRole
 
-- [RegisterUserRequestDto](../src/features/auth/dto/request/register-user.request.dto.ts): `email`, `username`, `password`.
-- [LoginUserRequestDto](../src/features/auth/dto/request/login-user.request.dto.ts): `email` or username, `password`.
-- [ChangePasswordRequestDto](../src/features/auth/dto/request/change-password.request.dto.ts): `currentPassword`, `newPassword`.
+| Value | Description |
+|-------|-------------|
+| `USER` | Standard user (default) |
+| `ADMIN` | Administrator |
 
-### User DTOs
+---
 
-- [CreateUserRequestDto](../src/features/users/dto/request/create-user.request.dto.ts): `email`, `username`, `password`, optional `status`, optional `name`.
-- [UpdateUserRequestDto](../src/features/users/dto/request/update-user.request.dto.ts): partial `CreateUserRequestDto` without `password`.
+## Error Codes
 
-### Shared HTTP DTOs
+### DomainErrorCode
 
-- [IdDto](../src/infrastructure/http/dto/id.dto.ts): UUID `id` param validation.
-- [RemoveDto](../src/infrastructure/http/dto/remove.dto.ts): optional boolean `soft`. This DTO exists but is not used by current controllers.
-- [RegistryDatesDto](../src/infrastructure/http/dto/registry-dates.dto.ts): timestamp shape for Swagger.
-- [ErrorResponseDto](../src/infrastructure/http/dto/error-response.dto.ts): Swagger error DTO. Runtime errors use `GlobalExceptionFilter` instead.
+| Code | Description |
+|------|-------------|
+| `HTTP_EXCEPTION` | Unhandled HTTP exception |
+| `INTERNAL_ERROR` | Unexpected internal error |
+| `VALIDATION_ERROR` | Input validation failure |
 
-## Response DTOs and Serialization
+### ErrorDomain
 
-The project uses a custom `@Serialize()` decorator that applies `SerializeInterceptor`. It uses `plainToInstance()` with `excludeExtraneousValues: true`, so only `@Expose()` fields are returned.
+`AUTH`, `COIN_TRACKER`, `USER`, `SESSION`, `TOKEN`, `SYSTEM`, `HTTP`, `VALIDATION`, `SECURITY`
 
-### UserProfileResponseDto
+### UserErrorCode
 
-File: [src/features/users/dto/response/user-profile.response.dto.ts](../src/features/users/dto/response/user-profile.response.dto.ts)
+| Code | Description |
+|------|-------------|
+| `USER_NOT_FOUND` | User does not exist |
+| `EMAIL_ALREADY_EXISTS` | Email taken |
+| `USERNAME_ALREADY_EXISTS` | Username taken |
+| `INVALID_CURSOR` | Invalid pagination cursor |
+| `INVALID_VERIFICATION_CODE` | Wrong verification code |
+| `EXPIRED_VERIFICATION_CODE` | Code past TTL |
+| `ALREADY_VERIFIED` | Email already verified |
+| `USER_ALREADY_SUSPENDED` | User already in SUSPEND state |
+| `INVALID_STATUS_TRANSITION` | Status change not allowed |
 
-Exposes:
+### SessionErrorCode
 
-- `createdAt`
-- `updatedAt`
-- `deletedAt`
-- `name`
-- `username`
-- `email`
-- `role`
-- `joinedAt`
+`SESSION_NOT_FOUND`, `SESSION_EXPIRED`, `SESSION_REVOKED`, `SESSION_REUSE_DETECTED`
 
-### AdminUserResponseDto
+### AuthErrorCode
 
-File: [src/features/users/dto/response/admin-user.response.dto.ts](../src/features/users/dto/response/admin-user.response.dto.ts)
+`INVALID_CREDENTIALS`, `ACCOUNT_NOT_VERIFIED`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DEACTIVATED`, `REFRESH_RATE_LIMITED`
 
-Exposes:
+### TokenErrorCode
 
-- `id`
-- `name`
-- `username`
-- `email`
-- `role`
-- `status`
-- `registeredAt`
+`TOKEN_EXPIRED`, `TOKEN_INVALID`, `ACCESS_TOKEN_EXPIRED`, `REFRESH_TOKEN_EXPIRED`
 
-### SessionResponseDto
+### SecurityErrorCode
 
-File: [src/features/sessions/dto/response/session.response.dto.ts](../src/features/sessions/dto/response/session.response.dto.ts)
+`ACCESS_DENIED`, `INVALID_CSRF_TOKEN`, `RATE_LIMIT_EXCEEDED`
 
-Exposes:
+---
 
-- `sessionId`
-- `ipAddress`
-- `deviceInfo`
-- `validUntil`
-- `lastActivityAt`
-- `current`
+## Shared DTOs
 
-## Validation Field Decorators
+| DTO | Location | Purpose |
+|-----|----------|---------|
+| `IdDto` | `presentation/dto/` | UUID param validation |
+| `ErrorResponseDto` | `presentation/dto/` | Error response shape (Swagger) |
+| `TimestampResponseDto` | `presentation/dto/` | Base class with createdAt/updatedAt/deletedAt |
 
-Files:
+## Validation Fields
 
-- [EmailField](../src/infrastructure/http/validation/fields/email-field.decorator.ts)
-- [UsernameField](../src/infrastructure/http/validation/fields/username-field.decorator.ts)
-- [PasswordField](../src/infrastructure/http/validation/fields/password-field.decorator.ts)
+Reusable property decorators in `presentation/validation/fields/`:
 
-These combine Swagger metadata, transformation, and validation rules.
+| Decorator | Validates |
+|-----------|-----------|
+| `@EmailField()` | Email format, trimmed, lowercased |
+| `@UsernameField()` | 3-30 chars, allowed chars, trimmed, lowercased |
+| `@PasswordField()` | 8-20 chars, complexity requirements |
 
-## Current DTO/Entity Observations
+## Validation Decorators
 
-- `TimestampResponseDto` exposes `deletedAt`, but the embedded entity field is named `deleteAt`; no transform maps `deleteAt` to `deletedAt`.
-- `UpdateUserRequestDto` permits `status` updates on the authenticated user profile endpoint.
-- Some DTO files exist but are not currently used by controllers, including `RemoveDto` and `SessionsDto`.
+In `presentation/validation/decorators/`:
+
+| Decorator | Purpose |
+|-----------|---------|
+| `@IsPassword()` | Custom class-validator constraint |
+| `@IsUsername()` | Custom class-validator constraint |
+| `@TrimLowercase()` | Transform decorator |

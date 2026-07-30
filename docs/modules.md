@@ -1,266 +1,254 @@
 # Modules
 
-This document describes each Nest module and how modules communicate.
+## AppModule
 
-## Root Modules
+Composition root. Imports CoreModule, InfrastructureModule, PresentationModule, LoggingModule, and FeaturesModule.
 
-### AppModule
+Does not register any providers itself.
 
-File: [src/app.module.ts](../src/app.module.ts)
+---
 
-Imports:
+## CoreModule
 
-- `CoreModule`
-- `InfrastructureModule`
-- `FeaturesModule`
+Declared in `src/core/core.module.ts`. Currently re-exports nothing — Core is imported by direct file reference through path aliases.
 
-`AppModule` has no providers or controllers of its own. It exists as the composition root for the application.
+---
 
-### CoreModule
+## PresentationModule (`src/presentation/presentation.module.ts`)
 
-File: [src/core/core.module.ts](../src/core/core.module.ts)
+Registers global NestJS providers:
 
-Imports and exports:
+- `APP_PIPE` → `ValidationPipe` with whitelist + forbidNonWhitelisted + 422 on error
+- `APP_INTERCEPTOR` → `DataResponseInterceptor` (wraps responses in `{ data: ... }`)
 
-- `ClockModule`
+---
 
-The core module currently exposes `ClockService` to the rest of the application.
+## LoggingModule (`src/infrastructure/logging/logging.module.ts`)
 
-### InfrastructureModule
+**Global module.** Configures `LoggerModule.forRootAsync()` from `nestjs-pino`.
 
-File: [src/infrastructure/infrastructure.module.ts](../src/infrastructure/infrastructure.module.ts)
+- Uses pino-pretty transport in non-production
+- Auto-generates `x-request-id` per request
+- Adds correlationId, IP, userId, sessionId as custom log properties
+- Redacts authorization cookies and headers
 
-Imports:
+---
 
-- `EnvModule`
-- `DatabasesModule`
-
-Providers:
-
-- Global `ValidationPipe`, using `VALIDATION_PIPE_OPTIONS`.
-- Global `DataResponseInterceptor`.
-
-This module owns cross-cutting HTTP and infrastructure setup.
-
-### FeaturesModule
-
-File: [src/features/features.module.ts](../src/features/features.module.ts)
+## InfrastructureModule (`src/infrastructure/infrastructure.module.ts`)
 
 Imports:
 
-- `AuthModule`
-- `SecurityModule`
-- `SessionsModule`
-- `TokenModule`
-- `UsersModule`
-
-It groups all feature modules into one module imported by `AppModule`.
-
-## Infrastructure Modules
+| Module | Description |
+|--------|-------------|
+| `EnvModule` | Environment validation with Joi |
+| `DatabasesModule` | PostgreSQL + Redis connectivity |
+| `ClockModule` | Time utilities |
+| `EmailModule` | Abstract email + ConsoleEmailService |
 
 ### EnvModule
 
-Files:
+Global module. Registers `ConfigModule.forRoot()` with Joi validation schema. Reads `.env.${NODE_ENV}` then `.env`.
 
-- [src/infrastructure/config/env/env.module.ts](../src/infrastructure/config/env/env.module.ts)
-- [src/infrastructure/config/env/env.schema.ts](../src/infrastructure/config/env/env.schema.ts)
-
-Registers Nest `ConfigModule` globally. It loads `.env.${NODE_ENV}` and `.env`, validates required variables with Joi, and loads Redis and JWT config factories.
+Exports: ConfigModule (indirectly)
 
 ### DatabasesModule
 
-File: [src/infrastructure/databases/databases.module.ts](../src/infrastructure/databases/databases.module.ts)
+Imports `PostgresModule` and `RedisModule`.
+
+#### PostgresModule
+
+Configures `TypeOrmModule.forRootAsync()` using `postgresConfig` factory. `autoLoadEntities: true`.
+
+#### RedisModule
+
+**Global module.** Provides:
+
+| Provider | Token |
+|----------|-------|
+| `RedisService` | `RedisService` (class) |
+| `RedisLockService` | `RedisLockService` (class) |
+| `RedisCounterService` | `RedisCounterService` (class) |
+| Redis client | `REDIS_CLIENT` (Symbol) |
+
+Exports: `RedisLockService`, `RedisCounterService`
+
+### ClockModule
+
+**Global module.** Provides `ClockService` for time operations (`nowMs()`, `nowDate()`, `addDaysFrom()`, `snapshot()`).
+
+### EmailModule
+
+**Global module.** Provides abstract `EmailService` with concrete `ConsoleEmailService` implementation.
+
+---
+
+## FeaturesModule (`src/features/features.module.ts`)
 
 Imports:
 
-- `PostgresModule`
-- `RedisModule`
+| Module | Description |
+|--------|-------------|
+| `AuthModule` | Authentication flows |
+| `CoinTrackerModule` | Cryptocurrency tracking |
+| `SecurityModule` | Cross-cutting guards, filters, strategies |
+| `SessionsModule` | Session lifecycle |
+| `TokenModule` | JWT token services |
+| `UsersModule` | User management |
 
-### PostgresModule
+---
 
-File: [src/infrastructure/databases/postgres/postgres.module.ts](../src/infrastructure/databases/postgres/postgres.module.ts)
+## AuthModule (`src/features/auth/auth.module.ts`)
 
-Registers TypeORM with `TypeOrmModule.forRootAsync(postgresConfig.asProvider())`.
+Imports: `UsersModule`, `SessionsModule`, `TokenModule`, `DeviceDetectionModule`, `CsrfModule`
 
-The PostgreSQL config builds a connection URL from:
+Controllers: `AuthController`
 
-- `DATA_SOURCE_USERNAME`
-- `DATA_SOURCE_PASSWORD`
-- `DATA_SOURCE_HOST`
-- `DATA_SOURCE_PORT`
-- `DATA_SOURCE_DATABASE`
+**Use Cases** (each injected via Symbol):
 
-### RedisModule
+| Symbol | Implementation | Responsibility |
+|--------|---------------|----------------|
+| `REGISTER` | `RegisterUseCase` | User registration |
+| `LOGIN` | `LoginUseCase` | User login + session issue |
+| `CHANGE_PASSWORD` | `ChangePasswordUseCase` | Password change with session revocation |
+| `REFRESH` | `RefreshUseCase` | Token refresh with rotation |
 
-File: [src/infrastructure/databases/redis/redis.module.ts](../src/infrastructure/databases/redis/redis.module.ts)
+**Services:**
+- `AuthCookieService` — Sets httpOnly JWT cookies + CSRF cookie on response
 
-Decorated with `@Global()`.
+**Providers:**
+- `HashingProvider` (abstract) → `BcryptProvider` — Password hashing with bcrypt (10 rounds)
+- `RefreshTokenHasher` — SHA-256 hashing for refresh token storage
 
-Providers:
+---
 
-- `redisProvider`: creates an `ioredis` client.
-- `RedisService`: wraps basic Redis access and exposes the raw client.
-- `RedisLockService`: key-expiry helper used by auth refresh flow.
-- `RedisCounterService`: counter helper used by rate limiting.
+## SecurityModule (`src/features/security/security.module.ts`)
+
+**Global guards and filter** registered via `APP_*` tokens:
+
+| Provider | Scope |
+|----------|-------|
+| `JwtGuard` | `APP_GUARD` — validates access_token on every request (unless `@Public()`) |
+| `RolesGuard` | `APP_GUARD` — checks `@Roles()` metadata against user role |
+| `CsrfGuard` | `APP_GUARD` — validates CSRF double-submit for unsafe methods (unless `@SkipCsrf()`) |
+| `GlobalExceptionFilter` | `APP_FILTER` — maps all errors to `{ error: ... }` format |
+
+Imports: `JwtModule`, `TokenModule`, `DeviceDetectionModule`, `RateLimitModule`, `CsrfModule`
+
+### CsrfModule
+
+Provides:
+- `CsrfTokenService` — Token generation (`randomBytes(32)`)
+- `CsrfValidationService` — Token comparison (timing-safe)
+- `CsrfGuard` — Global CSRF validation
+- `ClearCsrfCookieInterceptor` — Clears CSRF cookie on logout
+
+Decorators: `@SkipCsrf()` — marks routes as CSRF-exempt
+
+### RateLimitModule
+
+Provides:
+- `RateLimitCheckService` — Evaluates rate limit rules
+- `RateLimitCounterService` — Redis atomic counter with TTL
+- `RateLimitGuard` — Applies rate limiting to decorated routes
+
+Decorators: `@RateLimit({ limit, ttl })`
+
+### DeviceDetectionModule
+
+Provides:
+- `DeviceMiddleware` — Global middleware, parses User-Agent
+- `DeviceDetectorService` — User-Agent parsing via `ua-parser-js`
+- `FingerprintService` — Device fingerprint generation
+- `DeviceMapper` — Maps raw UA data to `DeviceContext`
+
+---
+
+## SessionsModule (`src/features/sessions/sessions.module.ts`)
+
+Imports: `TypeOrmModule.forFeature([Session])`
+
+Controllers: `SessionsController`
 
 Exports:
 
-- `RedisLockService`
-- `RedisCounterService`
+| Symbol | Implementation |
+|--------|---------------|
+| `SESSION_REPOSITORY` | `SessionRepository` |
+| `SESSION_CURSOR_SERVICE` | `SessionCursorService` |
+| `SESSION_QUERY_SERVICE` | `SessionQueryService` |
+| `SESSION_LIST_SERVICE` | `SessionListService` |
+| `SESSION_ISSUE_USE_CASE` | `SessionIssueUseCase` |
+| `SESSION_ROTATION_USE_CASE` | `SessionRotationUseCase` |
+| `SESSION_REVOCATION_USE_CASE` | `SessionRevocationUseCase` |
 
-`RedisService` itself is not exported by the module, but it is available inside the module and used by exported services.
+---
 
-## Feature Modules
+## TokenModule (`src/features/token/token.module.ts`)
 
-### AuthModule
-
-File: [src/features/auth/auth.module.ts](../src/features/auth/auth.module.ts)
-
-Imports:
-
-- `UsersModule`
-- `SessionsModule`
-- `TokenModule`
-- `DeviceDetectionModule`
-- `CsrfModule`
-
-Controllers:
-
-- `AuthController`
-
-Providers:
-
-- `AuthService`
-- `HashingProvider` mapped to `BcryptProvider`
-
-Important communication:
-
-- Calls `UsersService` to register, authenticate, and update passwords.
-- Calls `SessionsService` to create, rotate, and revoke sessions.
-- Calls `TokenService` to issue and verify JWTs.
-- Uses `DeviceMapper` to store a session-safe device object.
-- Uses `ClockService` for session expiry.
-- Uses `RedisLockService` during refresh.
-
-### UsersModule
-
-File: [src/features/users/users.module.ts](../src/features/users/users.module.ts)
-
-Imports:
-
-- `TypeOrmModule.forFeature([User])`
-
-Controllers:
-
-- `UsersController`
-- `AdminUsersController`
-
-Providers:
-
-- `UsersService`
+Imports: `JwtModule`, `UsersModule`, `SessionsModule`
 
 Exports:
 
-- `UsersService`
+| Symbol | Implementation |
+|--------|---------------|
+| `TOKEN_ISSUE_SERVICE` | `TokenIssueService` |
+| `TOKEN_VERIFICATION_SERVICE` | `TokenVerificationService` |
+| `TOKEN_VALIDATION_SERVICE` | `TokenValidationService` |
 
-The service uses `DataSource.getRepository(User)` rather than injecting a repository directly.
+JWT secrets: Access token (15min, audience `api`), Refresh token (7d, audience `refresh`). Separate secrets from env.
 
-### SessionsModule
+---
 
-File: [src/features/sessions/sessions.module.ts](../src/features/sessions/sessions.module.ts)
+## UsersModule (`src/features/users/users.module.ts`)
 
-Imports:
+Imports: `TypeOrmModule.forFeature([User, UserVerificationCode])`, `SessionsModule`
 
-- `TypeOrmModule.forFeature([Session])`
-
-Controllers:
-
-- `SessionsController`
-
-Providers:
-
-- `SessionsService`
+Controllers: `UsersController`, `AdminUsersController`
 
 Exports:
 
-- `SessionsService`
+| Symbol | Implementation |
+|--------|---------------|
+| `USER_REPOSITORY` | `UserRepository` |
+| `USER_QUERY_SERVICE` | `UserQueryService` |
+| `CREATE_USER_USE_CASE` | `CreateUserUseCase` |
+| `INITIATE_REGISTRATION_USE_CASE` | `InitiateRegistrationUseCase` |
+| `VERIFY_EMAIL_USE_CASE` | `VerifyEmailUseCase` |
+| `RESEND_VERIFICATION_USE_CASE` | `ResendVerificationUseCase` |
+| `CLEANUP_PENDING_USERS_USE_CASE` | `CleanupPendingUsersUseCase` |
 
-The service uses `DataSource.getRepository(Session)`.
+---
 
-### TokenModule
+## Module Communication
 
-File: [src/features/token/token.module.ts](../src/features/token/token.module.ts)
+```
+AuthController
+  → RegisterUseCase      → UserRepository, HashingProvider
+  → LoginUseCase          → UserRepository, HashingProvider,
+                            SessionIssueUseCase, TokenIssueService
+  → RefreshUseCase        → TokenVerificationService, TokenValidationService,
+                            SessionRotationUseCase, TokenIssueService,
+                            RedisLockService
+  → ChangePasswordUseCase → UserRepository, HashingProvider,
+                            SessionRevocationUseCase (with manager)
 
-Imports:
+SessionsController
+  → SessionListService    → SessionCursorService, SessionQueryService
+  → SessionRevocationUseCase  → SessionRepository
 
-- `JwtModule.registerAsync(jwtConfig.asProvider())`
-- `UsersModule`
-- `SessionsModule`
+AdminUsersController
+  → AdminUsersUseCase     → UserRepository
+  → SuspendUserUseCase    → UserRepository, SessionRevocationUseCase,
+                            EmailService, ClockService
+  → UnsuspendUserUseCase  → UserRepository, EmailService, ClockService
 
-Providers:
-
-- `TokenService`
-
-Exports:
-
-- `TokenService`
-
-`TokenService` signs and verifies JWTs and validates payloads by loading the user and active session.
-
-### SecurityModule
-
-File: [src/features/security/security.module.ts](../src/features/security/security.module.ts)
-
-Imports:
-
-- `JwtModule.registerAsync(jwtConfig.asProvider())`
-- `TokenModule`
-- `DeviceDetectionModule`
-- `RateLimitModule`
-- `CsrfModule`
-
-Providers:
-
-- `JwtStrategy`
-- Global `GlobalExceptionFilter`
-- Global `JwtGuard`
-- Global `RolesGuard`
-
-Exports:
-
-- `DeviceDetectionModule`
-
-Security submodules:
-
-- `CsrfModule`: global CSRF guard and CSRF token service.
-- `RateLimitModule`: global rate-limit guard and service.
-- `DeviceDetectionModule`: middleware plus user-agent parsing and device mapping.
-
-## Module Communication Summary
-
-```mermaid
-flowchart LR
-  AuthService --> UsersService
-  AuthService --> SessionsService
-  AuthService --> TokenService
-  AuthService --> ClockService
-  AuthService --> RedisLockService
-  AuthService --> DeviceMapper
-
-  JwtGuard --> JwtStrategy
-  JwtStrategy --> TokenService
-  TokenService --> UsersService
-  TokenService --> SessionsService
-
-  UsersController --> UsersService
-  AdminUsersController --> UsersService
-  SessionsController --> SessionsService
-
-  RateLimitGuard --> RateLimitService
-  RateLimitService --> RedisCounterService
-  CsrfGuard --> CsrfService
+JwtGuard → JwtStrategy
+  → TokenVerificationService → TokenValidationService
+    → UserQueryService, SessionQueryService
 ```
 
-## Notable Circular Dependency Risk
+---
 
-`AuthModule` imports `TokenModule`, and `TokenModule` imports `UsersModule` and `SessionsModule`. This is currently resolved by Nest without `forwardRef()` because `TokenModule` does not import `AuthModule`. Keep this dependency direction in mind when adding auth-related providers.
+## Circular Dependencies
+
+TokenModule imports UsersModule and SessionsModule. AuthModule imports TokenModule. No circular references exist because TokenModule does not import AuthModule — the dependency graph is acyclic.

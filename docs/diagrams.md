@@ -1,147 +1,301 @@
 # Diagrams
 
-This document collects diagrams for the current implementation.
-
 ## Module Composition
 
 ```mermaid
-flowchart TD
-  AppModule --> CoreModule
-  AppModule --> InfrastructureModule
-  AppModule --> FeaturesModule
+graph TB
+    AppModule --> CoreModule
+    AppModule --> LoggingModule
+    AppModule --> PresentationModule
+    AppModule --> InfrastructureModule
+    AppModule --> FeaturesModule
 
-  CoreModule --> ClockModule
+    InfrastructureModule --> EnvModule
+    InfrastructureModule --> DatabasesModule
+    InfrastructureModule --> ClockModule
+    InfrastructureModule --> EmailModule
 
-  InfrastructureModule --> EnvModule
-  InfrastructureModule --> DatabasesModule
-  InfrastructureModule --> ValidationPipe
-  InfrastructureModule --> DataResponseInterceptor
+    DatabasesModule --> PostgresModule
+    DatabasesModule --> RedisModule
 
-  DatabasesModule --> PostgresModule
-  DatabasesModule --> RedisModule
+    FeaturesModule --> AuthModule
+    FeaturesModule --> CoinTrackerModule
+    FeaturesModule --> SecurityModule
+    FeaturesModule --> SessionsModule
+    FeaturesModule --> TokenModule
+    FeaturesModule --> UsersModule
 
-  FeaturesModule --> AuthModule
-  FeaturesModule --> SecurityModule
-  FeaturesModule --> SessionsModule
-  FeaturesModule --> TokenModule
-  FeaturesModule --> UsersModule
+    AuthModule --> UsersModule
+    AuthModule --> SessionsModule
+    AuthModule --> TokenModule
+    AuthModule --> DeviceDetectionModule
+    AuthModule --> CsrfModule
+
+    TokenModule --> UsersModule
+    TokenModule --> SessionsModule
+
+    SecurityModule --> TokenModule
+    SecurityModule --> DeviceDetectionModule
+    SecurityModule --> RateLimitModule
+    SecurityModule --> CsrfModule
+
+    UsersModule --> SessionsModule
+
+    style CoreModule fill:#e1f5e1
+    style PresentationModule fill:#e3f2fd
+    style InfrastructureModule fill:#fff3e0
+    style FeaturesModule fill:#fce4ec
 ```
 
-## Authentication Flow
+---
+
+## Authentication Flow (Login)
 
 ```mermaid
 sequenceDiagram
-  participant Client
-  participant AuthController
-  participant AuthService
-  participant UsersService
-  participant SessionsService
-  participant TokenService
-  participant Cookies as AuthCookieInterceptor
+    participant Client
+    participant AuthController
+    participant LoginUseCase
+    participant UserRepo
+    participant HashingProvider
+    participant SessionIssueUseCase
+    participant TokenIssueService
+    participant AuthCookieInterceptor
 
-  Client->>AuthController: POST /v1/auth/login
-  AuthController->>AuthService: loginUser(dto, ip, device)
-  AuthService->>UsersService: findByIdentifierForAuth()
-  UsersService-->>AuthService: user with password
-  AuthService->>AuthService: bcrypt compare
-  AuthService->>SessionsService: issue()
-  SessionsService-->>AuthService: session
-  AuthService->>TokenService: issuePair()
-  TokenService-->>AuthService: access + refresh
-  AuthService->>SessionsService: updateRefreshState()
-  AuthService-->>Cookies: tokens
-  Cookies-->>Client: Set-Cookie headers
+    Client->>AuthController: POST /v1/auth/login { identifier, password }
+    AuthController->>LoginUseCase: execute(dto, device, ip)
+    LoginUseCase->>UserRepo: findByEmailOrUsername(identifier)
+    UserRepo-->>LoginUseCase: User
+
+    LoginUseCase->>HashingProvider: compare(password, user.password)
+    HashingProvider-->>LoginUseCase: true
+
+    Note over LoginUseCase: Check user status<br/>(ACTIVATE → continue)
+
+    LoginUseCase->>SessionIssueUseCase: issue(userId, device, ip)
+    SessionIssueUseCase-->>LoginUseCase: sessionId
+
+    LoginUseCase->>TokenIssueService: issuePair(userId, sessionId)
+    TokenIssueService-->>LoginUseCase: { accessToken, refreshToken }
+
+    Note over LoginUseCase: Hash refreshToken, store on session
+
+    LoginUseCase-->>AuthController: { user, accessToken, refreshToken }
+    AuthController->>AuthCookieInterceptor: Set cookies
+    AuthCookieInterceptor-->>Client: access_token, refresh_token, csrf_token
 ```
+
+---
 
 ## Authenticated Request Flow
 
 ```mermaid
 sequenceDiagram
-  participant Client
-  participant JwtGuard
-  participant JwtStrategy
-  participant TokenService
-  participant SessionsService
-  participant Controller
+    participant Client
+    participant JwtGuard
+    participant JwtStrategy
+    participant TokenVerificationService
+    participant TokenValidationService
+    participant UserQueryService
+    participant SessionQueryService
+    participant Controller
 
-  Client->>JwtGuard: Request with access_token cookie
-  JwtGuard->>JwtStrategy: authenticate(req)
-  JwtStrategy->>TokenService: validatePayload(payload)
-  TokenService->>SessionsService: getUserAndActiveSession(sub, sessionId)
-  SessionsService-->>TokenService: user + session
-  TokenService-->>JwtStrategy: user + session
-  JwtStrategy-->>JwtGuard: user + session
-  JwtGuard->>Controller: request.user and request.session attached
+    Client->>JwtGuard: Request with access_token cookie
+    JwtGuard->>JwtStrategy: authenticate(req)
+    JwtStrategy->>TokenVerificationService: verifyAccess(token)
+    TokenVerificationService-->>JwtStrategy: IJwtPayload
+
+    JwtStrategy->>TokenValidationService: validate(payload)
+    TokenValidationService->>UserQueryService: findForTokenValidation(userId)
+    UserQueryService-->>TokenValidationService: User
+
+    TokenValidationService->>SessionQueryService: findActiveById(sessionId)
+    SessionQueryService-->>TokenValidationService: Session
+
+    TokenValidationService-->>JwtStrategy: { user, session }
+
+    JwtStrategy-->>JwtGuard: Attach req.user, req.session
+    JwtGuard-->>Controller: Proceed
+    Controller-->>Client: Response
 ```
+
+---
 
 ## Refresh Rotation
 
 ```mermaid
 sequenceDiagram
-  participant Client
-  participant AuthService
-  participant TokenService
-  participant SessionsService
-  participant DB as PostgreSQL
+    participant Client
+    participant AuthController
+    participant RefreshUseCase
+    participant RedisLockService
+    participant TokenVerificationService
+    participant SessionQueryService
+    participant TokenIssueService
+    participant SessionRotationUseCase
 
-  Client->>AuthService: refresh(refreshToken)
-  AuthService->>TokenService: verifyRefreshToken()
-  TokenService-->>AuthService: sub, sessionId, iat
-  AuthService->>SessionsService: getActive(sub, sessionId)
-  SessionsService->>DB: SELECT active session
-  DB-->>SessionsService: session
-  AuthService->>AuthService: compare refresh token hash
-  AuthService->>TokenService: issuePair()
-  AuthService->>SessionsService: rotateAtomic()
-  SessionsService->>DB: UPDATE session WHERE id + hash + version
-  DB-->>SessionsService: affected row count
-  SessionsService-->>AuthService: boolean
-  AuthService-->>Client: new tokens or error
+    Client->>AuthController: POST /v1/auth/refresh (refresh_token cookie)
+    AuthController->>RefreshUseCase: execute(sessionId, token, device, ip)
+
+    RefreshUseCase->>RedisLockService: acquire(refresh:lock:{sessionId})
+    RedisLockService-->>RefreshUseCase: OK
+
+    RefreshUseCase->>TokenVerificationService: verifyRefresh(token)
+    TokenVerificationService-->>RefreshUseCase: IJwtPayload
+
+    RefreshUseCase->>SessionQueryService: findActiveById(sessionId)
+    SessionQueryService-->>RefreshUseCase: Session
+
+    Note over RefreshUseCase: Compare refresh token hash<br/>Check rotatedAt vs iat
+
+    RefreshUseCase->>TokenIssueService: issuePair(userId, sessionId)
+    TokenIssueService-->>RefreshUseCase: { accessToken, refreshToken }
+
+    RefreshUseCase->>SessionRotationUseCase: rotateAtomic(id, oldHash, newHash, version, now)
+    SessionRotationUseCase-->>RefreshUseCase: true (1 row affected)
+
+    RefreshUseCase->>RedisLockService: release(lock)
+    RefreshUseCase-->>AuthController: { accessToken, refreshToken }
+    AuthController-->>Client: Set new cookies
 ```
+
+---
 
 ## Entity Relationship
 
 ```mermaid
 erDiagram
-  USER ||--o{ SESSION : owns
-  USER {
-    uuid id
-    string name
-    string email
-    string username
-    string password
-    enum status
-    enum role
-    timestamp createdAt
-    timestamp updatedAt
-    timestamp deleteAt
-  }
-  SESSION {
-    uuid id
-    string refreshTokenHash
-    jsonb device
-    string ipAddress
-    boolean isRevoked
-    timestamp expiresAt
-    timestamp lastUsedAt
-    integer version
-    timestamp rotatedAt
-    timestamp createdAt
-    timestamp updatedAt
-  }
+    User ||--o{ Session : owns
+    User ||--o{ UserVerificationCode : verifies
+
+    User {
+        uuid id PK
+        varchar name "nullable, select: false"
+        varchar email UK
+        varchar username UK "max 30"
+        varchar password "select: false"
+        enum status "PENDING_VERIFICATION | ACTIVATE | SUSPEND | DEACTIVATE"
+        enum role "USER | ADMIN"
+        date createdAt
+        date updatedAt
+        date deleteAt "nullable, soft delete"
+    }
+
+    Session {
+        uuid id PK
+        varchar refreshTokenHash "SHA-256"
+        jsonb device "ISessionDevice"
+        varchar ipAddress
+        boolean isRevoked
+        date expiresAt "7 days"
+        date lastUsedAt
+        integer version "optimistic concurrency"
+        date rotatedAt
+        date createdAt
+        date updatedAt
+    }
+
+    UserVerificationCode {
+        uuid id PK
+        uuid userId FK
+        varchar codeHash "SHA-256"
+        date expiresAt "3 minutes"
+        date verifiedAt "nullable"
+        date createdAt
+    }
 ```
+
+---
 
 ## Request Lifecycle
 
 ```mermaid
 flowchart LR
-  HTTP[HTTP request] --> Middleware[Device middleware]
-  Middleware --> Guards[JWT / Roles / RateLimit / CSRF guards]
-  Guards --> Pipes[Validation pipe]
-  Pipes --> Controller
-  Controller --> Service
-  Service --> Persistence[PostgreSQL or Redis]
-  Persistence --> Service
-  Service --> Interceptors[Serialize and data wrappers]
-  Interceptors --> HTTPResponse[HTTP response]
+    REQ[HTTP Request]
+
+    subgraph Middleware
+        H[Helmet]
+        CP[Cookie Parser]
+        UV[URI Versioning]
+        SW[Swagger]
+        DM[Device Middleware]
+    end
+
+    subgraph Guards
+        JG[JwtGuard]
+        RG[RolesGuard]
+        CG[CsrfGuard]
+        RLG[RateLimitGuard]
+    end
+
+    subgraph Interceptors
+        DRI[DataResponseInterceptor]
+        SI[SerializeInterceptor]
+        ACI[AuthCookieInterceptor]
+    end
+
+    subgraph Pipes
+        VP[ValidationPipe]
+    end
+
+    subgraph Controller
+        C[Controller]
+    end
+
+    subgraph Application
+        UC[Use Case]
+        S[Service]
+        R[Repository]
+    end
+
+    subgraph Error
+        EF[GlobalExceptionFilter]
+    end
+
+    REQ --> H --> CP --> UV --> SW --> DM
+    DM --> JG --> RG --> CG --> RLG
+    RLG --> DRI --> VP --> C
+    C --> UC --> S --> R
+    DRI -.-> SI
+    DRI -.-> ACI
+    R -.->|Error| EF
+    C -.->|Error| EF
+    UC -.->|Error| EF
+    EF --> RESP[Error Response]
+    DRI --> RESP2[Success Response]
+```
+
+---
+
+## Unsuspend Flow
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant AdminController
+    participant UnsuspendUseCase
+    participant UserRepo
+    participant DB
+    participant EmailService
+    participant Logger
+
+    Admin->>AdminController: PATCH /v1/admin/users/:id/unsuspend
+    AdminController->>UnsuspendUseCase: execute(adminId, userId)
+
+    UnsuspendUseCase->>UserRepo: findUserForAdmin(userId)
+    UserRepo-->>UnsuspendUseCase: User (status=SUSPEND)
+
+    UnsuspendUseCase->>UnsuspendUseCase: user.unsuspend()
+    Note over UnsuspendUseCase: Validates transition SUSPEND→ACTIVATE
+
+    UnsuspendUseCase->>DB: BEGIN TRANSACTION
+    UnsuspendUseCase->>DB: UPDATE user SET status='ACTIVATE'
+    DB-->>UnsuspendUseCase: COMMIT
+
+    UnsuspendUseCase->>EmailService: sendUnsuspensionEmail(email, name, now)
+    EmailService-->>UnsuspendUseCase: OK
+
+    UnsuspendUseCase->>Logger: info(event=USER_UNSUSPENDED, adminId, userId, previousStatus, newStatus)
+    UnsuspendUseCase-->>AdminController: void
+    AdminController-->>Admin: 204 No Content
 ```

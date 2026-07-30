@@ -1,143 +1,125 @@
 # Dependencies
 
-This document groups the packages declared in [package.json](../package.json) and explains how they are used.
+## Runtime
 
-## Runtime Dependencies
+### NestJS & Framework
 
-### NestJS
+| Package | Purpose |
+|---------|---------|
+| `@nestjs/common` | Decorators, guards, interceptors, pipes, filters |
+| `@nestjs/core` | NestJS runtime |
+| `@nestjs/platform-express` | Express adapter |
+| `@nestjs/config` | Environment configuration with Joi |
+| `@nestjs/swagger` | OpenAPI documentation |
+| `@nestjs/jwt` | JWT signing and verification |
+| `@nestjs/schedule` | Cron jobs (pending user cleanup) |
+| `@nestjs/axios` | HTTP client (coin-tracker) |
+| `reflect-metadata` | TypeScript decorator metadata |
+| `rxjs` | Reactive extensions |
 
-- `@nestjs/common`
-- `@nestjs/core`
-- `@nestjs/platform-express`
-- `@nestjs/config`
-- `@nestjs/jwt`
-- `@nestjs/mapped-types`
-- `@nestjs/swagger`
-- `@nestjs/typeorm`
+### Database & Cache
 
-Used for the application framework, configuration, JWT integration, Swagger decorators, DTO mapped types, and TypeORM integration.
+| Package | Purpose |
+|---------|---------|
+| `typeorm` | ORM (v1.0.0) |
+| `@nestjs/typeorm` | NestJS TypeORM integration |
+| `pg` | PostgreSQL driver |
+| `ioredis` | Redis client |
 
-### Persistence and Redis
+### Security
 
-- `typeorm`
-- `pg`
-- `ioredis`
+| Package | Purpose |
+|---------|---------|
+| `bcrypt` | Password hashing (10 rounds) |
+| `helmet` | HTTP security headers |
+| `cookie-parser` | Cookie extraction |
+| `jsonwebtoken` | JWT utilities (internal use) |
 
-TypeORM and `pg` provide PostgreSQL persistence. `ioredis` is used for Redis counters and refresh-flow key helpers.
+### Validation & Serialization
 
-### HTTP Middleware
+| Package | Purpose |
+|---------|---------|
+| `class-validator` | DTO validation decorators |
+| `class-transformer` | DTO serialization and transformation |
+| `joi` | Environment schema validation |
 
-- `compression`
-- `cookie-parser`
-- `helmet`
+### Logging
 
-Configured in `setupApp()`.
+| Package | Purpose |
+|---------|---------|
+| `nestjs-pino` | NestJS Pino integration |
+| `pino` | Structured logger |
+| `pino-http` | HTTP request logging |
 
-### Auth and Validation
+### Other
 
-- `bcrypt`
-- `class-transformer`
-- `class-validator`
-- `joi`
-- `reflect-metadata`
-- `rxjs`
+| Package | Purpose |
+|---------|---------|
+| `compression` | Response compression |
+| `ua-parser-js` | User-Agent parsing |
+| `dotenv` | Environment file loading |
+| `dotenv-expand` | Variable expansion in .env |
 
-`bcrypt` hashes passwords and refresh tokens. `class-validator` and `class-transformer` validate and transform DTOs. `joi` validates environment variables. `rxjs` is used by Nest interceptors.
+## Dev Dependencies
 
-### User Agent Parsing
+### Tooling
 
-- `ua-parser-js`
-
-Used by `UserAgentParser` in device detection.
-
-### Other Runtime Packages
-
-- `chalk`
-
-Declared as a dependency, but no direct source usage was found during documentation inspection.
-
-## Development Dependencies
-
-### Nest and TypeScript Tooling
-
-- `@nestjs/cli`
-- `@nestjs/schematics`
-- `@nestjs/testing`
-- `typescript`
-- `ts-node`
-- `ts-loader`
-- `tsconfig-paths`
-
-Used for building, schematics, testing, and path alias support.
+| Package | Purpose |
+|---------|---------|
+| `@nestjs/cli` | NestJS CLI (build, generate) |
+| `@nestjs/schematics` | Code generation |
+| `typescript` | TypeScript compiler |
+| `ts-node` | TypeScript execution |
+| `tsconfig-paths` | Path alias resolution |
 
 ### Testing
 
-- `jest`
-- `ts-jest`
-- `supertest`
-- `source-map-support`
-- `@types/jest`
-- `@types/supertest`
+| Package | Purpose |
+|---------|---------|
+| `jest` | Test runner |
+| `ts-jest` | TypeScript Jest transformer |
+| `@nestjs/testing` | Test module bootstrapping |
+| `supertest` | HTTP assertions |
+| `@types/supertest` | Type definitions |
 
-Used for unit and e2e tests.
+### Code Quality
 
-### Linting and Formatting
+| Package | Purpose |
+|---------|---------|
+| `eslint` | Linter |
+| `@typescript-eslint/parser` | TypeScript ESLint parser |
+| `@typescript-eslint/eslint-plugin` | TypeScript ESLint rules |
+| `eslint-config-prettier` | Prettier integration |
+| `eslint-plugin-prettier` | Prettier as ESLint rule |
+| `prettier` | Code formatter |
 
-- `eslint`
-- `@eslint/js`
-- `@eslint/eslintrc`
-- `@typescript-eslint/eslint-plugin`
-- `@typescript-eslint/parser`
-- `eslint-config-prettier`
-- `eslint-plugin-prettier`
-- `prettier`
+### Git Hooks
 
-Configured through [eslint.config.mjs](../eslint.config.mjs) and [.prettierrc](../.prettierrc).
-
-### Git Hooks and Commit Rules
-
-- `husky`
-- `lint-staged`
-- `@commitlint/cli`
-- `@commitlint/config-conventional`
-- `@commitlint/types`
-- `conventional-changelog-atom`
-
-Used by Husky hooks and commitlint.
+| Package | Purpose |
+|---------|---------|
+| `husky` | Git hooks |
+| `lint-staged` | Staged file processing |
+| `@commitlint/cli` | Commit message validation |
+| `@commitlint/config-conventional` | Conventional commit rules |
 
 ### Documentation
 
-- `@compodoc/compodoc`
-
-Used by `pnpm run docs`.
-
-### Type Definitions
-
-- `@types/bcrypt`
-- `@types/compression`
-- `@types/cookie-parser`
-- `@types/express`
-- `@types/ioredis`
-- `@types/node`
-
-Provide TypeScript types.
+| Package | Purpose |
+|---------|---------|
+| `@compodoc/compodoc` | Documentation generation |
 
 ## Package Manager
 
-`packageManager` is:
+`pnpm@11.9.0` with `pnpm-lock.yaml`.
 
-```json
-"pnpm@11.9.0"
+## Automation
+
+- **Dependabot**: Weekly dependency updates
+- **Dependency review workflow**: Audit and outdated checks in CI
+
+## Build
+
+```bash
+pnpm install --frozen-lockfile
+pnpm run build  # nest build → dist/
 ```
-
-The repository uses `pnpm-lock.yaml` as the single dependency lockfile. Legacy package-manager lockfiles are intentionally not kept.
-
-`pnpm-workspace.yaml` contains a pnpm override for `@compodoc/compodoc>@angular-devkit/schematics`.
-Compodoc 2.0.0 declares `@angular-devkit/schematics@22.0.4`, whose matching `@angular-devkit/core@22.0.4` is not published in the registry. The override keeps Compodoc on the published Angular DevKit `21.2.13` line so `pnpm install --frozen-lockfile` can resolve consistently.
-
-The same file also makes pnpm's build-script policy explicit through `allowBuilds`: `bcrypt` is allowed to run its native install build, while the transitive `@scarf/scarf` postinstall script is disabled.
-
-## Dependency Automation
-
-- [.github/dependabot.yml](../.github/dependabot.yml): weekly Node package and GitHub Actions updates.
-- [.github/workflows/dependency-review.yml](../.github/workflows/dependency-review.yml): outdated and audit checks.

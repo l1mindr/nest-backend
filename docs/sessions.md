@@ -1,168 +1,187 @@
 # Sessions
 
-This document describes session persistence, session endpoints, and refresh-token rotation.
+## Overview
 
-## Relevant Files
+Server-side session management with refresh token hashing, optimistic concurrency for rotation, and cursor-based pagination for listing.
 
-- [src/features/sessions/entities/session.entity.ts](../src/features/sessions/entities/session.entity.ts)
-- [src/features/sessions/sessions.service.ts](../src/features/sessions/sessions.service.ts)
-- [src/features/sessions/sessions.controller.ts](../src/features/sessions/sessions.controller.ts)
-- [src/features/sessions/sessions.module.ts](../src/features/sessions/sessions.module.ts)
-- [src/features/sessions/dto/response/session.response.dto.ts](../src/features/sessions/dto/response/session.response.dto.ts)
-- [src/features/auth/auth.service.ts](../src/features/auth/auth.service.ts)
-- [src/features/token/token.service.ts](../src/features/token/token.service.ts)
+Session entity stores the refresh token hash (not the raw token), device metadata, and version field for optimistic locking.
+
+---
 
 ## Session Entity
 
-The `Session` entity maps to the `session` table.
+```typescript
+class Session {
+  id: string;              // UUID primary key
+  refreshTokenHash: string; // SHA-256 hash of refresh token
+  device: ISessionDevice;   // JSONB — browser, OS, device type
+  ipAddress: string;        // Client IP at creation
+  isRevoked: boolean;       // Soft revocation flag
+  expiresAt: Date;          // 7 days from creation
+  lastUsedAt: Date;         // Updated on refresh
+  version: number;          // Optimistic concurrency counter
+  rotatedAt: Date;          // Last rotation timestamp
+  createdAt: Date;
+  updatedAt: Date;
+  owner: User;              // ManyToOne relation
+}
+```
 
-Fields:
+Indexed on `(owner, isRevoked, expiresAt)` and `expiresAt` for query performance.
 
-| Field | Type | Purpose |
-| --- | --- | --- |
-| `id` | UUID | Primary key. |
-| `refreshTokenHash` | string | Bcrypt hash of the current refresh token. |
-| `device` | JSONB | Browser, OS, and device type snapshot. |
-| `ipAddress` | string | IP address recorded at login. |
-| `isRevoked` | boolean | Revocation flag. Defaults to `false`. |
-| `expiresAt` | timestamp | Session expiry. |
-| `lastUsedAt` | timestamp | Last auth/refresh activity timestamp. |
-| `version` | number | Optimistic concurrency counter for refresh rotation. Defaults to `0`. |
-| `rotatedAt` | timestamp nullable | Last refresh-token rotation timestamp. |
-| `createdAt` | timestamp | TypeORM create timestamp. |
-| `updatedAt` | timestamp | TypeORM update timestamp. |
-| `owner` | `User` | Many-to-one relation to the user. |
+---
 
-## Session Creation
+## Session Lifecycle
 
-Sessions are created during login:
+### Issue
 
-1. `AuthService.loginUser()` calls `ClockService.snapshot()` to get `now` and `expiresAt`.
-2. Device data is mapped through `DeviceMapper.toSessionUserAgent()`.
-3. `SessionsService.issue()` saves a new `Session`.
-4. `TokenService.issuePair()` creates access and refresh JWTs.
-5. The refresh token is hashed and stored through `SessionsService.updateRefreshState()`.
+**Use case**: `SessionIssueUseCase` (symbol: `SESSION_ISSUE_USE_CASE`)
 
-`SessionsService.issue()` initially stores a random UUID in `refreshTokenHash`; this is replaced by the real refresh token hash after tokens are issued.
+Called during login:
 
-## Active Session Lookup
+1. Acquires pessimistic user lock (via `pg_try_advisory_xact_lock`) to prevent concurrent session creation races
+2. Counts current active sessions
+3. If at `MAX_ACTIVE_SESSIONS` limit, revokes oldest excess sessions (LRU by `lastUsedAt`)
+4. Creates new session with placeholder refresh token hash
+5. Returns session ID for token issuance
 
-`SessionsService.getActive(userId, sessionId)` requires:
+### Rotation
 
-- Matching session ID.
-- Matching owner user ID.
-- `isRevoked: false`.
-- `expiresAt > new Date()`.
+**Use case**: `SessionRotationUseCase` (symbol: `SESSION_ROTATION_USE_CASE`)
 
-This lookup is used during access-token validation and refresh.
+Called during refresh:
 
-## Session Endpoints
+1. Issues new access + refresh token pair
+2. Calls `rotateAtomic(sessionId, oldHash, newHash, version, now)`:
+   ```sql
+   UPDATE "session"
+   SET "refresh_token_hash" = :newHash,
+       "version"            = "version" + 1,
+       "rotated_at"         = :now,
+       "last_used_at"       = :now
+   WHERE "id" = :sessionId
+     AND "refresh_token_hash" = :oldHash
+     AND "version" = :oldVersion
+   ```
+3. Uses **Lua script** on Redis for atomicity (though operation is pure SQL)
+4. If 0 rows affected → hash mismatch → reuse detected → revoke session
 
-Base path: `/v1/sessions`
+### Revocation
+
+**Use case**: `SessionRevocationUseCase` (symbol: `SESSION_REVOCATION_USE_CASE`)
+
+Supports:
+
+| Method | Description |
+|--------|-------------|
+| `revokeAll(userId, manager?)` | Revokes all sessions for a user (used in suspend, password change). Accepts optional `EntityManager` for transaction participation. |
+| `revokeCurrent(sessionId)` | Revokes current session (logout) |
+| `revokeOthers(sessionId, userId)` | Revokes all sessions except specified one |
+
+Revocation sets `isRevoked = true`. Expired sessions are also treated as revoked by the query layer.
+
+### Listing
+
+**Endpoints**:
 
 | Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/v1/sessions` | List active sessions for the current user. |
-| `DELETE` | `/v1/sessions` | Revoke the current session. |
-| `DELETE` | `/v1/sessions/others` | Revoke all sessions except the current one. |
+|--------|------|-------------|
+| `GET` | `/v1/sessions` | List active sessions (cursor-paginated) |
+| `DELETE` | `/v1/sessions` | Revoke current session (logout) |
+| `DELETE` | `/v1/sessions/others` | Revoke all other sessions |
 
-All session endpoints require authentication. `DELETE` endpoints also require CSRF validation.
+**Cursor pagination**: Sessions are ordered by `lastUsedAt ASC, id ASC`. Uses `SessionCursorService` for cursor encoding and `SessionListService` for paginated queries.
 
-## Listing Sessions
-
-`SessionsService.list(userId, session)` returns:
-
-- The current session in the `currentSession` field.
-- Other active non-revoked sessions in `items`.
-
-The query selects only `device`, `expiresAt`, and `ipAddress` for other sessions. Because `SessionResponseDto` maps `sessionId` from `obj.id` and `lastActivityAt` from `obj.lastUsedAt`, other-session responses may lack these fields based on the current select list. This is a current implementation detail to review before relying on full session metadata in clients.
-
-## Revocation
-
-`SessionsService.revoke(userId, sessionId)` sets:
-
-```ts
-isRevoked: true
+**Response**:
+```typescript
+{
+  items: SessionResponseDto[];
+  currentSession: { id: string }; // Current session ID for highlighting
+  nextCursor: string | null;
+}
 ```
 
-`SessionsService.terminateOthers(userId, sessionId)` revokes all sessions for the user except the current session.
+---
 
-Revoked sessions fail future `getActive()` checks. Existing access tokens become unusable once `JwtGuard` validates the payload and session.
+## Max Active Sessions
 
-Current limitation: revocation endpoints do not clear `access_token`, `refresh_token`, or `csrf_token` cookies in the HTTP response.
+Controlled by `MAX_ACTIVE_SESSIONS` environment variable (default: 5).
 
-## Refresh Rotation
+Behavior:
+- When a new session would exceed the limit, the least recently used (LRU) sessions are revoked
+- Excess sessions are calculated as: `activeCount - MAX_ACTIVE_SESSIONS + 1` (for the new one)
+- Oldest sessions by `lastUsedAt` are selected for revocation
+- All happens within the same transaction under a user-level advisory lock
 
-Refresh rotation happens in `AuthService.refresh()`.
+---
 
-Important checks:
+## Atomic Rotation
 
-1. Verify refresh JWT signature and expiry.
-2. Load active session by `sub` and `sessionId`.
-3. Compare presented refresh token with `session.refreshTokenHash`.
-4. Reject if `session.rotatedAt` is at or after the refresh token `iat`.
-5. Issue a new token pair.
-6. Hash the new refresh token.
-7. Atomically update the session if the old hash and version still match.
+Refresh token rotation uses a conditional UPDATE pattern:
 
-The database update in `SessionsService.rotateAtomic()` is the key concurrency protection:
-
-```ts
-.where('id = :id', { id: sessionId })
-.andWhere('refreshTokenHash = :hash', { hash: oldHash })
-.andWhere('version = :version', { version })
+```typescript
+async rotateAtomic(
+  sessionId: string,
+  oldHash: string,
+  newHash: string,
+  expectedVersion: number,
+  now: Date
+): Promise<boolean> {
+  const result = await this.sessionRepository.rotateAtomic(
+    sessionId, oldHash, newHash, expectedVersion, now
+  );
+  return result.affected === 1;
+}
 ```
 
-It also increments the version:
+If the update affects 0 rows, it means:
+- The `refreshTokenHash` doesn't match (old token already rotated) → reuse detected, OR
+- The `version` doesn't match (concurrent rotation won) → reuse detected
 
-```ts
-version: () => '"version" + 1'
+In both cases the session is revoked to prevent token theft.
+
+---
+
+## Data Flow
+
+```
+Login:
+  LoginUseCase
+    → SessionIssueUseCase.issue(userId, device, ip)
+      → Acquire advisory lock for user
+      → Count active sessions
+      → Revoke excess if needed
+      → INSERT session (placeholder hash)
+      → Return sessionId
+    → TokenIssueService.issuePair(userId, sessionId)
+      → Sign access_token (15min, secret A)
+      → Sign refresh_token (7d, secret B)
+    → Store refresh token hash on session
+    → AuthCookieInterceptor sets cookies
+
+Refresh:
+  RefreshUseCase
+    → Acquire Redis lock for session
+    → Verify refresh JWT (secret B)
+    → Load active session by ID
+    → Compare refresh token hash (SHA-256)
+    → Check rotatedAt vs iat
+    → TokenIssueService.issuePair(userId, sessionId)
+    → SessionRotationUseCase.rotateAtomic(...)
+      → Conditional UPDATE (hash + version check)
+      → If 0 affected → revoke session (reuse detected)
+    → Release Redis lock
+    → AuthCookieInterceptor sets cookies
 ```
 
-If no row is affected, refresh fails with `SESSION_REUSE_DETECTED`.
+---
 
-## Redis Refresh Lock Helper
+## Error Codes
 
-`AuthService.refresh()` also calls:
-
-- `RedisLockService.acquire(RedisKey.REFRESH_LOCK, sessionId)`
-- `RedisLockService.release(RedisKey.REFRESH_LOCK, sessionId)`
-
-Current limitation: `RedisLockService.acquire()` calls `SET key value EX ttl` through `RedisService.setWithExpiry()`. It does not use `NX`, so concurrent callers can all set the key and receive `OK`. It should not be documented or treated as a strict distributed lock until this behavior changes.
-
-## Refresh Sequence
-
-```mermaid
-sequenceDiagram
-  participant Client
-  participant AuthService
-  participant TokenService
-  participant RedisLockService
-  participant SessionsService
-  participant Postgres
-
-  Client->>AuthService: refresh(refreshToken)
-  AuthService->>TokenService: verifyRefreshToken(refreshToken)
-  TokenService-->>AuthService: sub, sessionId, iat, exp
-  AuthService->>RedisLockService: acquire(refresh:lock, sessionId)
-  AuthService->>SessionsService: getActive(sub, sessionId)
-  SessionsService->>Postgres: SELECT active session
-  Postgres-->>SessionsService: session
-  AuthService->>AuthService: compare refresh token with stored hash
-  AuthService->>TokenService: issuePair(sub, session.id, now, expiresAt)
-  AuthService->>SessionsService: rotateAtomic(...)
-  SessionsService->>Postgres: UPDATE WHERE id + hash + version
-  Postgres-->>SessionsService: affected rows
-  AuthService->>RedisLockService: release(refresh:lock, sessionId)
-  AuthService-->>Client: new tokens
-```
-
-## Session Errors
-
-Defined in [src/features/sessions/errors/session-errors.ts](../src/features/sessions/errors/session-errors.ts):
-
-- `SESSION_NOT_FOUND`
-- `SESSION_EXPIRED`
-- `SESSION_REVOKED`
-- `REFRESH_RATE_LIMITED`
-- `SESSION_REUSE_DETECTED`
+| Code | Scenario | HTTP |
+|------|----------|------|
+| `SESSION_NOT_FOUND` | Session ID not found | 404 |
+| `SESSION_EXPIRED` | Session has expired | 401 |
+| `SESSION_REVOKED` | Session was revoked | 401 |
+| `SESSION_REUSE_DETECTED` | Old refresh token used after rotation | 401 |
+| `SESSION_LIMIT_REACHED` | Max active sessions (informational, auto-handled) | - |

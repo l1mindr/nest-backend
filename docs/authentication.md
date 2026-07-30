@@ -1,217 +1,218 @@
 # Authentication
 
-This document explains the authentication implementation in the current project.
+## Overview
 
-## Relevant Files
+Cookie-based JWT authentication with server-side session validation, refresh token rotation, and CSRF double-submit protection.
 
-- [src/features/auth/auth.controller.ts](../src/features/auth/auth.controller.ts)
-- [src/features/auth/auth.service.ts](../src/features/auth/auth.service.ts)
-- [src/features/auth/auth.module.ts](../src/features/auth/auth.module.ts)
-- [src/features/auth/interceptors/auth-cookie.interceptor.ts](../src/features/auth/interceptors/auth-cookie.interceptor.ts)
-- [src/features/auth/providers/bcrypt.provider.ts](../src/features/auth/providers/bcrypt.provider.ts)
-- [src/features/auth/providers/hashing.provider.ts](../src/features/auth/providers/hashing.provider.ts)
-- [src/features/token/token.service.ts](../src/features/token/token.service.ts)
-- [src/features/security/strategies/jwt.strategy.ts](../src/features/security/strategies/jwt.strategy.ts)
-- [src/features/security/guards/jwt.guard.ts](../src/features/security/guards/jwt.guard.ts)
-- [src/features/sessions/sessions.service.ts](../src/features/sessions/sessions.service.ts)
-- [src/features/users/users.service.ts](../src/features/users/users.service.ts)
+---
 
-## Authentication Model
+## Auth Flow Summary
 
-The API uses cookie-based JWT authentication:
-
-- `access_token`: short-lived JWT stored in an HTTP-only cookie.
-- `refresh_token`: JWT stored in an HTTP-only cookie and also stored server-side as a bcrypt hash on the `Session` entity.
-- `csrf_token`: readable cookie generated on login/refresh and expected in the `x-csrf-token` header for unsafe methods.
-
-Access token lifetime is configured in code as 15 minutes in `TokenService.issuePair()`.
-
-Refresh/session lifetime is 7 days from the current clock snapshot in `ClockService.snapshot()`.
-
-JWT signing uses the symmetric `JWT_SECRET_KEY` environment variable through [src/infrastructure/config/jsonwebtoken/jwt.config.ts](../src/infrastructure/config/jsonwebtoken/jwt.config.ts). No issuer, audience, key rotation, or asymmetric signing configuration exists in the current code.
-
-## Token Payloads
-
-`TokenService.issuePair()` creates payloads with:
-
-- `sub`: user ID.
-- `sessionId`: session ID.
-- `exp`: token expiration.
-- `jti`: refresh token only.
-
-`IJwtPayload` includes an optional `role`, but role is not currently written into issued tokens.
-
-Authorization uses the loaded database user, not a JWT role claim.
-
-## Registration Flow
-
-Endpoint: `POST /v1/auth/register`
-
-Decorators:
-
-- `@Public()`
-- `@RateLimit({ limit: 5, ttl: 60 })`
-- `@SkipCsrf()`
-
-Request DTO: [RegisterUserRequestDto](../src/features/auth/dto/request/register-user.request.dto.ts)
-
-Fields:
-
-- `email`: normalized to lowercase and validated as email.
-- `username`: normalized to lowercase and validated by the username regex.
-- `password`: validated by the password regex.
-
-Flow:
-
-```mermaid
-sequenceDiagram
-  participant Client
-  participant AuthController
-  participant AuthService
-  participant BcryptProvider
-  participant UsersService
-  participant Postgres
-
-  Client->>AuthController: POST /v1/auth/register
-  AuthController->>AuthService: registerUser(dto)
-  AuthService->>BcryptProvider: hash(dto.password)
-  BcryptProvider-->>AuthService: passwordHash
-  AuthService->>UsersService: register(dto with passwordHash)
-  UsersService->>Postgres: INSERT user
-  Postgres-->>UsersService: ok or unique violation
-  UsersService-->>AuthService: void or AppError
-  AuthService-->>AuthController: void
-  AuthController-->>Client: 201 with data wrapper
+```
+Registration:    POST /v1/auth/register    → 201 Created  (public, rate-limited)
+Login:           POST /v1/auth/login       → 200 OK       (public, rate-limited)
+Refresh:         POST /v1/auth/refresh     → 200 OK       (public, CSRF required, rate-limited)
+Change Password: POST /v1/auth/change-password → 204 No Content (authenticated, CSRF required, rate-limited)
 ```
 
-Duplicate email and username database errors are mapped to domain errors in `UsersService.handleUniqueConstraintError()`.
+---
 
-## Login Flow
+## Registration
 
-Endpoint: `POST /v1/auth/login`
+### Flow
 
-Decorators:
+1. `AuthController.register()` → `RegisterUseCase.execute(dto)`
+2. Validates email uniqueness via `UserRepository.findByEmailOrUsername()`
+3. Hashes password with `BcryptProvider` (10 rounds)
+4. Creates user with status `PENDING_VERIFICATION`
+5. Generates a 3-minute verification code (SHA-256 hashed, stored in `UserVerificationCode`)
+6. Returns 201
 
-- `@Public()`
-- `@UseInterceptors(AuthCookieInterceptor)`
-- `@RateLimit({ limit: 5, ttl: 60 })`
-- `@SkipCsrf()`
+Use case: `RegisterUseCase` (symbol: `REGISTER`)
 
-Request DTO: [LoginUserRequestDto](../src/features/auth/dto/request/login-user.request.dto.ts)
+### DTO
 
-Fields:
+```typescript
+class RegisterUserRequestDto {
+  @EmailField()
+  email: string;
 
-- `email`: accepts email or username, trims and lowercases.
-- `password`: validated by `PasswordField()`.
+  @UsernameField()
+  username: string;
 
-Flow:
-
-```mermaid
-sequenceDiagram
-  participant Client
-  participant AuthController
-  participant AuthService
-  participant UsersService
-  participant HashingProvider
-  participant SessionsService
-  participant TokenService
-  participant AuthCookieInterceptor
-
-  Client->>AuthController: POST /v1/auth/login
-  AuthController->>AuthService: loginUser(dto, ip, device)
-  AuthService->>UsersService: findByIdentifierForAuth(emailOrUsername)
-  UsersService-->>AuthService: user with password hash
-  AuthService->>HashingProvider: compare(password, hash)
-  HashingProvider-->>AuthService: boolean
-  AuthService->>SessionsService: issue(userId, ip, device, expiresAt)
-  SessionsService-->>AuthService: session
-  AuthService->>TokenService: issuePair(userId, sessionId, now, expiresAt)
-  TokenService-->>AuthService: accessToken, refreshToken
-  AuthService->>HashingProvider: hash(refreshToken)
-  AuthService->>SessionsService: updateRefreshState(session, hash + lastUsedAt)
-  AuthService-->>AuthController: tokens
-  AuthCookieInterceptor-->>Client: Set-Cookie access_token, refresh_token, csrf_token
+  @PasswordField()
+  password: string;
+}
 ```
 
-Cookies are set in `AuthCookieInterceptor`:
+---
 
-| Cookie          | HttpOnly | Secure               | SameSite                                | Max Age            |
-| --------------- | -------- | -------------------- | --------------------------------------- | ------------------ |
-| `access_token`  | Yes      | `true` in production | `strict` in production, `lax` otherwise | 15 minutes         |
-| `refresh_token` | Yes      | `true` in production | `strict` in production, `lax` otherwise | 7 days             |
-| `csrf_token`    | No       | `true` in production | `strict` in production, `lax` otherwise | Not explicitly set |
+## Email Verification
+
+### Flow
+
+1. User receives email with code (via `EmailService.sendVerificationEmail()`)
+2. User submits code to `POST /v1/auth/verify-email` → `VerifyEmailUseCase.execute(email, code)`
+3. Loads latest unexpired code for user
+4. Compares hash (timing-safe via `crypto.timingSafeEqual`)
+5. Marks code as verified
+6. Changes user status from `PENDING_VERIFICATION` to `ACTIVATE`
+
+### Verification Code
+
+- **TTL**: 3 minutes
+- **Storage**: SHA-256 hash (plaintext not stored)
+- **Entity**: `UserVerificationCode` (userId, codeHash, expiresAt, verifiedAt)
+- **Cleanup**: Previous codes are invalidated on new code generation
+
+### Resend
+
+`POST /v1/auth/resend-verification` → `ResendVerificationUseCase.execute(email)`
+- Invalidates previous codes
+- Generates new code
+- Sends via email
+
+---
+
+## Login
+
+### Flow
+
+1. `AuthController.login()` → `LoginUseCase.execute(dto, device, ip)`
+2. Finds user by email or username
+3. Compares password with `BcryptProvider.compare()`
+4. Checks user status:
+   - `PENDING_VERIFICATION` → `ACCOUNT_NOT_VERIFIED` (403)
+   - `SUSPEND` → `ACCOUNT_SUSPENDED` (403)
+5. Issues session via `SessionIssueUseCase.execute()`
+6. Issues access token (15min) + refresh token (7d) via `TokenIssueService`
+7. Stores refresh token hash on session
+8. Sets cookies via `AuthCookieInterceptor`
+
+### Cookies Set
+
+| Cookie | Type | HTTP-only | SameSite | Max Age |
+|--------|------|-----------|----------|---------|
+| `access_token` | JWT | Yes | Lax | 15 min |
+| `refresh_token` | JWT | Yes | Lax | 7 days |
+| `csrf_token` | random hex | No | Lax | Session |
+
+### Status Enforcement (Login)
+
+| User Status | Login Result |
+|-------------|-------------|
+| `ACTIVATE` | Allowed |
+| `PENDING_VERIFICATION` | 403 `ACCOUNT_NOT_VERIFIED` |
+| `SUSPEND` | 403 `ACCOUNT_SUSPENDED` |
+| `DEACTIVATE` | 403 `ACCOUNT_DEACTIVATED` |
+
+---
 
 ## Authenticated Request Flow
 
-For routes without `@Public()`:
+1. `JwtGuard` (global) extracts `access_token` cookie
+2. `JwtStrategy.authenticate(req)` called
+3. `TokenVerificationService.verifyAccess(token)` — verifies JWT signature against access secret
+4. `TokenValidationService.validate(payload)` — loads user + session from DB, checks:
+   - User exists and is not deleted
+   - Session is active and not revoked
+   - Session belongs to user
+5. Attaches `req.user = { id, role }` and `req.session = { id }`
 
-1. `JwtGuard` reads the `access_token` cookie.
-2. `JwtStrategy.authenticate()` verifies the token.
-3. `TokenService.validatePayload()` loads the user and the active session in a single query through `SessionsService.getUserAndActiveSession()`.
-4. The guard attaches `request.user` and `request.session`.
-5. `@User()` and `@Session()` decorators read those values in controllers.
+---
 
-If the token is missing, invalid, or the session is not active, a domain error is thrown and handled by `GlobalExceptionFilter`.
+## Refresh
 
-## Refresh Flow
+### Flow
 
-Endpoint: `POST /v1/auth/refresh`
+1. `AuthController.refresh()` → `RefreshUseCase.execute(sessionId, refreshToken, device, ip)`
+2. Acquires Redis lock for session (`refresh:lock:{sessionId}`) — prevents concurrent rotation races
+3. Verifies refresh token JWT against refresh secret
+4. Loads active session by ID
+5. Compares refresh token hash (SHA-256 + timing-safe comparison)
+6. Checks `rotatedAt >= iat` — if true, old token reused → `SESSION_REUSE_DETECTED`, session revoked
+7. Issues new access + refresh token pair
+8. **Atomic rotation**: `SessionRotationUseCase.rotateAtomic()` — conditional UPDATE on Session:
+   ```sql
+   UPDATE session
+   SET refresh_token_hash = :newHash, version = version + 1, rotated_at = :now
+   WHERE id = :id AND refresh_token_hash = :oldHash AND version = :oldVersion
+   ```
+9. If 0 rows affected → `SESSION_REUSE_DETECTED`
+10. Releases Redis lock
+11. Sets new cookies via `AuthCookieInterceptor`
 
-Decorators:
+### Rotation Safety
 
-- `@Public()`
-- `@UseInterceptors(AuthCookieInterceptor)`
-- `@RateLimit({ limit: 20, ttl: 60 })`
+- **Database-level**: Optimistic concurrency via `version` field. Only one winner per refresh.
+- **Redis-level**: Lock prevents concurrent rotation attempts on same session.
+- **Reuse detection**: If old refresh token is used after rotation, hash mismatch or stale version triggers revocation.
 
-CSRF is not skipped for this endpoint. Because it is a `POST`, clients must send:
+---
 
-- `csrf_token` cookie
-- matching `x-csrf-token` header
+## Change Password
 
-Flow:
+### Flow
 
-1. Controller reads `req.cookies.refresh_token`.
-2. `AuthService.refresh()` verifies the refresh JWT.
-3. Auth attempts to acquire a Redis refresh key by session ID.
-4. The active session is loaded from PostgreSQL.
-5. The presented refresh token is compared with `session.refreshTokenHash`.
-6. If the hash does not match, the session is revoked and `SESSION_REUSE_DETECTED` is thrown.
-7. If `session.rotatedAt >= refreshToken.iat`, reuse is detected and an error is thrown.
-8. New access and refresh tokens are issued.
-9. The new refresh token is hashed.
-10. `SessionsService.rotateAtomic()` conditionally updates the session by `id`, current `refreshTokenHash`, and `version`.
-11. If the update affects no rows, `SESSION_REUSE_DETECTED` is thrown.
-12. `AuthCookieInterceptor` sets the new cookies.
+1. `AuthController.changePassword()` → `ChangePasswordUseCase.execute(userId, currentPassword, newPassword)`
+2. Verifies current password
+3. Hashes new password (bcrypt)
+4. **Atomic transaction**:
+   - `UserRepository.updatePasswordHash(userId, hash, manager)`
+   - `SessionRevocationUseCase.revokeAll(userId, manager)` — revokes ALL sessions except current
+5. Returns 204
 
-Important implementation note: `RedisLockService.acquire()` does not currently use Redis `NX`, so it does not guarantee mutual exclusion. The database conditional update in `rotateAtomic()` is the stronger concurrency control in the current code.
+---
 
-## Change Password Flow
+## Session Revocation After Suspend
 
-Endpoint: `POST /v1/auth/change-password`
+When an admin suspends a user (`POST /v1/admin/users/:id/suspend`):
+1. User status changed to `SUSPEND`
+2. `SessionRevocationUseCase.revokeAll(userId, manager)` — revokes all sessions
+3. **Same transaction** — both updates are atomic
+4. User must authenticate again to create a new session
 
-Decorators:
+When an admin unsuspends a user (`PATCH /v1/admin/users/:id/unsuspend`):
+1. User status changed to `ACTIVATE`
+2. Sessions remain revoked (not restored)
+3. User must authenticate again
 
-- Authenticated by global `JwtGuard`.
-- `@RateLimit({ limit: 3, ttl: 300 })`.
-- CSRF required because the method is `POST` and the route does not use `@SkipCsrf()`.
+---
 
-Flow:
+## Cookie Configuration
 
-1. Current user and session come from `@User()` and `@Session()`.
-2. `AuthService.changeUserPassword()` loads the user with password hash.
-3. Current password is verified.
-4. New password is compared against the old hash and must be different.
-5. The new password is hashed before starting a database transaction.
-6. Inside one TypeORM transaction, the password is stored and all other sessions are revoked through `SessionsService.terminateOthers()`.
-7. If either database operation fails, both changes are rolled back.
+| Environment | `secure` | `sameSite` |
+|-------------|----------|------------|
+| Production | `true` | `strict` |
+| Development | `false` | `lax` |
 
-The current session remains active.
+Path: `/` for all cookies.
 
-## Authentication Gaps and Observations
+---
 
-- No logout endpoint exists under `auth`; session revocation is handled by `DELETE /v1/sessions`.
-- Session revocation does not clear cookies in the current implementation.
-- User `status` is selected during auth lookup but no status check is enforced in `AuthService.loginUser()`.
-- Access tokens are invalidated by session lookup; a revoked session causes future access-token validation to fail.
-- Refresh tokens are JWTs, not opaque random strings.
-- Refresh token hashes use bcrypt, which is also used for passwords.
+## Token Specifications
+
+| Token | Algorithm | Secret | TTL | Audience |
+|-------|-----------|--------|-----|----------|
+| Access | HS256 | `JWT_ACCESS_SECRET` | 15 min | `api` |
+| Refresh | HS256 | `JWT_REFRESH_SECRET` | 7 days | `refresh` |
+
+Separate secrets from environment variables. Symmetric signing (asymmetric key rotation is a known gap).
+
+---
+
+## Error Codes
+
+| Code | Scenario | HTTP |
+|------|----------|------|
+| `INVALID_CREDENTIALS` | Wrong email/password | 401 |
+| `ACCOUNT_NOT_VERIFIED` | PENDING_VERIFICATION user tries to login | 403 |
+| `ACCOUNT_SUSPENDED` | SUSPEND user tries to login | 403 |
+| `ACCOUNT_DEACTIVATED` | DEACTIVATE user tries to login | 403 |
+| `SESSION_NOT_FOUND` | Session not found during refresh | 401 |
+| `SESSION_EXPIRED` | Session expired | 401 |
+| `SESSION_REVOKED` | Session revoked | 401 |
+| `SESSION_REUSE_DETECTED` | Old refresh token reused | 401 |
+| `TOKEN_EXPIRED` | JWT expired | 401 |
+| `TOKEN_INVALID` | JWT signature invalid | 401 |
+| `REFRESH_RATE_LIMITED` | Too many refresh attempts | 429 |

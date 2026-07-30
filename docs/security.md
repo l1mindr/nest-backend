@@ -1,157 +1,216 @@
 # Security
 
-This document lists security controls that are implemented in the current code and the gaps that were not found in the repository.
+## Overview
 
-## Implemented Controls
+Multi-layered security: JWT authentication, role-based authorization, CSRF double-submit protection, Redis-based rate limiting, device fingerprinting, and Helmet HTTP headers.
 
-### Password Hashing
+---
 
-Files:
+## Authentication
 
-- [src/features/auth/providers/hashing.provider.ts](../src/features/auth/providers/hashing.provider.ts)
-- [src/features/auth/providers/bcrypt.provider.ts](../src/features/auth/providers/bcrypt.provider.ts)
+### JWT Guard
 
-`HashingProvider` is an abstract provider. `AuthModule` binds it to `BcryptProvider`.
+`JwtGuard` (global `APP_GUARD`) validates the `access_token` cookie on every request.
 
-`BcryptProvider.hash()`:
+Flow:
+1. Extract `access_token` from cookies
+2. Verify JWT signature via `TokenVerificationService.verifyAccess()`
+3. Validate payload against database via `TokenValidationService.validate()`:
+   - User exists and is not soft-deleted
+   - Session is active and not revoked
+   - Session belongs to user
+4. Attach `req.user` and `req.session`
 
-- Generates a salt with default rounds `10`.
-- Hashes passwords and refresh tokens.
+Use `@Public()` decorator to bypass authentication on specific routes.
 
-`BcryptProvider.compare()` uses `bcrypt.compare()`.
+### JWT Strategy
 
-### JWT Cookies
+`JwtStrategy` encapsulates the `authenticate(req)` method called by `JwtGuard`. This is not a Passport strategy — it's a custom implementation that decodes and validates cookies directly.
 
-Files:
+### Token Services
 
-- [src/features/token/token.service.ts](../src/features/token/token.service.ts)
-- [src/features/auth/interceptors/auth-cookie.interceptor.ts](../src/features/auth/interceptors/auth-cookie.interceptor.ts)
+| Service | Responsibility |
+|---------|---------------|
+| `TokenIssueService` | Signs access (15min, audience `api`) and refresh (7d, audience `refresh`) JWTs with separate secrets |
+| `TokenVerificationService` | Verifies JWT signatures against access/refresh secrets |
+| `TokenValidationService` | Validates payload against database (user + session existence + state) |
 
-Access and refresh tokens are signed JWTs and are set as HTTP-only cookies:
+### Secrets
 
-- `access_token`: 15 minutes.
-- `refresh_token`: 7 days.
+Two separate environment variables:
+- `JWT_ACCESS_SECRET` — used for access token signing
+- `JWT_REFRESH_SECRET` — used for refresh token signing
 
-In production, cookies are `secure: true` and `sameSite: 'strict'`. In other environments, `secure: false` and `sameSite: 'lax'`.
+Both are symmetric HS256 (asymmetric key rotation is a known gap).
 
-### CSRF Protection
+---
 
-Files:
+## Authorization
 
-- [src/features/security/csrf/csrf.module.ts](../src/features/security/csrf/csrf.module.ts)
-- [src/features/security/csrf/guards/csrf.guard.ts](../src/features/security/csrf/guards/csrf.guard.ts)
-- [src/features/security/csrf/csrf.service.ts](../src/features/security/csrf/csrf.service.ts)
-- [src/features/security/csrf/decorators/skip-csrf.decorator.ts](../src/features/security/csrf/decorators/skip-csrf.decorator.ts)
+### RolesGuard
 
-`CsrfGuard` is global. It allows:
+`RolesGuard` (global `APP_GUARD`) checks the `@Roles()` decorator metadata against `request.user.role`.
 
-- Routes decorated with `@SkipCsrf()`.
-- Safe methods: `GET`, `HEAD`, `OPTIONS`.
+- No `@Roles()` → allows all authenticated users
+- `@Roles(UserRole.ADMIN)` → restricts to admin users only
+- Role is loaded from database (not from JWT claims)
 
-For unsafe methods it requires:
+### Roles
 
-- `csrf_token` cookie.
-- Matching `x-csrf-token` header.
+| Role | Value |
+|------|-------|
+| User | `USER` (default) |
+| Admin | `ADMIN` |
 
-The token is generated with `randomBytes(32).toString('hex')`.
+### Admin Endpoints
 
-### Rate Limiting
+Protected by `@Roles(UserRole.ADMIN)` on the controller class:
 
-Files:
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/admin/users` | List users (cursor-paginated) |
+| `GET` | `/v1/admin/users/:id` | Get user by ID |
+| `POST` | `/v1/admin/users/:id/suspend` | Suspend user |
+| `PATCH` | `/v1/admin/users/:id/unsuspend` | Unsuspend user |
 
-- [src/features/security/rate-limit/rate-limit.module.ts](../src/features/security/rate-limit/rate-limit.module.ts)
-- [src/features/security/rate-limit/guards/rate-limit.guard.ts](../src/features/security/rate-limit/guards/rate-limit.guard.ts)
-- [src/features/security/rate-limit/rate-limit.service.ts](../src/features/security/rate-limit/rate-limit.service.ts)
-- [src/features/security/rate-limit/decorators/rate-limit.decorator.ts](../src/features/security/rate-limit/decorators/rate-limit.decorator.ts)
+---
 
-`RateLimitGuard` is global but only acts on routes decorated with `@RateLimit()`.
+## CSRF Protection
 
-Redis keys use:
+### CsrfGuard
 
-```text
-rate:limit:{route}:{ip}
-```
+`CsrfGuard` (global `APP_GUARD`) validates CSRF tokens on unsafe HTTP methods (`POST`, `PATCH`, `DELETE`).
 
-Current decorated routes:
+Pattern: **Double-submit cookie**
+1. On login/refresh, server sets `csrf_token` cookie (readable via JavaScript, `httpOnly: false`)
+2. Client reads cookie and sends value as `X-CSRF-Token` header on unsafe requests
+3. Server compares cookie value vs header value (timing-safe comparison)
 
-- Register: 5 requests / 60 seconds.
-- Login: 5 requests / 60 seconds.
-- Refresh: 20 requests / 60 seconds.
-- Change password: 3 requests / 300 seconds.
+### Skip CSRF
 
-### Authentication and Authorization Guards
+Use `@SkipCsrf()` decorator on routes that don't need CSRF (e.g., register, login — which set the CSRF cookie).
 
-Files:
+---
 
-- [src/features/security/guards/jwt.guard.ts](../src/features/security/guards/jwt.guard.ts)
-- [src/features/security/guards/roles.guard.ts](../src/features/security/guards/roles.guard.ts)
+## Rate Limiting
 
-`JwtGuard` and `RolesGuard` are global. Authentication is skipped only for `@Public()` routes. Role checks are based on `@Roles()` metadata and the database-loaded user.
+### RateLimitGuard
 
-### HTTP Headers
+Applied via `@RateLimit({ limit, ttl })` decorator on controllers or individual routes.
 
-File: [src/infrastructure/http/helmet.config.ts](../src/infrastructure/http/helmet.config.ts)
+### Limits
 
-Helmet is enabled with:
+| Endpoint | Limit | Window |
+|----------|-------|--------|
+| `POST /v1/auth/register` | 5 | 60s |
+| `POST /v1/auth/login` | 5 | 60s |
+| `POST /v1/auth/refresh` | 20 | 60s |
+| `POST /v1/auth/change-password` | 3 | 300s |
 
-- `contentSecurityPolicy: false`
-- `crossOriginEmbedderPolicy: false`
+### Implementation
 
-### Request Validation
+`RateLimitCounterService.increment(key)` uses a Lua script on Redis:
+- `INCR` the key
+- Set TTL on first increment
+- Return current count
 
-Files:
+Keys: `rate:limit:{route}:{ip}`
 
-- [src/infrastructure/http/validation/pipe/validation.constants.ts](../src/infrastructure/http/validation/pipe/validation.constants.ts)
-- [src/infrastructure/http/validation/fields](../src/infrastructure/http/validation/fields)
-- [src/infrastructure/http/validation/decorators](../src/infrastructure/http/validation/decorators)
-
-The global validation pipe:
-
-- Enables `whitelist`.
-- Enables `forbidNonWhitelisted`.
-- Enables transformation and implicit conversion.
-- Returns HTTP `422` for validation failures.
-- Converts validation errors to `AppError`.
-
-### Error Normalization
-
-Files:
-
-- [src/features/security/filters/global-exception.filter.ts](../src/features/security/filters/global-exception.filter.ts)
-- [src/core/errors/error-mapper.ts](../src/core/errors/error-mapper.ts)
-
-Known `AppError` instances are returned as structured errors. Unknown errors are mapped to a generic internal error message: `Unexpected error`.
+---
 
 ## Device Detection
 
-Files:
+### DeviceMiddleware
 
-- [src/features/security/device-detection](../src/features/security/device-detection)
+Global middleware that runs on every request. Parses the `User-Agent` header using `ua-parser-js` and attaches `req.device`.
 
-The application parses the `User-Agent` header and attaches `request.device`. Device data is stored on sessions. A simple trust/risk flag is computed, but it is not currently used to block or challenge requests.
+### DeviceContext
 
-## Security Gaps and Limitations
+```typescript
+interface DeviceContext {
+  browserName: string;
+  browserVersion: string;
+  osName: string;
+  deviceType: 'mobile' | 'tablet' | 'desktop';
+  fingerprintRisk?: 'low' | 'medium' | 'high';
+}
+```
 
-These items were not found or are incomplete in the current implementation:
+Used for:
+- Session metadata (stored as JSONB on Session entity)
+- Security logging
 
-- No CORS configuration.
-- No audit logging for login, refresh, password change, revocation, or reuse detection.
-- No account lockout or per-account failed-login tracking.
-- No MFA or second-factor implementation.
-- No JWT issuer/audience validation.
-- No JWT key rotation or asymmetric signing.
-- No refresh-token denylist beyond the active session hash/rotation checks.
-- `RedisLockService.acquire()` does not use `NX`, so it is not a strict lock.
-- Session revocation endpoints do not clear cookies.
-- `UserStatus` exists, but login/authorization does not enforce active/suspended/deactivated status.
-- No health/readiness endpoints for deployment security checks.
-- No secrets manager integration; secrets are read from environment variables.
+---
 
-## Dependency Security
+## Password Hashing
 
-GitHub Actions include [dependency-review.yml](../.github/workflows/dependency-review.yml), which runs:
+### HashingProvider → BcryptProvider
 
-- `pnpm outdated` with `continue-on-error: true`.
-- `pnpm audit`.
+Abstract hashing interface with bcrypt implementation:
 
-Dependabot is configured in [.github/dependabot.yml](../.github/dependabot.yml).
+| Method | Description |
+|--------|-------------|
+| `hash(plain: string): Promise<string>` | Hash with 10 salt rounds |
+| `compare(plain: string, hash: string): Promise<boolean>` | Timing-safe comparison |
+
+Used for:
+- Password hashing during registration and password change
+- **Not** used for refresh tokens (uses SHA-256 via `RefreshTokenHasher`)
+
+---
+
+## Refresh Token Hashing
+
+### RefreshTokenHasher
+
+SHA-256 hashing for refresh token storage:
+- `hash(token: string): string` — SHA-256 hex digest
+- `compare(token: string, hash: string): boolean` — Timing-safe comparison
+
+Refresh tokens are stored as SHA-256 hashes in the Session entity. The raw token is only available in the JWT cookie and is never persisted.
+
+---
+
+## Email Verification
+
+`UserVerificationCode` entity stores verification codes as SHA-256 hashes with 3-minute TTL. Codes are sent via `EmailService.sendVerificationEmail()`.
+
+---
+
+## HTTP Security Headers
+
+Configured via Helmet in `bootstrap.ts`:
+
+| Header | Setting |
+|--------|---------|
+| `X-Content-Type-Options` | `nosniff` |
+| `X-Frame-Options` | `SAMEORIGIN` |
+| `X-XSS-Protection` | `0` |
+| `Strict-Transport-Security` | Enabled (production) |
+| `Content-Security-Policy` | Disabled |
+| `Cross-Origin-Embedder-Policy` | Disabled |
+
+---
+
+## Session Revocation
+
+Sessions are revoked on:
+- Suspend — all sessions revoked atomically with status change
+- Password change — all other sessions revoked atomically with password update
+- Logout — current session revoked
+- Max session limit exceeded — oldest sessions revoked
+
+Revoked sessions are marked `isRevoked = true`. They remain in the database for audit purposes but are excluded from active session queries.
+
+---
+
+## Known Security Gaps
+
+- No JWT issuer/audience validation beyond custom audience claim
+- Symmetric signing only (no key rotation, no asymmetric keys)
+- Redis lock for refresh does not use `NX` (not a strict lock — relies on database conditional update as the authoritative mechanism)
+- No account lockout after failed login attempts
+- No multi-factor authentication
+- No CORS configuration
+- No audit log table (relies on pino structured logging only)
+- Revocation does not clear cookies client-side

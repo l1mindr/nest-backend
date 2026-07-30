@@ -1,224 +1,271 @@
 # API
 
-This document describes the HTTP API implemented by the current controllers.
+## Versioning
 
-## API Versioning
-
-URI versioning is enabled in [src/bootstrap.ts](../src/bootstrap.ts):
-
-```ts
-app.enableVersioning({
-  type: VersioningType.URI
-});
-```
-
-Current controllers use `version: '1'`, so routes are prefixed with `/v1`.
-
-## Swagger
-
-Swagger is configured only when `NODE_ENV === 'development'`.
-
-Development URL:
-
-```text
-http://localhost:8080/api
-```
-
-Swagger decorators exist in:
-
-- [src/features/auth/auth.swagger.ts](../src/features/auth/auth.swagger.ts)
-- [src/features/users/users.swagger.ts](../src/features/users/users.swagger.ts)
-- [src/features/sessions/sessions.swagger.ts](../src/features/sessions/sessions.swagger.ts)
-
-Some Swagger response DTOs differ from the actual global error envelope. The runtime response format is determined by `DataResponseInterceptor` and `GlobalExceptionFilter`.
+URI-based versioning via `app.enableVersioning()`. All routes use `version: '1'` → prefixed `/v1`.
 
 ## Response Envelope
 
-Successful responses are wrapped by [DataResponseInterceptor](../src/infrastructure/http/interceptors/data-response.interceptor.ts):
+### Success
 
 ```json
 {
-  "data": {}
+  "data": { ... }
 }
 ```
 
-For `204 No Content` responses, Express/Nest does not send a body.
+Wrapped by `DataResponseInterceptor` (global).
 
-Errors are wrapped by [GlobalExceptionFilter](../src/features/security/filters/global-exception.filter.ts):
+### Error
 
 ```json
 {
   "error": {
-    "code": "ERROR_CODE",
-    "domain": "DOMAIN",
-    "message": "Human-readable message",
-    "meta": {},
-    "path": "/v1/example",
-    "timestamp": "2026-01-01T00:00:00.000Z"
+    "code": "USER_NOT_FOUND",
+    "domain": "USER",
+    "message": "User not found",
+    "meta": { "userId": "..." },
+    "path": "/v1/admin/users/...",
+    "timestamp": "2024-01-15T12:00:00.000Z"
   }
 }
 ```
 
-## Authentication Requirements
+Formatted by `GlobalExceptionFilter`.
 
-Routes are authenticated by default because `JwtGuard` is global. A route is public only if decorated with `@Public()`.
+---
 
-Unsafe methods require CSRF unless decorated with `@SkipCsrf()`:
+## Authentication
 
-- Send `csrf_token` cookie.
-- Send matching `x-csrf-token` header.
+All routes authenticated by default (`JwtGuard` is global). Use `@Public()` to opt out.
 
-## Auth Routes
+| Method | Path | Auth | CSRF | Rate Limit | Status |
+|--------|------|------|------|------------|--------|
+| `POST` | `/v1/auth/register` | Public | Skipped | 5/60s | 201 |
+| `POST` | `/v1/auth/login` | Public | Skipped | 5/60s | 200 |
+| `POST` | `/v1/auth/refresh` | Public | Required | 20/60s | 200 |
+| `POST` | `/v1/auth/change-password` | Authenticated | Required | 3/300s | 204 |
 
-Controller: [src/features/auth/auth.controller.ts](../src/features/auth/auth.controller.ts)
+### POST /v1/auth/register
 
-Base path: `/v1/auth`
-
-| Method | Path | Status | Access | Description |
-| --- | --- | --- | --- | --- |
-| `POST` | `/register` | `201` | Public, CSRF skipped, rate limited | Create a new user. |
-| `POST` | `/login` | `200` | Public, CSRF skipped, rate limited | Authenticate by email or username and set auth cookies. |
-| `POST` | `/refresh` | `200` | Public, CSRF required, rate limited | Rotate refresh token and set new auth cookies. |
-| `POST` | `/change-password` | `204` | Authenticated, CSRF required, rate limited | Change password and revoke other sessions. |
-
-### Register Request
-
-DTO: [RegisterUserRequestDto](../src/features/auth/dto/request/register-user.request.dto.ts)
-
+Request:
 ```json
 {
   "email": "user@example.com",
-  "username": "user_123",
-  "password": "Password@123"
+  "username": "john_doe",
+  "password": "Secure@123"
 }
 ```
 
-### Login Request
+Response: `201 No Content`
 
-DTO: [LoginUserRequestDto](../src/features/auth/dto/request/login-user.request.dto.ts)
+Errors: `409 EMAIL_ALREADY_EXISTS`, `409 USERNAME_ALREADY_EXISTS`, `422 Validation`
 
-The `email` field accepts either email or username.
+### POST /v1/auth/login
 
+Request:
 ```json
 {
-  "email": "user@example.com",
-  "password": "Password@123"
+  "identifier": "user@example.com",
+  "password": "Secure@123"
 }
 ```
 
-### Change Password Request
-
-DTO: [ChangePasswordRequestDto](../src/features/auth/dto/request/change-password.request.dto.ts)
-
+Response: `200 OK` — Sets `access_token`, `refresh_token`, `csrf_token` cookies
 ```json
 {
-  "currentPassword": "Password@123",
-  "newPassword": "NewPassword@123"
+  "data": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "username": "john_doe",
+    "role": "USER"
+  }
 }
 ```
 
-## User Routes
+Errors: `401 INVALID_CREDENTIALS`, `403 ACCOUNT_NOT_VERIFIED`, `403 ACCOUNT_SUSPENDED`, `403 ACCOUNT_DEACTIVATED`
 
-Controller: [src/features/users/users.controller.ts](../src/features/users/users.controller.ts)
+### POST /v1/auth/refresh
 
-Base path: `/v1/user`
+Request: No body. Uses `refresh_token` cookie + `X-CSRF-Token` header.
 
-| Method | Path | Status | Access | Description |
-| --- | --- | --- | --- | --- |
-| `GET` | `/me` | `200` | Authenticated | Get current user's profile. |
-| `PUT` | `/` | `204` | Authenticated, CSRF required | Update current user's profile. |
-| `DELETE` | `/delete-account` | `204` | Authenticated, CSRF required | Soft-delete current account. |
+Response: `200 OK` — Rotates both tokens, sets new cookies.
 
-### Profile Response
+Errors: `401 TOKEN_EXPIRED`, `401 TOKEN_INVALID`, `401 SESSION_REUSE_DETECTED`, `429 REFRESH_RATE_LIMITED`
 
-Response DTO: [UserProfileResponseDto](../src/features/users/dto/response/user-profile.response.dto.ts)
+### POST /v1/auth/change-password
 
-Exposed fields:
+Request:
+```json
+{
+  "currentPassword": "Old@123",
+  "newPassword": "New@456"
+}
+```
 
-- `createdAt`
-- `updatedAt`
-- `deletedAt`
-- `name`
-- `username`
-- `email`
-- `role`
-- `joinedAt`
+Response: `204 No Content`
 
-`joinedAt` is transformed from `user.registryDates.createdAt`.
+---
 
-### Update Profile Request
+## Users
 
-DTO: [UpdateUserRequestDto](../src/features/users/dto/request/update-user.request.dto.ts)
+| Method | Path | Auth | CSRF | Description |
+|--------|------|------|------|-------------|
+| `GET` | `/v1/user/me` | Authenticated | - | Get current user profile |
+| `PUT` | `/v1/user` | Authenticated | Required | Update profile |
+| `DELETE` | `/v1/user/delete-account` | Authenticated | Required | Soft delete account |
 
-This is a partial version of `CreateUserRequestDto` without `password`, so accepted fields are:
+### GET /v1/user/me
 
-- `email`
-- `username`
-- `status`
-- `name`
+Response: `200 OK`
+```json
+{
+  "data": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "username": "john_doe",
+    "name": "John Doe",
+    "role": "USER",
+    "status": "ACTIVATE",
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
+}
+```
 
-Current implementation allows profile update DTOs to include `status`; there is no controller-level role check on `PUT /v1/user`.
+### PUT /v1/user
 
-## Session Routes
+Request:
+```json
+{
+  "name": "John Updated",
+  "username": "john_updated",
+  "email": "updated@example.com"
+}
+```
 
-Controller: [src/features/sessions/sessions.controller.ts](../src/features/sessions/sessions.controller.ts)
+Response: `204 No Content`
 
-Base path: `/v1/sessions`
+---
 
-| Method | Path | Status | Access | Description |
-| --- | --- | --- | --- | --- |
-| `GET` | `/` | `200` | Authenticated | List active sessions. |
-| `DELETE` | `/` | `204` | Authenticated, CSRF required | Revoke current session. |
-| `DELETE` | `/others` | `204` | Authenticated, CSRF required | Revoke other active sessions. |
+## Sessions
 
-Response DTO: [SessionResponseDto](../src/features/sessions/dto/response/session.response.dto.ts)
+| Method | Path | Auth | CSRF | Description |
+|--------|------|------|------|-------------|
+| `GET` | `/v1/sessions` | Authenticated | - | List active sessions (cursor-paginated) |
+| `DELETE` | `/v1/sessions` | Authenticated | Required | Revoke current session (logout) |
+| `DELETE` | `/v1/sessions/others` | Authenticated | Required | Revoke all other sessions |
 
-Exposed fields:
+### GET /v1/sessions
 
-- `sessionId`
-- `ipAddress`
-- `deviceInfo`
-- `validUntil`
-- `lastActivityAt`
-- `current`
+Query params: `cursor`, `limit` (default: 10)
 
-## Admin User Routes
+Response: `200 OK`
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "uuid",
+        "device": { "browserName": "Chrome", "osName": "macOS", "deviceType": "desktop" },
+        "ipAddress": "::1",
+        "isCurrent": true,
+        "lastUsedAt": "...",
+        "createdAt": "..."
+      }
+    ],
+    "currentSession": { "id": "uuid" },
+    "nextCursor": "base64string"
+  }
+}
+```
 
-Controller: [src/features/users/admin.users.controller.ts](../src/features/users/admin.users.controller.ts)
+### DELETE /v1/sessions
 
-Base path: `/v1/admin/users`
+Response: `204 No Content`
 
-| Method | Path | Status | Access | Description |
-| --- | --- | --- | --- | --- |
-| `GET` | `/` | `200` | `ADMIN` role | List users. |
-| `GET` | `/:id` | `200` | `ADMIN` role | Get a user by UUID. |
+---
 
-`GET /:id` validates `id` using [IdDto](../src/infrastructure/http/dto/id.dto.ts).
+## Admin Users
+
+| Method | Path | Auth | CSRF | Description |
+|--------|------|------|------|-------------|
+| `GET` | `/v1/admin/users` | Admin | - | List users (cursor-paginated) |
+| `GET` | `/v1/admin/users/:id` | Admin | - | Get user by ID |
+| `POST` | `/v1/admin/users/:id/suspend` | Admin | Required | Suspend user |
+| `PATCH` | `/v1/admin/users/:id/unsuspend` | Admin | Required | Unsuspend user |
+
+### GET /v1/admin/users
+
+Query params: `cursor`, `limit`
+
+Response: `200 OK`
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "uuid",
+        "email": "user@example.com",
+        "username": "john_doe",
+        "role": "USER",
+        "status": "ACTIVATE",
+        "createdAt": "...",
+        "updatedAt": "...",
+        "deleteAt": null
+      }
+    ],
+    "nextCursor": "base64string"
+  }
+}
+```
+
+### POST /v1/admin/users/:id/suspend
+
+Request:
+```json
+{
+  "reason": "Violation of terms of service"
+}
+```
+
+Response: `204 No Content`
+
+### PATCH /v1/admin/users/:id/unsuspend
+
+Request: No body
+
+Response: `204 No Content`
+
+Errors: `404 USER_NOT_FOUND`, `409 INVALID_STATUS_TRANSITION`
+
+---
+
+## Swagger
+
+Available in development mode at `http://localhost:8080/api`.
+
+Swagger decorators are defined in each feature's `presentation/swagger/` directory.
+
+---
 
 ## Validation Rules
 
-Email fields:
+| Field | Rules |
+|-------|-------|
+| Email | `IsEmail()`, trimmed, lowercased |
+| Username | 3–30 chars, regex `[a-zA-Z0-9._]`, no leading/trailing dots, no consecutive dots, trimmed, lowercased |
+| Password | 8–20 chars, requires lowercase + uppercase + digit + non-alphanumeric |
+| ID | UUID v4 |
 
-- Use `class-validator` `IsEmail`.
-- Trim and lowercase input.
+Validation errors return `422 UNPROCESSABLE ENTITY` with `VALIDATION_ERROR` domain.
 
-Username fields:
+---
 
-- Trim and lowercase input.
-- Must match `USERNAME_REGEX` from [src/core/validation/rules/username.rules.ts](../src/core/validation/rules/username.rules.ts).
-- Length range: 3 to 30.
-- Allows letters, numbers, dot, and underscore, with no leading/trailing dot and no consecutive dots.
+## Cookies
 
-Password fields:
-
-- Must match `PASSWORD_REGEX` from [src/core/validation/rules/password.rules.ts](../src/core/validation/rules/password.rules.ts).
-- Length range: 8 to 20.
-- Requires lowercase, uppercase, digit, and a non-alphanumeric character.
-
-## Current API Gaps
-
-- No health, readiness, or metrics endpoints exist.
-- No endpoint exists to clear auth cookies directly.
-- No pagination exists on `GET /v1/admin/users`.
-- No request DTO exists for query parameters on list endpoints.
-- `ErrorResponseDto` exists for Swagger docs, but runtime errors use `GlobalExceptionFilter`'s `{ error: ... }` shape.
+| Cookie | Type | HTTP-only | SameSite | Description |
+|--------|------|-----------|----------|-------------|
+| `access_token` | JWT | Yes | Lax | Bearer token for API access (15 min) |
+| `refresh_token` | JWT | Yes | Lax | Token for refresh (7 days) |
+| `csrf_token` | Hex | No | Lax | CSRF double-submit token |

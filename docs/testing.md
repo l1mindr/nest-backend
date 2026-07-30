@@ -1,184 +1,224 @@
 # Testing
 
-This document describes the test setup that exists in the repository.
+## Tooling
 
-## Test Tooling
+| Tool | Purpose |
+|------|---------|
+| Jest 29 | Test runner |
+| ts-jest | TypeScript compilation |
+| `@nestjs/testing` | NestJS module bootstrapping |
+| supertest | HTTP assertions |
 
-Packages:
+## Configuration
 
-- `jest`
-- `ts-jest`
-- `@nestjs/testing`
-- `supertest`
-- `@types/jest`
-- `@types/supertest`
+Three Jest configs:
 
-Configs:
+| Config | Purpose |
+|--------|---------|
+| `jest.unit.config.ts` | Unit tests (colocated `*.spec.ts`) |
+| `jest.e2e.config.ts` | E2E tests (under `test/v1/`) |
+| `jest.config.ts` | Combined (all specs) |
 
-- [jest.config.ts](../jest.config.ts): general Jest config.
-- [jest.unit.config.ts](../jest.unit.config.ts): unit specs, `**/*.spec.ts`.
-- [jest.e2e.config.ts](../jest.e2e.config.ts): e2e specs, `**/*.e2e-spec.ts`.
+## Test Location
 
-All Jest configs use:
+### Unit Tests
 
-- `preset: 'ts-jest'`
-- `testEnvironment: 'node'`
-- TypeScript path alias mapping from `tsconfig.json`
+Unit tests are **colocated** inside an `__tests__/` directory at the same level as the implementation file:
 
-## Test Scripts
+```
+application/
+├── use-cases/
+│   ├── __tests__/
+│   │   ├── login.use-case.spec.ts
+│   │   ├── register.use-case.spec.ts
+│   │   └── refresh.use-case.spec.ts
+│   ├── login.use-case.ts
+│   ├── register.use-case.ts
+│   └── refresh.use-case.ts
+├── services/
+│   ├── __tests__/
+│   │   └── auth-cookie.service.spec.ts
+│   └── auth-cookie.service.ts
+└── mappers/
+    ├── __tests__/
+    │   └── user.mapper.spec.ts
+    └── user.mapper.ts
+```
 
-From [package.json](../package.json):
+This pattern is consistent across all modules:
+- `repositories/__tests__/` → Repository tests
+- `services/__tests__/` → Service tests
+- `use-cases/__tests__/` → Use case tests
+- `mappers/__tests__/` → Mapper tests
 
-| Script                | Purpose                                   |
-| --------------------- | ----------------------------------------- |
-| `pnpm run test`       | Unit tests through `jest.unit.config.ts`. |
-| `pnpm run test:unit`  | Unit tests through `jest.unit.config.ts`. |
-| `pnpm run test:watch` | Jest watch mode through `jest.config.ts`. |
-| `pnpm run test:cov`   | Jest coverage.                            |
-| `pnpm run test:debug` | Jest with Node inspector.                 |
-| `pnpm run test:e2e`   | E2E tests through `jest.e2e.config.ts`.   |
+### E2E Tests
 
-## Unit Tests
+E2E tests live under `test/v1/` and follow the API version:
+```
+test/
+├── bootstrap/test-app.ts          # createTestApp() utility
+├── factories/
+│   ├── auth.factory.ts            # register + login helpers
+│   └── user.factory.ts            # user creation helpers
+├── helpers/
+│   ├── postgresql.helper.ts       # runMigrations, truncateDatabase
+│   └── redis.helper.ts            # flushRedis
+├── v1/
+│   ├── admin-user-v1.e2e-spec.ts
+│   ├── auth-change-password-v1.e2e-spec.ts
+│   ├── auth-refresh-v1.e2e-spec.ts
+│   ├── auth-status-v1.e2e-spec.ts
+│   ├── coin-tracker-v1.e2e-spec.ts
+│   ├── csrf-v1.e2e-spec.ts
+│   ├── session-limit.e2e-spec.ts
+│   ├── sessions-v1.e2e-spec.ts
+│   ├── users-delete-account-v1.e2e-spec.ts
+│   ├── users-v1.e2e-spec.ts
+│   └── validation-hardening-v1.e2e-spec.ts
+└── integration/
+    └── session-limit-concurrency.e2e-spec.ts
+```
 
-Current unit specs:
+## Unit Test Patterns
 
-- [src/core/clock/clock.service.spec.ts](../src/core/clock/clock.service.spec.ts)
-- [src/features/auth/auth.service.spec.ts](../src/features/auth/auth.service.spec.ts)
-- [src/features/token/token.service.spec.ts](../src/features/token/token.service.spec.ts)
-- [src/features/users/users.service.spec.ts](../src/features/users/users.service.spec.ts)
-- [src/features/sessions/sessions.service.spec.ts](../src/features/sessions/sessions.service.spec.ts)
-- [src/infrastructure/databases/redis/redis.service.spec.ts](../src/infrastructure/databases/redis/redis.service.spec.ts)
-- [src/infrastructure/databases/redis/redis-lock.service.spec.ts](../src/infrastructure/databases/redis/redis-lock.service.spec.ts)
+### Use Case Tests
 
-Unit tests focus on service behavior and use mocks/fakes rather than booting the full app.
+Use cases are tested by direct instantiation with mocked dependencies (no `TestingModule`):
 
-## E2E Tests
+```typescript
+import { UserErrors } from '../../../domain/errors/user-errors';
+import { RegisterUseCase } from '../register.use-case';
 
-Current e2e specs:
+describe('RegisterUseCase', () => {
+  let useCase: RegisterUseCase;
 
-- [test/v1/auth-register-v1.e2e-spec.ts](../test/v1/auth-register-v1.e2e-spec.ts)
-- [test/v1/auth-login-v1.e2e-spec.ts](../test/v1/auth-login-v1.e2e-spec.ts)
-- [test/v1/auth-refresh-v1.e2e-spec.ts](../test/v1/auth-refresh-v1.e2e-spec.ts)
-- [test/v1/users-v1.e2e-spec.ts](../test/v1/users-v1.e2e-spec.ts)
-- [test/v1/sessions-v1.e2e-spec.ts](../test/v1/sessions-v1.e2e-spec.ts)
-- [test/v1/admin-user-v1.e2e-spec.ts](../test/v1/admin-user-v1.e2e-spec.ts)
+  const mockUserRepository = {
+    findByEmailOrUsername: jest.fn(),
+    insertUser: jest.fn()
+  };
 
-E2E tests cover:
+  const mockHashingProvider = {
+    hash: jest.fn()
+  };
 
-- Registration validation and uniqueness.
-- Login by email and username.
-- Invalid login attempts.
-- Refresh success, refresh reuse detection, and concurrent refresh behavior.
-- Current profile retrieval and profile updates.
-- Session listing, current-session revocation, and terminating other sessions.
-- Admin-only user listing.
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useCase = new RegisterUseCase(
+      mockUserRepository as any,
+      mockHashingProvider as any
+    );
+  });
 
-## Test Application Bootstrap
+  it('should register a new user', async () => {
+    // ...
+  });
+});
+```
 
-File: [test/bootstrap/test-app.ts](../test/bootstrap/test-app.ts)
+Key patterns:
+- Mocks are plain objects with `jest.fn()` methods
+- Use case is instantiated directly with `new` (not `TestingModule`)
+- Mock objects cast with `as any` or `as unknown as TargetType`
+- `mockDataSource.transaction` stubbed to execute the callback synchronously
+- `jest.clearAllMocks()` in `beforeEach`
 
-`createTestApp()`:
+### Service Tests
 
-1. Sets `process.env.NODE_ENV = 'test'`.
-2. Creates a testing module with `AppModule`.
-3. Creates a Nest application.
-4. Calls `setupApp(app)`.
-5. Calls `app.init()`.
-6. Enables shutdown hooks.
-7. Returns the app and TypeORM `DataSource`.
+Services that depend on Nest providers use `Test.createTestingModule()`:
 
-## Test Helpers
+```typescript
+import { Test } from '@nestjs/testing';
 
-### ApiClient
+describe('RedisService', () => {
+  let service: RedisService;
 
-File: [test/helpers/api-client.helper.ts](../test/helpers/api-client.helper.ts)
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      providers: [
+        RedisService,
+        { provide: REDIS_CLIENT, useValue: mockClient }
+      ]
+    }).compile();
 
-Wraps `supertest.agent(app.getHttpServer())` and provides:
+    service = module.get(RedisService);
+  });
+});
+```
 
-- `get`
-- `post`
-- `patch`
-- `put`
-- `delete`
+### Repository Tests
 
-Each method accepts optional headers, query, and body.
+Repositories use `TypeOrmModule` with a test database or mocked query runner.
 
-### PostgreSQL Helpers
+## E2E Test Patterns
 
-File: [test/helpers/postgresql.helper.ts](../test/helpers/postgresql.helper.ts)
+### Bootstrap
 
-Functions:
-
-- `runMigrations(dataSource)`
-- `truncateDatabase(dataSource)`
-
-`truncateDatabase()` truncates all TypeORM entity tables with `RESTART IDENTITY CASCADE`.
-
-### Redis Helper
-
-File: [test/helpers/redis.helper.ts](../test/helpers/redis.helper.ts)
-
-`clearRedis(app)` gets `RedisService` from Nest and calls `flushdb()`.
+`createTestApp()` in `test/bootstrap/test-app.ts`:
+1. Sets `NODE_ENV=test`
+2. Creates `AppModule` via `Test.createTestingModule`
+3. Calls `setupApp()` for global configuration
+4. Returns `{ app, dataSource }`
 
 ### Factories
 
-Files:
+**UserFactory** — Registers users via API:
+- `UserFactory.register(app)` → returns `{ user, client }`
+- `UserFactory.admin(app)` → promotes user to `ADMIN`
+- `UserFactory.verifyEmail(app, email)` → verifies via repository
 
-- [test/factories/user.factory.ts](../test/factories/user.factory.ts)
-- [test/factories/auth.factory.ts](../test/factories/auth.factory.ts)
+**AuthFactory** — Registers + logs in:
+- `AuthFactory.registerAndLogin(app)` → returns context with cookies
 
-`UserFactory` registers users through the real API. `UserFactory.admin()` registers a user and updates the database role to `ADMIN`.
+### Helpers
 
-`AuthFactory` registers and logs in users, then extracts refresh and CSRF cookies for subsequent requests.
+- `testApi(app)` → supertest wrapper with cookie jar
+- `postgresql.helper.ts` → `runMigrations()`, `truncateDatabase()`
+- `redis.helper.ts` → `flushRedis(db)`
 
-## Dockerized E2E Tests
-
-File: [docker/test/e2e/docker-compose.yml](../docker/test/e2e/docker-compose.yml)
-
-Services:
-
-- `migration`: default production image stage and one-shot migration command.
-- `app`: Docker `test` target; waits for the migration job to succeed.
-- `postgres`: `postgres:17-alpine`, exposed as host port `5433`.
-- `redis`: `redis:7-alpine`, exposed as host port `6380`.
-
-The migration container runs:
+## Running Tests
 
 ```bash
-npm run migration:run
+# Unit tests only
+pnpm run test:unit
+
+# E2E tests (requires running PostgreSQL + Redis)
+pnpm run test:e2e
+
+# Dockerized E2E
+pnpm run test:e2e:docker
+
+# Specific test file
+npx jest --no-coverage --testPathPattern 'unsuspend-user.use-case'
+
+# All users module tests
+npx jest --no-coverage --testPathPattern 'src/features/users'
 ```
 
-The app container then runs `pnpm run test:e2e:docker`, which performs:
+## CI Pipeline
 
-1. `pnpm run build`
-2. `pnpm run test:e2e`
+```
+corepack enable → pnpm install --frozen-lockfile
+  → lint (eslint)
+  → typecheck (tsc --noEmit)
+  → build (nest build)
+  → unit tests (jest --config jest.unit.config.ts)
+  → build production Docker image
+  → dockerized e2e (docker-compose -f docker/test/e2e)
+  → cleanup
+```
 
-CI and local Docker runs build both application images, wait for PostgreSQL and
-Redis health checks, execute the disposable migration container, and only then
-execute the disposable test container.
+## Current Test Coverage
 
-## CI
-
-File: [.github/workflows/ci.yml](../.github/workflows/ci.yml)
-
-CI runs:
-
-1. Enable Corepack.
-2. Setup Node 22.
-3. `pnpm install --frozen-lockfile`.
-4. `pnpm run lint`.
-5. `pnpm run typecheck`.
-6. `pnpm run build`.
-7. `pnpm run test:unit`.
-8. Build the default production Docker image.
-9. Dockerized production-image migration and e2e tests.
-10. Docker Compose cleanup.
-
-## Current Testing Gaps
-
-- No tests were found for CSRF guard behavior directly.
-- No tests were found for role guard internals directly.
-- No tests were found for device-detection middleware.
-- No tests were found for `GlobalExceptionFilter`.
-- No tests were found for Swagger output.
-- Coverage thresholds are not configured.
+| Area | Test Files | Type |
+|------|-----------|------|
+| Auth | register, login, refresh, change-password use cases | Unit |
+| Sessions | issue, rotation, revocation use cases; cursor, list, query services; repository | Unit |
+| Token | issue, verification, validation services | Unit |
+| Users | create, update, delete, suspend, unsuspend, admin, initiate-registration, verify-email, resend-verification, cleanup-pending use cases; query service, repository | Unit |
+| Auth E2E | register, login, refresh, change-password, status enforcement | E2E |
+| Sessions E2E | list, revoke, pagination, session limit concurrency | E2E |
+| Security E2E | CSRF protection | E2E |
+| Users E2E | profile, delete account, admin operations | E2E |
+| Infrastructure | clock service, Redis services, env schema | Unit |
+| Infinity | validation hardening | E2E |
+| Coin Tracker | sync, price check, alerts | E2E |

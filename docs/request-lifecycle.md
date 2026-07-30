@@ -1,162 +1,100 @@
 # Request Lifecycle
 
-This document follows an HTTP request through the current NestJS application.
+## Order of Execution
 
-## Lifecycle Overview
+```
+1. Bootstrap Middleware (Helmet, compression, cookie parser, URI versioning, Swagger)
+2. DeviceMiddleware (parse User-Agent → attach req.device)
+3. JwtGuard (global) — extract & validate access_token, attach req.user + req.session
+4. RolesGuard (global) — check @Roles() metadata against user role
+5. CsrfGuard (global) — validate X-CSRF-Token header for unsafe methods
+6. RateLimitGuard (per-route) — check rate limit via Redis counter
+7. DataResponseInterceptor (global) — wrap response in { data: ... }
+8. ValidationPipe (global) — whitelist, forbidNonWhitelisted, transform, 422 on error
+9. Controller — validate params, call use case
+10. Use Case — orchestrate business logic
+11. Service/Repository — data access, external calls
+12. SerializeInterceptor (per-route) — strip non-@Expose fields
+13. AuthCookieInterceptor (login/refresh) — set httpOnly cookies
+14. Response sent to client
+```
+
+## Error Flow
+
+Any exception thrown in steps 3–13 is caught by `GlobalExceptionFilter`:
+- `AppError` → mapped to `{ error: { code, domain, message, meta, path, timestamp } }`
+- Unknown errors → `500 INTERNAL_ERROR / SYSTEM`
+
+## Detailed Chain
 
 ```mermaid
-flowchart TD
-  Client[Client] --> Express[Express/Nest adapter]
-  Express --> Middleware[DeviceMiddleware]
-  Middleware --> Guards[Global guards]
-  Guards --> InterceptorBefore[Interceptors before handler]
-  InterceptorBefore --> Pipes[ValidationPipe and parameter pipes]
-  Pipes --> Controller[Controller method]
-  Controller --> Service[Feature service]
-  Service --> DB[(PostgreSQL / Redis)]
-  DB --> Service
-  Service --> Controller
-  Controller --> InterceptorAfter[Interceptors after handler]
-  InterceptorAfter --> Response[HTTP response]
-  Guards --> Error[Exception]
-  Pipes --> Error
-  Service --> Error
-  Error --> Filter[GlobalExceptionFilter]
-  Filter --> ErrorResponse[Error response]
+flowchart LR
+    REQ[HTTP Request]
+
+    subgraph Middleware
+        H[Helmet]
+        CP[Cookie Parser]
+        UV[URI Versioning]
+        SW[Swagger<br/>dev only]
+        DM[Device Middleware]
+    end
+
+    subgraph Guards
+        JG[JwtGuard]
+        RG[RolesGuard]
+        CG[CsrfGuard]
+        RLG[RateLimitGuard]
+    end
+
+    subgraph Interceptors
+        DRI[DataResponseInterceptor]
+    end
+
+    subgraph Pipes
+        VP[ValidationPipe]
+    end
+
+    subgraph Controller
+        C[Controller]
+        UC[Use Case]
+        S[Service / Repository]
+    end
+
+    subgraph Post-Processing
+        SI[SerializeInterceptor]
+        ACI[AuthCookieInterceptor]
+    end
+
+    REQ --> H --> CP --> UV --> SW --> DM
+    DM --> JG --> RG --> CG --> RLG
+    RLG --> DRI --> VP --> C
+    C --> UC --> S
+    S --> SI --> ACI --> RESP[Response]
 ```
 
-## 1. Bootstrap Middleware
+## Global Registration
 
-[setupApp()](../src/bootstrap.ts) registers:
+| Component | Registration | Module |
+|-----------|-------------|--------|
+| `ValidationPipe` | `APP_PIPE` | `PresentationModule` |
+| `DataResponseInterceptor` | `APP_INTERCEPTOR` | `PresentationModule` |
+| `JwtGuard` | `APP_GUARD` | `SecurityModule` |
+| `RolesGuard` | `APP_GUARD` | `SecurityModule` |
+| `CsrfGuard` | `APP_GUARD` | `SecurityModule` |
+| `GlobalExceptionFilter` | `APP_FILTER` | `SecurityModule` |
+| `DeviceMiddleware` | Global middleware | `DeviceDetectionModule` |
 
-- Helmet middleware.
-- Compression middleware.
-- Cookie parser.
-- URI versioning.
-- Swagger in development.
+## Decorator-Based Registration
 
-`DeviceDetectionModule` also applies `DeviceMiddleware` to all routes.
+| Component | Registration |
+|-----------|-------------|
+| `RateLimitGuard` | `@RateLimit({ limit, ttl })` on controller/route |
+| `SerializeInterceptor` | `@Serialize(Dto)` on controller method |
+| `AuthCookieInterceptor` | `@UseInterceptors(AuthCookieInterceptor)` on login/refresh |
 
-## 2. Device Middleware
+## Bypass Mechanisms
 
-File: [src/features/security/device-detection/device.middleware.ts](../src/features/security/device-detection/device.middleware.ts)
-
-`DeviceMiddleware` calls `DeviceDetectorService.detect(req)` and assigns:
-
-```ts
-req.device = ...
-```
-
-The `@Device()` decorator later reads this value for login.
-
-## 3. Global Guards
-
-Global guards are registered through `APP_GUARD`.
-
-### JwtGuard
-
-Skips routes marked with `@Public()`. For all other routes:
-
-1. Reads `access_token` cookie.
-2. Verifies JWT through `JwtStrategy`.
-3. Loads user and session through `TokenService`.
-4. Attaches `request.user` and `request.session`.
-
-### RolesGuard
-
-Checks `@Roles()` metadata. If roles are required, it compares them against `request.user.role`.
-
-### RateLimitGuard
-
-Checks `@RateLimit()` metadata. If present, it increments a Redis counter for the route/IP pair.
-
-### CsrfGuard
-
-Allows safe methods and routes marked `@SkipCsrf()`. For unsafe methods, it compares `csrf_token` cookie to `x-csrf-token` header.
-
-## 4. Interceptors
-
-### DataResponseInterceptor
-
-Global interceptor registered in `InfrastructureModule`.
-
-Wraps successful responses as:
-
-```json
-{
-  "data": "handler result"
-}
-```
-
-### SerializeInterceptor
-
-Applied per route by `@Serialize(Dto)`.
-
-Uses `class-transformer` to expose only fields decorated with `@Expose()`.
-
-### AuthCookieInterceptor
-
-Applied to login and refresh routes.
-
-After handler success, it sets:
-
-- `access_token`
-- `refresh_token`
-- `csrf_token`
-
-## 5. Pipes and DTO Validation
-
-The global `ValidationPipe`:
-
-- Whitelists DTO fields.
-- Rejects non-whitelisted fields.
-- Transforms incoming values.
-- Uses implicit conversion.
-- Returns `422` for validation errors.
-
-DTO field decorators normalize email/username values and enforce password/username regex rules.
-
-## 6. Controller
-
-Controllers declare HTTP routes and delegate to services.
-
-Examples:
-
-- `AuthController.signInUser()` delegates to `AuthService.loginUser()`.
-- `UsersController.changeProfile()` delegates to `UsersService.updateProfile()`.
-- `SessionsController.terminateOthers()` delegates to `SessionsService.terminateOthers()`.
-
-## 7. Services and Persistence
-
-Services implement workflow logic and use:
-
-- TypeORM `DataSource` repositories for PostgreSQL.
-- Redis services for counters and refresh-flow keys.
-- JWT service for token signing/verification.
-- Hashing provider for passwords and refresh tokens.
-
-## 8. Error Handling
-
-`GlobalExceptionFilter` catches all exceptions.
-
-It maps unknown exceptions through `ErrorMapper.from()` and returns:
-
-```json
-{
-  "error": {
-    "code": "...",
-    "domain": "...",
-    "message": "...",
-    "meta": {},
-    "path": "...",
-    "timestamp": "..."
-  }
-}
-```
-
-Unknown errors are mapped to:
-
-- HTTP `500`
-- code `INTERNAL_ERROR`
-- domain `SYSTEM`
-- message `Unexpected error`
+| Decorator | Effect |
+|-----------|--------|
+| `@Public()` | Bypasses `JwtGuard` (route accessible without authentication) |
+| `@SkipCsrf()` | Bypasses `CsrfGuard` (no CSRF check for this route) |
