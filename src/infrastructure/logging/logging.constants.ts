@@ -13,6 +13,7 @@ export enum LogEvent {
 
   SESSION_REVOKED = 'session.revoked',
   USER_SUSPENDED = 'user.suspended',
+  USER_UNSUSPENDED = 'user.unsuspended',
 
   COIN_SYNC_STARTED = 'coin_tracker.sync.started',
   COIN_SYNC_COMPLETED = 'coin_tracker.sync.completed',

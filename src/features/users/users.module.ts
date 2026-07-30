@@ -9,6 +9,7 @@ import { DeleteAccountUseCase } from './application/use-cases/delete-account.use
 import { InitiateRegistrationUseCase } from './application/use-cases/initiate-registration.use-case';
 import { ResendVerificationUseCase } from './application/use-cases/resend-verification.use-case';
 import { SuspendUserUseCase } from './application/use-cases/suspend-user.use-case';
+import { UnsuspendUserUseCase } from './application/use-cases/unsuspend-user.use-case';
 import { UpdateProfileUseCase } from './application/use-cases/update-profile.use-case';
 import { VerifyEmailUseCase } from './application/use-cases/verify-email.use-case';
 import { UserQueryService } from './application/services/user-query.service';
@@ -24,6 +25,7 @@ import {
   INITIATE_REGISTRATION_USE_CASE,
   RESEND_VERIFICATION_USE_CASE,
   SUSPEND_USER_USE_CASE,
+  UNSUSPEND_USER_USE_CASE,
   UPDATE_PROFILE_USE_CASE,
   USER_QUERY_SERVICE,
   USER_REPOSITORY,
@@ -83,6 +85,11 @@ import { UsersController } from './presentation/controllers/users.controller';
     {
       provide: SUSPEND_USER_USE_CASE,
       useExisting: SuspendUserUseCase
+    },
+    UnsuspendUserUseCase,
+    {
+      provide: UNSUSPEND_USER_USE_CASE,
+      useExisting: UnsuspendUserUseCase
     },
     PendingUserCleanupScheduler,
     VerificationCodeService,

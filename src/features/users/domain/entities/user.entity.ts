@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';
+import { UserErrors } from '../errors/user-errors';
 import { SwaggerUserProperties as UserProps } from '../../presentation/swagger/users.swagger';
 
 @Entity()
@@ -61,5 +62,15 @@ export class User {
   @ApiProperty(UserProps.isDeleted)
   get isDeleted() {
     return !!this.registryDates.deleteAt;
+  }
+
+  unsuspend(): void {
+    if (this.status !== UserStatus.SUSPEND) {
+      throw UserErrors.invalidStatusTransition(
+        this.status,
+        UserStatus.ACTIVATE
+      );
+    }
+    this.status = UserStatus.ACTIVATE;
   }
 }

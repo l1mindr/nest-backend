@@ -10,4 +10,10 @@ export abstract class EmailService {
     reason: string,
     suspendedAt: Date
   ): Promise<void>;
+
+  abstract sendUnsuspensionEmail(
+    email: string,
+    displayName: string | null,
+    unsuspendedAt: Date
+  ): Promise<void>;
 }

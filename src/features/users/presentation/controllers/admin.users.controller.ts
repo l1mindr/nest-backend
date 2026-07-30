@@ -11,6 +11,7 @@ import {
   HttpStatus,
   Inject,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -24,13 +25,16 @@ import {
   ADMIN_USERS_USE_CASE,
   IAdminUsersUseCase,
   ISuspendUserUseCase,
-  SUSPEND_USER_USE_CASE
+  IUnsuspendUserUseCase,
+  SUSPEND_USER_USE_CASE,
+  UNSUSPEND_USER_USE_CASE
 } from '../../application/interfaces/users.interface';
 import { UserMapper } from '../../application/mappers/user.mapper';
 import {
   ApiAdminGetAllUsers,
   ApiAdminGetUser,
-  ApiAdminSuspendUser
+  ApiAdminSuspendUser,
+  ApiAdminUnsuspendUser
 } from '../swagger/users.swagger';
 
 @Controller({
@@ -45,6 +49,8 @@ export class AdminUsersController {
     private readonly adminUsersUseCase: IAdminUsersUseCase,
     @Inject(SUSPEND_USER_USE_CASE)
     private readonly suspendUserUseCase: ISuspendUserUseCase,
+    @Inject(UNSUSPEND_USER_USE_CASE)
+    private readonly unsuspendUserUseCase: IUnsuspendUserUseCase,
     private readonly userMapper: UserMapper
   ) {}
 
@@ -83,5 +89,15 @@ export class AdminUsersController {
     @Req() req: IRequest
   ): Promise<void> {
     await this.suspendUserUseCase.execute(req.user.id, id, body.reason);
+  }
+
+  @Patch(':id/unsuspend')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiAdminUnsuspendUser()
+  async unsuspendUser(
+    @Param() { id }: IdDto,
+    @Req() req: IRequest
+  ): Promise<void> {
+    await this.unsuspendUserUseCase.execute(req.user.id, id);
   }
 }

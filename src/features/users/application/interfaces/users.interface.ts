@@ -110,3 +110,9 @@ export const SUSPEND_USER_USE_CASE = Symbol('ISuspendUserUseCase');
 export interface ISuspendUserUseCase {
   execute(adminId: string, userId: string, reason: string): Promise<void>;
 }
+
+export const UNSUSPEND_USER_USE_CASE = Symbol('IUnsuspendUserUseCase');
+
+export interface IUnsuspendUserUseCase {
+  execute(adminId: string, userId: string): Promise<void>;
+}

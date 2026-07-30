@@ -87,4 +87,14 @@ export class UserErrors {
       'User is already suspended'
     );
   }
+
+  static invalidStatusTransition(currentStatus: string, targetStatus: string) {
+    return new AppError(
+      UserErrorCode.INVALID_STATUS_TRANSITION,
+      ErrorDomain.USER,
+      HttpStatus.CONFLICT,
+      { currentStatus, targetStatus },
+      `Cannot transition from ${currentStatus} to ${targetStatus}`
+    );
+  }
 }

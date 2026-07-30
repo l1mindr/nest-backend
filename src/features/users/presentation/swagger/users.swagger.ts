@@ -195,6 +195,37 @@ export const ApiAdminSuspendUser = () =>
     })
   );
 
+/** Admin - Unsuspend User Swagger */
+export const ApiAdminUnsuspendUser = () =>
+  applyDecorators(
+    ApiOperation({ summary: '[Admin] Unsuspend a user' }),
+    ApiParam({
+      name: 'id',
+      type: String,
+      required: true,
+      description: 'User ID'
+    }),
+    ApiResponse({
+      status: 204,
+      description: 'User unsuspended successfully (no content)'
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'User not found',
+      type: ErrorResponseDto
+    }),
+    ApiResponse({
+      status: 409,
+      description: 'User is not suspended — transition not allowed',
+      type: ErrorResponseDto
+    }),
+    ApiResponse({
+      status: 500,
+      description: 'Internal Server Error',
+      type: ErrorResponseDto
+    })
+  );
+
 /** Admin - Get Single User Swagger */
 export const ApiAdminGetUser = () =>
   applyDecorators(

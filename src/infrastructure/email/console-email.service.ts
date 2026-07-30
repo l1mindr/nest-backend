@@ -20,4 +20,15 @@ export class ConsoleEmailService extends EmailService {
       `[EMAIL] Account suspended for ${name} (${email}): ${reason} at ${suspendedAt.toISOString()}`
     );
   }
+
+  async sendUnsuspensionEmail(
+    email: string,
+    displayName: string | null,
+    unsuspendedAt: Date
+  ): Promise<void> {
+    const name = displayName ?? email;
+    this.logger.log(
+      `[EMAIL] Account unsuspended for ${name} (${email}) at ${unsuspendedAt.toISOString()}`
+    );
+  }
 }
