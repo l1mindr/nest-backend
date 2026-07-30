@@ -22,6 +22,7 @@ import { Request } from 'express';
 import {
   ApiChangePassword,
   ApiLoginUser,
+  ApiRefreshToken,
   ApiRegisterUser
 } from '../swagger/auth.swagger';
 import {
@@ -85,7 +86,7 @@ export class AuthController {
   @UseInterceptors(AuthCookieInterceptor)
   @RateLimit({ limit: 20, ttl: 60 })
   @SkipCsrf()
-  @ApiLoginUser()
+  @ApiRefreshToken()
   async refreshTokens(@Req() req: Request) {
     return await this.refreshUseCase.refresh(req.cookies.refresh_token);
   }

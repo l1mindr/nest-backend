@@ -48,6 +48,30 @@ export function ApiLoginUser() {
   );
 }
 
+export function ApiRefreshToken() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Refresh access token using refresh token cookie'
+    }),
+    ApiResponse({
+      status: 200,
+      description:
+        'Tokens refreshed successfully, new JWT set in HttpOnly cookie',
+      type: LoginUserResponseDto
+    }),
+    ApiBadRequestResponse({
+      description: 'Missing or malformed refresh token cookie'
+    }),
+    ApiUnauthorizedResponse({
+      description: 'Invalid or expired refresh token'
+    }),
+    ApiInternalServerErrorResponse({
+      description: 'Unexpected server error'
+    }),
+    ApiCookieAuth()
+  );
+}
+
 export function ApiChangePassword() {
   return applyDecorators(
     ApiOperation({
