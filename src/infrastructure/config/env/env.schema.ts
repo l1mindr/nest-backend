@@ -99,6 +99,19 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
 
   MAX_ACTIVE_SESSIONS: Joi.number().integer().min(5).required(),
 
+  BCRYPT_ROUNDS: Joi.number()
+    .integer()
+    .min(4)
+    .max(15)
+    .default(10)
+    .optional()
+    .messages({
+      'number.base': 'BCRYPT_ROUNDS must be a valid integer.',
+      'number.integer': 'BCRYPT_ROUNDS must be a valid integer.',
+      'number.min': 'BCRYPT_ROUNDS must be between 4 and 15.',
+      'number.max': 'BCRYPT_ROUNDS must be between 4 and 15.'
+    }),
+
   LOG_LEVEL: Joi.string()
     .valid('info', 'debug', 'warn', 'error', 'silent')
     .optional(),
