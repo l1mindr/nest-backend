@@ -5,7 +5,28 @@ import { INestApplication } from '@nestjs/common';
 import { createTestApp } from '../bootstrap/test-app';
 import { clearRedis } from '../helpers/redis.helper';
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Polls until the lock key is gone instead of sleeping a fixed duration. The
+ * assertion is the same (the lock must be released after its TTL) but the wait
+ * ends as soon as Redis confirms expiry, so the test is faster and immune to
+ * clock drift.
+ */
+async function waitForLockExpiry(
+  redisService: RedisService,
+  key: string,
+  timeoutMs = 3_000
+): Promise<void> {
+  const deadline = performance.now() + timeoutMs;
+
+  while (performance.now() < deadline) {
+    if ((await redisService.get(key)) === null) return;
+    await delay(25);
+  }
+
+  throw new Error(`Timed out waiting for lock "${key}" to expire`);
+}
 
 /**
  * Exercises the ownership-safe distributed lock against a real Redis so the
@@ -62,8 +83,8 @@ describe('RedisLockService ownership (integration)', () => {
       await lockService.acquire(RedisKey.REFRESH_LOCK, 'expire', 1)
     ).toBeNull();
 
-    // After the TTL elapses the key is gone and can be taken again.
-    await sleep(1200);
+    // Once the TTL elapses the key is gone and can be taken again.
+    await waitForLockExpiry(redisService, keyFor('expire'));
     const second = await lockService.acquire(
       RedisKey.REFRESH_LOCK,
       'expire',
@@ -79,7 +100,7 @@ describe('RedisLockService ownership (integration)', () => {
       1
     );
 
-    await sleep(1200);
+    await waitForLockExpiry(redisService, keyFor('handoff'));
 
     const secondOwner = await lockService.acquire(
       RedisKey.REFRESH_LOCK,
@@ -102,7 +123,7 @@ describe('RedisLockService ownership (integration)', () => {
       1
     );
     expect(staleToken).not.toBeNull();
-    await sleep(1200);
+    await waitForLockExpiry(redisService, keyFor('race'));
 
     // New owner acquires the freed lock.
     const currentToken = await lockService.acquire(
