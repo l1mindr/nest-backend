@@ -1,19 +1,27 @@
 import { TimeConstants } from '@infrastructure/clock/time.constants';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { randomInt } from 'crypto';
 
 @Injectable()
 export class VerificationCodeService {
-  constructor(private readonly clockService: ClockService) {}
+  private readonly rounds: number;
+
+  constructor(
+    private readonly clockService: ClockService,
+    configService: ConfigService
+  ) {
+    this.rounds = configService.get<number>('BCRYPT_ROUNDS') ?? 10;
+  }
 
   generate(): string {
     return randomInt(100_000, 1_000_000).toString();
   }
 
   async hash(code: string): Promise<string> {
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(this.rounds);
     return bcrypt.hash(code, salt);
   }
 

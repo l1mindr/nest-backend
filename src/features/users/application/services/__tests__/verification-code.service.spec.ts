@@ -1,5 +1,6 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { TimeConstants } from '@infrastructure/clock/time.constants';
+import { ConfigService } from '@nestjs/config';
 import { VerificationCodeService } from '../verification-code.service';
 
 describe('VerificationCodeService', () => {
@@ -9,10 +10,15 @@ describe('VerificationCodeService', () => {
     nowDate: jest.fn()
   };
 
+  const mockConfigService = {
+    get: jest.fn().mockReturnValue(4)
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     service = new VerificationCodeService(
-      mockClockService as unknown as ClockService
+      mockClockService as unknown as ClockService,
+      mockConfigService as unknown as ConfigService
     );
   });
 
