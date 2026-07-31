@@ -42,7 +42,14 @@ export async function createTestApp(): Promise<ITextContext> {
     app = moduleFixture.createNestApplication<NestExpressApplication>();
 
     await setupApp(app);
-    await app.init();
+
+    // `init()` wires the application up but never binds a socket, and supertest
+    // opens an ephemeral listener of its own for any server that is not already
+    // listening — then closes it again once the response completes. That is a
+    // bind/close pair per request, and a close that lands while a concurrent
+    // request is still in flight surfaces as a stray `ECONNRESET`. Listening
+    // once per spec makes supertest reuse this address for every request.
+    await app.listen(0);
 
     const dataSource = app.get(DataSource);
 
