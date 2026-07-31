@@ -50,7 +50,7 @@ export function postgresConnection() {
   return {
     host: process.env.DATA_SOURCE_HOST,
     port: Number(process.env.DATA_SOURCE_PORT),
-    user: process.env.DATA_SOURCE_USERNAME,
+    username: process.env.DATA_SOURCE_USERNAME,
     password: process.env.DATA_SOURCE_PASSWORD
   };
 }
