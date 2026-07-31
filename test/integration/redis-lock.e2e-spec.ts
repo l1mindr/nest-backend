@@ -29,6 +29,25 @@ async function waitForLockExpiry(
 }
 
 /**
+ * Shortens an already-held lock so Redis drops the key straight away, then
+ * waits for the removal to actually land.
+ *
+ * `RedisLockService` sets its TTL with `SET ... EX`, whose smallest unit is one
+ * second, so a test that only needs a lock to be *gone* before the assertion it
+ * cares about would otherwise sleep a full second. Expiry is still performed by
+ * Redis rather than simulated, and the natural end-to-end TTL path stays
+ * covered by the "lets the lock expire after its TTL" test below.
+ */
+async function forceLockExpiry(
+  redisService: RedisService,
+  key: string
+): Promise<void> {
+  await redisService.client.pexpire(key, 1);
+
+  await waitForLockExpiry(redisService, key);
+}
+
+/**
  * Exercises the ownership-safe distributed lock against a real Redis so the
  * TTL expiry and the Lua compare-and-delete are validated end to end.
  */
@@ -100,7 +119,7 @@ describe('RedisLockService ownership (integration)', () => {
       1
     );
 
-    await waitForLockExpiry(redisService, keyFor('handoff'));
+    await forceLockExpiry(redisService, keyFor('handoff'));
 
     const secondOwner = await lockService.acquire(
       RedisKey.REFRESH_LOCK,
@@ -123,7 +142,7 @@ describe('RedisLockService ownership (integration)', () => {
       1
     );
     expect(staleToken).not.toBeNull();
-    await waitForLockExpiry(redisService, keyFor('race'));
+    await forceLockExpiry(redisService, keyFor('race'));
 
     // New owner acquires the freed lock.
     const currentToken = await lockService.acquire(
