@@ -9,7 +9,6 @@ import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
 import { setupApp } from '../../src/bootstrap';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { runMigrations } from '../helpers/postgresql.helper';
 
 export interface ITextContext {
   app: INestApplication;
@@ -63,16 +62,15 @@ export async function createTestApp(): Promise<ITextContext> {
   }
 }
 
+/**
+ * Schema preparation now happens once per worker database in the Jest global
+ * setup, so this only has to hand back an application connected to an already
+ * migrated database. It stays as a distinct entry point to keep the intent of
+ * each spec explicit: specs that touch tables use this, the rest use
+ * {@link createTestApp}.
+ */
 export async function createMigratedTestApp(): Promise<ITextContext> {
-  const context = await createTestApp();
-
-  try {
-    await runMigrations(context.dataSource);
-
-    return context;
-  } catch (error) {
-    return closeAfterSetupFailure(context.app, error);
-  }
+  return createTestApp();
 }
 
 async function closeAfterSetupFailure(

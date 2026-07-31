@@ -1,21 +1,11 @@
 import { DataSource } from 'typeorm';
 
-export async function runMigrations(dataSource: DataSource) {
-  if (!dataSource.isInitialized) {
-    await dataSource.initialize();
-  }
-
-  await dataSource.runMigrations();
-}
-
 export async function truncateDatabase(dataSource: DataSource) {
-  const entities = dataSource.entityMetadatas;
+  const tables = dataSource.entityMetadatas.map((e) => `"${e.tableName}"`);
 
-  for (const entity of entities) {
-    const repository = dataSource.getRepository(entity.name);
+  if (tables.length === 0) return;
 
-    await repository.query(
-      `TRUNCATE TABLE "${entity.tableName}" RESTART IDENTITY CASCADE;`
-    );
-  }
+  await dataSource.query(
+    `TRUNCATE TABLE ${tables.join(', ')} RESTART IDENTITY CASCADE;`
+  );
 }
