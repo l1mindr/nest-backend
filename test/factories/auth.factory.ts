@@ -59,9 +59,9 @@ export class AuthFactory {
       }
 
       context = await UserFactory.admin(app, dataSource, options.overrides);
+    } else {
+      context = await UserFactory.register(app, options.overrides);
     }
-
-    context = await UserFactory.register(app, options.overrides);
 
     await UserFactory.verifyEmail(app, context.user.email);
 
