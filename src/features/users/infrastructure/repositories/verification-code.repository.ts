@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, IsNull, Repository } from 'typeorm';
+import { DataSource, EntityManager, IsNull, Repository } from 'typeorm';
 import { IVerificationCodeRepository } from '../../application/interfaces/users.interface';
 import { UserVerificationCode } from '../../domain/entities/user-verification-code.entity';
 
@@ -14,10 +14,14 @@ export class VerificationCodeRepository implements IVerificationCodeRepository {
   async store(
     userId: string,
     codeHash: string,
-    expiresAt: Date
+    expiresAt: Date,
+    manager?: EntityManager
   ): Promise<UserVerificationCode> {
-    return this.repo.save(
-      this.repo.create({
+    const repository =
+      manager?.getRepository(UserVerificationCode) ?? this.repo;
+
+    return repository.save(
+      repository.create({
         userId,
         codeHash,
         expiresAt

@@ -1,8 +1,11 @@
 import { EmailService } from '@infrastructure/email/email.service';
-import { TimeConstants } from '@infrastructure/clock/time.constants';
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
+import { DataSource } from 'typeorm';
 import { CreateUserRequestDto } from '../../presentation/dto/request/create-user.request.dto';
+import { User } from '../../domain/entities/user.entity';
 import { UserStatus } from '../../domain/enums/user-status.enum';
 import {
   IInitiateRegistrationUseCase,
@@ -13,6 +16,7 @@ import {
 } from '../interfaces/users.interface';
 import { throwOnUniqueConstraint } from '../../infrastructure/providers/unique-constraint.handler';
 import { VerificationCodeService } from '../services/verification-code.service';
+import { VERIFICATION_CODE_TTL_MS } from '../verification.constants';
 
 @Injectable()
 export class InitiateRegistrationUseCase implements IInitiateRegistrationUseCase {
@@ -23,28 +27,58 @@ export class InitiateRegistrationUseCase implements IInitiateRegistrationUseCase
     private readonly verificationCodeRepository: IVerificationCodeRepository,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly clockService: ClockService,
-    private readonly emailService: EmailService
-  ) {}
+    private readonly emailService: EmailService,
+    private readonly dataSource: DataSource,
+    private readonly logger: PinoLogger
+  ) {
+    this.logger.setContext(InitiateRegistrationUseCase.name);
+  }
 
   async execute(dto: CreateUserRequestDto): Promise<void> {
+    const code = this.verificationCodeService.generate();
+    const codeHash = await this.verificationCodeService.hash(code);
+    const now = this.clockService.nowDate();
+    const expiresAt = new Date(now.getTime() + VERIFICATION_CODE_TTL_MS);
+
+    let user: User;
     try {
-      const user = await this.userRepository.insertUser({
-        ...dto,
-        status: UserStatus.PENDING_VERIFICATION
+      user = await this.dataSource.transaction(async (manager) => {
+        const created = await this.userRepository.insertUser(
+          {
+            ...dto,
+            status: UserStatus.PENDING_VERIFICATION
+          },
+          manager
+        );
+
+        await this.verificationCodeRepository.store(
+          created.id,
+          codeHash,
+          expiresAt,
+          manager
+        );
+
+        return created;
       });
-
-      const code = this.verificationCodeService.generate();
-      const codeHash = await this.verificationCodeService.hash(code);
-      const now = this.clockService.nowDate();
-      const expiresAt = new Date(
-        now.getTime() + 3 * TimeConstants.MS_PER_MINUTE
-      );
-
-      await this.verificationCodeRepository.store(user.id, codeHash, expiresAt);
-
-      await this.emailService.sendVerificationEmail(user.email, code);
     } catch (error: unknown) {
       throwOnUniqueConstraint(error);
+    }
+
+    try {
+      await this.emailService.sendVerificationEmail(
+        user.email,
+        code,
+        expiresAt
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        {
+          event: LogEvent.EMAIL_SEND_FAILED,
+          userId: user.id,
+          err: error
+        },
+        'Verification email delivery failed after registration'
+      );
     }
   }
 }

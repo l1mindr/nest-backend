@@ -1,5 +1,7 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 import { UserStatus } from '../../domain/enums/user-status.enum';
 import { UserErrors } from '../../domain/errors/user-errors';
 import {
@@ -10,6 +12,8 @@ import {
   VERIFICATION_CODE_REPOSITORY
 } from '../interfaces/users.interface';
 import { VerificationCodeService } from '../services/verification-code.service';
+import { VerificationAttemptService } from '../services/verification-attempt.service';
+import { MAX_VERIFICATION_ATTEMPTS } from '../verification.constants';
 
 @Injectable()
 export class VerifyEmailUseCase implements IVerifyEmailUseCase {
@@ -19,8 +23,12 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
     @Inject(VERIFICATION_CODE_REPOSITORY)
     private readonly verificationCodeRepository: IVerificationCodeRepository,
     private readonly verificationCodeService: VerificationCodeService,
-    private readonly clockService: ClockService
-  ) {}
+    private readonly verificationAttemptService: VerificationAttemptService,
+    private readonly clockService: ClockService,
+    private readonly logger: PinoLogger
+  ) {
+    this.logger.setContext(VerifyEmailUseCase.name);
+  }
 
   async execute(email: string, code: string): Promise<void> {
     const user = await this.userRepository.findByEmailOrUsernameForAuth(email);
@@ -43,11 +51,7 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
       throw UserErrors.invalidVerificationCode();
     }
 
-    if (
-      this.verificationCodeService.isExpired(
-        verification.registryDates.createdAt
-      )
-    ) {
+    if (this.verificationCodeService.isExpired(verification.expiresAt)) {
       throw UserErrors.expiredVerificationCode();
     }
 
@@ -57,13 +61,42 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
     );
 
     if (!isValid) {
+      await this.handleFailedAttempt(user.id);
       throw UserErrors.invalidVerificationCode();
     }
 
     const now = this.clockService.nowDate();
 
+    await this.verificationAttemptService.resetFailedAttempts(user.id);
     await this.verificationCodeRepository.markVerified(verification.id, now);
-
     await this.userRepository.updateStatus(user.id, UserStatus.ACTIVATE);
+
+    this.logger.info(
+      { event: LogEvent.EMAIL_VERIFIED, userId: user.id },
+      'User verified their email'
+    );
+  }
+
+  private async handleFailedAttempt(userId: string): Promise<void> {
+    const attempts =
+      await this.verificationAttemptService.incrementFailedAttempt(userId);
+
+    if (attempts >= MAX_VERIFICATION_ATTEMPTS) {
+      const now = this.clockService.nowDate();
+
+      await this.verificationCodeRepository.invalidatePreviousCodes(
+        userId,
+        now
+      );
+      await this.verificationAttemptService.resetFailedAttempts(userId);
+
+      this.logger.warn(
+        {
+          event: LogEvent.VERIFICATION_ATTEMPTS_EXCEEDED,
+          userId
+        },
+        'Max verification attempts exceeded; code invalidated'
+      );
+    }
   }
 }
