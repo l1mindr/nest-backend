@@ -5,6 +5,12 @@ import { User } from '@features/security/decorators/user.decorator';
 import { DeviceContext } from '@presentation/interfaces/context/device-context.interface';
 import { Device } from '@features/security/device-detection/decorators/device.decorator';
 import { RateLimit } from '@features/security/rate-limit/decorators/rate-limit.decorator';
+import {
+  IResendVerificationUseCase,
+  IVerifyEmailUseCase,
+  RESEND_VERIFICATION_USE_CASE,
+  VERIFY_EMAIL_USE_CASE
+} from '@features/users/application/interfaces/users.interface';
 import { Session as SessionEntity } from '@features/sessions/domain/entities/session.entity';
 import { User as UserEntity } from '@features/users/domain/entities/user.entity';
 import {
@@ -23,7 +29,9 @@ import {
   ApiChangePassword,
   ApiLoginUser,
   ApiRefreshToken,
-  ApiRegisterUser
+  ApiRegisterUser,
+  ApiResendVerification,
+  ApiVerifyEmail
 } from '../swagger/auth.swagger';
 import {
   CHANGE_PASSWORD,
@@ -39,6 +47,8 @@ import { IpAddress } from '../decorators/ip-address.decorator';
 import { ChangePasswordRequestDto } from '../dto/request/change-password.request.dto';
 import { LoginUserRequestDto } from '../dto/request/login-user.request.dto';
 import { RegisterUserRequestDto } from '../dto/request/register-user.request.dto';
+import { ResendVerificationRequestDto } from '../dto/request/resend-verification.request.dto';
+import { VerifyEmailRequestDto } from '../dto/request/verify-email.request.dto';
 import { AuthCookieInterceptor } from '../interceptors/auth-cookie.interceptor';
 
 @Controller({ path: 'auth', version: '1' })
@@ -52,7 +62,11 @@ export class AuthController {
     @Inject(CHANGE_PASSWORD)
     private readonly changePasswordUseCase: IChangePassword,
     @Inject(REFRESH)
-    private readonly refreshUseCase: IRefresh
+    private readonly refreshUseCase: IRefresh,
+    @Inject(VERIFY_EMAIL_USE_CASE)
+    private readonly verifyEmailUseCase: IVerifyEmailUseCase,
+    @Inject(RESEND_VERIFICATION_USE_CASE)
+    private readonly resendVerificationUseCase: IResendVerificationUseCase
   ) {}
 
   @Public()
@@ -78,6 +92,35 @@ export class AuthController {
     @Device() device: DeviceContext
   ) {
     return await this.loginUseCase.login(dto, ipAddress, device);
+  }
+
+  @Public()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 10, ttl: 60 })
+  @SkipCsrf()
+  @ApiVerifyEmail()
+  async verifyEmail(@Body() dto: VerifyEmailRequestDto) {
+    await this.verifyEmailUseCase.execute(dto.email, dto.code);
+
+    return {
+      message: 'Email verified successfully'
+    };
+  }
+
+  @Public()
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 5, ttl: 60 })
+  @SkipCsrf()
+  @ApiResendVerification()
+  async resendVerification(@Body() dto: ResendVerificationRequestDto) {
+    await this.resendVerificationUseCase.execute(dto.email);
+
+    return {
+      message:
+        'If an account with this email exists, a new verification code has been sent'
+    };
   }
 
   @Public()

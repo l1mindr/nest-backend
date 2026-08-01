@@ -1,14 +1,21 @@
 import { applyDecorators } from '@nestjs/common';
 import {
   ApiOperation,
+  ApiBody,
   ApiResponse,
   ApiBadRequestResponse,
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
-  ApiCookieAuth
+  ApiCookieAuth,
+  ApiConflictResponse,
+  ApiTooManyRequestsResponse
 } from '@nestjs/swagger';
 import { RegisterUserRequestDto } from '../dto/request/register-user.request.dto';
 import { LoginUserResponseDto } from '../dto/response/login-user.response.dto';
+import { VerifyEmailRequestDto } from '../dto/request/verify-email.request.dto';
+import { ResendVerificationRequestDto } from '../dto/request/resend-verification.request.dto';
+import { VerifyEmailResponseDto } from '../dto/response/verify-email.response.dto';
+import { ResendVerificationResponseDto } from '../dto/response/resend-verification.response.dto';
 
 export function ApiRegisterUser() {
   return applyDecorators(
@@ -20,6 +27,60 @@ export function ApiRegisterUser() {
     }),
     ApiBadRequestResponse({
       description: 'Invalid input data'
+    }),
+    ApiInternalServerErrorResponse({
+      description: 'Unexpected server error'
+    })
+  );
+}
+
+export function ApiVerifyEmail() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Verify a user email with a one-time code',
+      description:
+        'Activates a PENDING_VERIFICATION account when the code is valid and not expired. Failed attempts are limited; after 5 incorrect codes the current code is invalidated and a new one must be requested.'
+    }),
+    ApiBody({ type: VerifyEmailRequestDto }),
+    ApiResponse({
+      status: 200,
+      description: 'Email verified successfully',
+      type: VerifyEmailResponseDto
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Invalid code, expired code, or the account is not pending verification'
+    }),
+    ApiConflictResponse({
+      description: 'Account is already verified'
+    }),
+    ApiTooManyRequestsResponse({
+      description: 'Too many verification attempts from this IP'
+    }),
+    ApiInternalServerErrorResponse({
+      description: 'Unexpected server error'
+    })
+  );
+}
+
+export function ApiResendVerification() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Resend a verification code',
+      description:
+        'Sends a new code to pending accounts only, subject to a 60-second cooldown. The response is generic and does not reveal whether an account exists.'
+    }),
+    ApiBody({ type: ResendVerificationRequestDto }),
+    ApiResponse({
+      status: 200,
+      description: 'Request accepted (generic response)',
+      type: ResendVerificationResponseDto
+    }),
+    ApiBadRequestResponse({
+      description: 'Invalid input data'
+    }),
+    ApiTooManyRequestsResponse({
+      description: 'Too many resend requests from this IP'
     }),
     ApiInternalServerErrorResponse({
       description: 'Unexpected server error'
