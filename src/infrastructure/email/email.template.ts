@@ -98,27 +98,17 @@ function wrapHtml(body: string, projectName: string): string {
 export function buildVerificationEmail(
   data: VerificationEmailData
 ): RenderedEmail {
-<<<<<<< HEAD
   const { projectName, code, expiresInMinutes } = data;
   const expiryLabel = `This verification code expires in ${expiresInMinutes} ${
     expiresInMinutes === 1 ? 'minute' : 'minutes'
   }.`;
-=======
-  const { projectName, code, expiresAt } = data;
-  const expiry = formatUtc(expiresAt);
->>>>>>> 7e19242 (feat(email): add SMTP email delivery infrastructure)
 
   const html = wrapHtml(
     `
     <p style="margin:0 0 16px;font-size:16px;">${greeting(data.recipientName)}</p>
     <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">
-<<<<<<< HEAD
       Use the verification code below to activate your account.
       <strong>${expiryLabel}</strong>
-=======
-      Use the verification code below to activate your account. The code expires at
-      <strong>${expiry}</strong>.
->>>>>>> 7e19242 (feat(email): add SMTP email delivery infrastructure)
     </p>
     <p style="margin:0 0 24px;text-align:center;">
       <span style="display:inline-block;padding:16px 32px;background-color:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;font-family:monospace;font-size:32px;letter-spacing:8px;color:#1d4ed8;font-weight:bold;">${escapeHtml(
@@ -138,11 +128,7 @@ export function buildVerificationEmail(
     '',
     `${greeting(data.recipientName)}`,
     '',
-<<<<<<< HEAD
     `Use the verification code below to activate your account. ${expiryLabel}`,
-=======
-    `Use the verification code below to activate your account. The code expires at ${expiry}.`,
->>>>>>> 7e19242 (feat(email): add SMTP email delivery infrastructure)
     '',
     `Verification code: ${code}`,
     '',

@@ -105,11 +105,7 @@ Request:
 }
 ```
 
-<<<<<<< HEAD
 Response: `200 OK` — Sets `access_token`, `refresh_token`, `csrf_token` cookies. No body is returned.
-=======
-Response: `200 OK` — Sets `access_token`, `refresh_token`, `csrf_token` cookies. The response body is empty (`{ "data": {} }`).
->>>>>>> 8268395 (docs(docs): synchronize documentation with implementation)
 
 Errors: `401 INVALID_CREDENTIALS`, `401 ACCOUNT_NOT_VERIFIED` (unverified user; a new code is sent), `429 RATE_LIMIT_EXCEEDED`
 
@@ -286,7 +282,6 @@ Query params:
 Response: `200 OK`
 ```json
 {
-<<<<<<< HEAD
   "items": [
     {
       "id": "bitcoin",
@@ -300,23 +295,6 @@ Response: `200 OK`
     }
   ],
   "nextCursor": "base64string"
-=======
-  "data": {
-    "items": [
-      {
-        "id": "bitcoin",
-        "symbol": "btc",
-        "name": "Bitcoin",
-        "image": "https://...",
-        "isActive": true,
-        "lastSyncedAt": "...",
-        "createdAt": "...",
-        "updatedAt": "..."
-      }
-    ],
-    "nextCursor": "base64string"
-  }
->>>>>>> 8268395 (docs(docs): synchronize documentation with implementation)
 }
 ```
 
@@ -347,7 +325,6 @@ Query params: `cursor`, `limit` (default: 20, max: 50), `status` (`ACTIVE` | `TR
 Response: `200 OK`
 ```json
 {
-<<<<<<< HEAD
   "items": [
     {
       "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
@@ -368,30 +345,6 @@ Response: `200 OK`
     }
   ],
   "nextCursor": "base64string"
-=======
-  "data": {
-    "items": [
-      {
-        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-        "coinId": "bitcoin",
-        "direction": "SELL",
-        "targetPrice": "120000",
-        "triggerMode": "ONCE",
-        "status": "ACTIVE",
-        "expiresAt": "2027-01-01T00:00:00Z",
-        "notificationChannels": ["EMAIL"],
-        "notificationCooldownMinutes": 60,
-        "lastCheckedPrice": null,
-        "lastTriggeredAt": null,
-        "triggeredCount": 0,
-        "coin": { "id": "bitcoin", "symbol": "btc", "name": "Bitcoin" },
-        "createdAt": "...",
-        "updatedAt": "..."
-      }
-    ],
-    "nextCursor": "base64string"
-  }
->>>>>>> 8268395 (docs(docs): synchronize documentation with implementation)
 }
 ```
 
