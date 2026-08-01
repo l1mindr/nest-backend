@@ -31,8 +31,13 @@ export class UserRepository implements IUserRepository {
     registryDates: { createdAt: true, updatedAt: true, deleteAt: true }
   };
 
-  async insertUser(dto: CreateUserRequestDto): Promise<User> {
-    return this.userRepo.save(this.userRepo.create(dto));
+  async insertUser(
+    dto: CreateUserRequestDto,
+    manager?: EntityManager
+  ): Promise<User> {
+    const repository = manager?.getRepository(User) ?? this.userRepo;
+
+    return repository.save(repository.create(dto));
   }
 
   async findUserById(id: string): Promise<User | null> {
