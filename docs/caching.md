@@ -8,7 +8,7 @@ Redis is used for rate limiting, distributed locking, and atomic counters. Not u
 
 | Service | Purpose | Key Pattern |
 |---------|---------|-------------|
-| `RedisService` | Core Redis client wrapper. `get`, `set`, `setWithExpiry`, `del`, `compareAndDelete`, `eval` | Generic |
+| `RedisService` | Core Redis client wrapper. `get`, `set`, `setIfNotExists` (`NX`), `setWithExpiry` (`EX`), `setIfNotExistsWithExpiry` (`EX` + `NX`), `del`, `compareAndDelete` (Lua), `eval` | Generic |
 | `RedisCounterService` | Atomic increment with TTL via Lua script. Used for rate limiting. | `rate:limit:{route}:{ip}` |
 | `RedisLockService` | Distributed lock with acquire/release. Used for refresh flow synchronization. | `refresh:lock:{sessionId}` |
 
@@ -24,10 +24,10 @@ Keys auto-expire after the rate limit window.
 ## Refresh Lock
 
 `RedisLockService`:
-- `acquire(key, ttl)` — `SET key value EX ttl` (without `NX`)
-- `release(key)` — `DEL key`
+- `acquire(lockKey, lockIdentifier, ttlSeconds = 5)` — `SET key randomUUID() EX ttl NX`; returns the token on success, `null` if already held
+- `release(lockKey, lockIdentifier, token)` — Lua compare-and-delete; only deletes if the stored value matches the token (prevents releasing someone else's lock)
 
-**Known limitation**: Lock does not use `NX`, so it is not a strict distributed lock. The authoritative mechanism is the database conditional update on session rotation. The Redis lock is a best-effort optimization to reduce contention.
+The database conditional update on session rotation remains the authoritative mechanism; the Redis lock reduces contention on concurrent refreshes.
 
 ## Key Management
 

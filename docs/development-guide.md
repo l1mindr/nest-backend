@@ -108,7 +108,7 @@ Configured via Husky:
 ```
 type(scope): subject
 
-type: feat | fix | refactor | test | docs | chore | style | perf
+type: feat | fix | refactor | perf | test | build | ci | docs | style | chore | revert
 scope: module name (kebab-case)
 subject: imperative, lowercase, no period
 ```

@@ -4,7 +4,6 @@
 
 ```mermaid
 graph TB
-    AppModule --> CoreModule
     AppModule --> LoggingModule
     AppModule --> PresentationModule
     AppModule --> InfrastructureModule
@@ -41,7 +40,6 @@ graph TB
 
     UsersModule --> SessionsModule
 
-    style CoreModule fill:#e1f5e1
     style PresentationModule fill:#e3f2fd
     style InfrastructureModule fill:#fff3e0
     style FeaturesModule fill:#fce4ec
@@ -63,7 +61,7 @@ sequenceDiagram
     participant AuthCookieInterceptor
 
     Client->>AuthController: POST /v1/auth/login { identifier, password }
-    AuthController->>LoginUseCase: execute(dto, device, ip)
+    AuthController->>LoginUseCase: login(dto, ipAddress, device)
     LoginUseCase->>UserRepo: findByEmailOrUsername(identifier)
     UserRepo-->>LoginUseCase: User
 
@@ -72,15 +70,15 @@ sequenceDiagram
 
     Note over LoginUseCase: Check user status<br/>(ACTIVATE → continue)
 
-    LoginUseCase->>SessionIssueUseCase: issue(userId, device, ip)
-    SessionIssueUseCase-->>LoginUseCase: sessionId
+    LoginUseCase->>SessionIssueUseCase: execute(userId, ipAddress, device, expiresAt)
+    SessionIssueUseCase-->>LoginUseCase: session
 
     LoginUseCase->>TokenIssueService: issuePair(userId, sessionId)
     TokenIssueService-->>LoginUseCase: { accessToken, refreshToken }
 
     Note over LoginUseCase: Hash refreshToken, store on session
 
-    LoginUseCase-->>AuthController: { user, accessToken, refreshToken }
+    LoginUseCase-->>AuthController: { accessToken, refreshToken }
     AuthController->>AuthCookieInterceptor: Set cookies
     AuthCookieInterceptor-->>Client: access_token, refresh_token, csrf_token
 ```
@@ -135,10 +133,10 @@ sequenceDiagram
     participant SessionRotationUseCase
 
     Client->>AuthController: POST /v1/auth/refresh (refresh_token cookie)
-    AuthController->>RefreshUseCase: execute(sessionId, token, device, ip)
+    AuthController->>RefreshUseCase: refresh(refreshToken)
 
     RefreshUseCase->>RedisLockService: acquire(refresh:lock:{sessionId})
-    RedisLockService-->>RefreshUseCase: OK
+    RedisLockService-->>RefreshUseCase: token
 
     RefreshUseCase->>TokenVerificationService: verifyRefresh(token)
     TokenVerificationService-->>RefreshUseCase: IJwtPayload
@@ -146,12 +144,12 @@ sequenceDiagram
     RefreshUseCase->>SessionQueryService: findActiveById(sessionId)
     SessionQueryService-->>RefreshUseCase: Session
 
-    Note over RefreshUseCase: Compare refresh token hash<br/>Check rotatedAt vs iat
+    Note over RefreshUseCase: Compare refresh token hash + version<br/>(reuse detection)
 
     RefreshUseCase->>TokenIssueService: issuePair(userId, sessionId)
     TokenIssueService-->>RefreshUseCase: { accessToken, refreshToken }
 
-    RefreshUseCase->>SessionRotationUseCase: rotateAtomic(id, oldHash, newHash, version, now)
+    RefreshUseCase->>SessionRotationUseCase: execute(id, version, oldHash, newHash, meta)
     SessionRotationUseCase-->>RefreshUseCase: true (1 row affected)
 
     RefreshUseCase->>RedisLockService: release(lock)
@@ -167,6 +165,8 @@ sequenceDiagram
 erDiagram
     User ||--o{ Session : owns
     User ||--o{ UserVerificationCode : verifies
+    User ||--o{ PriceAlert : creates
+    Coin ||--o{ PriceAlert : targets
 
     User {
         uuid id PK
@@ -198,10 +198,39 @@ erDiagram
     UserVerificationCode {
         uuid id PK
         uuid userId FK
-        varchar codeHash "SHA-256"
+        varchar codeHash "bcrypt"
         date expiresAt "3 minutes"
         date verifiedAt "nullable"
         date createdAt
+    }
+
+    Coin {
+        varchar id PK "CoinGecko id"
+        varchar symbol
+        varchar name
+        varchar image "nullable"
+        boolean isActive "default true"
+        date lastSyncedAt
+        date createdAt
+        date updatedAt
+    }
+
+    PriceAlert {
+        uuid id PK
+        uuid userId FK
+        varchar coinId FK
+        enum direction "BUY | SELL"
+        decimal targetPrice "> 0"
+        enum triggerMode "ONCE | REPEAT"
+        enum status "ACTIVE | TRIGGERED | EXPIRED | CANCELLED"
+        date expiresAt "nullable"
+        enum notificationChannels "EMAIL | SMS"
+        integer notificationCooldownMinutes "default 60"
+        decimal lastCheckedPrice "nullable"
+        date lastTriggeredAt "nullable"
+        integer triggeredCount "default 0"
+        date createdAt
+        date updatedAt
     }
 ```
 
