@@ -177,7 +177,9 @@ Refresh tokens are stored as SHA-256 hashes in the Session entity. The raw token
 
 Brute-force hardening:
 - Failed attempts are counted in Redis (`verify:attempts:{userId}`); after 5 wrong codes the current code is invalidated
-- Code re-sends are gated by a 60-second cooldown (`verify:resend:cooldown:{userId}`)
+- Verification attempts are rate-limited per normalized email (`verify:email:{email}`, 5 per 10 minutes) in addition to the per-IP guard, so rotating IPs cannot bypass it
+- Code re-sends are gated by a 60-second cooldown (`verify:resend:cooldown:{userId}`) and an hourly limit of 5 per user (`verify:resend:hourly:{userId}`)
+- All failures return the generic `INVALID_VERIFICATION_CODE` — wrong, consumed, and expired codes are indistinguishable
 - Codes are compared with `crypto.timingSafeEqual` and never logged
 
 ---
