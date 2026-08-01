@@ -61,6 +61,12 @@
 | `dotenv` | Environment file loading |
 | `dotenv-expand` | Variable expansion in .env |
 
+### Email
+
+| Package | Purpose |
+|---------|---------|
+| `nodemailer` | SMTP transport for transactional emails (verification, suspension) |
+
 ## Dev Dependencies
 
 ### Tooling
@@ -82,6 +88,7 @@
 | `@nestjs/testing` | Test module bootstrapping |
 | `supertest` | HTTP assertions |
 | `@types/supertest` | Type definitions |
+| `@types/nodemailer` | Type definitions for Nodemailer |
 
 ### Code Quality
 

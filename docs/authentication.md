@@ -9,10 +9,12 @@ Cookie-based JWT authentication with server-side session validation, refresh tok
 ## Auth Flow Summary
 
 ```
-Registration:    POST /v1/auth/register    → 201 Created  (public, rate-limited)
-Login:           POST /v1/auth/login       → 200 OK       (public, rate-limited)
-Refresh:         POST /v1/auth/refresh     → 200 OK       (public, CSRF skipped, rate-limited)
-Change Password: POST /v1/auth/change-password → 204 No Content (authenticated, CSRF required, rate-limited)
+Registration:    POST /v1/auth/register           → 201 Created  (public, rate-limited)
+Email Verify:    POST /v1/auth/verify-email       → 200 OK       (public, rate-limited)
+Resend Code:     POST /v1/auth/resend-verification → 200 OK      (public, rate-limited)
+Login:           POST /v1/auth/login              → 200 OK       (public, rate-limited)
+Refresh:         POST /v1/auth/refresh            → 200 OK       (public, CSRF skipped, rate-limited)
+Change Password: POST /v1/auth/change-password    → 204 No Content (authenticated, CSRF required, rate-limited)
 ```
 
 ---
@@ -49,15 +51,17 @@ class RegisterUserRequestDto {
 
 ## Email Verification
 
-Verification is an internal flow. There are no public verify-email or resend-verification HTTP routes; the use cases are wired into other flows.
+New accounts are registered with status `PENDING_VERIFICATION` and can only log in after their email is verified. The flow exposes two public, rate-limited endpoints.
 
 ### Flow
 
 1. User receives email with code (via `EmailService.sendVerificationEmail()`)
-2. `VERIFY_EMAIL_USE_CASE` loads the latest unexpired code for the user
-3. Compares hash (timing-safe via `crypto.timingSafeEqual`)
-4. Marks code as verified
-5. Changes user status from `PENDING_VERIFICATION` to `ACTIVATE`
+2. `POST /v1/auth/verify-email` with `{ email, code }` → `VerifyEmailUseCase.execute()`
+3. Loads the latest unexpired code for the user (`findLatestByUserId`, filters `verifiedAt IS NULL`)
+4. Compares hash (timing-safe via `crypto.timingSafeEqual`)
+5. Marks code as verified (`markVerified`)
+6. Changes user status from `PENDING_VERIFICATION` to `ACTIVATE`
+7. Responds `200 { data: { message } }`
 
 ### Verification Code
 
@@ -66,13 +70,30 @@ Verification is an internal flow. There are no public verify-email or resend-ver
 - **Entity**: `UserVerificationCode` (userId, codeHash, expiresAt, verifiedAt)
 - **Cleanup**: Previous codes are invalidated on new code generation
 
+### Attempt Limiting
+
+Failed attempts are tracked in Redis (`verify:attempts:{userId}`) with a TTL matching the code lifetime:
+
+- Each wrong code increments the counter and returns `400 INVALID_VERIFICATION_CODE`
+- After 5 failed attempts the current code is invalidated and the counter resets; a new code must be requested
+- Expired codes return `400 EXPIRED_VERIFICATION_CODE`
+- Already verified accounts return `409 ALREADY_VERIFIED`
+
 ### Resend
 
-`ResendVerificationUseCase.execute(email)` is invoked internally when a `PENDING_VERIFICATION` user attempts to log in:
+`POST /v1/auth/resend-verification` with `{ email }` → `ResendVerificationUseCase.execute()`:
+
+- Applies to `PENDING_VERIFICATION` accounts only
+- Enforces a **60-second cooldown** per user (Redis `verify:resend:cooldown:{userId}`, NX + expiry)
 - Invalidates previous codes
-- Generates new code
-- Sends via email
-- Login is then rejected with `ACCOUNT_NOT_VERIFIED` (the message notes a new code was sent)
+- Generates new code and sends via email
+- The response is **generic** (`200 { data: { message } }`) and never reveals whether an account exists
+
+Resend is also triggered internally when a `PENDING_VERIFICATION` user attempts to log in; login is then rejected with `403 ACCOUNT_NOT_VERIFIED` (the message notes a new code was sent).
+
+### Email Delivery
+
+Emails are sent over SMTP (Gmail) via `SmtpEmailService` (Nodemailer). Delivery failures are logged (`EMAIL_SEND_FAILED`) but do not fail the request — the user record and hashed code persist, so the code can be re-sent via the resend endpoint.
 
 ---
 
@@ -84,7 +105,7 @@ Verification is an internal flow. There are no public verify-email or resend-ver
 2. Finds user by email or username
 3. Compares password with `BcryptProvider.compare()`
 4. Checks user status:
-   - `PENDING_VERIFICATION` → triggers resend of a new verification code, then rejects with `ACCOUNT_NOT_VERIFIED` (401)
+   - `PENDING_VERIFICATION` → triggers resend of a new verification code, then rejects with `ACCOUNT_NOT_VERIFIED` (403)
    - `SUSPEND` → rejects with `INVALID_CREDENTIALS` (401)
 5. Issues session via `SessionIssueUseCase.execute()`
 6. Issues access token (15min) + refresh token (7d) via `TokenIssueService`
@@ -106,7 +127,7 @@ Verification is an internal flow. There are no public verify-email or resend-ver
 | User Status | Login Result |
 |-------------|-------------|
 | `ACTIVATE` | Allowed |
-| `PENDING_VERIFICATION` | 401 `ACCOUNT_NOT_VERIFIED` (new code resent) |
+| `PENDING_VERIFICATION` | 403 `ACCOUNT_NOT_VERIFIED` (new code resent) |
 | `SUSPEND` | 401 `INVALID_CREDENTIALS` |
 
 ---
@@ -210,7 +231,10 @@ Separate secrets from environment variables. Symmetric signing (asymmetric key r
 | Code | Scenario | HTTP |
 |------|----------|------|
 | `INVALID_CREDENTIALS` | Wrong email/password | 401 |
-| `ACCOUNT_NOT_VERIFIED` | PENDING_VERIFICATION user tries to login (code resent) | 401 |
+| `ACCOUNT_NOT_VERIFIED` | PENDING_VERIFICATION user tries to login (code resent) | 403 |
+| `INVALID_VERIFICATION_CODE` | Wrong or unknown verification code | 400 |
+| `EXPIRED_VERIFICATION_CODE` | Verification code past its 3-minute TTL | 400 |
+| `ALREADY_VERIFIED` | Verify-email called on an ACTIVATE account | 409 |
 | `INVALID_CURRENT_PASSWORD` | Current password mismatch on change-password | 401 |
 | `PASSWORD_MUST_BE_DIFFERENT` | New password identical to current | 401 |
 | `PASSWORD_CHANGE_FAILED` | Password change transaction failed | 401 |
@@ -222,4 +246,4 @@ Separate secrets from environment variables. Symmetric signing (asymmetric key r
 | `INVALID_TOKEN` | JWT signature invalid | 401 |
 | `EXPIRED_TOKEN` | JWT expired | 401 |
 | `INVALID_REFRESH_TOKEN` | Refresh token invalid or expired | 401 |
-| `RATE_LIMIT_EXCEEDED` | Login/register/change-password rate limit hit | 429 |
+| `RATE_LIMIT_EXCEEDED` | Login/register/verify/resend/change-password rate limit hit | 429 |

@@ -48,7 +48,7 @@ This layer **must not contain business logic**. Feature-specific presentation co
 - `clock/` — `ClockService` (time utilities) and `ClockModule`. Belongs in infrastructure because it depends on `@nestjs/common` (`@Injectable`) and is a framework-integrated service.
 - `config/` — Environment validation (Joi), JWT config, Redis config, PostgreSQL config, CSRF config
 - `databases/` — PostgreSQL (TypeORM setup, migrations, embedded `RegistryDatesOrm`), Redis (ioredis client, counter, lock)
-- `email/` — Abstract `EmailService`, `ConsoleEmailService` implementation
+- `email/` — Abstract `EmailService`, `SmtpEmailService` implementation (Nodemailer)
 - `errors/` — `ErrorMapper` (maps `AppError` to HTTP response shape)
 - `http/` — Helmet security headers configuration
 - `logging/` — Pino logger setup (`LoggingModule`), `LogEvent` enum, redaction config
