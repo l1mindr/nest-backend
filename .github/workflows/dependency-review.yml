@@ -5,6 +5,13 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   review:
     name: Dependency Security Check
@@ -21,12 +28,9 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
+      # Both commands resolve everything they report from the manifest and the
+      # lockfile, so the dependency tree never has to be materialised on disk.
       - name: Check outdated dependencies
         continue-on-error: true
         run: pnpm outdated
