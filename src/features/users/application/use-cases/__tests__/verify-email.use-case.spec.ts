@@ -1,6 +1,7 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { UserStatus } from '../../../domain/enums/user-status.enum';
 import { UserErrors } from '../../../domain/errors/user-errors';
+import { MAX_VERIFICATION_ATTEMPTS } from '../../verification.constants';
 import { VerifyEmailUseCase } from '../verify-email.use-case';
 
 describe('VerifyEmailUseCase', () => {
@@ -13,7 +14,8 @@ describe('VerifyEmailUseCase', () => {
 
   const mockVerificationCodeRepository = {
     findLatestByUserId: jest.fn(),
-    markVerified: jest.fn()
+    markVerified: jest.fn(),
+    invalidatePreviousCodes: jest.fn()
   };
 
   const mockVerificationCodeService = {
@@ -21,8 +23,20 @@ describe('VerifyEmailUseCase', () => {
     validate: jest.fn()
   };
 
+  const mockVerificationAttemptService = {
+    incrementFailedAttempt: jest.fn(),
+    resetFailedAttempts: jest.fn()
+  };
+
   const mockClockService = {
     nowDate: jest.fn()
+  };
+
+  const mockLogger = {
+    setContext: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
   };
 
   beforeEach(() => {
@@ -31,7 +45,9 @@ describe('VerifyEmailUseCase', () => {
       mockUserRepository as any,
       mockVerificationCodeRepository as any,
       mockVerificationCodeService as any,
-      mockClockService as unknown as ClockService
+      mockVerificationAttemptService as any,
+      mockClockService as unknown as ClockService,
+      mockLogger as any
     );
   });
 
@@ -46,7 +62,7 @@ describe('VerifyEmailUseCase', () => {
       mockVerificationCodeRepository.findLatestByUserId.mockResolvedValue({
         id: 'code-id',
         codeHash: 'stored-hash',
-        registryDates: { createdAt: new Date('2024-01-01T00:00:00Z') }
+        expiresAt: new Date('2024-01-01T00:03:00Z')
       });
       mockVerificationCodeService.isExpired.mockReturnValue(false);
       mockVerificationCodeService.validate.mockResolvedValue(true);
@@ -57,6 +73,9 @@ describe('VerifyEmailUseCase', () => {
         '123456',
         'stored-hash'
       );
+      expect(
+        mockVerificationAttemptService.resetFailedAttempts
+      ).toHaveBeenCalledWith('user-id');
       expect(mockVerificationCodeRepository.markVerified).toHaveBeenCalledWith(
         'code-id',
         now
@@ -128,7 +147,7 @@ describe('VerifyEmailUseCase', () => {
       mockVerificationCodeRepository.findLatestByUserId.mockResolvedValue({
         id: 'code-id',
         codeHash: 'stored-hash',
-        registryDates: { createdAt: new Date('2024-01-01T00:00:00Z') }
+        expiresAt: new Date('2024-01-01T00:03:00Z')
       });
       mockVerificationCodeService.isExpired.mockReturnValue(true);
 
@@ -150,19 +169,58 @@ describe('VerifyEmailUseCase', () => {
       mockVerificationCodeRepository.findLatestByUserId.mockResolvedValue({
         id: 'code-id',
         codeHash: 'stored-hash',
-        registryDates: { createdAt: new Date('2024-01-01T00:00:00Z') }
+        expiresAt: new Date('2024-01-01T00:03:00Z')
       });
       mockVerificationCodeService.isExpired.mockReturnValue(false);
       mockVerificationCodeService.validate.mockResolvedValue(false);
+      mockVerificationAttemptService.incrementFailedAttempt.mockResolvedValue(
+        1
+      );
 
       await expect(
         useCase.execute('test@test.com', 'wrong-code')
       ).rejects.toEqual(UserErrors.invalidVerificationCode());
 
       expect(
+        mockVerificationAttemptService.incrementFailedAttempt
+      ).toHaveBeenCalledWith('user-id');
+      expect(
+        mockVerificationCodeRepository.invalidatePreviousCodes
+      ).not.toHaveBeenCalled();
+      expect(
         mockVerificationCodeRepository.markVerified
       ).not.toHaveBeenCalled();
       expect(mockUserRepository.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it(`should invalidate the code after ${MAX_VERIFICATION_ATTEMPTS} failed attempts`, async () => {
+      const now = new Date('2024-01-01T00:00:00Z');
+      mockClockService.nowDate.mockReturnValue(now);
+      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
+        id: 'user-id',
+        status: UserStatus.PENDING_VERIFICATION
+      });
+      mockVerificationCodeRepository.findLatestByUserId.mockResolvedValue({
+        id: 'code-id',
+        codeHash: 'stored-hash',
+        expiresAt: new Date('2024-01-01T00:03:00Z')
+      });
+      mockVerificationCodeService.isExpired.mockReturnValue(false);
+      mockVerificationCodeService.validate.mockResolvedValue(false);
+      mockVerificationAttemptService.incrementFailedAttempt.mockResolvedValue(
+        MAX_VERIFICATION_ATTEMPTS
+      );
+
+      await expect(
+        useCase.execute('test@test.com', 'wrong-code')
+      ).rejects.toEqual(UserErrors.invalidVerificationCode());
+
+      expect(
+        mockVerificationCodeRepository.invalidatePreviousCodes
+      ).toHaveBeenCalledWith('user-id', now);
+      expect(
+        mockVerificationAttemptService.resetFailedAttempts
+      ).toHaveBeenCalledWith('user-id');
     });
   });
 });
