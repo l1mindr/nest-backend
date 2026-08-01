@@ -1,5 +1,4 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
-import { TimeConstants } from '@infrastructure/clock/time.constants';
 import { ConfigService } from '@nestjs/config';
 import { VerificationCodeService } from '../verification-code.service';
 
@@ -51,36 +50,32 @@ describe('VerificationCodeService', () => {
 
   describe('isExpired', () => {
     it('should return false when code is not expired', () => {
-      const createdAt = new Date('2024-01-01T00:00:00Z');
+      const expiresAt = new Date('2024-01-01T00:03:00Z');
       mockClockService.nowDate.mockReturnValue(
-        new Date(createdAt.getTime() + 2 * TimeConstants.MS_PER_MINUTE)
+        new Date('2024-01-01T00:02:00Z')
       );
 
-      const result = service.isExpired(createdAt);
+      const result = service.isExpired(expiresAt);
 
       expect(result).toBe(false);
     });
 
-    it('should return false at exact 3-minute boundary', () => {
-      const createdAt = new Date('2024-01-01T00:00:00Z');
-      const exactlyAtBoundary =
-        createdAt.getTime() + 3 * TimeConstants.MS_PER_MINUTE;
+    it('should return false at exact expiry boundary', () => {
+      const expiresAt = new Date('2024-01-01T00:03:00Z');
+      mockClockService.nowDate.mockReturnValue(expiresAt);
 
-      mockClockService.nowDate.mockReturnValue(new Date(exactlyAtBoundary));
-
-      const result = service.isExpired(createdAt);
+      const result = service.isExpired(expiresAt);
 
       expect(result).toBe(false);
     });
 
     it('should return true when code is expired', () => {
-      const createdAt = new Date('2024-01-01T00:00:00Z');
-      const expiredAt =
-        createdAt.getTime() + 3 * TimeConstants.MS_PER_MINUTE + 1;
+      const expiresAt = new Date('2024-01-01T00:03:00Z');
+      mockClockService.nowDate.mockReturnValue(
+        new Date('2024-01-01T00:03:00Z').getTime() + 1
+      );
 
-      mockClockService.nowDate.mockReturnValue(new Date(expiredAt));
-
-      const result = service.isExpired(createdAt);
+      const result = service.isExpired(expiresAt);
 
       expect(result).toBe(true);
     });
