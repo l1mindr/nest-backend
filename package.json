@@ -31,7 +31,6 @@
     "migration:run": "typeorm migration:run -d dist/infrastructure/databases/postgres/data-source",
     "migration:revert": "typeorm migration:revert -d dist/infrastructure/databases/postgres/data-source",
     "migration:show": "typeorm migration:show -d dist/infrastructure/databases/postgres/data-source",
-    "docs": "pnpm exec compodoc -p tsconfig.json -s --port 3333 -w --theme material",
     "prepare": "husky",
     "deprecated": "pnpm exec ts-node findDeprecatedFiles.ts"
   },
