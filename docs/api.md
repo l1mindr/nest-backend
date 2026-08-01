@@ -42,6 +42,8 @@ All routes authenticated by default (`JwtGuard` is global). Use `@Public()` to o
 | Method | Path | Auth | CSRF | Rate Limit | Status |
 |--------|------|------|------|------------|--------|
 | `POST` | `/v1/auth/register` | Public | Skipped | 5/60s | 201 |
+| `POST` | `/v1/auth/verify-email` | Public | Skipped | 10/60s | 200 |
+| `POST` | `/v1/auth/resend-verification` | Public | Skipped | 5/60s | 200 |
 | `POST` | `/v1/auth/login` | Public | Skipped | 5/60s | 200 |
 | `POST` | `/v1/auth/refresh` | Public | Skipped | 20/60s | 200 |
 | `POST` | `/v1/auth/change-password` | Authenticated | Required | 3/300s | 204 |
@@ -60,6 +62,45 @@ Request:
 Response: `201 Created` — empty body
 
 Errors: `409 EMAIL_ALREADY_EXISTS`, `409 USERNAME_ALREADY_EXISTS`, `422 Validation`
+
+### POST /v1/auth/verify-email
+
+Request:
+```json
+{
+  "email": "user@example.com",
+  "code": "123456"
+}
+```
+
+`code`: exactly 6 digits.
+
+Response: `200 OK`
+```json
+{
+  "data": { "message": "Email verified successfully" }
+}
+```
+
+Errors: `400 INVALID_VERIFICATION_CODE`, `400 EXPIRED_VERIFICATION_CODE`, `409 ALREADY_VERIFIED`, `429 RATE_LIMIT_EXCEEDED`
+
+### POST /v1/auth/resend-verification
+
+Request:
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+Response: `200 OK` — generic, never reveals whether an account exists.
+```json
+{
+  "data": { "message": "If an account with this email exists, a new verification code has been sent" }
+}
+```
+
+Errors: `422 Validation`, `429 RATE_LIMIT_EXCEEDED`
 
 ### POST /v1/auth/login
 
@@ -358,6 +399,7 @@ Swagger decorators are defined in each feature's `presentation/swagger/` directo
 | Username | 3–30 chars, regex `[a-zA-Z0-9._]`, no leading/trailing dots, no consecutive dots, trimmed, lowercased |
 | Password | 8–20 chars, requires lowercase + uppercase + digit + non-alphanumeric |
 | ID | UUID v4 |
+| Verification Code | Exactly 6 digits (`^\d{6}$`) |
 
 Validation errors return `422 UNPROCESSABLE ENTITY` with `VALIDATION_ERROR` domain.
 

@@ -9,8 +9,15 @@ Redis is used for rate limiting, distributed locking, and atomic counters. Not u
 | Service | Purpose | Key Pattern |
 |---------|---------|-------------|
 | `RedisService` | Core Redis client wrapper. `get`, `set`, `setIfNotExists` (`NX`), `setWithExpiry` (`EX`), `setIfNotExistsWithExpiry` (`EX` + `NX`), `del`, `compareAndDelete` (Lua), `eval` | Generic |
-| `RedisCounterService` | Atomic increment with TTL via Lua script. Used for rate limiting. | `rate:limit:{route}:{ip}` |
+| `RedisCounterService` | Atomic increment with TTL via Lua script. Used for rate limiting and verification attempt counting. | `rate:limit:{route}:{ip}`, `verify:attempts:{userId}` |
 | `RedisLockService` | Distributed lock with acquire/release. Used for refresh flow synchronization. | `refresh:lock:{sessionId}` |
+
+## Verification Attempts & Cooldown
+
+`VerificationAttemptService` uses Redis to harden the email-verification flow:
+
+- `verify:attempts:{userId}` — incremented on each wrong code via `RedisCounterService`, TTL matches the code lifetime (3 minutes); after 5 failed attempts the current code is invalidated and the counter resets
+- `verify:resend:cooldown:{userId}` — set with `setIfNotExistsWithExpiry` (`NX` + `EX`, 60s) to enforce the resend cooldown
 
 ## Rate Limiting
 
@@ -38,7 +45,9 @@ enum RedisKey {
   COIN_SYNC_LOCK = 'coin-tracker:sync:lock',
   PRICE_CHECK_LOCK = 'coin-tracker:price-check:lock',
   REFRESH_LOCK = 'refresh:lock',
-  RATE_LIMIT = 'rate:limit'
+  RATE_LIMIT = 'rate:limit',
+  VERIFY_ATTEMPTS = 'verify:attempts',
+  VERIFY_RESEND_COOLDOWN = 'verify:resend:cooldown'
 }
 ```
 

@@ -173,7 +173,12 @@ Refresh tokens are stored as SHA-256 hashes in the Session entity. The raw token
 
 ## Email Verification
 
-`UserVerificationCode` entity stores verification codes as bcrypt hashes with 3-minute TTL. Codes are sent via `EmailService.sendVerificationEmail()`.
+`UserVerificationCode` entity stores verification codes as bcrypt hashes with 3-minute TTL. Codes are sent via `EmailService.sendVerificationEmail()` over SMTP (Nodemailer).
+
+Brute-force hardening:
+- Failed attempts are counted in Redis (`verify:attempts:{userId}`); after 5 wrong codes the current code is invalidated
+- Code re-sends are gated by a 60-second cooldown (`verify:resend:cooldown:{userId}`)
+- Codes are compared with `crypto.timingSafeEqual` and never logged
 
 ---
 

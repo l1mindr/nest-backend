@@ -26,7 +26,7 @@ Each feature module (auth, users, sessions, coin-tracker) follows a vertical sli
 
 | Module         | Capabilities                                                                       |
 |----------------|------------------------------------------------------------------------------------|
-| **Auth**       | Register, login, refresh tokens, change password; rate-limited public endpoints     |
+| **Auth**       | Register (email verification required), login, refresh tokens, change password; rate-limited public endpoints |
 | **Users**      | Profile retrieval/update, account deletion, admin user management (CRUD, suspend/unsuspend) |
 | **Sessions**   | List active sessions, revoke current session, terminate other sessions              |
 | **Coin Tracker** | List/search supported coins, create/list/update/cancel price alerts              |
@@ -76,6 +76,8 @@ All routes are URI-versioned under `/v1`.
 | Method | Path             | Auth     | Rate Limit     | Description                          |
 |--------|------------------|----------|----------------|--------------------------------------|
 | POST   | `/auth/register` | Public   | 5/60s          | Register a new user account          |
+| POST   | `/auth/verify-email` | Public | 10/60s       | Verify email with a 6-digit code     |
+| POST   | `/auth/resend-verification` | Public | 5/60s | Resend verification code (60s cooldown) |
 | POST   | `/auth/login`    | Public   | 5/60s          | Login with email/username + password |
 | POST   | `/auth/refresh`  | Public   | 20/60s         | Refresh access token via cookie      |
 | POST   | `/auth/change-password` | Session | 3/300s    | Change account password              |
@@ -158,7 +160,7 @@ Create an environment file:
 cp .env.example .env
 ```
 
-Set real values for PostgreSQL, Redis, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `CSRF_TOKEN_SECRET`, and `NODE_ENV`.
+Set real values for PostgreSQL, Redis, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `CSRF_TOKEN_SECRET`, `NODE_ENV`, and the `EMAIL_*` variables (see `.env.example` for a Gmail SMTP template).
 
 Run in development:
 
@@ -195,6 +197,13 @@ http://localhost:8080
 | `ACCESS_TOKEN_SECRET`           | Yes      | —        | JWT access token signing secret (entropy-validated) |
 | `REFRESH_TOKEN_SECRET`          | Yes      | —        | JWT refresh token signing secret (must differ from access) |
 | `CSRF_TOKEN_SECRET`             | Yes      | —        | CSRF token secret (must differ from both JWT secrets) |
+| `APP_NAME`                      | No       | NestJS Backend | Sender display name in transactional emails |
+| `EMAIL_HOST`                    | Yes      | —        | SMTP hostname or IP (e.g. `smtp.gmail.com`) |
+| `EMAIL_PORT`                    | No       | 587      | SMTP port (1–65535) |
+| `EMAIL_SECURE`                  | No       | false    | Use TLS when connecting to the SMTP server |
+| `EMAIL_USER`                    | Yes      | —        | SMTP account username |
+| `EMAIL_APP_PASSWORD`            | Yes      | —        | SMTP app password (min 16 chars in production) |
+| `EMAIL_FROM`                    | Yes      | —        | Sender address used in outgoing emails |
 
 In production, secrets undergo entropy validation and additional cross-field safety checks (e.g. Redis must not use localhost, DB password must not match a token secret).
 

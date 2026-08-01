@@ -166,8 +166,9 @@ Repositories use `TypeOrmModule` with a test database or mocked query runner.
 `createTestApp()` in `test/bootstrap/test-app.ts`:
 1. Sets `NODE_ENV=test`
 2. Creates `AppModule` via `Test.createTestingModule`, overriding `REDIS_CLIENT` with a test Redis client
-3. Calls `setupApp()` for global configuration and listens on an ephemeral port
-4. Returns `{ app, dataSource }`
+3. Overrides `EmailService` with a capturing test double (`test/helpers/email.helper.ts`) so no real SMTP connection is attempted
+4. Calls `setupApp()` for global configuration and listens on an ephemeral port
+5. Returns `{ app, dataSource }`
 
 Database schema preparation (migrations) happens once per worker in the Jest global setup (`test/setup/global-setup.ts`).
 
@@ -187,6 +188,7 @@ Database schema preparation (migrations) happens once per worker in the Jest glo
 - `ApiClient(app)` → supertest wrapper with cookie jar; `get`/`post`/`patch`/`put`/`delete` with `headers`, `query`, `body` config
 - `postgresql.helper.ts` → `truncateDatabase()`
 - `redis.helper.ts` → `clearRedis(app)` (flushes the Redis DB)
+- `email.helper.ts` → captures emails sent by the app; `getVerificationCode(to)`, `getVerificationExpiry(to)`, `getVerificationEmailCount(to)`, `resetEmailStore()`
 
 ## Running Tests
 
