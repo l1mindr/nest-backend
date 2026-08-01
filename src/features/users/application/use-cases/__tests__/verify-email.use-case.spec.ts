@@ -1,4 +1,5 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { SecurityErrors } from '@features/security/errors/security-errors';
 import { UserStatus } from '../../../domain/enums/user-status.enum';
 import { UserErrors } from '../../../domain/errors/user-errors';
 import { MAX_VERIFICATION_ATTEMPTS } from '../../verification.constants';
@@ -24,12 +25,19 @@ describe('VerifyEmailUseCase', () => {
   };
 
   const mockVerificationAttemptService = {
+    isEmailRateLimitExceeded: jest.fn(),
     incrementFailedAttempt: jest.fn(),
     resetFailedAttempts: jest.fn()
   };
 
   const mockClockService = {
     nowDate: jest.fn()
+  };
+
+  const mockManager = {};
+
+  const mockDataSource = {
+    transaction: jest.fn()
   };
 
   const mockLogger = {
@@ -39,24 +47,35 @@ describe('VerifyEmailUseCase', () => {
     error: jest.fn()
   };
 
+  const pendingUser = { id: 'user-id', email: 'test@test.com' };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDataSource.transaction.mockImplementation(
+      async (callback: (manager: unknown) => Promise<unknown>) =>
+        callback(mockManager)
+    );
+    mockVerificationAttemptService.isEmailRateLimitExceeded.mockResolvedValue(
+      false
+    );
+
     useCase = new VerifyEmailUseCase(
       mockUserRepository as any,
       mockVerificationCodeRepository as any,
       mockVerificationCodeService as any,
       mockVerificationAttemptService as any,
       mockClockService as unknown as ClockService,
+      mockDataSource as any,
       mockLogger as any
     );
   });
 
   describe('execute', () => {
-    it('should verify email successfully', async () => {
+    it('should verify email successfully inside a transaction', async () => {
       const now = new Date('2024-01-01T00:00:00Z');
       mockClockService.nowDate.mockReturnValue(now);
       mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
-        id: 'user-id',
+        ...pendingUser,
         status: UserStatus.PENDING_VERIFICATION
       });
       mockVerificationCodeRepository.findLatestByUserId.mockResolvedValue({
@@ -69,21 +88,38 @@ describe('VerifyEmailUseCase', () => {
 
       await useCase.execute('test@test.com', '123456');
 
+      expect(mockDataSource.transaction).toHaveBeenCalled();
       expect(mockVerificationCodeService.validate).toHaveBeenCalledWith(
         '123456',
         'stored-hash'
       );
-      expect(
-        mockVerificationAttemptService.resetFailedAttempts
-      ).toHaveBeenCalledWith('user-id');
       expect(mockVerificationCodeRepository.markVerified).toHaveBeenCalledWith(
         'code-id',
-        now
+        now,
+        mockManager
       );
       expect(mockUserRepository.updateStatus).toHaveBeenCalledWith(
         'user-id',
-        UserStatus.ACTIVATE
+        UserStatus.ACTIVATE,
+        mockManager
       );
+      expect(
+        mockVerificationAttemptService.resetFailedAttempts
+      ).toHaveBeenCalledWith('user-id');
+    });
+
+    it('should throw a rate limit error once the email attempt window is exhausted', async () => {
+      mockVerificationAttemptService.isEmailRateLimitExceeded.mockResolvedValue(
+        true
+      );
+
+      await expect(useCase.execute('test@test.com', '123456')).rejects.toEqual(
+        SecurityErrors.rateLimitExceeded()
+      );
+
+      expect(
+        mockUserRepository.findByEmailOrUsernameForAuth
+      ).not.toHaveBeenCalled();
     });
 
     it('should throw invalid verification code when user not found', async () => {
@@ -94,14 +130,14 @@ describe('VerifyEmailUseCase', () => {
       ).rejects.toEqual(UserErrors.invalidVerificationCode());
     });
 
-    it('should throw already verified when user status is ACTIVATE', async () => {
+    it('should throw invalid verification code for an already verified account', async () => {
       mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
         id: 'user-id',
         status: UserStatus.ACTIVATE
       });
 
       await expect(useCase.execute('test@test.com', '123456')).rejects.toEqual(
-        UserErrors.alreadyVerified()
+        UserErrors.invalidVerificationCode()
       );
     });
 
@@ -139,7 +175,7 @@ describe('VerifyEmailUseCase', () => {
       );
     });
 
-    it('should throw expired verification code', async () => {
+    it('should throw generic invalid code for an expired verification code', async () => {
       mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
         id: 'user-id',
         status: UserStatus.PENDING_VERIFICATION
@@ -152,7 +188,7 @@ describe('VerifyEmailUseCase', () => {
       mockVerificationCodeService.isExpired.mockReturnValue(true);
 
       await expect(useCase.execute('test@test.com', '123456')).rejects.toEqual(
-        UserErrors.expiredVerificationCode()
+        UserErrors.invalidVerificationCode()
       );
 
       expect(

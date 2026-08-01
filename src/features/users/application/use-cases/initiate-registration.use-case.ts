@@ -16,7 +16,10 @@ import {
 } from '../interfaces/users.interface';
 import { throwOnUniqueConstraint } from '../../infrastructure/providers/unique-constraint.handler';
 import { VerificationCodeService } from '../services/verification-code.service';
-import { VERIFICATION_CODE_TTL_MS } from '../verification.constants';
+import {
+  VERIFICATION_CODE_TTL_MINUTES,
+  VERIFICATION_CODE_TTL_MS
+} from '../verification.constants';
 
 @Injectable()
 export class InitiateRegistrationUseCase implements IInitiateRegistrationUseCase {
@@ -68,7 +71,7 @@ export class InitiateRegistrationUseCase implements IInitiateRegistrationUseCase
       await this.emailService.sendVerificationEmail(
         user.email,
         code,
-        expiresAt
+        VERIFICATION_CODE_TTL_MINUTES
       );
     } catch (error: unknown) {
       this.logger.error(

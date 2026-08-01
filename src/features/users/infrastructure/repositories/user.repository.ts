@@ -108,8 +108,13 @@ export class UserRepository implements IUserRepository {
     await this.userRepo.update({ id }, dto);
   }
 
-  async updateStatus(userId: string, status: string): Promise<void> {
-    await this.userRepo.update({ id: userId }, { status: status as any });
+  async updateStatus(
+    userId: string,
+    status: string,
+    manager?: EntityManager
+  ): Promise<void> {
+    const repository = manager?.getRepository(User) ?? this.userRepo;
+    await repository.update({ id: userId }, { status: status as any });
   }
 
   async updatePasswordHash(

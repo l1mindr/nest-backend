@@ -23,7 +23,11 @@ export interface IUserRepository {
     hashPassword: string,
     manager?: EntityManager
   ): Promise<void>;
-  updateStatus(userId: string, status: string): Promise<void>;
+  updateStatus(
+    userId: string,
+    status: string,
+    manager?: EntityManager
+  ): Promise<void>;
   findPendingOlderThan(cutoff: Date): Promise<User[]>;
 }
 
@@ -39,7 +43,11 @@ export interface IVerificationCodeRepository {
     manager?: EntityManager
   ): Promise<UserVerificationCode>;
   findLatestByUserId(userId: string): Promise<UserVerificationCode | null>;
-  markVerified(id: string, verifiedAt: Date): Promise<void>;
+  markVerified(
+    id: string,
+    verifiedAt: Date,
+    manager?: EntityManager
+  ): Promise<void>;
   invalidatePreviousCodes(userId: string, now: Date): Promise<void>;
 }
 
