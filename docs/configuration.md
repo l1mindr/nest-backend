@@ -23,6 +23,10 @@ Reads `.env.${NODE_ENV}`, then `.env` (`.env` overrides).
 | `ACCESS_TOKEN_SECRET` | JWT access token signing secret (entropy-validated) |
 | `REFRESH_TOKEN_SECRET` | JWT refresh token signing secret (must differ from access) |
 | `CSRF_TOKEN_SECRET` | CSRF token secret (must differ from both JWT secrets) |
+| `EMAIL_HOST` | SMTP hostname or IP (e.g. `smtp.gmail.com`) |
+| `EMAIL_USER` | SMTP account username |
+| `EMAIL_APP_PASSWORD` | SMTP app password (min 16 chars in production) |
+| `EMAIL_FROM` | Sender address used in outgoing emails |
 | `NODE_ENV` | One of: development, production, test, staging |
 
 ### Optional
@@ -36,6 +40,9 @@ Reads `.env.${NODE_ENV}`, then `.env` (`.env` overrides).
 | `REDIS_DB` | 0 | Redis database index |
 | `LOG_LEVEL` | `debug` (dev) / `warn` (prod) | One of: info, debug, warn, error, silent |
 | `E2E_LOGS` | `false` | Enable request/response logging in e2e tests |
+| `APP_NAME` | `NestJS Backend` | Product name used as the sender display name in emails |
+| `EMAIL_PORT` | 587 | SMTP port (1–65535) |
+| `EMAIL_SECURE` | `false` | Use TLS when connecting to the SMTP server |
 
 ## Secrets Validation
 
@@ -47,6 +54,7 @@ Secrets (`ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `CSRF_TOKEN_SECRET`, and
 | `REFRESH_TOKEN_SECRET` | 32 | 3.0 bits/char | 64 | 3.5 bits/char |
 | `CSRF_TOKEN_SECRET` | 16 | 2.5 bits/char | 32 | 3.0 bits/char |
 | `REDIS_PASSWORD` | optional | — | 16 | 3.0 bits/char |
+| `EMAIL_APP_PASSWORD` | 8 | — | 16 | — |
 
 ### Production Safety Checks
 
@@ -57,6 +65,7 @@ In production mode, the schema enforces additional rules:
 - `REDIS_HOST` must not be localhost / 127.0.0.1 / ::1
 - `ACCESS_TOKEN_SECRET` length must be at least 64 characters (defensive redundancy)
 - All three token secrets (`ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `CSRF_TOKEN_SECRET`) must be distinct from each other
+- `EMAIL_APP_PASSWORD` must not match any of the three token secrets
 
 ## Configuration Namespaces
 
@@ -67,6 +76,7 @@ In production mode, the schema enforces additional rules:
 | `jwt` | accessSecret, refreshSecret | TokenIssueService, JwtStrategy |
 | `csrf` | secret | CsrfTokenService |
 | `app` | nodeEnv, logLevel, port | Application bootstrap |
+| `email` | appName, host, port, secure, user, appPassword, from | SMTP transport (Nodemailer) |
 
 ## Validation
 

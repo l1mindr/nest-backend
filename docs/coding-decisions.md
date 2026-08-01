@@ -58,7 +58,7 @@
 
 **Consequences**:
 - `ClockService` lives in infrastructure (not core) because it depends on `@nestjs/common` (`@Injectable`) and is a framework-integrated service
-- `EmailService` is abstract in infrastructure with `ConsoleEmailService` as the default implementation — swap out the module provider to switch implementations
+- `EmailService` is abstract in infrastructure with `SmtpEmailService` as the default implementation — swap out the module provider to switch implementations
 - `ErrorMapper` lives in `infrastructure/errors/` because it maps domain errors to HTTP responses — it knows about NestJS `HttpStatus`
 - Databases, Redis, logging all have clear ownership boundaries
 

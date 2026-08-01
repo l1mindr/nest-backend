@@ -43,7 +43,7 @@ Imports:
 | `EnvModule` | Environment validation with Joi |
 | `DatabasesModule` | PostgreSQL + Redis connectivity |
 | `ClockModule` | Time utilities |
-| `EmailModule` | Abstract email + ConsoleEmailService |
+| `EmailModule` | Abstract email + SmtpEmailService |
 
 ### EnvModule
 
@@ -78,7 +78,7 @@ Exports: `RedisLockService`, `RedisCounterService`
 
 ### EmailModule
 
-**Global module.** Provides abstract `EmailService` with concrete `ConsoleEmailService` implementation.
+**Global module.** Provides abstract `EmailService` with concrete `SmtpEmailService` implementation.
 
 ---
 
