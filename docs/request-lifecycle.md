@@ -88,7 +88,7 @@ flowchart LR
 
 | Component | Registration |
 |-----------|-------------|
-| `RateLimitGuard` | `@RateLimit({ limit, ttl })` on controller/route |
+| `RateLimitGuard` | `@RateLimit({ limit, ttl })` on route handler |
 | `SerializeInterceptor` | `@Serialize(Dto)` on controller method |
 | `AuthCookieInterceptor` | `@UseInterceptors(AuthCookieInterceptor)` on login/refresh |
 

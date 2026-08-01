@@ -220,6 +220,4 @@ After commit:
 
 1. **Domain entities carry TypeORM decorators** — `@Entity`, `@Column`, `@OneToMany` leak ORM into domain. Requires entity refactoring with separate ORM models.
 2. **Error classes import `HttpStatus` from `@nestjs/common`** — Domain errors know about HTTP. Requires moving HTTP mapping to infrastructure layer.
-3. **Redis lock for refresh does not use `NX`** — Not a strict lock. Relies on database conditional update as authoritative mechanism.
-4. **`UpdateUserRequestDto` permits `status`** — Users could theoretically update their own status via the profile endpoint.
-5. **No CORS configuration** — Add if frontend is served from a different origin.
+3. **No CORS configuration** — Add if frontend is served from a different origin.

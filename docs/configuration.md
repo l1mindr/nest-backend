@@ -30,7 +30,7 @@ Reads `.env.${NODE_ENV}`, then `.env` (`.env` overrides).
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DATA_SOURCE_POOL_SIZE` | 10 | Connection pool size (1–100) |
-| `DATA_SOURCE_CONNECT_TIMEOUT_MS` | 10000 | Connection timeout in ms (1000–60000) |
+| `DATA_SOURCE_CONNECT_TIMEOUT_MS` | 5000 | Connection timeout in ms (1000–60000) |
 | `DATA_SOURCE_IDLE_TIMEOUT_MS` | 30000 | Idle timeout in ms (1000–600000) |
 | `REDIS_PASSWORD` | — | Redis password (required in production, entropy-validated) |
 | `REDIS_DB` | 0 | Redis database index |
