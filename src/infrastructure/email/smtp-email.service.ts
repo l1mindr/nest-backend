@@ -24,7 +24,7 @@ export class SmtpEmailService extends EmailService {
 
   constructor(
     @Inject(EMAIL_TRANSPORT) private readonly transport: Transporter,
-    config: ConfigType<typeof emailConfig>
+    @Inject(emailConfig.KEY) config: ConfigType<typeof emailConfig>
   ) {
     super();
     this.from = config.from;
@@ -34,12 +34,12 @@ export class SmtpEmailService extends EmailService {
   async sendVerificationEmail(
     email: string,
     code: string,
-    expiresAt: Date
+    expiresInMinutes: number
   ): Promise<void> {
     const rendered = buildVerificationEmail({
       projectName: this.projectName,
       code,
-      expiresAt
+      expiresInMinutes
     });
 
     await this.send({ to: email, ...rendered });

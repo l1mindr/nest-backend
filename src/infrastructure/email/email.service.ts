@@ -5,7 +5,7 @@ export abstract class EmailService {
   abstract sendVerificationEmail(
     email: string,
     code: string,
-    expiresAt: Date
+    expiresInMinutes: number
   ): Promise<void>;
 
   abstract sendSuspensionEmail(
