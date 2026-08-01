@@ -25,16 +25,16 @@ File: `src/infrastructure/databases/postgres/data-source.ts`
 
 | Column | Type | Constraints |
 |--------|------|-------------|
-| id | uuid | PK, default `gen_random_uuid()` |
+| id | uuid | PK, default `uuid_generate_v4()` |
 | name | varchar(50) | Nullable, `select: false` |
 | email | varchar | UK |
 | username | varchar(30) | UK |
 | password | varchar | `select: false` |
 | status | enum | `PENDING_VERIFICATION` (default), `ACTIVATE`, `SUSPEND`, `DEACTIVATE` |
 | role | enum | `USER` (default), `ADMIN` |
-| createdAt | timestamptz | Auto-set |
-| updatedAt | timestamptz | Auto-set |
-| deleteAt | timestamptz | Nullable, soft delete |
+| createdAt | timestamp | Auto-set |
+| updatedAt | timestamp | Auto-set |
+| deleteAt | timestamp | Nullable, soft delete |
 
 #### Sessions Table
 
@@ -42,29 +42,64 @@ File: `src/infrastructure/databases/postgres/data-source.ts`
 |--------|------|-------------|
 | id | uuid | PK |
 | refreshTokenHash | varchar | SHA-256 |
-| device | jsonb | Nullable |
+| device | jsonb | NOT NULL |
 | ipAddress | varchar | |
 | isRevoked | boolean | Default false |
-| expiresAt | timestamptz | |
-| lastUsedAt | timestamptz | |
+| expiresAt | timestamp | |
+| lastUsedAt | timestamp | |
 | version | integer | Optimistic concurrency |
-| rotatedAt | timestamptz | |
-| createdAt | timestamptz | Auto-set |
-| updatedAt | timestamptz | Auto-set |
+| rotatedAt | timestamp | Nullable |
+| createdAt | timestamp | Auto-set |
+| updatedAt | timestamp | Auto-set |
 | ownerId | uuid | FK → User.id |
 
-Indexes: `(ownerId, isRevoked, expiresAt)`, `expiresAt`
+Indexes: `(ownerId, isRevoked, expiresAt)`, `(ownerId, isRevoked, expiresAt, createdAt)`, `expiresAt`
 
 #### Verification Codes Table
 
 | Column | Type | Constraints |
 |--------|------|-------------|
 | id | uuid | PK |
+| userId | uuid | FK → User.id (CASCADE) |
+| codeHash | varchar | bcrypt hash |
+| expiresAt | timestamp with time zone | 3 minutes |
+| verifiedAt | timestamp with time zone | Nullable |
+| createdAt | timestamp | Auto-set |
+
+#### Coins Table
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | varchar | PK (CoinGecko id) |
+| symbol | varchar | |
+| name | varchar | |
+| image | varchar | Nullable |
+| isActive | boolean | Default true |
+| lastSyncedAt | timestamp | |
+| createdAt | timestamp | Auto-set |
+| updatedAt | timestamp | Auto-set |
+
+#### Price Alerts Table
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | uuid | PK, default `uuid_generate_v4()` |
 | userId | uuid | FK → User.id |
-| codeHash | varchar | SHA-256 |
-| expiresAt | timestamptz | 3 minutes |
-| verifiedAt | timestamptz | Nullable |
-| createdAt | timestamptz | Auto-set |
+| coinId | varchar | FK → Coin.id |
+| direction | enum | `BUY`, `SELL` |
+| targetPrice | decimal | CHECK > 0 |
+| triggerMode | enum | `ONCE` (default), `REPEAT` |
+| status | enum | `ACTIVE` (default), `TRIGGERED`, `EXPIRED`, `CANCELLED` |
+| expiresAt | timestamp | Nullable |
+| notificationChannels | enum[] | `EMAIL`, `SMS`; CHECK non-empty |
+| notificationCooldownMinutes | integer | Default 60, CHECK > 0 |
+| lastCheckedPrice | decimal | Nullable |
+| lastTriggeredAt | timestamp | Nullable |
+| triggeredCount | integer | Default 0 |
+| createdAt | timestamp | Auto-set |
+| updatedAt | timestamp | Auto-set |
+
+Indexes: `userId`, `status`, `coinId`, `(userId, status)`, `(status, coinId)`, `expiresAt`
 
 ### Migrations
 
@@ -73,8 +108,7 @@ Indexes: `(ownerId, isRevoked, expiresAt)`, `expiresAt`
 | 1 | `CreateUsersTable` | Initial user schema |
 | 2 | `CreateSessionsTable` | Initial session schema |
 | 3 | `CreateCoinAndPriceAlertTables` | Coin tracker entities |
-| 4 | `CreateVerificationTable` | Email verification codes |
-| 5–9 | Production corrections | Indexes, defaults, schema refinement |
+| 4 | `CreateVerificationTable` | Adds `PENDING_VERIFICATION` status and email verification codes |
 
 ## Redis
 

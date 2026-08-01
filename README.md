@@ -124,11 +124,9 @@ All admin endpoints require the `ADMIN` role.
 
 ## Response Format
 
-- Successful responses return data directly or wrapped in a response envelope.
-- Paginated endpoints return `{ items: [...], nextCursor: string | null }`.
-- Single-resource endpoints may return the resource directly or use a serialized DTO.
-- Error responses follow `{ statusCode, message, error, timestamp, path, details? }`.
-- The 204 No Content responses return an empty body.
+- Successful responses are wrapped in a `{ data: ... }` envelope by `DataResponseInterceptor`; 204 No Content responses return an empty body.
+- Paginated endpoints return `{ data: { items: [...], nextCursor: string | null } }` (session lists also include `currentSession`).
+- Error responses follow `{ error: { code, domain, message, meta, path, timestamp } }`.
 
 ## Swagger UI
 
@@ -185,7 +183,7 @@ http://localhost:8080
 | `DATA_SOURCE_PORT`              | Yes      | —        | PostgreSQL port (1–65535)                |
 | `DATA_SOURCE_DATABASE`          | Yes      | —        | PostgreSQL database name                 |
 | `DATA_SOURCE_POOL_SIZE`         | No       | 10       | Connection pool size (1–100)             |
-| `DATA_SOURCE_CONNECT_TIMEOUT_MS`| No       | 10000    | Connection timeout in ms (1000–60000)    |
+| `DATA_SOURCE_CONNECT_TIMEOUT_MS`| No       | 5000     | Connection timeout in ms (1000–60000)    |
 | `DATA_SOURCE_IDLE_TIMEOUT_MS`   | No       | 30000    | Idle timeout in ms (1000–600000)         |
 | `REDIS_HOST`                    | Yes      | —        | Redis hostname or IP                     |
 | `REDIS_PORT`                    | Yes      | —        | Redis port (1–65535)                     |

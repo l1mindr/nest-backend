@@ -2,15 +2,15 @@
 
 ## AppModule
 
-Composition root. Imports CoreModule, InfrastructureModule, PresentationModule, LoggingModule, and FeaturesModule.
+Composition root. Imports InfrastructureModule, PresentationModule, LoggingModule, and FeaturesModule.
 
 Does not register any providers itself.
 
 ---
 
-## CoreModule
+## Core
 
-Declared in `src/core/core.module.ts`. Currently re-exports nothing — Core is imported by direct file reference through path aliases.
+Framework-agnostic shared logic lives in `src/core/` (e.g. `AppError`, `ErrorDomain`, `RegistryDates`). It is not a NestJS module — Core is imported by direct file reference through path aliases.
 
 ---
 
@@ -107,10 +107,10 @@ Controllers: `AuthController`
 
 | Symbol | Implementation | Responsibility |
 |--------|---------------|----------------|
-| `REGISTER` | `RegisterUseCase` | User registration |
-| `LOGIN` | `LoginUseCase` | User login + session issue |
-| `CHANGE_PASSWORD` | `ChangePasswordUseCase` | Password change with session revocation |
-| `REFRESH` | `RefreshUseCase` | Token refresh with rotation |
+| `REGISTER` | `Register` | User registration |
+| `LOGIN` | `Login` | User login + session issue |
+| `CHANGE_PASSWORD` | `ChangePassword` | Password change with session revocation |
+| `REFRESH` | `Refresh` | Token refresh with rotation |
 
 **Services:**
 - `AuthCookieService` — Sets httpOnly JWT cookies + CSRF cookie on response
@@ -137,8 +137,8 @@ Imports: `JwtModule`, `TokenModule`, `DeviceDetectionModule`, `RateLimitModule`,
 ### CsrfModule
 
 Provides:
-- `CsrfTokenService` — Token generation (`randomBytes(32)`)
-- `CsrfValidationService` — Token comparison (timing-safe)
+- `CsrfTokenService` — Structured token generation (`nonce.expiresAt.signature`, HMAC-SHA256)
+- `CsrfValidationService` — Signature/expiry verification + cookie vs header comparison (timing-safe)
 - `CsrfGuard` — Global CSRF validation
 - `ClearCsrfCookieInterceptor` — Clears CSRF cookie on logout
 
@@ -212,8 +212,8 @@ Exports:
 | `USER_REPOSITORY` | `UserRepository` |
 | `USER_QUERY_SERVICE` | `UserQueryService` |
 | `CREATE_USER_USE_CASE` | `CreateUserUseCase` |
+| `VERIFICATION_CODE_REPOSITORY` | `VerificationCodeRepository` |
 | `INITIATE_REGISTRATION_USE_CASE` | `InitiateRegistrationUseCase` |
-| `VERIFY_EMAIL_USE_CASE` | `VerifyEmailUseCase` |
 | `RESEND_VERIFICATION_USE_CASE` | `ResendVerificationUseCase` |
 | `CLEANUP_PENDING_USERS_USE_CASE` | `CleanupPendingUsersUseCase` |
 

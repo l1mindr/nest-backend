@@ -27,7 +27,7 @@ class Session {
 }
 ```
 
-Indexed on `(owner, isRevoked, expiresAt)` and `expiresAt` for query performance.
+Indexed on `(owner, isRevoked, expiresAt)`, `(owner, isRevoked, expiresAt, createdAt)`, and `expiresAt` for query performance.
 
 ---
 
@@ -39,11 +39,11 @@ Indexed on `(owner, isRevoked, expiresAt)` and `expiresAt` for query performance
 
 Called during login:
 
-1. Acquires pessimistic user lock (via `pg_try_advisory_xact_lock`) to prevent concurrent session creation races
-2. Counts current active sessions
-3. If at `MAX_ACTIVE_SESSIONS` limit, revokes oldest excess sessions (LRU by `lastUsedAt`)
-4. Creates new session with placeholder refresh token hash
-5. Returns session ID for token issuance
+1. Opens a transaction and acquires a `pessimistic_write` lock on the user row to prevent concurrent session creation races
+2. Creates the new session (placeholder refresh token hash)
+3. Counts current active sessions
+4. If the count exceeds `MAX_ACTIVE_SESSIONS`, revokes the oldest excess sessions (LRU by `lastUsedAt`)
+5. Returns the session for token issuance
 
 ### Rotation
 
@@ -52,19 +52,19 @@ Called during login:
 Called during refresh:
 
 1. Issues new access + refresh token pair
-2. Calls `rotateAtomic(sessionId, oldHash, newHash, version, now)`:
+2. Calls `rotateRefreshToken(sessionId, version, oldHash, newHash, meta)`:
    ```sql
    UPDATE "session"
    SET "refresh_token_hash" = :newHash,
        "version"            = "version" + 1,
        "rotated_at"         = :now,
-       "last_used_at"       = :now
+       "last_used_at"       = :now,
+       "expires_at"         = :newExpiresAt
    WHERE "id" = :sessionId
      AND "refresh_token_hash" = :oldHash
-     AND "version" = :oldVersion
+     AND "version" = :version
    ```
-3. Uses **Lua script** on Redis for atomicity (though operation is pure SQL)
-4. If 0 rows affected → hash mismatch → reuse detected → revoke session
+3. If 0 rows affected → hash mismatch → reuse detected → revoke session
 
 ### Revocation
 
@@ -74,9 +74,9 @@ Supports:
 
 | Method | Description |
 |--------|-------------|
-| `revokeAll(userId, manager?)` | Revokes all sessions for a user (used in suspend, password change). Accepts optional `EntityManager` for transaction participation. |
-| `revokeCurrent(sessionId)` | Revokes current session (logout) |
-| `revokeOthers(sessionId, userId)` | Revokes all sessions except specified one |
+| `revoke(userId, sessionId)` | Revokes a single session (logout via `DELETE /v1/sessions`) |
+| `revokeAll(userId, manager?)` | Revokes all sessions for a user (used in suspend, delete account). Accepts optional `EntityManager` for transaction participation. |
+| `terminateOthers(userId, sessionId, manager?)` | Revokes all sessions except the current one (used in change-password, `DELETE /v1/sessions/others`) |
 
 Revocation sets `isRevoked = true`. Expired sessions are also treated as revoked by the query layer.
 
@@ -105,13 +105,12 @@ Revocation sets `isRevoked = true`. Expired sessions are also treated as revoked
 
 ## Max Active Sessions
 
-Controlled by `MAX_ACTIVE_SESSIONS` environment variable (default: 5).
+Controlled by the required `MAX_ACTIVE_SESSIONS` environment variable (integer, min 5).
 
 Behavior:
 - When a new session would exceed the limit, the least recently used (LRU) sessions are revoked
-- Excess sessions are calculated as: `activeCount - MAX_ACTIVE_SESSIONS + 1` (for the new one)
-- Oldest sessions by `lastUsedAt` are selected for revocation
-- All happens within the same transaction under a user-level advisory lock
+- The new session is created first, then the active count is checked; if it exceeds `MAX_ACTIVE_SESSIONS`, the `excess = activeCount - MAX_ACTIVE_SESSIONS` oldest sessions (by `lastUsedAt`) are revoked
+- All happens within the same transaction under a pessimistic write lock on the user row
 
 ---
 
@@ -120,19 +119,20 @@ Behavior:
 Refresh token rotation uses a conditional UPDATE pattern:
 
 ```typescript
-async rotateAtomic(
+async execute(
   sessionId: string,
+  version: number,
   oldHash: string,
   newHash: string,
-  expectedVersion: number,
-  now: Date
+  meta: { now: number; expiresAt: Date }
 ): Promise<boolean> {
-  const result = await this.sessionRepository.rotateAtomic(
-    sessionId, oldHash, newHash, expectedVersion, now
+  return this.sessionRepository.rotateRefreshToken(
+    sessionId, version, oldHash, newHash, meta
   );
-  return result.affected === 1;
 }
 ```
+
+`rotateRefreshToken` performs the conditional UPDATE and returns `result.affected === 1`.
 
 If the update affects 0 rows, it means:
 - The `refreshTokenHash` doesn't match (old token already rotated) → reuse detected, OR
@@ -147,16 +147,16 @@ In both cases the session is revoked to prevent token theft.
 ```
 Login:
   LoginUseCase
-    → SessionIssueUseCase.issue(userId, device, ip)
-      → Acquire advisory lock for user
-      → Count active sessions
-      → Revoke excess if needed
+    → SessionIssueUseCase.execute(userId, ipAddress, device, expiresAt)
+      → Lock user row (pessimistic_write) in transaction
       → INSERT session (placeholder hash)
-      → Return sessionId
+      → Count active sessions
+      → Revoke excess if over MAX_ACTIVE_SESSIONS
+      → Return session
     → TokenIssueService.issuePair(userId, sessionId)
       → Sign access_token (15min, secret A)
       → Sign refresh_token (7d, secret B)
-    → Store refresh token hash on session
+    → RefreshTokenHasher.hash(refreshToken) → SessionRotationUseCase.saveHash(session)
     → AuthCookieInterceptor sets cookies
 
 Refresh:
@@ -165,9 +165,9 @@ Refresh:
     → Verify refresh JWT (secret B)
     → Load active session by ID
     → Compare refresh token hash (SHA-256)
-    → Check rotatedAt vs iat
+    → Check version + hash guard (reuse detection)
     → TokenIssueService.issuePair(userId, sessionId)
-    → SessionRotationUseCase.rotateAtomic(...)
+    → SessionRotationUseCase.execute(...)
       → Conditional UPDATE (hash + version check)
       → If 0 affected → revoke session (reuse detected)
     → Release Redis lock
@@ -184,4 +184,5 @@ Refresh:
 | `SESSION_EXPIRED` | Session has expired | 401 |
 | `SESSION_REVOKED` | Session was revoked | 401 |
 | `SESSION_REUSE_DETECTED` | Old refresh token used after rotation | 401 |
-| `SESSION_LIMIT_REACHED` | Max active sessions (informational, auto-handled) | - |
+| `REFRESH_RATE_LIMITED` | Refresh attempted within the rate-limit window | 429 |
+| `INVALID_CURSOR` | Malformed pagination cursor | 400 |

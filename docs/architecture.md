@@ -97,7 +97,6 @@ Current features:
 
 ```
 AppModule
-├── CoreModule (core/ — pure TS, re-exported for DI)
 ├── LoggingModule (global — nestjs-pino)
 ├── PresentationModule (global ValidationPipe, DataResponseInterceptor)
 ├── InfrastructureModule
