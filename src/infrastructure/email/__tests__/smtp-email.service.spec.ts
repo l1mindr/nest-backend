@@ -28,9 +28,7 @@ describe('SmtpEmailService', () => {
 
   describe('sendVerificationEmail', () => {
     it('should send the rendered verification email', async () => {
-      const expiresAt = new Date('2024-01-01T12:34:00Z');
-
-      await service.sendVerificationEmail('user@test.com', '123456', expiresAt);
+      await service.sendVerificationEmail('user@test.com', '123456', 3);
 
       expect(sendMail).toHaveBeenCalledTimes(1);
       const [mail] = sendMail.mock.calls[0];
@@ -39,7 +37,8 @@ describe('SmtpEmailService', () => {
       expect(mail.to).toBe('user@test.com');
       expect(mail.subject).toContain('NestJS Backend');
       expect(mail.html).toContain('123456');
-      expect(mail.html).toContain('2024-01-01 12:34 UTC');
+      expect(mail.html).toContain('expires in 3 minutes');
+      expect(mail.html).not.toContain('UTC');
       expect(mail.text).toContain('123456');
     });
 
@@ -48,11 +47,7 @@ describe('SmtpEmailService', () => {
         .spyOn(console, 'log')
         .mockImplementation(() => {});
 
-      await service.sendVerificationEmail(
-        'user@test.com',
-        '123456',
-        new Date()
-      );
+      await service.sendVerificationEmail('user@test.com', '123456', 3);
 
       expect(consoleLog).not.toHaveBeenCalled();
       consoleLog.mockRestore();
@@ -95,7 +90,7 @@ describe('SmtpEmailService', () => {
       sendMail.mockRejectedValue(error);
 
       await expect(
-        service.sendVerificationEmail('user@test.com', '123456', new Date())
+        service.sendVerificationEmail('user@test.com', '123456', 3)
       ).rejects.toThrow(error);
     });
   });
