@@ -11,7 +11,11 @@ const config: Config = {
   }),
   rootDir: '.',
   testMatch: ['**/*.spec.ts'],
-  testTimeout: 30000
+  testTimeout: 30000,
+  // Jest defaults to a directory under the system temp, which CI discards
+  // between runs. Keeping it in the workspace lets the pipeline restore the
+  // ts-jest transform cache instead of re-transpiling every spec from cold.
+  cacheDirectory: '<rootDir>/.jest-cache'
 };
 
 export default config;
