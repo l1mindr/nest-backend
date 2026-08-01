@@ -7,7 +7,6 @@ import {
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
   ApiCookieAuth,
-  ApiConflictResponse,
   ApiTooManyRequestsResponse
 } from '@nestjs/swagger';
 import { RegisterUserRequestDto } from '../dto/request/register-user.request.dto';
@@ -39,7 +38,7 @@ export function ApiVerifyEmail() {
     ApiOperation({
       summary: 'Verify a user email with a one-time code',
       description:
-        'Activates a PENDING_VERIFICATION account when the code is valid and not expired. Failed attempts are limited; after 5 incorrect codes the current code is invalidated and a new one must be requested.'
+        'Activates a PENDING_VERIFICATION account when the code is valid. Codes are strictly single-use and expire after 3 minutes; used, expired, and unknown codes all return the same generic error. Failed attempts are limited (5 per code, then the code is invalidated) and attempts are rate-limited per email (5 per 10 minutes) to resist brute force and IP rotation.'
     }),
     ApiBody({ type: VerifyEmailRequestDto }),
     ApiResponse({
@@ -49,13 +48,10 @@ export function ApiVerifyEmail() {
     }),
     ApiBadRequestResponse({
       description:
-        'Invalid code, expired code, or the account is not pending verification'
-    }),
-    ApiConflictResponse({
-      description: 'Account is already verified'
+        'Invalid, expired, or already-used code; or the account is not pending verification'
     }),
     ApiTooManyRequestsResponse({
-      description: 'Too many verification attempts from this IP'
+      description: 'Too many verification attempts (per IP or per email)'
     }),
     ApiInternalServerErrorResponse({
       description: 'Unexpected server error'
@@ -68,7 +64,7 @@ export function ApiResendVerification() {
     ApiOperation({
       summary: 'Resend a verification code',
       description:
-        'Sends a new code to pending accounts only, subject to a 60-second cooldown. The response is generic and does not reveal whether an account exists.'
+        'Sends a new code to pending accounts only. The previous code is invalidated on every resend, so only one valid code exists per account. Enforced limits: a 60-second cooldown and a maximum of 5 resends per hour. The response is generic and does not reveal whether an account exists.'
     }),
     ApiBody({ type: ResendVerificationRequestDto }),
     ApiResponse({

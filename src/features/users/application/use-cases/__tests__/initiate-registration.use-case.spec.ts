@@ -2,6 +2,7 @@ import { ClockService } from '@infrastructure/clock/clock.service';
 import { EmailService } from '@infrastructure/email/email.service';
 import { UserStatus } from '../../../domain/enums/user-status.enum';
 import { UserErrors } from '../../../domain/errors/user-errors';
+import { VERIFICATION_CODE_TTL_MINUTES } from '../../verification.constants';
 import { InitiateRegistrationUseCase } from '../initiate-registration.use-case';
 
 describe('InitiateRegistrationUseCase', () => {
@@ -107,7 +108,7 @@ describe('InitiateRegistrationUseCase', () => {
       expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
         'test@test.com',
         '123456',
-        expect.any(Date)
+        VERIFICATION_CODE_TTL_MINUTES
       );
     });
 

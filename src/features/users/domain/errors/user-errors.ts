@@ -58,26 +58,6 @@ export class UserErrors {
     );
   }
 
-  static expiredVerificationCode() {
-    return new AppError(
-      UserErrorCode.EXPIRED_VERIFICATION_CODE,
-      ErrorDomain.USER,
-      HttpStatus.BAD_REQUEST,
-      { field: 'code' },
-      'Verification code has expired'
-    );
-  }
-
-  static alreadyVerified() {
-    return new AppError(
-      UserErrorCode.ALREADY_VERIFIED,
-      ErrorDomain.USER,
-      HttpStatus.CONFLICT,
-      undefined,
-      'Account is already verified'
-    );
-  }
-
   static userAlreadySuspended() {
     return new AppError(
       UserErrorCode.USER_ALREADY_SUSPENDED,

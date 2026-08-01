@@ -3,7 +3,11 @@ import { RedisKey } from '@infrastructure/databases/redis/keys/redis-key.enum';
 import { RedisService } from '@infrastructure/databases/redis/redis.service';
 import { VerificationAttemptService } from '../verification-attempt.service';
 import {
+  MAX_RESENDS_PER_HOUR,
+  MAX_VERIFICATION_RATE_LIMIT,
+  RESEND_HOURLY_WINDOW_MS,
   VERIFICATION_CODE_TTL_MS,
+  VERIFICATION_RATE_LIMIT_WINDOW_MS,
   VERIFICATION_RESEND_COOLDOWN_MS
 } from '../../verification.constants';
 
@@ -71,6 +75,56 @@ describe('VerificationAttemptService', () => {
       const result = await service.acquireResendCooldown('user-id');
 
       expect(result).toBe(false);
+    });
+  });
+
+  describe('isEmailRateLimitExceeded', () => {
+    it('should return false while the attempt count is within the limit', async () => {
+      mockRedisCounterService.increment.mockResolvedValue(
+        MAX_VERIFICATION_RATE_LIMIT
+      );
+
+      const result = await service.isEmailRateLimitExceeded('test@test.com');
+
+      expect(result).toBe(false);
+      expect(mockRedisCounterService.increment).toHaveBeenCalledWith(
+        `${RedisKey.VERIFY_EMAIL_RATE_LIMIT}:test@test.com`,
+        VERIFICATION_RATE_LIMIT_WINDOW_MS / 1000
+      );
+    });
+
+    it('should return true once the attempt count exceeds the limit', async () => {
+      mockRedisCounterService.increment.mockResolvedValue(
+        MAX_VERIFICATION_RATE_LIMIT + 1
+      );
+
+      const result = await service.isEmailRateLimitExceeded('test@test.com');
+
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('isResendHourlyLimitExceeded', () => {
+    it('should return false while the resend count is within the limit', async () => {
+      mockRedisCounterService.increment.mockResolvedValue(MAX_RESENDS_PER_HOUR);
+
+      const result = await service.isResendHourlyLimitExceeded('user-id');
+
+      expect(result).toBe(false);
+      expect(mockRedisCounterService.increment).toHaveBeenCalledWith(
+        `${RedisKey.VERIFY_RESEND_HOURLY}:user-id`,
+        RESEND_HOURLY_WINDOW_MS / 1000
+      );
+    });
+
+    it('should return true once the resend count exceeds the limit', async () => {
+      mockRedisCounterService.increment.mockResolvedValue(
+        MAX_RESENDS_PER_HOUR + 1
+      );
+
+      const result = await service.isResendHourlyLimitExceeded('user-id');
+
+      expect(result).toBe(true);
     });
   });
 });
