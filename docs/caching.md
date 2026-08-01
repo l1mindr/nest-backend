@@ -12,12 +12,14 @@ Redis is used for rate limiting, distributed locking, and atomic counters. Not u
 | `RedisCounterService` | Atomic increment with TTL via Lua script. Used for rate limiting and verification attempt counting. | `rate:limit:{route}:{ip}`, `verify:attempts:{userId}` |
 | `RedisLockService` | Distributed lock with acquire/release. Used for refresh flow synchronization. | `refresh:lock:{sessionId}` |
 
-## Verification Attempts & Cooldown
+## Verification Attempts, Rate Limit & Cooldown
 
 `VerificationAttemptService` uses Redis to harden the email-verification flow:
 
 - `verify:attempts:{userId}` — incremented on each wrong code via `RedisCounterService`, TTL matches the code lifetime (3 minutes); after 5 failed attempts the current code is invalidated and the counter resets
+- `verify:email:{email}` — rate limit per normalized email (5 per 10 minutes); the limit is checked before any other verification logic
 - `verify:resend:cooldown:{userId}` — set with `setIfNotExistsWithExpiry` (`NX` + `EX`, 60s) to enforce the resend cooldown
+- `verify:resend:hourly:{userId}` — resends per hour (5 per hour); checked before the cooldown
 
 ## Rate Limiting
 
@@ -47,7 +49,9 @@ enum RedisKey {
   REFRESH_LOCK = 'refresh:lock',
   RATE_LIMIT = 'rate:limit',
   VERIFY_ATTEMPTS = 'verify:attempts',
-  VERIFY_RESEND_COOLDOWN = 'verify:resend:cooldown'
+  VERIFY_RESEND_COOLDOWN = 'verify:resend:cooldown',
+  VERIFY_EMAIL_RATE_LIMIT = 'verify:email',
+  VERIFY_RESEND_HOURLY = 'verify:resend:hourly'
 }
 ```
 

@@ -134,9 +134,7 @@ Invalid transitions throw `INVALID_STATUS_TRANSITION` domain error. Status logic
 | `EMAIL_ALREADY_EXISTS` | Email taken |
 | `USERNAME_ALREADY_EXISTS` | Username taken |
 | `INVALID_CURSOR` | Invalid pagination cursor |
-| `INVALID_VERIFICATION_CODE` | Wrong verification code |
-| `EXPIRED_VERIFICATION_CODE` | Code past TTL |
-| `ALREADY_VERIFIED` | Email already verified |
+| `INVALID_VERIFICATION_CODE` | Wrong, consumed, or expired verification code |
 | `USER_ALREADY_SUSPENDED` | User already in SUSPEND state |
 | `INVALID_STATUS_TRANSITION` | Status change not allowed |
 

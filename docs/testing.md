@@ -188,7 +188,7 @@ Database schema preparation (migrations) happens once per worker in the Jest glo
 - `ApiClient(app)` → supertest wrapper with cookie jar; `get`/`post`/`patch`/`put`/`delete` with `headers`, `query`, `body` config
 - `postgresql.helper.ts` → `truncateDatabase()`
 - `redis.helper.ts` → `clearRedis(app)` (flushes the Redis DB)
-- `email.helper.ts` → captures emails sent by the app; `getVerificationCode(to)`, `getVerificationExpiry(to)`, `getVerificationEmailCount(to)`, `resetEmailStore()`
+- `email.helper.ts` → captures emails sent by the app; `getVerificationCode(to)`, `getVerificationTtlMinutes(to)`, `getVerificationEmailCount(to)`, `resetEmailStore()`
 
 ## Running Tests
 
