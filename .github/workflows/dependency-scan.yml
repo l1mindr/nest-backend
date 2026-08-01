@@ -8,6 +8,8 @@ on:
     branches:
       - master
   schedule:
+    # Runs every Monday at 06:00 UTC — catches newly disclosed CVEs
+    # even on weeks with no code changes.
     - cron: '0 6 * * 1'
   workflow_dispatch: {}
 
@@ -34,22 +36,31 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Fails the job if any dependency has a HIGH or CRITICAL vulnerability.
+      # Lower severities (low/moderate) are still reported but won't block CI.
       - name: Run pnpm audit (high & critical)
         run: pnpm audit --audit-level=high
 
   osv-scanner:
     name: OSV vulnerability scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run OSV-Scanner
-        uses: google/osv-scanner-action@v2
-        with:
-          scan-args: |-
-            --lockfile=pnpm-lock.yaml
-            --skip-git
+    # OSV-Scanner cross-references the lockfile against the OSV.dev database
+    # (aggregates GitHub Advisory DB, npm advisories, and more). It
+    # complements pnpm audit with broader source coverage.
+    #
+    # The step-level `google/osv-scanner-action` is deprecated; the
+    # maintained pattern is calling their reusable workflow directly.
+    # Pin to a specific release tag (not a moving major tag) for reproducible
+    # CI — check https://github.com/google/osv-scanner-action/releases for
+    # the current version and bump deliberately.
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.5
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    with:
+      scan-args: |-
+        --lockfile=pnpm-lock.yaml
+        --skip-git
 
   codeql:
     name: CodeQL (static analysis)
