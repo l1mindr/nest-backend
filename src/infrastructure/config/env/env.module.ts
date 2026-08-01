@@ -1,4 +1,5 @@
 import redisConfig from '@infrastructure/config/databases/redis.config';
+import emailConfig from '@infrastructure/email/email.config';
 import jwtConfig from '@infrastructure/config/jsonwebtoken/jwt.config';
 import csrfConfig from '@infrastructure/config/security/csrf.config';
 import { Module } from '@nestjs/common';
@@ -13,7 +14,7 @@ import { ENV_VALIDATION_SCHEMA } from './env.schema';
       expandVariables: true,
       validationSchema: ENV_VALIDATION_SCHEMA,
       envFilePath: [`.env.${NODE_ENV}`, '.env'],
-      load: [jwtConfig, redisConfig, csrfConfig]
+      load: [jwtConfig, redisConfig, csrfConfig, emailConfig]
     })
   ]
 })
