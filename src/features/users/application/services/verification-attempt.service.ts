@@ -3,7 +3,11 @@ import { RedisCounterService } from '@infrastructure/databases/redis/redis-count
 import { RedisService } from '@infrastructure/databases/redis/redis.service';
 import { Injectable } from '@nestjs/common';
 import {
+  MAX_RESENDS_PER_HOUR,
+  MAX_VERIFICATION_RATE_LIMIT,
+  RESEND_HOURLY_WINDOW_MS,
   VERIFICATION_CODE_TTL_MS,
+  VERIFICATION_RATE_LIMIT_WINDOW_MS,
   VERIFICATION_RESEND_COOLDOWN_MS
 } from '../verification.constants';
 
@@ -12,6 +16,10 @@ export class VerificationAttemptService {
   private static readonly ATTEMPT_TTL_SECONDS = VERIFICATION_CODE_TTL_MS / 1000;
   private static readonly RESEND_COOLDOWN_SECONDS =
     VERIFICATION_RESEND_COOLDOWN_MS / 1000;
+  private static readonly RATE_LIMIT_WINDOW_SECONDS =
+    VERIFICATION_RATE_LIMIT_WINDOW_MS / 1000;
+  private static readonly RESEND_HOURLY_WINDOW_SECONDS =
+    RESEND_HOURLY_WINDOW_MS / 1000;
 
   constructor(
     private readonly redisCounterService: RedisCounterService,
@@ -39,11 +47,37 @@ export class VerificationAttemptService {
     return result === 'OK';
   }
 
+  async isEmailRateLimitExceeded(normalizedEmail: string): Promise<boolean> {
+    const count = await this.redisCounterService.increment(
+      this.emailRateLimitKey(normalizedEmail),
+      VerificationAttemptService.RATE_LIMIT_WINDOW_SECONDS
+    );
+
+    return count > MAX_VERIFICATION_RATE_LIMIT;
+  }
+
+  async isResendHourlyLimitExceeded(userId: string): Promise<boolean> {
+    const count = await this.redisCounterService.increment(
+      this.resendHourlyKey(userId),
+      VerificationAttemptService.RESEND_HOURLY_WINDOW_SECONDS
+    );
+
+    return count > MAX_RESENDS_PER_HOUR;
+  }
+
   private attemptsKey(userId: string): string {
     return `${RedisKey.VERIFY_ATTEMPTS}:${userId}`;
   }
 
   private cooldownKey(userId: string): string {
     return `${RedisKey.VERIFY_RESEND_COOLDOWN}:${userId}`;
+  }
+
+  private emailRateLimitKey(email: string): string {
+    return `${RedisKey.VERIFY_EMAIL_RATE_LIMIT}:${email.trim().toLowerCase()}`;
+  }
+
+  private resendHourlyKey(userId: string): string {
+    return `${RedisKey.VERIFY_RESEND_HOURLY}:${userId}`;
   }
 }

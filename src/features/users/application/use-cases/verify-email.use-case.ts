@@ -1,7 +1,9 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import { SecurityErrors } from '@features/security/errors/security-errors';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
+import { DataSource } from 'typeorm';
 import { UserStatus } from '../../domain/enums/user-status.enum';
 import { UserErrors } from '../../domain/errors/user-errors';
 import {
@@ -25,12 +27,17 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
     private readonly verificationCodeService: VerificationCodeService,
     private readonly verificationAttemptService: VerificationAttemptService,
     private readonly clockService: ClockService,
+    private readonly dataSource: DataSource,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(VerifyEmailUseCase.name);
   }
 
   async execute(email: string, code: string): Promise<void> {
+    if (await this.verificationAttemptService.isEmailRateLimitExceeded(email)) {
+      throw SecurityErrors.rateLimitExceeded();
+    }
+
     const user = await this.userRepository.findByEmailOrUsernameForAuth(email);
 
     if (!user) {
@@ -38,9 +45,6 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
     }
 
     if (user.status !== UserStatus.PENDING_VERIFICATION) {
-      if (user.status === UserStatus.ACTIVATE) {
-        throw UserErrors.alreadyVerified();
-      }
       throw UserErrors.invalidVerificationCode();
     }
 
@@ -52,7 +56,7 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
     }
 
     if (this.verificationCodeService.isExpired(verification.expiresAt)) {
-      throw UserErrors.expiredVerificationCode();
+      throw UserErrors.invalidVerificationCode();
     }
 
     const isValid = await this.verificationCodeService.validate(
@@ -67,9 +71,20 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
 
     const now = this.clockService.nowDate();
 
+    await this.dataSource.transaction(async (manager) => {
+      await this.verificationCodeRepository.markVerified(
+        verification.id,
+        now,
+        manager
+      );
+      await this.userRepository.updateStatus(
+        user.id,
+        UserStatus.ACTIVATE,
+        manager
+      );
+    });
+
     await this.verificationAttemptService.resetFailedAttempts(user.id);
-    await this.verificationCodeRepository.markVerified(verification.id, now);
-    await this.userRepository.updateStatus(user.id, UserStatus.ACTIVATE);
 
     this.logger.info(
       { event: LogEvent.EMAIL_VERIFIED, userId: user.id },

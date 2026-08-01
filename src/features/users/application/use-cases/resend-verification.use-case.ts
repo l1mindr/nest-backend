@@ -13,7 +13,10 @@ import {
 } from '../interfaces/users.interface';
 import { VerificationCodeService } from '../services/verification-code.service';
 import { VerificationAttemptService } from '../services/verification-attempt.service';
-import { VERIFICATION_CODE_TTL_MS } from '../verification.constants';
+import {
+  VERIFICATION_CODE_TTL_MINUTES,
+  VERIFICATION_CODE_TTL_MS
+} from '../verification.constants';
 
 @Injectable()
 export class ResendVerificationUseCase implements IResendVerificationUseCase {
@@ -37,6 +40,19 @@ export class ResendVerificationUseCase implements IResendVerificationUseCase {
     if (!user) return;
     if (user.status !== UserStatus.PENDING_VERIFICATION) return;
 
+    if (
+      await this.verificationAttemptService.isResendHourlyLimitExceeded(user.id)
+    ) {
+      this.logger.warn(
+        {
+          event: LogEvent.VERIFICATION_RESEND_LIMIT_EXCEEDED,
+          userId: user.id
+        },
+        'Hourly resend limit exceeded; resend skipped'
+      );
+      return;
+    }
+
     const acquired =
       await this.verificationAttemptService.acquireResendCooldown(user.id);
 
@@ -45,6 +61,7 @@ export class ResendVerificationUseCase implements IResendVerificationUseCase {
     const now = this.clockService.nowDate();
 
     await this.verificationCodeRepository.invalidatePreviousCodes(user.id, now);
+    await this.verificationAttemptService.resetFailedAttempts(user.id);
 
     const code = this.verificationCodeService.generate();
     const codeHash = await this.verificationCodeService.hash(code);
@@ -56,7 +73,7 @@ export class ResendVerificationUseCase implements IResendVerificationUseCase {
       await this.emailService.sendVerificationEmail(
         user.email,
         code,
-        expiresAt
+        VERIFICATION_CODE_TTL_MINUTES
       );
     } catch (error: unknown) {
       this.logger.error(

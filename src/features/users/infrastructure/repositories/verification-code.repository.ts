@@ -38,8 +38,15 @@ export class VerificationCodeRepository implements IVerificationCodeRepository {
     });
   }
 
-  async markVerified(id: string, verifiedAt: Date): Promise<void> {
-    await this.repo.update(id, { verifiedAt });
+  async markVerified(
+    id: string,
+    verifiedAt: Date,
+    manager?: EntityManager
+  ): Promise<void> {
+    const repository =
+      manager?.getRepository(UserVerificationCode) ?? this.repo;
+
+    await repository.update(id, { verifiedAt });
   }
 
   async invalidatePreviousCodes(userId: string, now: Date): Promise<void> {
