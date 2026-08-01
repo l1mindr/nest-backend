@@ -1,7 +1,8 @@
 import { helmetConfig } from '@infrastructure/http/helmet.config';
 import {
   IS_PRODUCTION,
-  IS_DEVELOPMENT
+  IS_DEVELOPMENT,
+  IS_TEST
 } from '@infrastructure/config/env/env.constants';
 import { VersioningType } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -10,7 +11,7 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 
 export async function setupApp(app: NestExpressApplication) {
-  if (IS_PRODUCTION) {
+  if (IS_PRODUCTION || IS_TEST) {
     app.set('trust proxy', 1);
   }
 
