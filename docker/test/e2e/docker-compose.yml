@@ -1,5 +1,9 @@
 services:
   migration:
+    # Named explicitly so CI can build the image once, with a layer cache, and
+    # have Compose reuse it instead of running a second build of its own.
+    image: nest-backend-e2e-migration
+
     build:
       context: ../../..
 
@@ -20,6 +24,8 @@ services:
     init: true
 
   app:
+    image: nest-backend-e2e-app
+
     build:
       context: ../../..
       target: test
@@ -55,7 +61,9 @@ services:
       redis:
         condition: service_healthy
 
-    command: pnpm run test:e2e:docker
+    # The E2E suite is compiled on the fly by ts-jest and imports from `src`,
+    # so it never reads `dist`. Building first only added a redundant compile.
+    command: pnpm run test:e2e
 
   postgres:
     image: postgres:17-alpine

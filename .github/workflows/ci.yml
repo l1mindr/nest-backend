@@ -2,11 +2,37 @@ name: CI Pipeline
 
 on:
   push:
+    # Pull requests already validate every feature branch. Restricting pushes to
+    # the long-lived branches stops each PR commit from running the pipeline
+    # twice.
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'documentation/**'
+      - '.vscode/**'
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'documentation/**'
+      - '.vscode/**'
+
+# Nothing in this pipeline writes to the repository.
+permissions:
+  contents: read
+
+# A newer commit on a pull request makes the in-flight run obsolete. Runs on
+# main/master are never cancelled so every commit that lands stays validated.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
-    name: Lint • Unit • E2E
+  quality:
+    name: Lint • Type Check • Unit
     runs-on: ubuntu-latest
 
     steps:
@@ -23,25 +49,61 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
+      # ts-jest re-transpiles every spec and every file it imports on a cold
+      # cache. The directory is ~3 MB and Jest validates each entry against the
+      # file contents, so a stale restore can only ever be a miss.
+      - name: Restore Jest cache
+        uses: actions/cache@v6
+        with:
+          path: .jest-cache
+          key: jest-unit-${{ hashFiles('pnpm-lock.yaml', 'jest.unit.config.ts', 'tsconfig.json') }}-${{ github.sha }}
+          restore-keys: |
+            jest-unit-${{ hashFiles('pnpm-lock.yaml', 'jest.unit.config.ts', 'tsconfig.json') }}-
+            jest-unit-
+
+      # The store is restored by setup-node; --prefer-offline stops pnpm from
+      # revalidating registry metadata it already has on disk.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Lint
-        run: pnpm run lint
+        run: pnpm run lint:check
 
       - name: Type Check
         run: pnpm run typecheck
 
-      - name: Build
-        run: pnpm run build
-
       - name: Unit Tests
         run: pnpm run test:unit
-        env:
-          CI: 'true'
 
+  e2e:
+    name: Image • Migrations • E2E
+    runs-on: ubuntu-latest
+
+    # Every Compose invocation below targets the same stack.
+    env:
+      COMPOSE_FILE: docker/test/e2e/docker-compose.yml
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Needed for the registry-independent GitHub Actions layer cache below.
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Also tagged as the Compose `migration` image so the stack reuses this
+      # build instead of running one of its own.
       - name: Production Image
-        run: docker build --tag nest-backend:ci .
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: production
+          load: true
+          tags: |
+            nest-backend:ci
+            nest-backend-e2e-migration:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Production Image Contract
         run: |
@@ -60,24 +122,27 @@ jobs:
             require.resolve('typeorm');
           "
 
-      - name: E2E Tests (Docker)
-        run: |
-          docker compose \
-            -f docker/test/e2e/docker-compose.yml \
-            build migration app
-          docker compose \
-            -f docker/test/e2e/docker-compose.yml \
-            up -d --wait postgres redis
-          docker compose \
-            -f docker/test/e2e/docker-compose.yml \
-            run --rm --no-deps migration
-          docker compose \
-            -f docker/test/e2e/docker-compose.yml \
-            run --rm --no-deps app
+      # Shares the `dependencies` stage with the production image, so only the
+      # source copy on top of it is rebuilt. No cache export: that top layer
+      # changes with every commit and is worthless to store.
+      - name: E2E Image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: test
+          load: true
+          tags: nest-backend-e2e-app:latest
+          cache-from: type=gha
+
+      - name: Start Services
+        run: docker compose up -d --wait postgres redis
+
+      - name: Migrations (Production Image)
+        run: docker compose run --rm --no-deps migration
+
+      - name: E2E Tests
+        run: docker compose run --rm --no-deps app
 
       - name: Cleanup
         if: always()
-        run: |
-          docker compose \
-            -f docker/test/e2e/docker-compose.yml \
-            down -v
+        run: docker compose down -v
