@@ -56,6 +56,7 @@ New accounts are registered with status `PENDING_VERIFICATION` and can only log 
 ### Flow
 
 1. User receives email with code (via `EmailService.sendVerificationEmail()`)
+
 2. `POST /v1/auth/verify-email` with `{ email, code }` → `VerifyEmailUseCase.execute()`
 3. Loads the latest unexpired code for the user (`findLatestByUserId`, filters `verifiedAt IS NULL`)
 4. Compares hash (timing-safe via `crypto.timingSafeEqual`)
