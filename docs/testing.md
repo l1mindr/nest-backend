@@ -172,8 +172,6 @@ Repositories use `TypeOrmModule` with a test database or mocked query runner.
 
 Database schema preparation (migrations) happens once per worker in the Jest global setup (`test/setup/global-setup.ts`).
 
-Database schema preparation (migrations) happens once per worker in the Jest global setup (`test/setup/global-setup.ts`).
-
 ### Factories
 
 **UserFactory**:
