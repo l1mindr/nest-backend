@@ -3,7 +3,7 @@ import { EmailService } from '@infrastructure/email/email.service';
 interface SentVerification {
   to: string;
   code: string;
-  expiresAt: Date;
+  expiresInMinutes: number;
 }
 
 const sentVerifications: SentVerification[] = [];
@@ -18,10 +18,10 @@ export function getVerificationCode(to: string): string | undefined {
   return match?.code;
 }
 
-export function getVerificationExpiry(to: string): Date | undefined {
+export function getVerificationTtlMinutes(to: string): number | undefined {
   const match = [...sentVerifications].reverse().find((mail) => mail.to === to);
 
-  return match?.expiresAt;
+  return match?.expiresInMinutes;
 }
 
 export function getVerificationEmailCount(to: string): number {
@@ -29,8 +29,8 @@ export function getVerificationEmailCount(to: string): number {
 }
 
 export const capturingEmailService: EmailService = {
-  async sendVerificationEmail(email, code, expiresAt) {
-    sentVerifications.push({ to: email, code, expiresAt });
+  async sendVerificationEmail(email, code, expiresInMinutes) {
+    sentVerifications.push({ to: email, code, expiresInMinutes });
   },
   async sendSuspensionEmail() {
     // no-op: suspend/unsuspend flows are covered by unit tests
