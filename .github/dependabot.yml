@@ -1,86 +1,42 @@
 version: 2
-
 updates:
-  # Node dependencies managed with pnpm
-  - package-ecosystem: "npm"
-    directory: "/"
-
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Baku"
-
-    open-pull-requests-limit: 5
-
-    target-branch: "main"
-
-    labels:
-      - "dependencies"
-      - "pnpm"
-
-    commit-message:
-      prefix: "deps"
-      include: "scope"
-
-    versioning-strategy: increase
-
-    reviewers:
-      - "l1mindr"
-
-    assignees:
-      - "l1mindr"
-
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+    open-pull-requests-limit: 10
     groups:
-      nestjs:
-        patterns:
-          - "@nestjs/*"
-
-      eslint:
-        patterns:
-          - "eslint*"
-          - "@typescript-eslint/*"
-
-      testing:
-        patterns:
-          - "jest"
-          - "@nestjs/testing"
-          - "supertest"
-          - "@types/jest"
-
-      typescript:
-        patterns:
-          - "typescript"
-          - "ts-node"
-          - "ts-jest"
-
-      swagger:
-        patterns:
-          - "@nestjs/swagger"
-          - "swagger*"
-
-    ignore:
-      - dependency-name: "@nestjs/*"
+      minor-and-patch:
         update-types:
-          - "version-update:semver-major"
-
-      - dependency-name: "typescript"
-        update-types:
-          - "version-update:semver-major"
-
-      - dependency-name: "eslint"
-        update-types:
-          - "version-update:semver-major"
-
-  # GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
-
-    schedule:
-      interval: "weekly"
-
+          - 'minor'
+          - 'patch'
     labels:
-      - "github-actions"
-
+      - 'dependencies'
     commit-message:
-      prefix: "ci"
+      prefix: 'chore(deps)'
+
+  - package-ecosystem: 'docker'
+    directory: '/docker'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+    labels:
+      - 'dependencies'
+      - 'docker'
+    commit-message:
+      prefix: 'chore(docker)'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+    labels:
+      - 'dependencies'
+      - 'ci'
+    commit-message:
+      prefix: 'chore(ci)'
