@@ -196,16 +196,24 @@ npx jest --no-coverage --testPathPattern 'src/features/users'
 
 ## CI Pipeline
 
+Two jobs run in parallel:
+
 ```
-corepack enable → pnpm install --frozen-lockfile
-  → lint (eslint)
-  → typecheck (tsc --noEmit)
-  → build (nest build)
-  → unit tests (jest --config jest.unit.config.ts)
-  → build production Docker image
-  → dockerized e2e (docker-compose -f docker/test/e2e)
-  → cleanup
+quality:  corepack enable → pnpm install --frozen-lockfile --prefer-offline
+            → lint (eslint, no --fix)
+            → typecheck (tsc --noEmit)
+            → unit tests (jest --config jest.unit.config.ts)
+
+e2e:      buildx (cached layers) → production image + image contract
+            → e2e image (test target)
+            → postgres + redis (--wait on healthchecks)
+            → migrations from the production image
+            → dockerized e2e (docker-compose -f docker/test/e2e)
+            → cleanup
 ```
+
+`nest build` is not run on the runner: the production image builds the same
+output in its `builder` stage, and the image contract asserts the result.
 
 ## Current Test Coverage
 
