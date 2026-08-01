@@ -76,8 +76,8 @@ All routes are URI-versioned under `/v1`.
 | Method | Path             | Auth     | Rate Limit     | Description                          |
 |--------|------------------|----------|----------------|--------------------------------------|
 | POST   | `/auth/register` | Public   | 5/60s          | Register a new user account          |
-| POST   | `/auth/verify-email` | Public | 10/60s       | Verify email with a 6-digit code     |
-| POST   | `/auth/resend-verification` | Public | 5/60s | Resend verification code (60s cooldown) |
+| POST   | `/auth/verify-email` | Public | 10/60s       | Verify email with a 6-digit code (5/10min per email) |
+| POST   | `/auth/resend-verification` | Public | 5/60s | Resend code (60s cooldown, 5/hour) |
 | POST   | `/auth/login`    | Public   | 5/60s          | Login with email/username + password |
 | POST   | `/auth/refresh`  | Public   | 20/60s         | Refresh access token via cookie      |
 | POST   | `/auth/change-password` | Session | 3/300s    | Change account password              |

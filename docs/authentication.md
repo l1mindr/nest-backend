@@ -76,8 +76,8 @@ Failed attempts are tracked in Redis (`verify:attempts:{userId}`) with a TTL mat
 
 - Each wrong code increments the counter and returns `400 INVALID_VERIFICATION_CODE`
 - After 5 failed attempts the current code is invalidated and the counter resets; a new code must be requested
-- Expired codes return `400 EXPIRED_VERIFICATION_CODE`
-- Already verified accounts return `409 ALREADY_VERIFIED`
+- All failures return the generic `400 INVALID_VERIFICATION_CODE` (wrong, consumed, or expired) to avoid leaking account state
+- Verification attempts are rate-limited per normalized email (`verify:email:{email}`, 5 per 10 minutes, `429 RATE_LIMIT_EXCEEDED`)
 
 ### Resend
 
@@ -85,7 +85,8 @@ Failed attempts are tracked in Redis (`verify:attempts:{userId}`) with a TTL mat
 
 - Applies to `PENDING_VERIFICATION` accounts only
 - Enforces a **60-second cooldown** per user (Redis `verify:resend:cooldown:{userId}`, NX + expiry)
-- Invalidates previous codes
+- Enforces an **hourly limit** of 5 resends per user (Redis `verify:resend:hourly:{userId}`)
+- Invalidates previous codes and resets the failed-attempt counter
 - Generates new code and sends via email
 - The response is **generic** (`200 { data: { message } }`) and never reveals whether an account exists
 
@@ -232,9 +233,7 @@ Separate secrets from environment variables. Symmetric signing (asymmetric key r
 |------|----------|------|
 | `INVALID_CREDENTIALS` | Wrong email/password | 401 |
 | `ACCOUNT_NOT_VERIFIED` | PENDING_VERIFICATION user tries to login (code resent) | 403 |
-| `INVALID_VERIFICATION_CODE` | Wrong or unknown verification code | 400 |
-| `EXPIRED_VERIFICATION_CODE` | Verification code past its 3-minute TTL | 400 |
-| `ALREADY_VERIFIED` | Verify-email called on an ACTIVATE account | 409 |
+| `INVALID_VERIFICATION_CODE` | Wrong, consumed, or expired verification code | 400 |
 | `INVALID_CURRENT_PASSWORD` | Current password mismatch on change-password | 401 |
 | `PASSWORD_MUST_BE_DIFFERENT` | New password identical to current | 401 |
 | `PASSWORD_CHANGE_FAILED` | Password change transaction failed | 401 |
