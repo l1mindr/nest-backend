@@ -67,7 +67,9 @@ no body at all.
 Authentication is **cookie-based**; the API does not read \`Authorization\` headers.
 
 1. \`POST /v1/auth/register\` creates a pending account and emails a six-digit code.
+
 2. \`POST /v1/auth/verify-email\` activates it.
+
 3. \`POST /v1/auth/login\` sets three cookies and returns no body —
    tokens are never placed in the response.
 
