@@ -12,38 +12,33 @@ import { ExampleValue } from './openapi.constants';
 
 type ResponseHeaders = ApiResponseOptions['headers'];
 
-export interface ApiDataResponseOptions {
+export interface ApiSuccessResponseOptions {
   status: number;
   description: string;
-  /** DTO carried inside the `data` envelope. */
+  /** DTO returned as the response body. */
   type: Type<unknown>;
   headers?: ResponseHeaders;
 }
 
 /**
- * Documents a success response wrapped by `DataResponseInterceptor`.
+ * Documents a success response whose body is the resource itself.
  *
- * The interceptor is registered globally, so every successful payload reaches
- * the client as `{ "data": <payload> }`. Declaring `type` directly on
- * `@ApiResponse` would document the unwrapped payload and mislead clients.
+ * Handlers return the resource directly — there is no response envelope — so
+ * the schema references the resource type verbatim.
  */
-export const ApiDataResponse = ({
+export const ApiSuccessResponse = ({
   status,
   description,
   type,
   headers
-}: ApiDataResponseOptions) =>
+}: ApiSuccessResponseOptions) =>
   applyDecorators(
     ApiExtraModels(type),
     ApiResponse({
       status,
       description,
       headers,
-      schema: {
-        type: 'object',
-        required: ['data'],
-        properties: { data: { $ref: getSchemaPath(type) } }
-      }
+      schema: { $ref: getSchemaPath(type) }
     })
   );
 
@@ -54,26 +49,21 @@ export interface ApiEmptyBodyResponseOptions {
 }
 
 /**
- * Documents a success response whose handler returns nothing but which still
- * carries a body — the envelope serializes to `{}` because `data` is
- * `undefined`. Used by the endpoints that communicate through cookies or
- * through the status code alone (register, login, refresh).
+ * Documents a success response that carries no body.
+ *
+ * Used by endpoints that communicate through cookies or through the status
+ * code alone (register, login, refresh). No content schema is declared, so
+ * clients are not told to parse a body that never arrives.
  *
  * For `204 No Content` use `@ApiNoContentResponse` instead: those responses
- * have no body at all.
+ * have the same shape but their status is fixed.
  */
 export const ApiEmptyBodyResponse = ({
   status,
   description,
   headers
 }: ApiEmptyBodyResponseOptions) =>
-  ApiResponse({
-    status,
-    description,
-    headers,
-    schema: { type: 'object', properties: {} },
-    examples: { empty: { summary: 'Empty envelope', value: {} } }
-  });
+  ApiResponse({ status, description, headers });
 
 export interface ApiNoContentResponseOptions {
   description: string;
@@ -83,8 +73,7 @@ export interface ApiNoContentResponseOptions {
 /**
  * Documents a `204 No Content` response.
  *
- * These bypass `DataResponseInterceptor` entirely — Express sends no body for
- * a 204 — so unlike {@link ApiEmptyBodyResponse} no schema is declared. Any
+ * Express sends no body for a 204, so no content schema is declared. Any
  * `content` here would tell clients to parse a body that never arrives.
  */
 export const ApiNoContent = ({

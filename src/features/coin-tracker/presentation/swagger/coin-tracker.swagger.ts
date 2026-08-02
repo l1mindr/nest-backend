@@ -8,9 +8,9 @@ import {
   validationResponse
 } from '@presentation/swagger/api-error.catalog';
 import {
-  ApiDataResponse,
   ApiErrorResponses,
   ApiNoContent,
+  ApiSuccessResponse,
   errorExample
 } from '@presentation/swagger/api-response.decorator';
 import {
@@ -83,7 +83,7 @@ export const ApiGetCoins = () =>
       ].join('\n')
     }),
     ApiAuthenticated(),
-    ApiDataResponse({
+    ApiSuccessResponse({
       status: 200,
       description:
         'One page of coins, ordered by the requested sort field. `nextCursor` is `null` on the last page.',
@@ -153,7 +153,7 @@ export const ApiCreatePriceAlert = () =>
         }
       }
     ]),
-    ApiDataResponse({
+    ApiSuccessResponse({
       status: 201,
       description:
         'The alert was created in `ACTIVE` and is returned with its coin resolved.',
@@ -204,7 +204,7 @@ export const ApiListPriceAlerts = () =>
       ].join('\n')
     }),
     ApiAuthenticated(),
-    ApiDataResponse({
+    ApiSuccessResponse({
       status: 200,
       description:
         'One page of the caller’s alerts. `nextCursor` is `null` on the last page.',
@@ -267,7 +267,7 @@ export const ApiUpdatePriceAlert = () =>
         }
       }
     ]),
-    ApiDataResponse({
+    ApiSuccessResponse({
       status: 200,
       description: 'The updated alert, re-read after the write.',
       type: PriceAlertResponseDto
