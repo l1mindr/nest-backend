@@ -21,6 +21,8 @@ import { AdminUsersListRequestDto } from '../dto/request/admin-users-list.reques
 import { SuspendUserRequestDto } from '../dto/request/suspend-user.request.dto';
 import { AdminUserResponseDto } from '../dto/response/admin-user.response.dto';
 import { UserRole } from '../../domain/enums/user-role.enum';
+import { ApiTagName } from '@presentation/swagger/openapi.constants';
+import { ApiTags } from '@nestjs/swagger';
 import {
   ADMIN_USERS_USE_CASE,
   IAdminUsersUseCase,
@@ -41,6 +43,7 @@ import {
   path: 'admin/users',
   version: '1'
 })
+@ApiTags(ApiTagName.ADMIN_USERS)
 @UseGuards(RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminUsersController {
