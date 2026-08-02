@@ -1,23 +1,28 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
+import { ExampleValue } from '../swagger/openapi.constants';
 
+/**
+ * Creation and modification instants shared by resources that expose them.
+ *
+ * Deliberately does not declare `deletedAt`: only the admin user projection
+ * surfaces a deletion timestamp, and it maps that field itself from the
+ * embedded `registryDates`.
+ */
 export abstract class TimestampResponseDto {
   @ApiProperty({
-    description: 'Timestamp when the resource was created'
+    description: 'Instant at which the resource was created.',
+    format: 'date-time',
+    example: ExampleValue.TIMESTAMP
   })
   @Expose()
   createdAt: Date;
 
   @ApiProperty({
-    description: 'Timestamp when the resource was last updated'
+    description: 'Instant at which the resource was last modified.',
+    format: 'date-time',
+    example: ExampleValue.TIMESTAMP
   })
   @Expose()
   updatedAt: Date;
-
-  @ApiPropertyOptional({
-    description: 'Timestamp when the resource was deleted',
-    nullable: true
-  })
-  @Expose()
-  deletedAt?: Date | null;
 }
