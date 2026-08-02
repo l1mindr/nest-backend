@@ -35,8 +35,8 @@ describe('Sessions (e2e) version: 1', () => {
     const res = await client.get('/v1/sessions');
 
     expect(res.status).toBe(200);
-    expect(res.body.data.items).toEqual(expect.any(Array));
-    expect('nextCursor' in res.body.data).toBe(true);
+    expect(res.body.items).toEqual(expect.any(Array));
+    expect('nextCursor' in res.body).toBe(true);
   });
 
   it('should return every SessionResponseDto field for each session', async () => {
@@ -47,12 +47,12 @@ describe('Sessions (e2e) version: 1', () => {
     const res = await client.get('/v1/sessions');
 
     expect(res.status).toBe(200);
-    expect(res.body.data.items).toHaveLength(1);
-    expect(res.body.data.currentSession).toBeDefined();
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.currentSession).toBeDefined();
 
-    const other = res.body.data.items[0];
+    const other = res.body.items[0];
 
-    for (const session of [res.body.data.currentSession, other]) {
+    for (const session of [res.body.currentSession, other]) {
       expect(session.sessionId).toEqual(expect.any(String));
       expect(session.sessionId).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
@@ -76,7 +76,7 @@ describe('Sessions (e2e) version: 1', () => {
       expect(session.ipAddress).toEqual(expect.any(String));
     }
 
-    expect(res.body.data.currentSession.sessionId).not.toBe(other.sessionId);
+    expect(res.body.currentSession.sessionId).not.toBe(other.sessionId);
   });
 
   it('should return 204 when logout successfully', async () => {
@@ -113,7 +113,7 @@ describe('Sessions (e2e) version: 1', () => {
     const sessionsRes = await client.get('/v1/sessions');
 
     expect(sessionsRes.status).toBe(200);
-    expect(sessionsRes.body.data.items).toHaveLength(1);
+    expect(sessionsRes.body.items).toHaveLength(1);
 
     const terminateOtherSessionsRes = await client
       .delete('/v1/sessions/others')
@@ -144,10 +144,10 @@ describe('Sessions (e2e) version: 1', () => {
     const res = await client.get('/v1/sessions');
 
     expect(res.status).toBe(200);
-    expect(res.body.data.items).toHaveLength(1);
+    expect(res.body.items).toHaveLength(1);
 
-    const currentSession = res.body.data.currentSession;
-    const other = res.body.data.items[0];
+    const currentSession = res.body.currentSession;
+    const other = res.body.items[0];
 
     const currentLastActivity = new Date(
       currentSession.lastActivityAt
@@ -178,9 +178,9 @@ describe('Sessions (e2e) version: 1', () => {
     const res = await client.get('/v1/sessions');
 
     expect(res.status).toBe(200);
-    expect(res.body.data.items).toHaveLength(2);
+    expect(res.body.items).toHaveLength(2);
 
-    const sessionIds = res.body.data.items.map(
+    const sessionIds = res.body.items.map(
       (s: { sessionId: string }) => s.sessionId
     );
 
@@ -230,8 +230,8 @@ describe('Sessions (e2e) version: 1', () => {
       const res = await client.get('/v1/sessions').query({ limit: 1 });
 
       expect(res.status).toBe(200);
-      expect(res.body.data.items).toHaveLength(1);
-      expect(res.body.data.nextCursor).toEqual(expect.any(String));
+      expect(res.body.items).toHaveLength(1);
+      expect(res.body.nextCursor).toEqual(expect.any(String));
     });
 
     it('should return second page using cursor', async () => {
@@ -246,15 +246,15 @@ describe('Sessions (e2e) version: 1', () => {
       });
 
       const firstPage = await client.get('/v1/sessions').query({ limit: 1 });
-      expect(firstPage.body.data.items).toHaveLength(1);
-      expect(firstPage.body.data.nextCursor).toEqual(expect.any(String));
+      expect(firstPage.body.items).toHaveLength(1);
+      expect(firstPage.body.nextCursor).toEqual(expect.any(String));
 
       const secondPage = await client
         .get('/v1/sessions')
-        .query({ limit: 1, cursor: firstPage.body.data.nextCursor });
+        .query({ limit: 1, cursor: firstPage.body.nextCursor });
 
       expect(secondPage.status).toBe(200);
-      expect(secondPage.body.data.items).toHaveLength(1);
+      expect(secondPage.body.items).toHaveLength(1);
     });
 
     it('should return null nextCursor on last page', async () => {
@@ -266,8 +266,8 @@ describe('Sessions (e2e) version: 1', () => {
       const res = await client.get('/v1/sessions').query({ limit: 10 });
 
       expect(res.status).toBe(200);
-      expect(res.body.data.items).toHaveLength(1);
-      expect(res.body.data.nextCursor).toBeNull();
+      expect(res.body.items).toHaveLength(1);
+      expect(res.body.nextCursor).toBeNull();
     });
 
     it('should return 400 for invalid cursor', async () => {
@@ -311,16 +311,16 @@ describe('Sessions (e2e) version: 1', () => {
 
       const page1 = await client.get('/v1/sessions').query({ limit: 1 });
       expect(page1.status).toBe(200);
-      expect(page1.body.data.nextCursor).toEqual(expect.any(String));
+      expect(page1.body.nextCursor).toEqual(expect.any(String));
 
       const page2 = await client
         .get('/v1/sessions')
-        .query({ limit: 1, cursor: page1.body.data.nextCursor });
+        .query({ limit: 1, cursor: page1.body.nextCursor });
       expect(page2.status).toBe(200);
 
       const allIds = [
-        ...page1.body.data.items.map((s: { sessionId: string }) => s.sessionId),
-        ...page2.body.data.items.map((s: { sessionId: string }) => s.sessionId)
+        ...page1.body.items.map((s: { sessionId: string }) => s.sessionId),
+        ...page2.body.items.map((s: { sessionId: string }) => s.sessionId)
       ];
       expect(new Set(allIds).size).toBe(allIds.length);
     });
@@ -341,22 +341,22 @@ describe('Sessions (e2e) version: 1', () => {
       }
 
       const page1 = await client.get('/v1/sessions').query({ limit: 1 });
-      const currentSessionId = page1.body.data.currentSession.sessionId;
-      const p1Ids = page1.body.data.items.map(
+      const currentSessionId = page1.body.currentSession.sessionId;
+      const p1Ids = page1.body.items.map(
         (s: { sessionId: string }) => s.sessionId
       );
 
       const page2 = await client
         .get('/v1/sessions')
-        .query({ limit: 1, cursor: page1.body.data.nextCursor });
-      const p2Ids = page2.body.data.items.map(
+        .query({ limit: 1, cursor: page1.body.nextCursor });
+      const p2Ids = page2.body.items.map(
         (s: { sessionId: string }) => s.sessionId
       );
 
       const page3 = await client
         .get('/v1/sessions')
-        .query({ limit: 1, cursor: page2.body.data.nextCursor });
-      const p3Ids = page3.body.data.items.map(
+        .query({ limit: 1, cursor: page2.body.nextCursor });
+      const p3Ids = page3.body.items.map(
         (s: { sessionId: string }) => s.sessionId
       );
 
@@ -390,19 +390,19 @@ describe('Sessions (e2e) version: 1', () => {
       const page1 = await client.get('/v1/sessions').query({ limit: 1 });
       const page2 = await client
         .get('/v1/sessions')
-        .query({ limit: 1, cursor: page1.body.data.nextCursor });
+        .query({ limit: 1, cursor: page1.body.nextCursor });
       const page3 = await client
         .get('/v1/sessions')
-        .query({ limit: 1, cursor: page2.body.data.nextCursor });
+        .query({ limit: 1, cursor: page2.body.nextCursor });
 
       const paginatedIds = [
-        ...page1.body.data.items.map((s: { sessionId: string }) => s.sessionId),
-        ...page2.body.data.items.map((s: { sessionId: string }) => s.sessionId),
-        ...page3.body.data.items.map((s: { sessionId: string }) => s.sessionId)
+        ...page1.body.items.map((s: { sessionId: string }) => s.sessionId),
+        ...page2.body.items.map((s: { sessionId: string }) => s.sessionId),
+        ...page3.body.items.map((s: { sessionId: string }) => s.sessionId)
       ];
 
       const singlePage = await client.get('/v1/sessions').query({ limit: 50 });
-      const singlePageIds = singlePage.body.data.items.map(
+      const singlePageIds = singlePage.body.items.map(
         (s: { sessionId: string }) => s.sessionId
       );
 
