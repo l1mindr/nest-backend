@@ -1,16 +1,14 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { nextCursorDocs } from '@presentation/dto/pagination.docs';
+import { ApiProperty } from '@nestjs/swagger';
 import { CoinResponseDto } from './coin.response.dto';
 
 export class CoinListResponseDto {
   @ApiProperty({
-    description: 'List of coins',
+    description: 'Coins on this page, ordered by the requested sort field.',
     type: [CoinResponseDto]
   })
   items!: CoinResponseDto[];
 
-  @ApiPropertyOptional({
-    description:
-      'Opaque cursor for the next page. Omitted when there are no more results.'
-  })
-  nextCursor?: string | null;
+  @ApiProperty(nextCursorDocs())
+  nextCursor!: string | null;
 }

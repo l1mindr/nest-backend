@@ -1,3 +1,7 @@
+import {
+  cursorQueryDocs,
+  limitQueryDocs
+} from '@presentation/dto/pagination.docs';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEnum,
@@ -15,24 +19,25 @@ import { SortOrder } from '../../../domain/enums/sort-order.enum';
 
 const COIN_PAGE_SIZE_DEFAULT = 20;
 const COIN_PAGE_SIZE_MAX = 100;
+const COIN_SEARCH_MIN_LENGTH = 1;
 
-export { COIN_PAGE_SIZE_DEFAULT, COIN_PAGE_SIZE_MAX };
+export { COIN_PAGE_SIZE_DEFAULT, COIN_PAGE_SIZE_MAX, COIN_SEARCH_MIN_LENGTH };
 
 export class CoinListRequestDto {
   @ApiPropertyOptional({
-    description:
-      'Opaque cursor obtained from a previous response. Omit to start from the beginning.'
+    ...cursorQueryDocs(),
+    description: `${cursorQueryDocs().description} The cursor encodes the sort field and direction it was produced under, so changing \`sortBy\` or \`sortOrder\` mid-traversal returns \`400 INVALID_CURSOR\`.`
   })
   @IsOptional()
   @IsString()
   cursor?: string;
 
-  @ApiPropertyOptional({
-    description: `Number of items to return per page (1–${COIN_PAGE_SIZE_MAX}). Defaults to ${COIN_PAGE_SIZE_DEFAULT}.`,
-    minimum: 1,
-    maximum: COIN_PAGE_SIZE_MAX,
-    default: COIN_PAGE_SIZE_DEFAULT
-  })
+  @ApiPropertyOptional(
+    limitQueryDocs({
+      defaultValue: COIN_PAGE_SIZE_DEFAULT,
+      max: COIN_PAGE_SIZE_MAX
+    })
+  )
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -41,27 +46,34 @@ export class CoinListRequestDto {
   limit?: number;
 
   @ApiPropertyOptional({
-    description: 'Search query to filter coins by name or symbol'
+    description:
+      'Case-insensitive substring matched against both the coin name and its ticker symbol. Omit to list everything.',
+    minLength: COIN_SEARCH_MIN_LENGTH,
+    example: 'bit'
   })
   @IsOptional()
   @TrimLowercase()
   @IsString()
-  @MinLength(1)
+  @MinLength(COIN_SEARCH_MIN_LENGTH)
   search?: string;
 
   @ApiPropertyOptional({
-    description: 'Field used to sort coins',
+    description: 'Field the page is ordered by.',
     enum: CoinSortField,
-    default: CoinSortField.ID
+    enumName: 'CoinSortField',
+    default: CoinSortField.ID,
+    example: CoinSortField.NAME
   })
   @IsOptional()
   @IsEnum(CoinSortField)
   sortBy?: CoinSortField;
 
   @ApiPropertyOptional({
-    description: 'Sort direction',
+    description: 'Direction the page is ordered in.',
     enum: SortOrder,
-    default: SortOrder.ASC
+    enumName: 'SortOrder',
+    default: SortOrder.ASC,
+    example: SortOrder.ASC
   })
   @IsOptional()
   @IsEnum(SortOrder)
