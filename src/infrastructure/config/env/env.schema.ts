@@ -101,6 +101,15 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
 
   APP_NAME: Joi.string().min(1).max(60).default('NestJS Backend').optional(),
 
+  // Public base URL of the deployment. Advertised as a server entry in the
+  // OpenAPI document so generated clients target the right host.
+  PUBLIC_API_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .optional()
+    .messages({
+      'string.uri': 'PUBLIC_API_URL must be an absolute http(s) URL.'
+    }),
+
   EMAIL_HOST: Joi.alternatives()
     .try(Joi.string().hostname(), Joi.string().ip())
     .required(),
