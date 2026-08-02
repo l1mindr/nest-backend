@@ -19,7 +19,7 @@ const PRODUCTION_FLAGS = 'Path=/; Secure; SameSite=Strict';
 export const authCookieHeaders = (): ResponseHeaders => ({
   'Set-Cookie': {
     description: [
-      'Three cookies are set on this response and the tokens appear nowhere else — the body is an empty envelope.',
+      'Three cookies are set on this response and the tokens appear nowhere else — no body is returned.',
       '',
       `- \`${AuthCookie.ACCESS_TOKEN}\` — \`HttpOnly\`, 15 minutes. Sent automatically on every subsequent request.`,
       `- \`${AuthCookie.REFRESH_TOKEN}\` — \`HttpOnly\`, 7 days. Consumed by \`POST /v1/auth/refresh\`, single-use.`,

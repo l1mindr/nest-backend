@@ -13,9 +13,9 @@ import {
   validationResponse
 } from '@presentation/swagger/api-error.catalog';
 import {
-  ApiDataResponse,
   ApiErrorResponses,
   ApiNoContent,
+  ApiSuccessResponse,
   errorExample
 } from '@presentation/swagger/api-response.decorator';
 import {
@@ -90,7 +90,7 @@ export const ApiGetProfile = () =>
       ].join('\n')
     }),
     ApiAuthenticated(),
-    ApiDataResponse({
+    ApiSuccessResponse({
       status: 200,
       description: 'The profile of the authenticated account.',
       type: UserProfileResponseDto
@@ -189,7 +189,7 @@ export const ApiAdminGetAllUsers = () =>
       ].join('\n')
     }),
     ApiAuthenticated(),
-    ApiDataResponse({
+    ApiSuccessResponse({
       status: 200,
       description:
         'One page of accounts. `nextCursor` is `null` once the last page has been reached.',
@@ -225,7 +225,7 @@ export const ApiAdminGetUser = () =>
     }),
     ApiAuthenticated(),
     userIdParam(),
-    ApiDataResponse({
+    ApiSuccessResponse({
       status: 200,
       description: 'The requested account.',
       type: AdminUserResponseDto
