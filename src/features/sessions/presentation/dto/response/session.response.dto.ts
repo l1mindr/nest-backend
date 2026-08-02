@@ -1,34 +1,52 @@
-import { ISessionDevice } from '../../../application/interfaces/session-device.interface';
+import { ExampleValue } from '@presentation/swagger/openapi.constants';
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
+import { SessionDeviceDto } from './session-device.response.dto';
 
+/**
+ * One signed-in device.
+ *
+ * Projected from the `Session` entity, which additionally holds the refresh
+ * token hash and the revocation flag — neither is exposed here.
+ */
 export class SessionResponseDto {
   @ApiProperty({
-    example: 'e4f8b9a2-1c7d-4d5a-8f3e-9a1b2c3d4e5f'
+    description:
+      'Identifier of the session. Matches the `sessionId` claim of the access token that created it.',
+    format: 'uuid',
+    example: ExampleValue.SESSION_ID
   })
   @Expose()
   sessionId!: string;
 
   @ApiProperty({
-    example: '192.168.1.1'
+    description: 'IP address the session was opened from.',
+    example: '203.0.113.42'
   })
   @Expose()
   ipAddress!: string;
 
   @ApiProperty({
-    description: 'Information about the client device'
+    description: 'Client that opened the session.',
+    type: SessionDeviceDto
   })
   @Expose()
-  deviceInfo!: ISessionDevice;
+  @Type(() => SessionDeviceDto)
+  deviceInfo!: SessionDeviceDto;
 
   @ApiProperty({
-    example: '2026-06-15T12:00:00.000Z'
+    description:
+      'Instant at which the session stops being usable and its refresh token can no longer be rotated.',
+    format: 'date-time',
+    example: ExampleValue.EXPIRES_AT
   })
   @Expose()
   validUntil!: Date;
 
   @ApiProperty({
-    example: '2026-06-10T08:30:00.000Z'
+    description: 'Instant of the most recent request made with this session.',
+    format: 'date-time',
+    example: ExampleValue.TIMESTAMP
   })
   @Expose()
   lastActivityAt!: Date;
