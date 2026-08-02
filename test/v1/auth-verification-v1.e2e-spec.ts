@@ -94,8 +94,7 @@ describe('Auth Verification (e2e) version: 1', () => {
       body: { email: user.email, code }
     });
 
-    expect(res.status).toBe(200);
-    expect(res.body.data.message).toBe('Email verified successfully');
+    expect(res.status).toBe(204);
     expect(await getStatus(user.email)).toBe(UserStatus.ACTIVATE);
   });
 
@@ -106,7 +105,7 @@ describe('Auth Verification (e2e) version: 1', () => {
     const verify = await client.post('/v1/auth/verify-email', {
       body: { email: user.email, code }
     });
-    expect(verify.status).toBe(200);
+    expect(verify.status).toBe(204);
 
     const login = await client.post('/v1/auth/login', {
       body: { email: user.email, password: user.password }
@@ -150,7 +149,7 @@ describe('Auth Verification (e2e) version: 1', () => {
     const first = await client.post('/v1/auth/verify-email', {
       body: { email: user.email, code }
     });
-    expect(first.status).toBe(200);
+    expect(first.status).toBe(204);
 
     const second = await client.post('/v1/auth/verify-email', {
       body: { email: user.email, code }
@@ -167,10 +166,7 @@ describe('Auth Verification (e2e) version: 1', () => {
     const resend = await client.post('/v1/auth/resend-verification', {
       body: { email: user.email }
     });
-    expect(resend.status).toBe(200);
-    expect(resend.body.data.message).toContain(
-      'verification code has been sent'
-    );
+    expect(resend.status).toBe(204);
 
     const newCode = getVerificationCode(user.email);
     expect(newCode).not.toBe(oldCode);
@@ -183,7 +179,7 @@ describe('Auth Verification (e2e) version: 1', () => {
     const withNew = await client.post('/v1/auth/verify-email', {
       body: { email: user.email, code: newCode }
     });
-    expect(withNew.status).toBe(200);
+    expect(withNew.status).toBe(204);
   });
 
   it('does not resend while the cooldown is active', async () => {
@@ -192,13 +188,13 @@ describe('Auth Verification (e2e) version: 1', () => {
     const first = await client.post('/v1/auth/resend-verification', {
       body: { email: user.email }
     });
-    expect(first.status).toBe(200);
+    expect(first.status).toBe(204);
     expect(getVerificationEmailCount(user.email)).toBe(2);
 
     const second = await client.post('/v1/auth/resend-verification', {
       body: { email: user.email }
     });
-    expect(second.status).toBe(200);
+    expect(second.status).toBe(204);
     expect(getVerificationEmailCount(user.email)).toBe(2);
   });
 
@@ -213,7 +209,7 @@ describe('Auth Verification (e2e) version: 1', () => {
         headers: { 'X-Forwarded-For': `198.51.100.${i + 1}` },
         body: { email: user.email }
       });
-      expect(resend.status).toBe(200);
+      expect(resend.status).toBe(204);
     }
 
     expect(getVerificationEmailCount(user.email)).toBe(6);
@@ -224,7 +220,7 @@ describe('Auth Verification (e2e) version: 1', () => {
       headers: { 'X-Forwarded-For': '198.51.100.99' },
       body: { email: user.email }
     });
-    expect(blocked.status).toBe(200);
+    expect(blocked.status).toBe(204);
     expect(getVerificationEmailCount(user.email)).toBe(6);
   });
 
@@ -296,7 +292,6 @@ describe('Auth Verification (e2e) version: 1', () => {
       body: { email: 'does-not-exist@test.com' }
     });
 
-    expect(res.status).toBe(200);
-    expect(res.body.data.message).toContain('verification code has been sent');
+    expect(res.status).toBe(204);
   });
 });

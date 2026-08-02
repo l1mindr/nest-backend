@@ -144,9 +144,9 @@ describe('Coin Tracker (e2e) version: 1', () => {
     });
 
     expect(firstPage.status).toBe(200);
-    expect(firstPage.body.data.items).toHaveLength(1);
-    expect(firstPage.body.data.items[0].id).toBe('bitcoin');
-    expect(firstPage.body.data.nextCursor).toEqual(expect.any(String));
+    expect(firstPage.body.items).toHaveLength(1);
+    expect(firstPage.body.items[0].id).toBe('bitcoin');
+    expect(firstPage.body.nextCursor).toEqual(expect.any(String));
 
     const secondPage = await client.get('/v1/coins', {
       query: {
@@ -154,15 +154,15 @@ describe('Coin Tracker (e2e) version: 1', () => {
         sortBy: 'name',
         sortOrder: 'ASC',
         limit: 1,
-        cursor: firstPage.body.data.nextCursor
+        cursor: firstPage.body.nextCursor
       }
     });
 
     expect(secondPage.status).toBe(200);
-    expect(secondPage.body.data.items.map((coin: Coin) => coin.id)).toEqual([
+    expect(secondPage.body.items.map((coin: Coin) => coin.id)).toEqual([
       'bitcoin-cash'
     ]);
-    expect(secondPage.body.data.nextCursor).toBeNull();
+    expect(secondPage.body.nextCursor).toBeNull();
   });
 
   it('should create an alert for a synchronized active coin', async () => {
@@ -170,7 +170,7 @@ describe('Coin Tracker (e2e) version: 1', () => {
     const response = await createAlert(context);
 
     expect(response.status).toBe(201);
-    expect(response.body.data).toMatchObject({
+    expect(response.body).toMatchObject({
       coinId: 'bitcoin',
       targetPrice: '120000',
       direction: AlertDirection.SELL,
@@ -187,11 +187,11 @@ describe('Coin Tracker (e2e) version: 1', () => {
         name: 'Bitcoin'
       }
     });
-    expect(response.body.data).not.toHaveProperty('userId');
+    expect(response.body).not.toHaveProperty('userId');
 
     const saved = await dataSource
       .getRepository(PriceAlert)
-      .findOneByOrFail({ id: response.body.data.id });
+      .findOneByOrFail({ id: response.body.id });
     expect(saved.userId).toBe(await userIdByEmail(context.user.email));
   });
 
@@ -213,7 +213,7 @@ describe('Coin Tracker (e2e) version: 1', () => {
   it('should update allowed fields and reset crossing state', async () => {
     const context = await AuthFactory.authenticated(app);
     const created = await createAlert(context);
-    const alertId = created.body.data.id as string;
+    const alertId = created.body.id as string;
 
     await dataSource
       .getRepository(PriceAlert)
@@ -234,7 +234,7 @@ describe('Coin Tracker (e2e) version: 1', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toMatchObject({
+    expect(response.body).toMatchObject({
       targetPrice: '90000',
       direction: AlertDirection.BUY,
       triggerMode: AlertTriggerMode.REPEAT,
@@ -250,7 +250,7 @@ describe('Coin Tracker (e2e) version: 1', () => {
   it('should soft cancel an owned alert', async () => {
     const context = await AuthFactory.authenticated(app);
     const created = await createAlert(context);
-    const alertId = created.body.data.id as string;
+    const alertId = created.body.id as string;
 
     const response = await context.client.delete(
       `/v1/price-alerts/${alertId}`,
@@ -297,14 +297,14 @@ describe('Coin Tracker (e2e) version: 1', () => {
     });
 
     expect(all.status).toBe(200);
-    expect(all.body.data.items).toHaveLength(2);
+    expect(all.body.items).toHaveLength(2);
     expect(
-      all.body.data.items.every(
+      all.body.items.every(
         (alert: Record<string, unknown>) => !('userId' in alert)
       )
     ).toBe(true);
-    expect(filtered.body.data.items).toHaveLength(1);
-    expect(filtered.body.data.items[0]).toMatchObject({
+    expect(filtered.body.items).toHaveLength(1);
+    expect(filtered.body.items[0]).toMatchObject({
       coinId: 'ethereum',
       direction: AlertDirection.BUY,
       status: AlertStatus.ACTIVE
@@ -325,7 +325,7 @@ describe('Coin Tracker (e2e) version: 1', () => {
       }
     });
     const created = await createAlert(owner);
-    const alertId = created.body.data.id as string;
+    const alertId = created.body.id as string;
 
     const update = await attacker.client.patch(`/v1/price-alerts/${alertId}`, {
       headers: mutationHeaders(attacker),
@@ -345,7 +345,7 @@ describe('Coin Tracker (e2e) version: 1', () => {
   it('should expire active alerts before retrieving prices', async () => {
     const context = await AuthFactory.authenticated(app);
     const created = await createAlert(context);
-    const alertId = created.body.data.id as string;
+    const alertId = created.body.id as string;
     await dataSource.getRepository(PriceAlert).update(alertId, {
       expiresAt: new Date('2000-01-01T00:00:00.000Z')
     });
@@ -366,7 +366,7 @@ describe('Coin Tracker (e2e) version: 1', () => {
   it('should trigger an ONCE alert only after a threshold crossing', async () => {
     const context = await AuthFactory.authenticated(app);
     const created = await createAlert(context, { targetPrice: 100 });
-    const alertId = created.body.data.id as string;
+    const alertId = created.body.id as string;
     await dataSource
       .getRepository(PriceAlert)
       .update(alertId, { lastCheckedPrice: '99' });

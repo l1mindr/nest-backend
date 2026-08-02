@@ -32,10 +32,10 @@ describe('Users (e2e) version: 1', () => {
     const res = await client.get('/v1/user/me');
 
     expect(res.status).toBe(200);
-    expect(res.body.data.email).toBeDefined();
-    expect(res.body.data.username).toBeDefined();
-    expect(res.body.data.role).toBeDefined();
-    expect(res.body.data.joinedAt).toBeDefined();
+    expect(res.body.email).toBeDefined();
+    expect(res.body.username).toBeDefined();
+    expect(res.body.role).toBeDefined();
+    expect(res.body.joinedAt).toBeDefined();
   });
 
   it('should fail if user is not authenticated', async () => {
@@ -65,7 +65,7 @@ describe('Users (e2e) version: 1', () => {
     const updateUserDataRes = await client.get('/v1/user/me');
 
     expect(res.status).toBe(204);
-    expect(updateUserDataRes.body.data.name).toBe('New name');
+    expect(updateUserDataRes.body.name).toBe('New name');
   });
 
   it.each([
