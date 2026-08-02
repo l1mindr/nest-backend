@@ -8,9 +8,18 @@ Redis is used for rate limiting, distributed locking, and atomic counters. Not u
 
 | Service | Purpose | Key Pattern |
 |---------|---------|-------------|
-| `RedisService` | Core Redis client wrapper. `get`, `set`, `setWithExpiry`, `del`, `compareAndDelete`, `eval` | Generic |
-| `RedisCounterService` | Atomic increment with TTL via Lua script. Used for rate limiting. | `rate:limit:{route}:{ip}` |
+| `RedisService` | Core Redis client wrapper. `get`, `set`, `setIfNotExists` (`NX`), `setWithExpiry` (`EX`), `setIfNotExistsWithExpiry` (`EX` + `NX`), `del`, `compareAndDelete` (Lua), `eval` | Generic |
+| `RedisCounterService` | Atomic increment with TTL via Lua script. Used for rate limiting and verification attempt counting. | `rate:limit:{route}:{ip}`, `verify:attempts:{userId}` |
 | `RedisLockService` | Distributed lock with acquire/release. Used for refresh flow synchronization. | `refresh:lock:{sessionId}` |
+
+## Verification Attempts, Rate Limit & Cooldown
+
+`VerificationAttemptService` uses Redis to harden the email-verification flow:
+
+- `verify:attempts:{userId}` — incremented on each wrong code via `RedisCounterService`, TTL matches the code lifetime (3 minutes); after 5 failed attempts the current code is invalidated and the counter resets
+- `verify:email:{email}` — rate limit per normalized email (5 per 10 minutes); the limit is checked before any other verification logic
+- `verify:resend:cooldown:{userId}` — set with `setIfNotExistsWithExpiry` (`NX` + `EX`, 60s) to enforce the resend cooldown
+- `verify:resend:hourly:{userId}` — resends per hour (5 per hour); checked before the cooldown
 
 ## Rate Limiting
 
@@ -24,10 +33,10 @@ Keys auto-expire after the rate limit window.
 ## Refresh Lock
 
 `RedisLockService`:
-- `acquire(key, ttl)` — `SET key value EX ttl` (without `NX`)
-- `release(key)` — `DEL key`
+- `acquire(lockKey, lockIdentifier, ttlSeconds = 5)` — `SET key randomUUID() EX ttl NX`; returns the token on success, `null` if already held
+- `release(lockKey, lockIdentifier, token)` — Lua compare-and-delete; only deletes if the stored value matches the token (prevents releasing someone else's lock)
 
-**Known limitation**: Lock does not use `NX`, so it is not a strict distributed lock. The authoritative mechanism is the database conditional update on session rotation. The Redis lock is a best-effort optimization to reduce contention.
+The database conditional update on session rotation remains the authoritative mechanism; the Redis lock reduces contention on concurrent refreshes.
 
 ## Key Management
 
@@ -38,7 +47,11 @@ enum RedisKey {
   COIN_SYNC_LOCK = 'coin-tracker:sync:lock',
   PRICE_CHECK_LOCK = 'coin-tracker:price-check:lock',
   REFRESH_LOCK = 'refresh:lock',
-  RATE_LIMIT = 'rate:limit'
+  RATE_LIMIT = 'rate:limit',
+  VERIFY_ATTEMPTS = 'verify:attempts',
+  VERIFY_RESEND_COOLDOWN = 'verify:resend:cooldown',
+  VERIFY_EMAIL_RATE_LIMIT = 'verify:email',
+  VERIFY_RESEND_HOURLY = 'verify:resend:hourly'
 }
 ```
 

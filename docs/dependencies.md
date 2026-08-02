@@ -12,8 +12,9 @@
 | `@nestjs/config` | Environment configuration with Joi |
 | `@nestjs/swagger` | OpenAPI documentation |
 | `@nestjs/jwt` | JWT signing and verification |
-| `@nestjs/schedule` | Cron jobs (pending user cleanup) |
+| `@nestjs/schedule` | Cron jobs (pending user cleanup, coin sync, price check) |
 | `@nestjs/axios` | HTTP client (coin-tracker) |
+| `axios` | Underlying HTTP client for CoinGecko calls |
 | `reflect-metadata` | TypeScript decorator metadata |
 | `rxjs` | Reactive extensions |
 
@@ -21,7 +22,7 @@
 
 | Package | Purpose |
 |---------|---------|
-| `typeorm` | ORM (v1.0.0) |
+| `typeorm` | ORM (v1.1.0) |
 | `@nestjs/typeorm` | NestJS TypeORM integration |
 | `pg` | PostgreSQL driver |
 | `ioredis` | Redis client |
@@ -60,6 +61,12 @@
 | `dotenv` | Environment file loading |
 | `dotenv-expand` | Variable expansion in .env |
 
+### Email
+
+| Package | Purpose |
+|---------|---------|
+| `nodemailer` | SMTP transport for transactional emails (verification, suspension) |
+
 ## Dev Dependencies
 
 ### Tooling
@@ -81,6 +88,7 @@
 | `@nestjs/testing` | Test module bootstrapping |
 | `supertest` | HTTP assertions |
 | `@types/supertest` | Type definitions |
+| `@types/nodemailer` | Type definitions for Nodemailer |
 
 ### Code Quality
 
@@ -115,7 +123,8 @@
 ## Automation
 
 - **Dependabot**: Weekly dependency updates
-- **Dependency review workflow**: Audit and outdated checks in CI
+- **Dependency review workflow**: `pnpm audit` and `pnpm outdated` checks in CI on pull requests
+- **Dependency scan workflow**: Weekly scheduled `pnpm audit --audit-level=high` plus OSV scanner on pushes/PRs to `master`
 
 ## Build
 

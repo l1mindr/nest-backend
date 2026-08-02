@@ -1,17 +1,15 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { nextCursorDocs } from '@presentation/dto/pagination.docs';
+import { ApiProperty } from '@nestjs/swagger';
 import { AdminUserResponseDto } from './admin-user.response.dto';
 
 export class AdminUsersListResponseDto {
   @ApiProperty({
-    description: 'List of users',
+    description:
+      'Accounts on this page, ordered by identifier. Includes soft-deleted accounts.',
     type: [AdminUserResponseDto]
   })
   items!: AdminUserResponseDto[];
 
-  @ApiPropertyOptional({
-    description:
-      'Cursor for the next page. Omitted when there are no more results.',
-    example: undefined
-  })
-  nextCursor?: string | null;
+  @ApiProperty(nextCursorDocs())
+  nextCursor!: string | null;
 }

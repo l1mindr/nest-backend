@@ -1,20 +1,22 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { nextCursorDocs } from '@presentation/dto/pagination.docs';
+import { ApiProperty } from '@nestjs/swagger';
 import { SessionResponseDto } from './session.response.dto';
 
 export class SessionListResponseDto {
-  @ApiProperty({ type: SessionResponseDto })
+  @ApiProperty({
+    description:
+      'The session the request itself was made with. Returned separately because it is excluded from `items`, and because revoking it signs the caller out.',
+    type: SessionResponseDto
+  })
   currentSession!: SessionResponseDto;
 
   @ApiProperty({
-    description: 'List of active sessions',
+    description:
+      'Other sessions of the account, most recently active first. Never contains `currentSession`.',
     type: [SessionResponseDto]
   })
   items!: SessionResponseDto[];
 
-  @ApiPropertyOptional({
-    description:
-      'Opaque cursor for the next page. Omitted when there are no more results.',
-    example: undefined
-  })
-  nextCursor?: string | null;
+  @ApiProperty(nextCursorDocs())
+  nextCursor!: string | null;
 }

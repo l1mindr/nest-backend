@@ -38,8 +38,8 @@ Use `@Public()` decorator to bypass authentication on specific routes.
 ### Secrets
 
 Two separate environment variables:
-- `JWT_ACCESS_SECRET` — used for access token signing
-- `JWT_REFRESH_SECRET` — used for refresh token signing
+- `ACCESS_TOKEN_SECRET` — used for access token signing
+- `REFRESH_TOKEN_SECRET` — used for refresh token signing
 
 Both are symmetric HS256 (asymmetric key rotation is a known gap).
 
@@ -79,16 +79,16 @@ Protected by `@Roles(UserRole.ADMIN)` on the controller class:
 
 ### CsrfGuard
 
-`CsrfGuard` (global `APP_GUARD`) validates CSRF tokens on unsafe HTTP methods (`POST`, `PATCH`, `DELETE`).
+`CsrfGuard` (global `APP_GUARD`) validates CSRF tokens on unsafe HTTP methods (`POST`, `PATCH`, `PUT`, `DELETE`); `GET`, `HEAD`, and `OPTIONS` are always skipped.
 
 Pattern: **Double-submit cookie**
-1. On login/refresh, server sets `csrf_token` cookie (readable via JavaScript, `httpOnly: false`)
+1. On register/login/refresh, server sets a structured `csrf_token` cookie (`nonce.expiresAt.signature`, readable via JavaScript, `httpOnly: false`)
 2. Client reads cookie and sends value as `X-CSRF-Token` header on unsafe requests
-3. Server compares cookie value vs header value (timing-safe comparison)
+3. `CsrfValidationService.validate(cookieToken, headerToken, sessionId)` verifies cookie == header (timing-safe), re-validates the HMAC signature and expiry, and checks that a signed token was issued for the current session
 
 ### Skip CSRF
 
-Use `@SkipCsrf()` decorator on routes that don't need CSRF (e.g., register, login — which set the CSRF cookie).
+Use `@SkipCsrf()` decorator on routes that don't need CSRF (register, login, refresh — which set the CSRF cookie and are unauthenticated).
 
 ---
 
@@ -96,7 +96,7 @@ Use `@SkipCsrf()` decorator on routes that don't need CSRF (e.g., register, logi
 
 ### RateLimitGuard
 
-Applied via `@RateLimit({ limit, ttl })` decorator on controllers or individual routes.
+Applied via `@RateLimit({ limit, ttl })` decorator on individual routes.
 
 ### Limits
 
@@ -173,7 +173,14 @@ Refresh tokens are stored as SHA-256 hashes in the Session entity. The raw token
 
 ## Email Verification
 
-`UserVerificationCode` entity stores verification codes as SHA-256 hashes with 3-minute TTL. Codes are sent via `EmailService.sendVerificationEmail()`.
+`UserVerificationCode` entity stores verification codes as bcrypt hashes with 3-minute TTL. Codes are sent via `EmailService.sendVerificationEmail()` over SMTP (Nodemailer).
+
+Brute-force hardening:
+- Failed attempts are counted in Redis (`verify:attempts:{userId}`); after 5 wrong codes the current code is invalidated
+- Verification attempts are rate-limited per normalized email (`verify:email:{email}`, 5 per 10 minutes) in addition to the per-IP guard, so rotating IPs cannot bypass it
+- Code re-sends are gated by a 60-second cooldown (`verify:resend:cooldown:{userId}`) and an hourly limit of 5 per user (`verify:resend:hourly:{userId}`)
+- All failures return the generic `INVALID_VERIFICATION_CODE` — wrong, consumed, and expired codes are indistinguishable
+- Codes are compared with `crypto.timingSafeEqual` and never logged
 
 ---
 
@@ -208,7 +215,7 @@ Revoked sessions are marked `isRevoked = true`. They remain in the database for 
 
 - No JWT issuer/audience validation beyond custom audience claim
 - Symmetric signing only (no key rotation, no asymmetric keys)
-- Redis lock for refresh does not use `NX` (not a strict lock — relies on database conditional update as the authoritative mechanism)
+- Redis lock for refresh uses `SET key token EX ttl NX` and release via Lua compare-and-delete; the database conditional update remains the authoritative mechanism
 - No account lockout after failed login attempts
 - No multi-factor authentication
 - No CORS configuration

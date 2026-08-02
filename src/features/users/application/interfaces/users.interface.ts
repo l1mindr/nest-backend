@@ -10,7 +10,7 @@ export type { PaginatedResult } from '@core/pagination/paginated-result.interfac
 export const USER_REPOSITORY = Symbol('IUserRepository');
 
 export interface IUserRepository {
-  insertUser(dto: CreateUserRequestDto): Promise<User>;
+  insertUser(dto: CreateUserRequestDto, manager?: EntityManager): Promise<User>;
   findUserById(id: string): Promise<User | null>;
   findUserForTokenValidation(id: string): Promise<User | null>;
   findByEmailOrUsernameForAuth(identifier: string): Promise<User | null>;
@@ -23,7 +23,11 @@ export interface IUserRepository {
     hashPassword: string,
     manager?: EntityManager
   ): Promise<void>;
-  updateStatus(userId: string, status: string): Promise<void>;
+  updateStatus(
+    userId: string,
+    status: string,
+    manager?: EntityManager
+  ): Promise<void>;
   findPendingOlderThan(cutoff: Date): Promise<User[]>;
 }
 
@@ -35,10 +39,15 @@ export interface IVerificationCodeRepository {
   store(
     userId: string,
     codeHash: string,
-    expiresAt: Date
+    expiresAt: Date,
+    manager?: EntityManager
   ): Promise<UserVerificationCode>;
   findLatestByUserId(userId: string): Promise<UserVerificationCode | null>;
-  markVerified(id: string, verifiedAt: Date): Promise<void>;
+  markVerified(
+    id: string,
+    verifiedAt: Date,
+    manager?: EntityManager
+  ): Promise<void>;
   invalidatePreviousCodes(userId: string, now: Date): Promise<void>;
 }
 

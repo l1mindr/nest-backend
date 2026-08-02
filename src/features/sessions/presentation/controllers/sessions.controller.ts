@@ -2,6 +2,8 @@ import { ClearCsrfCookieInterceptor } from '@features/security/csrf/interceptors
 import { Session } from '@features/security/decorators/session.decorator';
 import { User } from '@features/security/decorators/user.decorator';
 import { User as UserEntity } from '@features/users/domain/entities/user.entity';
+import { ApiTagName } from '@presentation/swagger/openapi.constants';
+import { ApiTags } from '@nestjs/swagger';
 import {
   Controller,
   Delete,
@@ -31,6 +33,7 @@ import {
   path: 'sessions',
   version: '1'
 })
+@ApiTags(ApiTagName.SESSIONS)
 export class SessionsController {
   constructor(
     @Inject(SESSION_LIST_SERVICE)

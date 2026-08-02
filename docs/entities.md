@@ -29,7 +29,7 @@ class User {
 class Session {
   id: string;                    // UUID primary key
   refreshTokenHash: string;      // SHA-256 of refresh JWT
-  device: ISessionDevice | null; // JSONB — browser, OS, device type
+  device: ISessionDevice;        // JSONB — browser, OS, device type
   ipAddress: string;             // Client IP
   isRevoked: boolean;            // Default false
   expiresAt: Date;               // 7 days from creation
@@ -49,7 +49,7 @@ class Session {
 class UserVerificationCode {
   id: string;              // UUID primary key
   userId: string;          // Foreign key to User
-  codeHash: string;        // SHA-256 hash of verification code
+  codeHash: string;        // bcrypt hash of verification code
   expiresAt: Date;         // 3 minutes from creation
   verifiedAt: Date | null; // Null until verified
   createdAt: Date;
@@ -134,27 +134,25 @@ Invalid transitions throw `INVALID_STATUS_TRANSITION` domain error. Status logic
 | `EMAIL_ALREADY_EXISTS` | Email taken |
 | `USERNAME_ALREADY_EXISTS` | Username taken |
 | `INVALID_CURSOR` | Invalid pagination cursor |
-| `INVALID_VERIFICATION_CODE` | Wrong verification code |
-| `EXPIRED_VERIFICATION_CODE` | Code past TTL |
-| `ALREADY_VERIFIED` | Email already verified |
+| `INVALID_VERIFICATION_CODE` | Wrong, consumed, or expired verification code |
 | `USER_ALREADY_SUSPENDED` | User already in SUSPEND state |
 | `INVALID_STATUS_TRANSITION` | Status change not allowed |
 
 ### SessionErrorCode
 
-`SESSION_NOT_FOUND`, `SESSION_EXPIRED`, `SESSION_REVOKED`, `SESSION_REUSE_DETECTED`
+`SESSION_NOT_FOUND`, `SESSION_EXPIRED`, `SESSION_REVOKED`, `SESSION_REUSE_DETECTED`, `REFRESH_RATE_LIMITED`, `INVALID_CURSOR`
 
 ### AuthErrorCode
 
-`INVALID_CREDENTIALS`, `ACCOUNT_NOT_VERIFIED`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DEACTIVATED`, `REFRESH_RATE_LIMITED`
+`INVALID_CREDENTIALS`, `ACCOUNT_DISABLED`, `ACCOUNT_NOT_VERIFIED`, `INVALID_CURRENT_PASSWORD`, `PASSWORD_MUST_BE_DIFFERENT`, `PASSWORD_CHANGE_FAILED`
 
 ### TokenErrorCode
 
-`TOKEN_EXPIRED`, `TOKEN_INVALID`, `ACCESS_TOKEN_EXPIRED`, `REFRESH_TOKEN_EXPIRED`
+`INVALID_TOKEN`, `EXPIRED_TOKEN`, `INVALID_REFRESH_TOKEN`
 
 ### SecurityErrorCode
 
-`ACCESS_DENIED`, `INVALID_CSRF_TOKEN`, `RATE_LIMIT_EXCEEDED`
+`ACCESS_DENIED`, `AUTHENTICATION_REQUIRED`, `RATE_LIMIT_EXCEEDED`, `INVALID_CSRF_TOKEN`
 
 ---
 

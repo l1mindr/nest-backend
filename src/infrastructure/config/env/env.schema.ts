@@ -99,6 +99,48 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
 
   MAX_ACTIVE_SESSIONS: Joi.number().integer().min(5).required(),
 
+  APP_NAME: Joi.string().min(1).max(60).default('NestJS Backend').optional(),
+
+  // Public base URL of the deployment. Advertised as a server entry in the
+  // OpenAPI document so generated clients target the right host.
+  PUBLIC_API_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .optional()
+    .messages({
+      'string.uri': 'PUBLIC_API_URL must be an absolute http(s) URL.'
+    }),
+
+  EMAIL_HOST: Joi.alternatives()
+    .try(Joi.string().hostname(), Joi.string().ip())
+    .required(),
+  EMAIL_PORT: Joi.number()
+    .integer()
+    .min(1)
+    .max(65535)
+    .default(587)
+    .optional()
+    .messages({
+      'number.base': 'EMAIL_PORT must be a valid integer.',
+      'number.integer': 'EMAIL_PORT must be a valid integer.',
+      'number.min': 'EMAIL_PORT must be between 1 and 65535.',
+      'number.max': 'EMAIL_PORT must be between 1 and 65535.'
+    }),
+  EMAIL_SECURE: Joi.boolean().default(false).optional(),
+  EMAIL_USER: Joi.string().min(1).required().messages({
+    'string.empty': 'EMAIL_USER is required for SMTP authentication.'
+  }),
+  EMAIL_APP_PASSWORD: Joi.when('NODE_ENV', {
+    is: 'production',
+    then: Joi.string().min(16).required(),
+    otherwise: Joi.string().min(8).required()
+  }).messages({
+    'string.empty': 'EMAIL_APP_PASSWORD is required for SMTP authentication.',
+    'string.min': 'EMAIL_APP_PASSWORD must be at least {#limit} characters.'
+  }),
+  EMAIL_FROM: Joi.string().min(3).required().messages({
+    'string.empty': 'EMAIL_FROM is required as the sender address.'
+  }),
+
   BCRYPT_ROUNDS: Joi.number()
     .integer()
     .min(4)
@@ -156,6 +198,18 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
       if (!obj.REDIS_PASSWORD) {
         return helpers.error('any.custom', {
           message: 'REDIS_PASSWORD is required in production'
+        });
+      }
+
+      if (
+        obj.EMAIL_APP_PASSWORD &&
+        (obj.EMAIL_APP_PASSWORD === obj.ACCESS_TOKEN_SECRET ||
+          obj.EMAIL_APP_PASSWORD === obj.REFRESH_TOKEN_SECRET ||
+          obj.EMAIL_APP_PASSWORD === obj.CSRF_TOKEN_SECRET)
+      ) {
+        return helpers.error('any.custom', {
+          message:
+            'EMAIL_APP_PASSWORD must not be identical to any token secret'
         });
       }
 

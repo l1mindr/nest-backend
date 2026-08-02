@@ -31,8 +31,13 @@ export class UserRepository implements IUserRepository {
     registryDates: { createdAt: true, updatedAt: true, deleteAt: true }
   };
 
-  async insertUser(dto: CreateUserRequestDto): Promise<User> {
-    return this.userRepo.save(this.userRepo.create(dto));
+  async insertUser(
+    dto: CreateUserRequestDto,
+    manager?: EntityManager
+  ): Promise<User> {
+    const repository = manager?.getRepository(User) ?? this.userRepo;
+
+    return repository.save(repository.create(dto));
   }
 
   async findUserById(id: string): Promise<User | null> {
@@ -103,8 +108,13 @@ export class UserRepository implements IUserRepository {
     await this.userRepo.update({ id }, dto);
   }
 
-  async updateStatus(userId: string, status: string): Promise<void> {
-    await this.userRepo.update({ id: userId }, { status: status as any });
+  async updateStatus(
+    userId: string,
+    status: string,
+    manager?: EntityManager
+  ): Promise<void> {
+    const repository = manager?.getRepository(User) ?? this.userRepo;
+    await repository.update({ id: userId }, { status: status as any });
   }
 
   async updatePasswordHash(

@@ -81,10 +81,10 @@ Same ordered workflow regardless of platform:
 Required in all environments:
 
 - `DATA_SOURCE_USERNAME`, `DATA_SOURCE_PASSWORD`, `DATA_SOURCE_HOST`, `DATA_SOURCE_PORT`, `DATA_SOURCE_DATABASE`
-- `REDIS_HOST`, `REDIS_PORT`
-- `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
+- `REDIS_HOST`, `REDIS_PORT` (plus `REDIS_PASSWORD` in production)
+- `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `CSRF_TOKEN_SECRET`
 - `MAX_ACTIVE_SESSIONS`
-- `NODE_ENV`
+- `NODE_ENV` (development, production, test, or staging)
 
 ## CI Pipeline
 

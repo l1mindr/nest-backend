@@ -1,4 +1,3 @@
-import { TimeConstants } from '@infrastructure/clock/time.constants';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -29,10 +28,7 @@ export class VerificationCodeService {
     return bcrypt.compare(code, codeHash);
   }
 
-  isExpired(createdAt: Date): boolean {
-    const expiresAt = new Date(
-      createdAt.getTime() + 3 * TimeConstants.MS_PER_MINUTE
-    );
+  isExpired(expiresAt: Date): boolean {
     return this.clockService.nowDate() > expiresAt;
   }
 }

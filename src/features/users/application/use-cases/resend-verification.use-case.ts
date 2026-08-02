@@ -1,7 +1,9 @@
 import { EmailService } from '@infrastructure/email/email.service';
-import { TimeConstants } from '@infrastructure/clock/time.constants';
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
+import { UserStatus } from '../../domain/enums/user-status.enum';
 import {
   IResendVerificationUseCase,
   IUserRepository,
@@ -10,6 +12,11 @@ import {
   VERIFICATION_CODE_REPOSITORY
 } from '../interfaces/users.interface';
 import { VerificationCodeService } from '../services/verification-code.service';
+import { VerificationAttemptService } from '../services/verification-attempt.service';
+import {
+  VERIFICATION_CODE_TTL_MINUTES,
+  VERIFICATION_CODE_TTL_MS
+} from '../verification.constants';
 
 @Injectable()
 export class ResendVerificationUseCase implements IResendVerificationUseCase {
@@ -19,25 +26,64 @@ export class ResendVerificationUseCase implements IResendVerificationUseCase {
     @Inject(VERIFICATION_CODE_REPOSITORY)
     private readonly verificationCodeRepository: IVerificationCodeRepository,
     private readonly verificationCodeService: VerificationCodeService,
+    private readonly verificationAttemptService: VerificationAttemptService,
     private readonly clockService: ClockService,
-    private readonly emailService: EmailService
-  ) {}
+    private readonly emailService: EmailService,
+    private readonly logger: PinoLogger
+  ) {
+    this.logger.setContext(ResendVerificationUseCase.name);
+  }
 
   async execute(email: string): Promise<void> {
     const user = await this.userRepository.findByEmailOrUsernameForAuth(email);
 
     if (!user) return;
+    if (user.status !== UserStatus.PENDING_VERIFICATION) return;
+
+    if (
+      await this.verificationAttemptService.isResendHourlyLimitExceeded(user.id)
+    ) {
+      this.logger.warn(
+        {
+          event: LogEvent.VERIFICATION_RESEND_LIMIT_EXCEEDED,
+          userId: user.id
+        },
+        'Hourly resend limit exceeded; resend skipped'
+      );
+      return;
+    }
+
+    const acquired =
+      await this.verificationAttemptService.acquireResendCooldown(user.id);
+
+    if (!acquired) return;
 
     const now = this.clockService.nowDate();
 
     await this.verificationCodeRepository.invalidatePreviousCodes(user.id, now);
+    await this.verificationAttemptService.resetFailedAttempts(user.id);
 
     const code = this.verificationCodeService.generate();
     const codeHash = await this.verificationCodeService.hash(code);
-    const expiresAt = new Date(now.getTime() + 3 * TimeConstants.MS_PER_MINUTE);
+    const expiresAt = new Date(now.getTime() + VERIFICATION_CODE_TTL_MS);
 
     await this.verificationCodeRepository.store(user.id, codeHash, expiresAt);
 
-    await this.emailService.sendVerificationEmail(user.email, code);
+    try {
+      await this.emailService.sendVerificationEmail(
+        user.email,
+        code,
+        VERIFICATION_CODE_TTL_MINUTES
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        {
+          event: LogEvent.EMAIL_SEND_FAILED,
+          userId: user.id,
+          err: error
+        },
+        'Verification email delivery failed on resend'
+      );
+    }
   }
 }

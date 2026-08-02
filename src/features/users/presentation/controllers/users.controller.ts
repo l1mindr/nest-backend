@@ -12,6 +12,7 @@ import {
   Put
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { ApiTagName } from '@presentation/swagger/openapi.constants';
 import { UpdateProfileRequestDto } from '../dto/request/update-profile.request.dto';
 import { UserProfileResponseDto } from '../dto/response/user-profile.response.dto';
 import {
@@ -30,7 +31,7 @@ import {
   path: 'user',
   version: '1'
 })
-@ApiTags('user')
+@ApiTags(ApiTagName.USER_PROFILE)
 export class UsersController {
   constructor(
     @Inject(UPDATE_PROFILE_USE_CASE)
