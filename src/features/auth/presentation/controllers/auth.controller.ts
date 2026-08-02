@@ -24,6 +24,7 @@ import {
   UseInterceptors
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { ApiTagName } from '@presentation/swagger/openapi.constants';
 import { Request } from 'express';
 import {
   ApiChangePassword,
@@ -52,7 +53,7 @@ import { VerifyEmailRequestDto } from '../dto/request/verify-email.request.dto';
 import { AuthCookieInterceptor } from '../interceptors/auth-cookie.interceptor';
 
 @Controller({ path: 'auth', version: '1' })
-@ApiTags('auth')
+@ApiTags(ApiTagName.AUTHENTICATION)
 export class AuthController {
   constructor(
     @Inject(REGISTER)
