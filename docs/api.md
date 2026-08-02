@@ -4,17 +4,20 @@
 
 URI-based versioning via `app.enableVersioning()`. All routes use `version: '1'` → prefixed `/v1`.
 
-## Response Envelope
+## Response Shape
 
 ### Success
 
+Success responses are returned directly — the resource itself, with no
+envelope. Endpoints that communicate through cookies, or through the status
+code alone, return no body (`200`/`201`); mutations return `204 No Content`.
+
 ```json
 {
-  "data": { ... }
+  "username": "john_doe",
+  "role": "USER"
 }
 ```
-
-Wrapped by `DataResponseInterceptor` (global).
 
 ### Error
 
@@ -42,8 +45,8 @@ All routes authenticated by default (`JwtGuard` is global). Use `@Public()` to o
 | Method | Path | Auth | CSRF | Rate Limit | Status |
 |--------|------|------|------|------------|--------|
 | `POST` | `/v1/auth/register` | Public | Skipped | 5/60s | 201 |
-| `POST` | `/v1/auth/verify-email` | Public | Skipped | 10/60s | 200 |
-| `POST` | `/v1/auth/resend-verification` | Public | Skipped | 5/60s | 200 |
+| `POST` | `/v1/auth/verify-email` | Public | Skipped | 10/60s | 204 |
+| `POST` | `/v1/auth/resend-verification` | Public | Skipped | 5/60s | 204 |
 | `POST` | `/v1/auth/login` | Public | Skipped | 5/60s | 200 |
 | `POST` | `/v1/auth/refresh` | Public | Skipped | 20/60s | 200 |
 | `POST` | `/v1/auth/change-password` | Authenticated | Required | 3/300s | 204 |
@@ -75,12 +78,7 @@ Request:
 
 `code`: exactly 6 digits.
 
-Response: `200 OK`
-```json
-{
-  "data": { "message": "Email verified successfully" }
-}
-```
+Response: `204 No Content`
 
 Errors: `400 INVALID_VERIFICATION_CODE`, `429 RATE_LIMIT_EXCEEDED`
 
@@ -93,12 +91,7 @@ Request:
 }
 ```
 
-Response: `200 OK` — generic, never reveals whether an account exists.
-```json
-{
-  "data": { "message": "If an account with this email exists, a new verification code has been sent" }
-}
-```
+Response: `204 No Content` — generic, never reveals whether an account exists.
 
 Errors: `422 Validation`, `429 RATE_LIMIT_EXCEEDED`
 
@@ -112,7 +105,7 @@ Request:
 }
 ```
 
-Response: `200 OK` — Sets `access_token`, `refresh_token`, `csrf_token` cookies. The response body is empty (`{ "data": {} }`).
+Response: `200 OK` — Sets `access_token`, `refresh_token`, `csrf_token` cookies. No body is returned.
 
 Errors: `401 INVALID_CREDENTIALS`, `401 ACCOUNT_NOT_VERIFIED` (unverified user; a new code is sent), `429 RATE_LIMIT_EXCEEDED`
 
@@ -151,16 +144,14 @@ Response: `204 No Content`
 Response: `200 OK`
 ```json
 {
-  "data": {
-    "id": "uuid",
-    "email": "user@example.com",
-    "username": "john_doe",
-    "name": "John Doe",
-    "role": "USER",
-    "status": "ACTIVATE",
-    "createdAt": "...",
-    "updatedAt": "..."
-  }
+  "id": "uuid",
+  "email": "user@example.com",
+  "username": "john_doe",
+  "name": "John Doe",
+  "role": "USER",
+  "status": "ACTIVATE",
+  "createdAt": "...",
+  "updatedAt": "..."
 }
 ```
 
@@ -192,20 +183,18 @@ Query params: `cursor`, `limit` (default: 20, max: 50)
 Response: `200 OK`
 ```json
 {
-  "data": {
-    "items": [
-      {
-        "id": "uuid",
-        "device": { "browserName": "Chrome", "osName": "macOS", "deviceType": "desktop" },
-        "ipAddress": "::1",
-        "isCurrent": true,
-        "lastUsedAt": "...",
-        "createdAt": "..."
-      }
-    ],
-    "currentSession": { "id": "uuid" },
-    "nextCursor": "base64string"
-  }
+  "items": [
+    {
+      "id": "uuid",
+      "device": { "browserName": "Chrome", "osName": "macOS", "deviceType": "desktop" },
+      "ipAddress": "::1",
+      "isCurrent": true,
+      "lastUsedAt": "...",
+      "createdAt": "..."
+    }
+  ],
+  "currentSession": { "id": "uuid" },
+  "nextCursor": "base64string"
 }
 ```
 
@@ -231,21 +220,19 @@ Query params: `cursor`, `limit`
 Response: `200 OK`
 ```json
 {
-  "data": {
-    "items": [
-      {
-        "id": "uuid",
-        "email": "user@example.com",
-        "username": "john_doe",
-        "role": "USER",
-        "status": "ACTIVATE",
-        "createdAt": "...",
-        "updatedAt": "...",
-        "deleteAt": null
-      }
-    ],
-    "nextCursor": "base64string"
-  }
+  "items": [
+    {
+      "id": "uuid",
+      "email": "user@example.com",
+      "username": "john_doe",
+      "role": "USER",
+      "status": "ACTIVATE",
+      "createdAt": "...",
+      "updatedAt": "...",
+      "deleteAt": null
+    }
+  ],
+  "nextCursor": "base64string"
 }
 ```
 
@@ -295,21 +282,19 @@ Query params:
 Response: `200 OK`
 ```json
 {
-  "data": {
-    "items": [
-      {
-        "id": "bitcoin",
-        "symbol": "btc",
-        "name": "Bitcoin",
-        "image": "https://...",
-        "isActive": true,
-        "lastSyncedAt": "...",
-        "createdAt": "...",
-        "updatedAt": "..."
-      }
-    ],
-    "nextCursor": "base64string"
-  }
+  "items": [
+    {
+      "id": "bitcoin",
+      "symbol": "btc",
+      "name": "Bitcoin",
+      "image": "https://...",
+      "isActive": true,
+      "lastSyncedAt": "...",
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  ],
+  "nextCursor": "base64string"
 }
 ```
 
@@ -340,28 +325,26 @@ Query params: `cursor`, `limit` (default: 20, max: 50), `status` (`ACTIVE` | `TR
 Response: `200 OK`
 ```json
 {
-  "data": {
-    "items": [
-      {
-        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-        "coinId": "bitcoin",
-        "direction": "SELL",
-        "targetPrice": "120000",
-        "triggerMode": "ONCE",
-        "status": "ACTIVE",
-        "expiresAt": "2027-01-01T00:00:00Z",
-        "notificationChannels": ["EMAIL"],
-        "notificationCooldownMinutes": 60,
-        "lastCheckedPrice": null,
-        "lastTriggeredAt": null,
-        "triggeredCount": 0,
-        "coin": { "id": "bitcoin", "symbol": "btc", "name": "Bitcoin" },
-        "createdAt": "...",
-        "updatedAt": "..."
-      }
-    ],
-    "nextCursor": "base64string"
-  }
+  "items": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "coinId": "bitcoin",
+      "direction": "SELL",
+      "targetPrice": "120000",
+      "triggerMode": "ONCE",
+      "status": "ACTIVE",
+      "expiresAt": "2027-01-01T00:00:00Z",
+      "notificationChannels": ["EMAIL"],
+      "notificationCooldownMinutes": 60,
+      "lastCheckedPrice": null,
+      "lastTriggeredAt": null,
+      "triggeredCount": 0,
+      "coin": { "id": "bitcoin", "symbol": "btc", "name": "Bitcoin" },
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  ],
+  "nextCursor": "base64string"
 }
 ```
 
