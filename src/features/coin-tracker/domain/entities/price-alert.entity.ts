@@ -1,5 +1,4 @@
 import { User } from '@features/users/domain/entities/user.entity';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Check,
   Column,
@@ -19,6 +18,11 @@ import { NotificationChannel } from '../enums/notification-channel.enum';
 
 export const DEFAULT_NOTIFICATION_COOLDOWN_MINUTES = 60;
 
+/**
+ * Persistence model. Never serialized to clients directly — the price-alert
+ * endpoints project it through `PriceAlertResponseDto`, which is what keeps
+ * `userId` out of the API surface and out of the OpenAPI schema.
+ */
 @Entity()
 @Index('IDX_price_alert_user_id', ['userId'])
 @Index('IDX_price_alert_status', ['status'])
@@ -36,29 +40,15 @@ export const DEFAULT_NOTIFICATION_COOLDOWN_MINUTES = 60;
   'cardinality("notificationChannels") > 0'
 )
 export class PriceAlert {
-  @ApiProperty({
-    description: 'Unique identifier',
-    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
-  })
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @ApiProperty({
-    description: 'Owner user ID'
-  })
   @Column({ type: 'uuid' })
   userId!: string;
 
-  @ApiProperty({
-    description: 'Coin identifier (CoinGecko id)'
-  })
   @Column()
   coinId!: string;
 
-  @ApiProperty({
-    description: 'Price direction',
-    enum: AlertDirection
-  })
   @Column({
     type: 'enum',
     enum: AlertDirection,
@@ -66,16 +56,9 @@ export class PriceAlert {
   })
   direction!: AlertDirection;
 
-  @ApiProperty({
-    description: 'Target price in USD'
-  })
   @Column({ type: 'decimal' })
   targetPrice!: string;
 
-  @ApiProperty({
-    description: 'Trigger mode',
-    enum: AlertTriggerMode
-  })
   @Column({
     type: 'enum',
     enum: AlertTriggerMode,
@@ -84,10 +67,6 @@ export class PriceAlert {
   })
   triggerMode!: AlertTriggerMode;
 
-  @ApiProperty({
-    description: 'Current alert status',
-    enum: AlertStatus
-  })
   @Column({
     type: 'enum',
     enum: AlertStatus,
@@ -96,18 +75,9 @@ export class PriceAlert {
   })
   status!: AlertStatus;
 
-  @ApiPropertyOptional({
-    description: 'Expiration timestamp',
-    nullable: true
-  })
   @Column({ type: 'timestamp', nullable: true })
   expiresAt!: Date | null;
 
-  @ApiProperty({
-    description: 'Notification channels',
-    enum: NotificationChannel,
-    isArray: true
-  })
   @Column({
     type: 'enum',
     enum: NotificationChannel,
@@ -116,29 +86,15 @@ export class PriceAlert {
   })
   notificationChannels!: NotificationChannel[];
 
-  @ApiProperty({
-    description: 'Minimum minutes between notifications'
-  })
   @Column({ default: DEFAULT_NOTIFICATION_COOLDOWN_MINUTES })
   notificationCooldownMinutes!: number;
 
-  @ApiPropertyOptional({
-    description: 'Last checked price for crossing detection',
-    nullable: true
-  })
   @Column({ type: 'decimal', nullable: true })
   lastCheckedPrice!: string | null;
 
-  @ApiPropertyOptional({
-    description: 'Timestamp of last trigger',
-    nullable: true
-  })
   @Column({ type: 'timestamp', nullable: true })
   lastTriggeredAt!: Date | null;
 
-  @ApiProperty({
-    description: 'Number of times triggered'
-  })
   @Column({ default: 0 })
   triggeredCount!: number;
 
