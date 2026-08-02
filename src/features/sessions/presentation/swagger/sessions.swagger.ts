@@ -8,9 +8,9 @@ import {
   validationResponse
 } from '@presentation/swagger/api-error.catalog';
 import {
-  ApiDataResponse,
   ApiErrorResponses,
   ApiNoContent,
+  ApiSuccessResponse,
   errorExample
 } from '@presentation/swagger/api-response.decorator';
 import {
@@ -57,7 +57,7 @@ export const ApiGetSessions = () =>
       ].join('\n')
     }),
     ApiAuthenticated(),
-    ApiDataResponse({
+    ApiSuccessResponse({
       status: 200,
       description:
         'The current session plus one page of the other active sessions.',

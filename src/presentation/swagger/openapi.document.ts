@@ -31,15 +31,19 @@ const OPENAPI_VERSION = '3.0.3';
 const API_DESCRIPTION = `
 REST API for account management, session management and cryptocurrency price alerts.
 
-## Response envelopes
+## Response shape
 
-Every response is enveloped. A successful response carries \`data\`:
+Success responses are returned directly — the resource itself, with no
+envelope:
 
 \`\`\`json
-{ "data": { "username": "mohammad_reza" } }
+{ "username": "mohammad_reza" }
 \`\`\`
 
-A failing response carries \`error\` instead, and never both:
+Endpoints that communicate through cookies or through the status code alone
+return no body (\`200\` or \`201\`), and mutations return \`204 No Content\`.
+
+Failures are enveloped:
 
 \`\`\`json
 {
@@ -54,8 +58,9 @@ A failing response carries \`error\` instead, and never both:
 }
 \`\`\`
 
-Branch on \`error.code\`, never on \`error.message\`. \`204 No Content\` responses
-carry no body at all.
+Branch on the HTTP status for success. For failures, branch on
+\`error.code\`, never on \`error.message\`. \`204 No Content\` responses carry
+no body at all.
 
 ## Authentication
 
@@ -63,8 +68,8 @@ Authentication is **cookie-based**; the API does not read \`Authorization\` head
 
 1. \`POST /v1/auth/register\` creates a pending account and emails a six-digit code.
 2. \`POST /v1/auth/verify-email\` activates it.
-3. \`POST /v1/auth/login\` sets three cookies and returns an empty envelope —
-   tokens are never placed in the response body.
+3. \`POST /v1/auth/login\` sets three cookies and returns no body —
+   tokens are never placed in the response.
 
 | Cookie | Lifetime | Flags | Purpose |
 | --- | --- | --- | --- |
