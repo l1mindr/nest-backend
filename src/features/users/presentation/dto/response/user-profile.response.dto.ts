@@ -1,43 +1,55 @@
-import { TimestampResponseDto } from '@presentation/dto/timestamp-response.dto';
-import { ApiProperty } from '@nestjs/swagger';
+import { ExampleValue } from '@presentation/swagger/openapi.constants';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
 import { UserRole } from '../../../domain/enums/user-role.enum';
 
-export class UserProfileResponseDto extends TimestampResponseDto {
-  @ApiProperty({
-    example: 'John Doe',
-    description: 'Full name of the user',
+/**
+ * The authenticated user's own profile.
+ *
+ * Deliberately does not extend `TimestampResponseDto`: the `User` entity keeps
+ * its timestamps in the embedded `registryDates`, so inherited `createdAt` /
+ * `updatedAt` fields would be documented but never populated. The creation
+ * instant is exposed as `joinedAt` instead.
+ */
+export class UserProfileResponseDto {
+  @ApiPropertyOptional({
+    description:
+      'Display name. `null` until the user sets one through `PUT /v1/user`.',
+    type: String,
     nullable: true,
-    required: false
+    example: ExampleValue.NAME
   })
   @Expose()
   name!: string | null;
 
   @ApiProperty({
-    example: 'john_doe',
-    description: 'Unique username'
+    description: 'Unique username, always lowercase.',
+    example: ExampleValue.USERNAME
   })
   @Expose()
   username!: string;
 
   @ApiProperty({
-    example: 'john@example.com',
-    description: 'User email address'
+    description: 'Email address the account is registered under.',
+    format: 'email',
+    example: ExampleValue.EMAIL
   })
   @Expose()
   email!: string;
 
   @ApiProperty({
+    description: 'Role held by the account. Governs access to `/v1/admin/*`.',
     enum: UserRole,
-    example: UserRole.USER,
-    description: 'User role'
+    enumName: 'UserRole',
+    example: UserRole.USER
   })
   @Expose()
   role!: UserRole;
 
   @ApiProperty({
-    example: '2024-10-01T12:34:56.000Z',
-    description: 'Registration date'
+    description: 'Instant at which the account was registered.',
+    format: 'date-time',
+    example: ExampleValue.TIMESTAMP
   })
   @Expose()
   @Transform(({ obj }) => obj.registryDates?.createdAt ?? obj.createdAt)
