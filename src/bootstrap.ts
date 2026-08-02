@@ -4,11 +4,34 @@ import {
   IS_DEVELOPMENT,
   IS_TEST
 } from '@infrastructure/config/env/env.constants';
+import {
+  buildOpenApiDocument,
+  setupOpenApiUi
+} from '@presentation/swagger/openapi.document';
 import { VersioningType } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
+
+/**
+ * Servers advertised in the OpenAPI document. The public entry is only listed
+ * when the deployment declares one, so generated clients never point at a
+ * host that does not exist.
+ */
+function openApiServers() {
+  const servers = [
+    { url: 'http://localhost:8080', description: 'Local development' }
+  ];
+
+  if (process.env.PUBLIC_API_URL) {
+    servers.unshift({
+      url: process.env.PUBLIC_API_URL,
+      description: 'Public deployment'
+    });
+  }
+
+  return servers;
+}
 
 export async function setupApp(app: NestExpressApplication) {
   if (IS_PRODUCTION || IS_TEST) {
@@ -16,17 +39,10 @@ export async function setupApp(app: NestExpressApplication) {
   }
 
   if (IS_DEVELOPMENT) {
-    const config = new DocumentBuilder()
-      .setTitle('The NestjsBackend API description')
-      .setDescription('Use the base API URL at http://localhost:8080')
-      .setTermsOfService('Connect with email: l1mindr@proton.me')
-      .addServer('http://localhost:8080')
-      .setVersion('1')
-      .addTag('API routes')
-      .build();
-
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api', app, document);
+    setupOpenApiUi(
+      app,
+      buildOpenApiDocument(app, { servers: openApiServers() })
+    );
   }
 
   app.use(helmetConfig);
