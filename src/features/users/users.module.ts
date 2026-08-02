@@ -13,6 +13,7 @@ import { UnsuspendUserUseCase } from './application/use-cases/unsuspend-user.use
 import { UpdateProfileUseCase } from './application/use-cases/update-profile.use-case';
 import { VerifyEmailUseCase } from './application/use-cases/verify-email.use-case';
 import { UserQueryService } from './application/services/user-query.service';
+import { VerificationAttemptService } from './application/services/verification-attempt.service';
 import { VerificationCodeService } from './application/services/verification-code.service';
 import { UserMapper } from './application/mappers/user.mapper';
 import { User } from './domain/entities/user.entity';
@@ -93,6 +94,7 @@ import { UsersController } from './presentation/controllers/users.controller';
     },
     PendingUserCleanupScheduler,
     VerificationCodeService,
+    VerificationAttemptService,
     UserMapper
   ],
   exports: [
@@ -102,6 +104,7 @@ import { UsersController } from './presentation/controllers/users.controller';
     VERIFICATION_CODE_REPOSITORY,
     INITIATE_REGISTRATION_USE_CASE,
     RESEND_VERIFICATION_USE_CASE,
+    VERIFY_EMAIL_USE_CASE,
     CLEANUP_PENDING_USERS_USE_CASE
   ]
 })

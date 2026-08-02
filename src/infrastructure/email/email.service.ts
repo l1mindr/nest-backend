@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export abstract class EmailService {
-  abstract sendVerificationEmail(email: string, code: string): Promise<void>;
+  abstract sendVerificationEmail(
+    email: string,
+    code: string,
+    expiresInMinutes: number
+  ): Promise<void>;
 
   abstract sendSuspensionEmail(
     email: string,

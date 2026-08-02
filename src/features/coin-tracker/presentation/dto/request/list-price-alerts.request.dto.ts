@@ -1,3 +1,7 @@
+import {
+  cursorQueryDocs,
+  limitQueryDocs
+} from '@presentation/dto/pagination.docs';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -11,20 +15,17 @@ const PRICE_ALERT_PAGE_SIZE_MAX = 50;
 export { PRICE_ALERT_PAGE_SIZE_DEFAULT, PRICE_ALERT_PAGE_SIZE_MAX };
 
 export class ListPriceAlertsRequestDto {
-  @ApiPropertyOptional({
-    description:
-      'Opaque cursor obtained from a previous response. Omit to start from the beginning.'
-  })
+  @ApiPropertyOptional(cursorQueryDocs())
   @IsOptional()
   @IsString()
   cursor?: string;
 
-  @ApiPropertyOptional({
-    description: `Number of items to return per page (1–${PRICE_ALERT_PAGE_SIZE_MAX}). Defaults to ${PRICE_ALERT_PAGE_SIZE_DEFAULT}.`,
-    minimum: 1,
-    maximum: PRICE_ALERT_PAGE_SIZE_MAX,
-    default: PRICE_ALERT_PAGE_SIZE_DEFAULT
-  })
+  @ApiPropertyOptional(
+    limitQueryDocs({
+      defaultValue: PRICE_ALERT_PAGE_SIZE_DEFAULT,
+      max: PRICE_ALERT_PAGE_SIZE_MAX
+    })
+  )
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -33,23 +34,30 @@ export class ListPriceAlertsRequestDto {
   limit?: number;
 
   @ApiPropertyOptional({
-    description: 'Filter by alert status',
-    enum: AlertStatus
+    description:
+      'Return only alerts in this state. Omit to return every state, including cancelled and expired ones.',
+    enum: AlertStatus,
+    enumName: 'AlertStatus',
+    example: AlertStatus.ACTIVE
   })
   @IsOptional()
   @IsEnum(AlertStatus)
   status?: AlertStatus;
 
   @ApiPropertyOptional({
-    description: 'Filter by direction',
-    enum: AlertDirection
+    description: 'Return only alerts watching this direction.',
+    enum: AlertDirection,
+    enumName: 'AlertDirection',
+    example: AlertDirection.SELL
   })
   @IsOptional()
   @IsEnum(AlertDirection)
   direction?: AlertDirection;
 
   @ApiPropertyOptional({
-    description: 'Filter by coin identifier'
+    description:
+      'Return only alerts on this coin, identified by its CoinGecko id. Lowercased before matching.',
+    example: 'bitcoin'
   })
   @IsOptional()
   @TrimLowercase()

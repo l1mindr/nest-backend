@@ -14,6 +14,7 @@ import {
   Query
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { ApiTagName } from '@presentation/swagger/openapi.constants';
 import { IdDto } from '@presentation/dto/id.dto';
 import { PriceAlertMapper } from '../../application/mappers/price-alert.mapper';
 import { CreatePriceAlertRequestDto } from '../dto/request/create-price-alert.request.dto';
@@ -40,7 +41,7 @@ import {
   path: 'price-alerts',
   version: '1'
 })
-@ApiTags('price-alerts')
+@ApiTags(ApiTagName.PRICE_ALERTS)
 export class PriceAlertsController {
   constructor(
     @Inject(CREATE_PRICE_ALERT_USE_CASE)

@@ -1,5 +1,4 @@
 import { User } from '@features/users/domain/entities/user.entity';
-import { ApiProperty } from '@nestjs/swagger';
 import {
   Column,
   CreateDateColumn,
@@ -10,8 +9,12 @@ import {
   UpdateDateColumn
 } from 'typeorm';
 import { ISessionDevice } from '../../application/interfaces/session-device.interface';
-import { SwaggerSessionProperties as SessionProps } from '../../presentation/swagger/sessions.swagger';
 
+/**
+ * Persistence model. Never serialized to clients directly — the sessions
+ * endpoints project it through `SessionResponseDto`, which is what keeps
+ * `refreshTokenHash` out of the API surface and out of the OpenAPI schema.
+ */
 @Entity()
 @Index('IDX_session_owner_active', ['owner', 'isRevoked', 'expiresAt'])
 @Index('IDX_session_owner_created', [
@@ -22,30 +25,24 @@ import { SwaggerSessionProperties as SessionProps } from '../../presentation/swa
 ])
 @Index('IDX_session_expires_at', ['expiresAt'])
 export class Session {
-  @ApiProperty(SessionProps.id)
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @ApiProperty(SessionProps.refreshTokenHash)
   @Column()
   refreshTokenHash!: string;
 
-  @ApiProperty(SessionProps.userAgent)
   @Column({ type: 'jsonb' })
   device!: ISessionDevice;
 
-  @ApiProperty(SessionProps.ipAddress)
   @Column()
   ipAddress!: string;
 
   @Column({ default: false })
   isRevoked!: boolean;
 
-  @ApiProperty(SessionProps.expireAt)
   @Column({ type: 'timestamp' })
   expiresAt!: Date;
 
-  @ApiProperty(SessionProps.lastUsedAt)
   @Column({ type: 'timestamp' })
   lastUsedAt!: Date;
 
@@ -55,15 +52,12 @@ export class Session {
   @Column({ type: 'timestamp', nullable: true })
   rotatedAt!: Date;
 
-  @ApiProperty(SessionProps.createdAt)
   @CreateDateColumn()
   createdAt!: Date;
 
-  @ApiProperty(SessionProps.updatedAt)
   @UpdateDateColumn()
   updatedAt!: Date;
 
-  @ApiProperty(SessionProps.user)
   @ManyToOne(() => User, (user) => user.sessions, { nullable: false })
   owner!: User;
 }

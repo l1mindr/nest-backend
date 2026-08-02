@@ -1,6 +1,7 @@
 import redisConfig from '@infrastructure/config/databases/redis.config';
 import { REDIS_CLIENT } from '@infrastructure/databases/redis/redis.constants';
 import { createRedisClient } from '@infrastructure/databases/redis/redis.provider';
+import { EmailService } from '@infrastructure/email/email.service';
 import { INestApplication } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -9,6 +10,7 @@ import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
 import { setupApp } from '../../src/bootstrap';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { capturingEmailService } from '../helpers/email.helper';
 
 export interface ITextContext {
   app: INestApplication;
@@ -37,6 +39,8 @@ export async function createTestApp(): Promise<ITextContext> {
         },
         inject: [redisConfig.KEY]
       })
+      .overrideProvider(EmailService)
+      .useValue(capturingEmailService)
       .compile();
 
     app = moduleFixture.createNestApplication<NestExpressApplication>();

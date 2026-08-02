@@ -77,11 +77,11 @@ describe('Admin Users (e2e) version: 1', () => {
     const res = await adminContext.client.get('/v1/admin/users');
 
     expect(res.status).toBe(200);
-    expect(res.body.data).toHaveProperty('items');
-    expect(res.body.data).toHaveProperty('nextCursor');
-    expect(res.body.data.items).toHaveLength(1);
-    expect(res.body.data.items[0]).toEqual(adminUserResponseShape);
-    expect(res.body.data.nextCursor).toBeNull();
+    expect(res.body).toHaveProperty('items');
+    expect(res.body).toHaveProperty('nextCursor');
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0]).toEqual(adminUserResponseShape);
+    expect(res.body.nextCursor).toBeNull();
   });
 
   it('GET /admin/users with limit=1 should paginate multiple users', async () => {
@@ -110,31 +110,31 @@ describe('Admin Users (e2e) version: 1', () => {
       query: { limit: '1' }
     });
     expect(page1.status).toBe(200);
-    expect(page1.body.data.items).toHaveLength(1);
-    expect(page1.body.data.nextCursor).toBeDefined();
-    expect(page1.body.data.nextCursor).not.toBeNull();
+    expect(page1.body.items).toHaveLength(1);
+    expect(page1.body.nextCursor).toBeDefined();
+    expect(page1.body.nextCursor).not.toBeNull();
 
     // Second page
     const page2 = await adminContext.client.get('/v1/admin/users', {
-      query: { limit: '1', cursor: page1.body.data.nextCursor }
+      query: { limit: '1', cursor: page1.body.nextCursor }
     });
     expect(page2.status).toBe(200);
-    expect(page2.body.data.items).toHaveLength(1);
-    expect(page2.body.data.nextCursor).toBeDefined();
+    expect(page2.body.items).toHaveLength(1);
+    expect(page2.body.nextCursor).toBeDefined();
 
     // Collect all IDs across all pages
-    const allIds: string[] = [page1.body.data.items[0].id];
-    let cursor: string | null = page1.body.data.nextCursor;
+    const allIds: string[] = [page1.body.items[0].id];
+    let cursor: string | null = page1.body.nextCursor;
 
     while (cursor) {
       const page = await adminContext.client.get('/v1/admin/users', {
         query: { limit: '1', cursor }
       });
       expect(page.status).toBe(200);
-      for (const item of page.body.data.items) {
+      for (const item of page.body.items) {
         allIds.push(item.id);
       }
-      cursor = page.body.data.nextCursor;
+      cursor = page.body.nextCursor;
     }
 
     // Should have 1 admin + 3 created = 4 users total
@@ -203,8 +203,8 @@ describe('Admin Users (e2e) version: 1', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(res.body.data.items).toHaveLength(0);
-    expect(res.body.data.nextCursor).toBeNull();
+    expect(res.body.items).toHaveLength(0);
+    expect(res.body.nextCursor).toBeNull();
   });
 
   it('GET /admin/users should maintain deterministic ordering across pages', async () => {
@@ -231,7 +231,7 @@ describe('Admin Users (e2e) version: 1', () => {
     const allRes = await adminContext.client.get('/v1/admin/users', {
       query: { limit: '100' }
     });
-    const allIds = allRes.body.data.items.map((u: { id: string }) => u.id);
+    const allIds = allRes.body.items.map((u: { id: string }) => u.id);
 
     // Fetch page by page
     const pagedIds: string[] = [];
@@ -242,10 +242,10 @@ describe('Admin Users (e2e) version: 1', () => {
       const page = await adminContext.client.get('/v1/admin/users', {
         query: params
       });
-      for (const item of page.body.data.items) {
+      for (const item of page.body.items) {
         pagedIds.push(item.id);
       }
-      cursor = page.body.data.nextCursor;
+      cursor = page.body.nextCursor;
     } while (cursor);
 
     expect(pagedIds).toEqual(allIds);
@@ -265,7 +265,7 @@ describe('Admin Users (e2e) version: 1', () => {
     const res = await adminContext.client.get(`/v1/admin/users/${target.id}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.data).toEqual({
+    expect(res.body).toEqual({
       ...adminUserResponseShape,
       id: target.id,
       username: adminContext.user.username,

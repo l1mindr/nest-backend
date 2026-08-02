@@ -58,25 +58,37 @@ E2E tests live under `test/v1/` and follow the API version:
 test/
 ├── bootstrap/test-app.ts          # createTestApp() utility
 ├── factories/
-│   ├── auth.factory.ts            # register + login helpers
-│   └── user.factory.ts            # user creation helpers
+│   ├── auth.factory.ts            # login + authenticated helpers
+│   └── user.factory.ts            # register, verifyEmail, admin helpers
 ├── helpers/
-│   ├── postgresql.helper.ts       # runMigrations, truncateDatabase
-│   └── redis.helper.ts            # flushRedis
+│   ├── api-client.helper.ts       # ApiClient (get/post/patch/put/delete)
+│   ├── create-user.helper.ts      # createUserDto()
+│   ├── postgresql.helper.ts       # truncateDatabase
+│   └── redis.helper.ts            # clearRedis
+├── setup/
+│   ├── global-setup.ts            # per-worker database migration
+│   ├── migrations.ts
+│   ├── worker-context.ts
+│   └── worker-env.ts              # per-worker env normalization
+├── utils/
+│   ├── cookie.util.ts             # getCookie, getCookieValue, normalizeHeader
+│   └── types/                     # auth.types, factory.types, user.types
 ├── v1/
 │   ├── admin-user-v1.e2e-spec.ts
 │   ├── auth-change-password-v1.e2e-spec.ts
+│   ├── auth-login-v1.e2e-spec.ts
 │   ├── auth-refresh-v1.e2e-spec.ts
+│   ├── auth-register-v1.e2e-spec.ts
 │   ├── auth-status-v1.e2e-spec.ts
 │   ├── coin-tracker-v1.e2e-spec.ts
 │   ├── csrf-v1.e2e-spec.ts
-│   ├── session-limit.e2e-spec.ts
 │   ├── sessions-v1.e2e-spec.ts
 │   ├── users-delete-account-v1.e2e-spec.ts
 │   ├── users-v1.e2e-spec.ts
 │   └── validation-hardening-v1.e2e-spec.ts
 └── integration/
-    └── session-limit-concurrency.e2e-spec.ts
+    ├── redis-lock.e2e-spec.ts
+    └── session-limit.e2e-spec.ts
 ```
 
 ## Unit Test Patterns
@@ -86,30 +98,28 @@ test/
 Use cases are tested by direct instantiation with mocked dependencies (no `TestingModule`):
 
 ```typescript
-import { UserErrors } from '../../../domain/errors/user-errors';
-import { RegisterUseCase } from '../register.use-case';
+import { Register } from '../register.use-case';
 
-describe('RegisterUseCase', () => {
-  let useCase: RegisterUseCase;
-
-  const mockUserRepository = {
-    findByEmailOrUsername: jest.fn(),
-    insertUser: jest.fn()
-  };
+describe('Register', () => {
+  let useCase: Register;
 
   const mockHashingProvider = {
     hash: jest.fn()
   };
 
+  const mockInitiateRegistration = {
+    execute: jest.fn()
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    useCase = new RegisterUseCase(
-      mockUserRepository as any,
-      mockHashingProvider as any
+    useCase = new Register(
+      mockHashingProvider as any,
+      mockInitiateRegistration as any
     );
   });
 
-  it('should register a new user', async () => {
+  it('should hash the password and initiate registration', async () => {
     // ...
   });
 });
@@ -155,25 +165,30 @@ Repositories use `TypeOrmModule` with a test database or mocked query runner.
 
 `createTestApp()` in `test/bootstrap/test-app.ts`:
 1. Sets `NODE_ENV=test`
-2. Creates `AppModule` via `Test.createTestingModule`
-3. Calls `setupApp()` for global configuration
-4. Returns `{ app, dataSource }`
+2. Creates `AppModule` via `Test.createTestingModule`, overriding `REDIS_CLIENT` with a test Redis client
+3. Overrides `EmailService` with a capturing test double (`test/helpers/email.helper.ts`) so no real SMTP connection is attempted
+4. Calls `setupApp()` for global configuration and listens on an ephemeral port
+5. Returns `{ app, dataSource }`
+
+Database schema preparation (migrations) happens once per worker in the Jest global setup (`test/setup/global-setup.ts`).
 
 ### Factories
 
-**UserFactory** — Registers users via API:
-- `UserFactory.register(app)` → returns `{ user, client }`
-- `UserFactory.admin(app)` → promotes user to `ADMIN`
-- `UserFactory.verifyEmail(app, email)` → verifies via repository
+**UserFactory**:
+- `UserFactory.register(app, overrides?)` → registers via `POST /v1/auth/register`, returns `{ user, client, response }`
+- `UserFactory.verifyEmail(app, email)` → promotes user to `ACTIVATE` directly via repository
+- `UserFactory.admin(app, dataSource, overrides?)` → registers then promotes role to `ADMIN`
 
-**AuthFactory** — Registers + logs in:
-- `AuthFactory.registerAndLogin(app)` → returns context with cookies
+**AuthFactory**:
+- `AuthFactory.login(context, loginBy?)` → logs in via `POST /v1/auth/login`, captures `refresh_token`/`csrf_token` cookies and `X-CSRF-Token` header
+- `AuthFactory.authenticated(app, options?, dataSource?)` → register + verifyEmail + login in one step; `dataSource` is required when `options.withRole` is `ADMIN`
 
 ### Helpers
 
-- `testApi(app)` → supertest wrapper with cookie jar
-- `postgresql.helper.ts` → `runMigrations()`, `truncateDatabase()`
-- `redis.helper.ts` → `flushRedis(db)`
+- `ApiClient(app)` → supertest wrapper with cookie jar; `get`/`post`/`patch`/`put`/`delete` with `headers`, `query`, `body` config
+- `postgresql.helper.ts` → `truncateDatabase()`
+- `redis.helper.ts` → `clearRedis(app)` (flushes the Redis DB)
+- `email.helper.ts` → captures emails sent by the app; `getVerificationCode(to)`, `getVerificationTtlMinutes(to)`, `getVerificationEmailCount(to)`, `resetEmailStore()`
 
 ## Running Tests
 

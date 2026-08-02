@@ -26,7 +26,7 @@ Each feature module (auth, users, sessions, coin-tracker) follows a vertical sli
 
 | Module         | Capabilities                                                                       |
 |----------------|------------------------------------------------------------------------------------|
-| **Auth**       | Register, login, refresh tokens, change password; rate-limited public endpoints     |
+| **Auth**       | Register (email verification required), login, refresh tokens, change password; rate-limited public endpoints |
 | **Users**      | Profile retrieval/update, account deletion, admin user management (CRUD, suspend/unsuspend) |
 | **Sessions**   | List active sessions, revoke current session, terminate other sessions              |
 | **Coin Tracker** | List/search supported coins, create/list/update/cancel price alerts              |
@@ -76,6 +76,8 @@ All routes are URI-versioned under `/v1`.
 | Method | Path             | Auth     | Rate Limit     | Description                          |
 |--------|------------------|----------|----------------|--------------------------------------|
 | POST   | `/auth/register` | Public   | 5/60s          | Register a new user account          |
+| POST   | `/auth/verify-email` | Public | 10/60s       | Verify email with a 6-digit code (5/10min per email) |
+| POST   | `/auth/resend-verification` | Public | 5/60s | Resend code (60s cooldown, 5/hour) |
 | POST   | `/auth/login`    | Public   | 5/60s          | Login with email/username + password |
 | POST   | `/auth/refresh`  | Public   | 20/60s         | Refresh access token via cookie      |
 | POST   | `/auth/change-password` | Session | 3/300s    | Change account password              |
@@ -124,11 +126,9 @@ All admin endpoints require the `ADMIN` role.
 
 ## Response Format
 
-- Successful responses return data directly or wrapped in a response envelope.
-- Paginated endpoints return `{ items: [...], nextCursor: string | null }`.
-- Single-resource endpoints may return the resource directly or use a serialized DTO.
-- Error responses follow `{ statusCode, message, error, timestamp, path, details? }`.
-- The 204 No Content responses return an empty body.
+- Successful responses are wrapped in a `{ data: ... }` envelope by `DataResponseInterceptor`; 204 No Content responses return an empty body.
+- Paginated endpoints return `{ data: { items: [...], nextCursor: string | null } }` (session lists also include `currentSession`).
+- Error responses follow `{ error: { code, domain, message, meta, path, timestamp } }`.
 
 ## Swagger UI
 
@@ -160,7 +160,7 @@ Create an environment file:
 cp .env.example .env
 ```
 
-Set real values for PostgreSQL, Redis, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `CSRF_TOKEN_SECRET`, and `NODE_ENV`.
+Set real values for PostgreSQL, Redis, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `CSRF_TOKEN_SECRET`, `NODE_ENV`, and the `EMAIL_*` variables (see `.env.example` for a Gmail SMTP template).
 
 Run in development:
 
@@ -185,7 +185,7 @@ http://localhost:8080
 | `DATA_SOURCE_PORT`              | Yes      | —        | PostgreSQL port (1–65535)                |
 | `DATA_SOURCE_DATABASE`          | Yes      | —        | PostgreSQL database name                 |
 | `DATA_SOURCE_POOL_SIZE`         | No       | 10       | Connection pool size (1–100)             |
-| `DATA_SOURCE_CONNECT_TIMEOUT_MS`| No       | 10000    | Connection timeout in ms (1000–60000)    |
+| `DATA_SOURCE_CONNECT_TIMEOUT_MS`| No       | 5000     | Connection timeout in ms (1000–60000)    |
 | `DATA_SOURCE_IDLE_TIMEOUT_MS`   | No       | 30000    | Idle timeout in ms (1000–600000)         |
 | `REDIS_HOST`                    | Yes      | —        | Redis hostname or IP                     |
 | `REDIS_PORT`                    | Yes      | —        | Redis port (1–65535)                     |
@@ -197,6 +197,13 @@ http://localhost:8080
 | `ACCESS_TOKEN_SECRET`           | Yes      | —        | JWT access token signing secret (entropy-validated) |
 | `REFRESH_TOKEN_SECRET`          | Yes      | —        | JWT refresh token signing secret (must differ from access) |
 | `CSRF_TOKEN_SECRET`             | Yes      | —        | CSRF token secret (must differ from both JWT secrets) |
+| `APP_NAME`                      | No       | NestJS Backend | Sender display name in transactional emails |
+| `EMAIL_HOST`                    | Yes      | —        | SMTP hostname or IP (e.g. `smtp.gmail.com`) |
+| `EMAIL_PORT`                    | No       | 587      | SMTP port (1–65535) |
+| `EMAIL_SECURE`                  | No       | false    | Use TLS when connecting to the SMTP server |
+| `EMAIL_USER`                    | Yes      | —        | SMTP account username |
+| `EMAIL_APP_PASSWORD`            | Yes      | —        | SMTP app password (min 16 chars in production) |
+| `EMAIL_FROM`                    | Yes      | —        | Sender address used in outgoing emails |
 
 In production, secrets undergo entropy validation and additional cross-field safety checks (e.g. Redis must not use localhost, DB password must not match a token secret).
 

@@ -40,7 +40,13 @@ export enum LogEvent {
   PENDING_USER_CLEANUP_STARTED = 'users.cleanup.pending.started',
   PENDING_USER_CLEANUP_COMPLETED = 'users.cleanup.pending.completed',
   PENDING_USER_CLEANUP_FAILED = 'users.cleanup.pending.failed',
-  PENDING_USER_DEACTIVATED = 'users.cleanup.pending.deactivated'
+  PENDING_USER_DEACTIVATED = 'users.cleanup.pending.deactivated',
+
+  EMAIL_SENT = 'email.sent',
+  EMAIL_SEND_FAILED = 'email.send.failed',
+  EMAIL_VERIFIED = 'email.verify.succeeded',
+  VERIFICATION_ATTEMPTS_EXCEEDED = 'email.verify.attempts_exceeded',
+  VERIFICATION_RESEND_LIMIT_EXCEEDED = 'email.verify.resend_limit_exceeded'
 }
 
 export const REDACT_PATHS = [

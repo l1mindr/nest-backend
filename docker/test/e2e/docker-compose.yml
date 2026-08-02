@@ -42,7 +42,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       MAX_ACTIVE_SESSIONS: 10
-      ENABLE_HTTP_LOGS: 'false'
       LOG_LEVEL: error
       # REDIS_PASSWORD: ''
       # REDIS_DB: 0
@@ -50,6 +49,13 @@ services:
       ACCESS_TOKEN_SECRET: 3SGh4K6nRjy3rUiEZcwMaG4xZFyObMdJ
       REFRESH_TOKEN_SECRET: juQXiRL05Isuon4mhjdwwwd4lUCaEc4Z
       CSRF_TOKEN_SECRET: Py2RzgyepufR9xQD
+
+      EMAIL_HOST: smtp.gmail.com
+      EMAIL_PORT: 587
+      EMAIL_SECURE: 'false'
+      EMAIL_USER: test@test.com
+      EMAIL_APP_PASSWORD: test-app-password
+      EMAIL_FROM: test@test.com
 
     depends_on:
       migration:
