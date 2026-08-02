@@ -97,31 +97,24 @@ export class AuthController {
 
   @Public()
   @Post('verify-email')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @RateLimit({ limit: 10, ttl: 60 })
   @SkipCsrf()
   @ApiVerifyEmail()
-  async verifyEmail(@Body() dto: VerifyEmailRequestDto) {
+  async verifyEmail(@Body() dto: VerifyEmailRequestDto): Promise<void> {
     await this.verifyEmailUseCase.execute(dto.email, dto.code);
-
-    return {
-      message: 'Email verified successfully'
-    };
   }
 
   @Public()
   @Post('resend-verification')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @RateLimit({ limit: 5, ttl: 60 })
   @SkipCsrf()
   @ApiResendVerification()
-  async resendVerification(@Body() dto: ResendVerificationRequestDto) {
+  async resendVerification(
+    @Body() dto: ResendVerificationRequestDto
+  ): Promise<void> {
     await this.resendVerificationUseCase.execute(dto.email);
-
-    return {
-      message:
-        'If an account with this email exists, a new verification code has been sent'
-    };
   }
 
   @Public()
