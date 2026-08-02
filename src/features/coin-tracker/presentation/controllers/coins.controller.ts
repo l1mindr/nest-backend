@@ -7,6 +7,7 @@ import {
   Query
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { ApiTagName } from '@presentation/swagger/openapi.constants';
 import { CoinListRequestDto } from '../dto/request/coin-list.request.dto';
 import { CoinMapper } from '../../application/mappers/coin.mapper';
 import {
@@ -19,7 +20,7 @@ import { ApiGetCoins } from '../swagger/coin-tracker.swagger';
   path: 'coins',
   version: '1'
 })
-@ApiTags('coins')
+@ApiTags(ApiTagName.COINS)
 export class CoinsController {
   constructor(
     @Inject(LIST_COINS_USE_CASE)
