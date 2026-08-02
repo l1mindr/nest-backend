@@ -14,7 +14,6 @@ import {
   validationResponse
 } from '@presentation/swagger/api-error.catalog';
 import {
-  ApiDataResponse,
   ApiEmptyBodyResponse,
   ApiErrorResponses,
   ApiNoContent,
@@ -37,8 +36,6 @@ import { LoginUserRequestDto } from '../dto/request/login-user.request.dto';
 import { RegisterUserRequestDto } from '../dto/request/register-user.request.dto';
 import { ResendVerificationRequestDto } from '../dto/request/resend-verification.request.dto';
 import { VerifyEmailRequestDto } from '../dto/request/verify-email.request.dto';
-import { ResendVerificationResponseDto } from '../dto/response/resend-verification.response.dto';
-import { VerifyEmailResponseDto } from '../dto/response/verify-email.response.dto';
 
 /**
  * Operation documentation for `AuthController`.
@@ -68,7 +65,7 @@ export const ApiRegisterUser = () =>
         '',
         'The account cannot authenticate until `POST /v1/auth/verify-email` activates it: logging in beforehand returns `403 ACCOUNT_NOT_VERIFIED` and triggers a fresh code. An account left unverified for 24 hours is deactivated.',
         '',
-        'No tokens and no body are returned — the response is an empty envelope. Email delivery failures are logged but do not fail the request, so a `201` does not guarantee the message arrived; `POST /v1/auth/resend-verification` retries it.',
+        'No tokens and no body are returned. Email delivery failures are logged but do not fail the request, so a `201` does not guarantee the message arrived; `POST /v1/auth/resend-verification` retries it.',
         '',
         'Rate limited to 5 requests per minute per IP. Public: no authentication and no CSRF token required.'
       ].join('\n')
@@ -86,7 +83,7 @@ export const ApiRegisterUser = () =>
     ApiEmptyBodyResponse({
       status: 201,
       description:
-        'Account created and the verification email dispatched. The body is an empty envelope.'
+        'Account created and the verification email dispatched. No body is returned.'
     }),
     ApiErrorResponses(PATH.REGISTER, [
       validationResponse(
@@ -137,11 +134,9 @@ export const ApiVerifyEmail = () =>
         }
       }
     ]),
-    ApiDataResponse({
-      status: 200,
+    ApiNoContent({
       description:
-        'The account is now active and can authenticate through `POST /v1/auth/login`.',
-      type: VerifyEmailResponseDto
+        'The account is now active and can authenticate through `POST /v1/auth/login`. No body is returned.'
     }),
     ApiErrorResponses(PATH.VERIFY_EMAIL, [
       badRequestResponse(
@@ -170,7 +165,7 @@ export const ApiResendVerification = () =>
       description: [
         'Issues a new code to an account still pending verification and invalidates the previous one, so only ever one code is live per account.',
         '',
-        'The response is a fixed string returned in every case — unknown address, already-verified account, cooldown still running, or a code genuinely sent. Nothing distinguishes them, which is what stops the endpoint from being used to enumerate accounts. It follows that `200` does not mean an email was sent.',
+        'The status is `204` in every case — unknown address, already-verified account, cooldown still running, or a code genuinely sent. Nothing distinguishes them, which is what stops the endpoint from being used to enumerate accounts. It follows that the status code alone does not mean an email was sent.',
         '',
         'Silently enforced limits: a 60-second cooldown between resends and a maximum of 5 resends per hour per account. Requests hitting either limit still return `200`.',
         '',
@@ -183,11 +178,9 @@ export const ApiResendVerification = () =>
         value: { email: ExampleValue.EMAIL }
       }
     ]),
-    ApiDataResponse({
-      status: 200,
+    ApiNoContent({
       description:
-        'The request was accepted. Whether a code was actually sent is deliberately not disclosed.',
-      type: ResendVerificationResponseDto
+        'The request was accepted. Whether a code was actually sent is deliberately not disclosed. No body is returned.'
     }),
     ApiErrorResponses(PATH.RESEND_VERIFICATION, [
       validationResponse('The body is malformed.', [
@@ -208,7 +201,7 @@ export const ApiLoginUser = () =>
       description: [
         'Accepts either an email address or a username in the `email` field, together with the password.',
         '',
-        `On success three cookies are set — \`${AuthCookie.ACCESS_TOKEN}\`, \`${AuthCookie.REFRESH_TOKEN}\` and \`${AuthCookie.CSRF_TOKEN}\` — and the body is an empty envelope. **The tokens appear nowhere in the response body.** The two token cookies are \`HttpOnly\` and unreadable from JavaScript; the CSRF cookie is readable by design and must be echoed in the \`x-csrf-token\` header on later unsafe requests.`,
+        `On success three cookies are set — \`${AuthCookie.ACCESS_TOKEN}\`, \`${AuthCookie.REFRESH_TOKEN}\` and \`${AuthCookie.CSRF_TOKEN}\` — and no body is returned. **The tokens appear nowhere in the response body.** The two token cookies are \`HttpOnly\` and unreadable from JavaScript; the CSRF cookie is readable by design and must be echoed in the \`x-csrf-token\` header on later unsafe requests.`,
         '',
         'Each login opens a new session, so signing in from another device does not disturb existing ones. `GET /v1/sessions` lists them.',
         '',
@@ -236,7 +229,7 @@ export const ApiLoginUser = () =>
     ApiEmptyBodyResponse({
       status: 200,
       description:
-        'Authenticated. The session cookies are set on this response; the body carries no tokens.',
+        'Authenticated. The session cookies are set on this response; no body is returned.',
       headers: authCookieHeaders()
     }),
     ApiErrorResponses(PATH.LOGIN, [
@@ -283,7 +276,7 @@ export const ApiRefreshToken = () =>
     ApiEmptyBodyResponse({
       status: 200,
       description:
-        'Rotated. Three replacement cookies are set and the refresh token just consumed is now void.',
+        'Rotated. Three replacement cookies are set and the refresh token just consumed is now void. No body is returned.',
       headers: authCookieHeaders()
     }),
     ApiErrorResponses(PATH.REFRESH, [
