@@ -42,8 +42,9 @@ import { VerifyEmailRequestDto } from '../dto/request/verify-email.request.dto';
  *
  * Every error example is derived from the factory the runtime actually throws,
  * so a documented `code` or `domain` cannot drift from the real response. The
- * rate-limit budgets quoted in the descriptions mirror the `@RateLimit()`
- * decorators on the handlers.
+ * rate-limit budgets quoted in the descriptions mirror the policy groups the
+ * handlers declare via `@RateLimit()`, which are defined in
+ * `@features/security/rate-limit/config/rate-limit.config`.
  */
 
 const PATH = {
@@ -67,7 +68,7 @@ export const ApiRegisterUser = () =>
         '',
         'No tokens and no body are returned. Email delivery failures are logged but do not fail the request, so a `201` does not guarantee the message arrived; `POST /v1/auth/resend-verification` retries it.',
         '',
-        'Rate limited to 5 requests per minute per IP. Public: no authentication and no CSRF token required.'
+        'Rate limited to 5 per minute per address and 10 per minute per device. Public: no authentication and no CSRF token required.'
       ].join('\n')
     }),
     ApiRequestBody(RegisterUserRequestDto, [
@@ -122,7 +123,7 @@ export const ApiVerifyEmail = () =>
         '',
         'Five failed attempts invalidate the code outright, and attempts are additionally capped at 5 per 10 minutes per email address — a limit no amount of IP rotation avoids.',
         '',
-        'Rate limited to 10 requests per minute per IP. Public: no authentication and no CSRF token required.'
+        'Rate limited on four dimensions, all of which must pass: 10 per minute per address, 10 per minute per device, 5 per 10 minutes per email, and 20 per 10 minutes per submitted code. Public: no authentication and no CSRF token required.'
       ].join('\n')
     }),
     ApiRequestBody(VerifyEmailRequestDto, [
@@ -151,7 +152,7 @@ export const ApiVerifyEmail = () =>
         validationError('email', 'email must be an email')
       ]),
       rateLimitResponse(
-        'Either the per-IP budget (10 per minute) or the per-email budget (5 per 10 minutes) is exhausted. The per-email limit is checked first.'
+        'One of the budgets for this route is exhausted — per address (10 per minute), per device (10 per minute), per email (5 per 10 minutes), or per submitted code (20 per 10 minutes). The response does not disclose which.'
       ),
       internalServerErrorResponse()
     ])
@@ -169,7 +170,7 @@ export const ApiResendVerification = () =>
         '',
         'Silently enforced limits: a 60-second cooldown between resends and a maximum of 5 resends per hour per account. Requests hitting either limit still return `200`.',
         '',
-        'Rate limited to 5 requests per minute per IP — this budget, unlike the two above, does surface as `429`. Public: no authentication and no CSRF token required.'
+        'Rate limited to 5 per minute per address, 10 per minute per device, and 10 per hour per email — these budgets, unlike the cooldown and hourly caps above, do surface as `429`. Public: no authentication and no CSRF token required.'
       ].join('\n')
     }),
     ApiRequestBody(ResendVerificationRequestDto, [
@@ -207,7 +208,7 @@ export const ApiLoginUser = () =>
         '',
         'Unknown account, wrong password, suspended and deactivated accounts are indistinguishable: all return `401 INVALID_CREDENTIALS`. An account still pending verification is the one exception — it returns `403 ACCOUNT_NOT_VERIFIED` and a fresh code is emailed automatically. Past 24 hours unverified the account is deactivated instead, and falls back to `401`.',
         '',
-        'Rate limited to 5 attempts per minute per IP. Public: no authentication and no CSRF token required.'
+        'Rate limited on three dimensions, all of which must pass: 5 per minute per address, 10 per 15 minutes per email, and 10 per minute per device. Exceeding the email or device budget also opens a temporary block. A successful sign-in clears the email counter, so only failures accumulate. Public: no authentication and no CSRF token required.'
       ].join('\n')
     }),
     ApiRequestBody(LoginUserRequestDto, [
@@ -269,7 +270,7 @@ export const ApiRefreshToken = () =>
         '',
         'Concurrent refreshes on one session are additionally guarded by a short lock; losing that race returns `429 REFRESH_RATE_LIMITED` and is safe to retry.',
         '',
-        'Rate limited to 20 requests per minute per IP. No access token is required — the refresh cookie is the credential — and no CSRF token is required.'
+        'Rate limited to 20 per minute per address and 20 per minute per device. No access token is required — the refresh cookie is the credential — and no CSRF token is required.'
       ].join('\n')
     }),
     ApiRefreshTokenAuth(),
@@ -296,7 +297,7 @@ export const ApiRefreshToken = () =>
         )
       ),
       rateLimitResponse(
-        'Either the per-IP budget (20 per minute) is exhausted, or another refresh for this session is already in flight.',
+        'Either a request budget for this route is exhausted (20 per minute per address or per device), or another refresh for this session is already in flight.',
         errorExample(
           SessionErrors.refreshRateLimited(),
           'A concurrent refresh holds the lock on this session; retry shortly'
@@ -318,7 +319,7 @@ export const ApiChangePassword = () =>
         '',
         'The new password must satisfy the same rules as at registration and must differ from the current one.',
         '',
-        'Rate limited to 3 attempts per 5 minutes per IP. Requires authentication and, being a state-changing request, a valid `x-csrf-token` header.'
+        'Rate limited to 3 attempts per 5 minutes per address and per account. Requires authentication and, being a state-changing request, a valid `x-csrf-token` header.'
       ].join('\n')
     }),
     ApiCsrfProtected(),

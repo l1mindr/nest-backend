@@ -39,7 +39,7 @@ export const CommonErrors = {
   ),
   rateLimitExceeded: errorExample(
     SecurityErrors.rateLimitExceeded(),
-    'Per-IP request budget for this route is exhausted'
+    'A request budget for this route is exhausted. Routes are limited on several identifiers at once (address, device, account); any one of them can trigger this'
   ),
   internalError: errorExample(
     new AppError(

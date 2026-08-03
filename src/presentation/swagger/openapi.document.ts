@@ -106,8 +106,16 @@ Request validation rejects unknown properties and returns
 
 ## Rate limiting
 
-Authentication endpoints are rate limited per IP and per route; exceeding a
-budget returns \`429\`. Per-endpoint budgets are documented on each operation.
+Endpoints are rate limited on several identifiers at once — client address,
+device, account, and where relevant the submitted verification code. Every
+budget must pass; exhausting any one returns \`429\` with a \`Retry-After\`
+header. Which identifier tripped is deliberately not disclosed. Per-endpoint
+budgets are documented on each operation.
+
+Rate limited responses carry \`X-RateLimit-Limit\`, \`X-RateLimit-Remaining\`,
+and \`X-RateLimit-Reset\`. Clients may send an \`X-Device-Id\` header
+(\`^[A-Za-z0-9_-]{8,128}$\`) to identify a device across network changes; when
+absent one is derived from the request.
 `.trim();
 
 /**
