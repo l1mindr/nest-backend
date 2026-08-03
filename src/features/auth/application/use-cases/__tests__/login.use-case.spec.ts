@@ -54,6 +54,12 @@ describe('Login', () => {
     updateStatus: jest.fn()
   };
 
+  const mockRateLimitService = {
+    consume: jest.fn(),
+    peek: jest.fn(),
+    reset: jest.fn()
+  };
+
   const mockLogger = {
     setContext: jest.fn(),
     info: jest.fn(),
@@ -111,6 +117,7 @@ describe('Login', () => {
       mockSessionRotationUseCase as any,
       mockResendVerificationUseCase as any,
       mockUserRepository as any,
+      mockRateLimitService as any,
       mockLogger as any
     );
   });

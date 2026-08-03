@@ -1,4 +1,5 @@
 import { CsrfModule } from '@features/security/csrf/csrf.module';
+import { RateLimitModule } from '@features/security/rate-limit/rate-limit.module';
 import { DeviceDetectionModule } from '@features/security/device-detection/device-detection.module';
 import { SessionsModule } from '@features/sessions/sessions.module';
 import { TokenModule } from '@features/token/token.module';
@@ -26,7 +27,8 @@ import { RefreshTokenHasher } from './infrastructure/providers/refresh-token-has
     SessionsModule,
     TokenModule,
     DeviceDetectionModule,
-    CsrfModule
+    CsrfModule,
+    RateLimitModule
   ],
   controllers: [AuthController],
   providers: [
