@@ -1,3 +1,4 @@
+import { RateLimitModule } from '@features/security/rate-limit/rate-limit.module';
 import { SessionsModule } from '@features/sessions/sessions.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -13,7 +14,6 @@ import { UnsuspendUserUseCase } from './application/use-cases/unsuspend-user.use
 import { UpdateProfileUseCase } from './application/use-cases/update-profile.use-case';
 import { VerifyEmailUseCase } from './application/use-cases/verify-email.use-case';
 import { UserQueryService } from './application/services/user-query.service';
-import { VerificationAttemptService } from './application/services/verification-attempt.service';
 import { VerificationCodeService } from './application/services/verification-code.service';
 import { UserMapper } from './application/mappers/user.mapper';
 import { User } from './domain/entities/user.entity';
@@ -41,7 +41,10 @@ import { UsersController } from './presentation/controllers/users.controller';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, UserVerificationCode]),
-    SessionsModule
+    SessionsModule,
+    // Verification attempts and resend allowances are counted through the rate
+    // limit framework rather than a second, parallel implementation.
+    RateLimitModule
   ],
   controllers: [UsersController, AdminUsersController],
   providers: [
@@ -94,7 +97,6 @@ import { UsersController } from './presentation/controllers/users.controller';
     },
     PendingUserCleanupScheduler,
     VerificationCodeService,
-    VerificationAttemptService,
     UserMapper
   ],
   exports: [
