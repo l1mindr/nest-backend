@@ -19,6 +19,7 @@ describe('GlobalExceptionFilter', () => {
   };
 
   const json = jest.fn();
+  const setHeader = jest.fn();
   const status = jest.fn(() => ({ json }));
 
   const req = {
@@ -30,7 +31,7 @@ describe('GlobalExceptionFilter', () => {
 
   const host = {
     switchToHttp: () => ({
-      getResponse: () => ({ status }),
+      getResponse: () => ({ status, setHeader }),
       getRequest: () => req
     })
   } as unknown as ArgumentsHost;
@@ -126,5 +127,25 @@ describe('GlobalExceptionFilter', () => {
 
     expect(mockLogger.warn).not.toHaveBeenCalled();
     expect(mockLogger.error).not.toHaveBeenCalled();
+  });
+
+  it('advertises retry-after on 429 responses that carry a hint', () => {
+    filter.catch(SecurityErrors.rateLimitExceeded(42), host);
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.TOO_MANY_REQUESTS);
+    expect(setHeader).toHaveBeenCalledWith('Retry-After', '42');
+  });
+
+  it('omits retry-after when the 429 carries no hint', () => {
+    filter.catch(SecurityErrors.rateLimitExceeded(), host);
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.TOO_MANY_REQUESTS);
+    expect(setHeader).not.toHaveBeenCalled();
+  });
+
+  it('never sets retry-after outside of 429 responses', () => {
+    filter.catch(AuthErrors.invalidCredentials(), host);
+
+    expect(setHeader).not.toHaveBeenCalled();
   });
 });
