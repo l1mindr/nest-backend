@@ -11,12 +11,25 @@ describe('DeviceDetectorService', () => {
     analyze: jest.fn()
   };
 
+  const DEVICE_IDENTITY = {
+    deviceId: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+    derivedDeviceId: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+    deviceIdSource: 'derived' as const
+  };
+
+  const mockDeviceIdService = {
+    resolve: jest.fn()
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
+    mockDeviceIdService.resolve.mockReturnValue(DEVICE_IDENTITY);
+
     service = new DeviceDetectorService(
       mockUaParser as any,
-      mockFingerprintService as any
+      mockFingerprintService as any,
+      mockDeviceIdService as any
     );
   });
 
@@ -48,7 +61,8 @@ describe('DeviceDetectorService', () => {
       browserVersion: '120.0.0.0',
       osName: 'Windows',
       deviceType: 'desktop',
-      fingerprintRisk: 'low'
+      fingerprintRisk: 'low',
+      ...DEVICE_IDENTITY
     });
   });
 
@@ -88,6 +102,31 @@ describe('DeviceDetectorService', () => {
     expect(result).toHaveProperty('osName');
     expect(result).toHaveProperty('deviceType');
     expect(result).toHaveProperty('fingerprintRisk');
+    expect(result).toHaveProperty('deviceId');
+    expect(result).toHaveProperty('derivedDeviceId');
+    expect(result).toHaveProperty('deviceIdSource');
+  });
+
+  it('should resolve the device identity from the normalized user agent', () => {
+    mockUaParser.parse.mockReturnValue({
+      browserName: 'Chrome',
+      browserVersion: '120.0.0.0',
+      osName: 'Windows',
+      deviceType: 'desktop'
+    });
+
+    mockFingerprintService.analyze.mockReturnValue({
+      fingerprintRisk: 'low'
+    });
+
+    const request = mockRequest('Chrome  Windows');
+
+    service.detect(request);
+
+    expect(mockDeviceIdService.resolve).toHaveBeenCalledWith(
+      request,
+      'Chrome Windows'
+    );
   });
 
   it('should pass parsed result to fingerprint service', () => {
