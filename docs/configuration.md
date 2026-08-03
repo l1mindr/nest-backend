@@ -23,6 +23,7 @@ Reads `.env.${NODE_ENV}`, then `.env` (`.env` overrides).
 | `ACCESS_TOKEN_SECRET` | JWT access token signing secret (entropy-validated) |
 | `REFRESH_TOKEN_SECRET` | JWT refresh token signing secret (must differ from access) |
 | `CSRF_TOKEN_SECRET` | CSRF token secret (must differ from both JWT secrets) |
+| `SECURITY_HASH_SECRET` | Keys the HMAC behind device identifiers and rate-limit Redis keys. **Required in production only**; defaulted elsewhere. Must differ from the three secrets above |
 | `EMAIL_HOST` | SMTP hostname or IP (e.g. `smtp.gmail.com`) |
 | `EMAIL_USER` | SMTP account username |
 | `EMAIL_APP_PASSWORD` | SMTP app password (min 16 chars in production) |
@@ -46,13 +47,14 @@ Reads `.env.${NODE_ENV}`, then `.env` (`.env` overrides).
 
 ## Secrets Validation
 
-Secrets (`ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `CSRF_TOKEN_SECRET`, and production `REDIS_PASSWORD`) undergo **Shannon entropy validation** to prevent weak keys:
+Secrets (`ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `CSRF_TOKEN_SECRET`, `SECURITY_HASH_SECRET`, and production `REDIS_PASSWORD`) undergo **Shannon entropy validation** to prevent weak keys:
 
 | Secret | Dev min length | Dev min entropy | Prod min length | Prod min entropy |
 |--------|---------------|----------------|---------------|-----------------|
 | `ACCESS_TOKEN_SECRET` | 32 | 3.0 bits/char | 64 | 3.5 bits/char |
 | `REFRESH_TOKEN_SECRET` | 32 | 3.0 bits/char | 64 | 3.5 bits/char |
 | `CSRF_TOKEN_SECRET` | 16 | 2.5 bits/char | 32 | 3.0 bits/char |
+| `SECURITY_HASH_SECRET` | defaulted | — | 32 | 3.0 bits/char |
 | `REDIS_PASSWORD` | optional | — | 16 | 3.0 bits/char |
 | `EMAIL_APP_PASSWORD` | 8 | — | 16 | — |
 

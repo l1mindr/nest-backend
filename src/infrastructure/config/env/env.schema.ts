@@ -176,6 +176,21 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
     otherwise: secretValidator(16, 2.5).required()
   }).invalid(Joi.ref('ACCESS_TOKEN_SECRET'), Joi.ref('REFRESH_TOKEN_SECRET')),
 
+  // Keys the HMAC behind device identifiers and rate-limit Redis keys. Defaulted
+  // outside production so existing dev machines and CI jobs need no new value;
+  // rotating it resets every derived device id and rate-limit counter at once.
+  SECURITY_HASH_SECRET: Joi.when('NODE_ENV', {
+    is: 'production',
+    then: secretValidator(32, 3.0).required(),
+    otherwise: Joi.string()
+      .min(16)
+      .default('local-development-security-hash-secret')
+  }).invalid(
+    Joi.ref('ACCESS_TOKEN_SECRET'),
+    Joi.ref('REFRESH_TOKEN_SECRET'),
+    Joi.ref('CSRF_TOKEN_SECRET')
+  ),
+
   NODE_ENV: Joi.string()
     .valid(...NODE_ENVS)
     .required()
