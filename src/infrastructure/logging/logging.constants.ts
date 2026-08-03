@@ -34,6 +34,11 @@ export enum LogEvent {
   NOTIFICATION_SENT = 'coin_tracker.notification.sent',
 
   RATE_LIMIT_EXCEEDED = 'security.rate_limit.exceeded',
+  RATE_LIMIT_ALLOWED = 'security.rate_limit.allowed',
+  RATE_LIMIT_HIT = 'security.rate_limit.hit',
+  RATE_LIMIT_BLOCKED = 'security.rate_limit.blocked',
+  RATE_LIMIT_SKIPPED = 'security.rate_limit.skipped',
+  RATE_LIMIT_DEGRADED = 'security.rate_limit.degraded',
   AUTHENTICATION_FAILED = 'security.authentication.failed',
   AUTHORIZATION_FAILED = 'security.authorization.failed',
 
@@ -54,5 +59,6 @@ export const REDACT_PATHS = [
   'req.headers.cookie',
   'req.headers["x-csrf-token"]',
   'req.headers["x-xsrf-token"]',
+  'req.headers["x-device-id"]',
   'res.headers["set-cookie"]'
 ];
