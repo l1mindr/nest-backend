@@ -1,4 +1,6 @@
 import { User } from '@features/security/decorators/user.decorator';
+import { RateLimitPolicies } from '@features/security/rate-limit/config/rate-limit.config';
+import { RateLimit } from '@features/security/rate-limit/decorators/rate-limit.decorator';
 import { User as UserEntity } from '@features/users/domain/entities/user.entity';
 import {
   Body,
@@ -42,6 +44,10 @@ import {
   version: '1'
 })
 @ApiTags(ApiTagName.PRICE_ALERTS)
+// Applied at class level so every alert route shares one budget. The user
+// dimension is the meaningful one here (these routes are authenticated); the
+// address dimension still covers the case where the identity rules are skipped.
+@RateLimit(RateLimitPolicies.CoinTracker.Alert)
 export class PriceAlertsController {
   constructor(
     @Inject(CREATE_PRICE_ALERT_USE_CASE)

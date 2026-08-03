@@ -24,12 +24,22 @@ export class SecurityErrors {
     );
   }
 
-  static rateLimitExceeded() {
+  /**
+   * The retry hint is optional so existing zero-argument call sites keep
+   * working. When supplied it surfaces as `meta.retryAfter` in the body and as
+   * the `Retry-After` header, set by the global exception filter.
+   *
+   * Deliberately carries nothing about which policy or identifier tripped: that
+   * detail belongs in the logs, not in a response an attacker can read.
+   */
+  static rateLimitExceeded(retryAfterSeconds?: number) {
     return new AppError(
       SecurityErrorCode.RATE_LIMIT_EXCEEDED,
       ErrorDomain.SECURITY,
       HttpStatus.TOO_MANY_REQUESTS,
-      undefined,
+      retryAfterSeconds && retryAfterSeconds > 0
+        ? { retryAfter: retryAfterSeconds }
+        : undefined,
       'Too many requests. Please try again later.'
     );
   }

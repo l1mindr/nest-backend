@@ -4,6 +4,7 @@ import { Session } from '@features/security/decorators/session.decorator';
 import { User } from '@features/security/decorators/user.decorator';
 import { DeviceContext } from '@presentation/interfaces/context/device-context.interface';
 import { Device } from '@features/security/device-detection/decorators/device.decorator';
+import { RateLimitPolicies } from '@features/security/rate-limit/config/rate-limit.config';
 import { RateLimit } from '@features/security/rate-limit/decorators/rate-limit.decorator';
 import {
   IResendVerificationUseCase,
@@ -73,7 +74,7 @@ export class AuthController {
   @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  @RateLimit({ limit: 5, ttl: 60 })
+  @RateLimit(RateLimitPolicies.Auth.Register)
   @SkipCsrf()
   @ApiRegisterUser()
   registerUser(@Body() dto: RegisterUserRequestDto) {
@@ -84,7 +85,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(AuthCookieInterceptor)
-  @RateLimit({ limit: 5, ttl: 60 })
+  @RateLimit(RateLimitPolicies.Auth.Login)
   @SkipCsrf()
   @ApiLoginUser()
   async loginUser(
@@ -98,7 +99,7 @@ export class AuthController {
   @Public()
   @Post('verify-email')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @RateLimit({ limit: 10, ttl: 60 })
+  @RateLimit(RateLimitPolicies.Auth.Verify)
   @SkipCsrf()
   @ApiVerifyEmail()
   async verifyEmail(@Body() dto: VerifyEmailRequestDto): Promise<void> {
@@ -108,7 +109,7 @@ export class AuthController {
   @Public()
   @Post('resend-verification')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @RateLimit({ limit: 5, ttl: 60 })
+  @RateLimit(RateLimitPolicies.Auth.Resend)
   @SkipCsrf()
   @ApiResendVerification()
   async resendVerification(
@@ -121,7 +122,7 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(AuthCookieInterceptor)
-  @RateLimit({ limit: 20, ttl: 60 })
+  @RateLimit(RateLimitPolicies.Auth.Refresh)
   @SkipCsrf()
   @ApiRefreshToken()
   async refreshTokens(@Req() req: Request) {
@@ -130,10 +131,7 @@ export class AuthController {
 
   @Post('change-password')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @RateLimit({
-    limit: 3,
-    ttl: 300
-  })
+  @RateLimit(RateLimitPolicies.Auth.ChangePassword)
   @ApiChangePassword()
   changeUserPassword(
     @User() user: UserEntity,
