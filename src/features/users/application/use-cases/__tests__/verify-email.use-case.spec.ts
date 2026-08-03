@@ -1,9 +1,22 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
-import { SecurityErrors } from '@features/security/errors/security-errors';
+import { ImperativeRateLimitPolicies } from '@features/security/rate-limit/config/rate-limit.config';
 import { UserStatus } from '../../../domain/enums/user-status.enum';
 import { UserErrors } from '../../../domain/errors/user-errors';
-import { MAX_VERIFICATION_ATTEMPTS } from '../../verification.constants';
 import { VerifyEmailUseCase } from '../verify-email.use-case';
+
+const ATTEMPT_LIMIT = ImperativeRateLimitPolicies.VerificationAttempts.limit;
+
+/** Shapes a consume() result with the headroom a test wants to simulate. */
+const attemptResult = (remaining: number) => ({
+  policy: ImperativeRateLimitPolicies.VerificationAttempts.name,
+  allowed: remaining > 0,
+  limit: ATTEMPT_LIMIT,
+  remaining,
+  resetAt: 0,
+  retryAfterSeconds: 0,
+  blocked: false,
+  degraded: false
+});
 
 describe('VerifyEmailUseCase', () => {
   let useCase: VerifyEmailUseCase;
@@ -24,10 +37,10 @@ describe('VerifyEmailUseCase', () => {
     validate: jest.fn()
   };
 
-  const mockVerificationAttemptService = {
-    isEmailRateLimitExceeded: jest.fn(),
-    incrementFailedAttempt: jest.fn(),
-    resetFailedAttempts: jest.fn()
+  const mockRateLimitService = {
+    consume: jest.fn(),
+    peek: jest.fn(),
+    reset: jest.fn()
   };
 
   const mockClockService = {
@@ -55,15 +68,15 @@ describe('VerifyEmailUseCase', () => {
       async (callback: (manager: unknown) => Promise<unknown>) =>
         callback(mockManager)
     );
-    mockVerificationAttemptService.isEmailRateLimitExceeded.mockResolvedValue(
-      false
+    mockRateLimitService.consume.mockResolvedValue(
+      attemptResult(ATTEMPT_LIMIT - 1)
     );
 
     useCase = new VerifyEmailUseCase(
       mockUserRepository as any,
       mockVerificationCodeRepository as any,
       mockVerificationCodeService as any,
-      mockVerificationAttemptService as any,
+      mockRateLimitService as any,
       mockClockService as unknown as ClockService,
       mockDataSource as any,
       mockLogger as any
@@ -103,23 +116,10 @@ describe('VerifyEmailUseCase', () => {
         UserStatus.ACTIVATE,
         mockManager
       );
-      expect(
-        mockVerificationAttemptService.resetFailedAttempts
-      ).toHaveBeenCalledWith('user-id');
-    });
-
-    it('should throw a rate limit error once the email attempt window is exhausted', async () => {
-      mockVerificationAttemptService.isEmailRateLimitExceeded.mockResolvedValue(
-        true
+      expect(mockRateLimitService.reset).toHaveBeenCalledWith(
+        ImperativeRateLimitPolicies.VerificationAttempts,
+        'user-id'
       );
-
-      await expect(useCase.execute('test@test.com', '123456')).rejects.toEqual(
-        SecurityErrors.rateLimitExceeded()
-      );
-
-      expect(
-        mockUserRepository.findByEmailOrUsernameForAuth
-      ).not.toHaveBeenCalled();
     });
 
     it('should throw invalid verification code when user not found', async () => {
@@ -209,17 +209,18 @@ describe('VerifyEmailUseCase', () => {
       });
       mockVerificationCodeService.isExpired.mockReturnValue(false);
       mockVerificationCodeService.validate.mockResolvedValue(false);
-      mockVerificationAttemptService.incrementFailedAttempt.mockResolvedValue(
-        1
+      mockRateLimitService.consume.mockResolvedValue(
+        attemptResult(ATTEMPT_LIMIT - 1)
       );
 
       await expect(
         useCase.execute('test@test.com', 'wrong-code')
       ).rejects.toEqual(UserErrors.invalidVerificationCode());
 
-      expect(
-        mockVerificationAttemptService.incrementFailedAttempt
-      ).toHaveBeenCalledWith('user-id');
+      expect(mockRateLimitService.consume).toHaveBeenCalledWith(
+        ImperativeRateLimitPolicies.VerificationAttempts,
+        'user-id'
+      );
       expect(
         mockVerificationCodeRepository.invalidatePreviousCodes
       ).not.toHaveBeenCalled();
@@ -229,7 +230,7 @@ describe('VerifyEmailUseCase', () => {
       expect(mockUserRepository.updateStatus).not.toHaveBeenCalled();
     });
 
-    it(`should invalidate the code after ${MAX_VERIFICATION_ATTEMPTS} failed attempts`, async () => {
+    it(`should invalidate the code after ${ATTEMPT_LIMIT} failed attempts`, async () => {
       const now = new Date('2024-01-01T00:00:00Z');
       mockClockService.nowDate.mockReturnValue(now);
       mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
@@ -243,9 +244,8 @@ describe('VerifyEmailUseCase', () => {
       });
       mockVerificationCodeService.isExpired.mockReturnValue(false);
       mockVerificationCodeService.validate.mockResolvedValue(false);
-      mockVerificationAttemptService.incrementFailedAttempt.mockResolvedValue(
-        MAX_VERIFICATION_ATTEMPTS
-      );
+      // No headroom left is what the final permitted attempt looks like.
+      mockRateLimitService.consume.mockResolvedValue(attemptResult(0));
 
       await expect(
         useCase.execute('test@test.com', 'wrong-code')
@@ -254,9 +254,38 @@ describe('VerifyEmailUseCase', () => {
       expect(
         mockVerificationCodeRepository.invalidatePreviousCodes
       ).toHaveBeenCalledWith('user-id', now);
+      expect(mockRateLimitService.reset).toHaveBeenCalledWith(
+        ImperativeRateLimitPolicies.VerificationAttempts,
+        'user-id'
+      );
+    });
+
+    it('should invalidate the code when the count overshoots under concurrency', async () => {
+      const now = new Date('2024-01-01T00:00:00Z');
+      mockClockService.nowDate.mockReturnValue(now);
+      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
+        id: 'user-id',
+        status: UserStatus.PENDING_VERIFICATION
+      });
+      mockVerificationCodeRepository.findLatestByUserId.mockResolvedValue({
+        id: 'code-id',
+        codeHash: 'stored-hash',
+        expiresAt: new Date('2024-01-01T00:03:00Z')
+      });
+      mockVerificationCodeService.isExpired.mockReturnValue(false);
+      mockVerificationCodeService.validate.mockResolvedValue(false);
+      mockRateLimitService.consume.mockResolvedValue({
+        ...attemptResult(0),
+        allowed: false
+      });
+
+      await expect(
+        useCase.execute('test@test.com', 'wrong-code')
+      ).rejects.toEqual(UserErrors.invalidVerificationCode());
+
       expect(
-        mockVerificationAttemptService.resetFailedAttempts
-      ).toHaveBeenCalledWith('user-id');
+        mockVerificationCodeRepository.invalidatePreviousCodes
+      ).toHaveBeenCalledWith('user-id', now);
     });
   });
 });

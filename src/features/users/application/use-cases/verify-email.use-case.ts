@@ -1,6 +1,10 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
-import { SecurityErrors } from '@features/security/errors/security-errors';
+import { ImperativeRateLimitPolicies } from '@features/security/rate-limit/config/rate-limit.config';
+import {
+  IRateLimitService,
+  RATE_LIMIT_SERVICE
+} from '@features/security/rate-limit/services/rate-limit.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { DataSource } from 'typeorm';
@@ -14,8 +18,6 @@ import {
   VERIFICATION_CODE_REPOSITORY
 } from '../interfaces/users.interface';
 import { VerificationCodeService } from '../services/verification-code.service';
-import { VerificationAttemptService } from '../services/verification-attempt.service';
-import { MAX_VERIFICATION_ATTEMPTS } from '../verification.constants';
 
 @Injectable()
 export class VerifyEmailUseCase implements IVerifyEmailUseCase {
@@ -25,7 +27,8 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
     @Inject(VERIFICATION_CODE_REPOSITORY)
     private readonly verificationCodeRepository: IVerificationCodeRepository,
     private readonly verificationCodeService: VerificationCodeService,
-    private readonly verificationAttemptService: VerificationAttemptService,
+    @Inject(RATE_LIMIT_SERVICE)
+    private readonly rateLimitService: IRateLimitService,
     private readonly clockService: ClockService,
     private readonly dataSource: DataSource,
     private readonly logger: PinoLogger
@@ -34,10 +37,6 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
   }
 
   async execute(email: string, code: string): Promise<void> {
-    if (await this.verificationAttemptService.isEmailRateLimitExceeded(email)) {
-      throw SecurityErrors.rateLimitExceeded();
-    }
-
     const user = await this.userRepository.findByEmailOrUsernameForAuth(email);
 
     if (!user) {
@@ -84,7 +83,10 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
       );
     });
 
-    await this.verificationAttemptService.resetFailedAttempts(user.id);
+    await this.rateLimitService.reset(
+      ImperativeRateLimitPolicies.VerificationAttempts,
+      user.id
+    );
 
     this.logger.info(
       { event: LogEvent.EMAIL_VERIFIED, userId: user.id },
@@ -93,17 +95,26 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
   }
 
   private async handleFailedAttempt(userId: string): Promise<void> {
-    const attempts =
-      await this.verificationAttemptService.incrementFailedAttempt(userId);
+    const attempt = await this.rateLimitService.consume(
+      ImperativeRateLimitPolicies.VerificationAttempts,
+      userId
+    );
 
-    if (attempts >= MAX_VERIFICATION_ATTEMPTS) {
+    // Exhausted headroom is reached on the fifth failure, exactly where the
+    // previous `attempts >= MAX_VERIFICATION_ATTEMPTS` check fired. Testing for
+    // zero rather than equality also covers a count that overshot the limit
+    // under concurrency, so invalidate-and-reset stays idempotent.
+    if (attempt.remaining === 0) {
       const now = this.clockService.nowDate();
 
       await this.verificationCodeRepository.invalidatePreviousCodes(
         userId,
         now
       );
-      await this.verificationAttemptService.resetFailedAttempts(userId);
+      await this.rateLimitService.reset(
+        ImperativeRateLimitPolicies.VerificationAttempts,
+        userId
+      );
 
       this.logger.warn(
         {
