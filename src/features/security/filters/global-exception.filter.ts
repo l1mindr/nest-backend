@@ -3,9 +3,16 @@ import { ErrorMapper } from '@infrastructure/errors/error-mapper';
 import { AuthErrorCode } from '@features/auth/domain/errors/auth-error-code.enum';
 import { SessionErrorCode } from '@features/sessions/domain/errors/session-error-code.enum';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
-import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpStatus
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { PinoLogger } from 'nestjs-pino';
+
+const RETRY_AFTER_HEADER = 'Retry-After';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -21,6 +28,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const error: AppError = ErrorMapper.from(exception);
 
     this.logError(exception, error, req);
+    this.applyRetryAfter(res, error);
 
     return res.status(error.statusCode).json({
       error: {
@@ -32,6 +40,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         timestamp: new Date().toISOString()
       }
     });
+  }
+
+  /**
+   * Advertises how long the caller should wait before retrying.
+   *
+   * Applied here rather than in the rate-limit guard so it also covers the
+   * other source of 429 in the application, the refresh-token lock.
+   */
+  private applyRetryAfter(res: Response, error: AppError) {
+    if (error.statusCode !== HttpStatus.TOO_MANY_REQUESTS) return;
+
+    const retryAfter = error.metadata?.retryAfter;
+
+    if (typeof retryAfter === 'number' && retryAfter > 0) {
+      res.setHeader(RETRY_AFTER_HEADER, String(retryAfter));
+    }
   }
 
   private logError(exception: unknown, error: AppError, req: Request) {
