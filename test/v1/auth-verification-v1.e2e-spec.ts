@@ -1,8 +1,10 @@
 import { User } from '@features/users/domain/entities/user.entity';
 import { UserVerificationCode } from '@features/users/domain/entities/user-verification-code.entity';
 import { UserStatus } from '@features/users/domain/enums/user-status.enum';
-import { RedisKey } from '@infrastructure/databases/redis/keys/redis-key.enum';
-import { RedisService } from '@infrastructure/databases/redis/redis.service';
+import {
+  ImperativeRateLimitPolicies,
+  RateLimitPolicies
+} from '@features/security/rate-limit/config/rate-limit.config';
 import { INestApplication } from '@nestjs/common';
 import { DataSource, IsNull } from 'typeorm';
 import { createMigratedTestApp } from '../bootstrap/test-app';
@@ -15,12 +17,12 @@ import {
   resetEmailStore
 } from '../helpers/email.helper';
 import { truncateDatabase } from '../helpers/postgresql.helper';
+import { resetPolicy } from '../helpers/rate-limit.helper';
 import { clearRedis } from '../helpers/redis.helper';
 
 describe('Auth Verification (e2e) version: 1', () => {
   let app: INestApplication;
   let dataSource: DataSource;
-  let redis: RedisService;
 
   beforeAll(async () => {
     const { app: testApp, dataSource: testDataSource } =
@@ -28,7 +30,6 @@ describe('Auth Verification (e2e) version: 1', () => {
 
     app = testApp;
     dataSource = testDataSource;
-    redis = app.get(RedisService);
   });
 
   beforeEach(async () => {
@@ -62,9 +63,13 @@ describe('Auth Verification (e2e) version: 1', () => {
       );
   };
 
+  // Rate-limit keys are HMAC'd, so these go through the framework rather than
+  // building a Redis key by hand.
   const clearEmailRateLimit = async (email: string) => {
-    await redis.del(
-      `${RedisKey.VERIFY_EMAIL_RATE_LIMIT}:${email.toLowerCase()}`
+    await resetPolicy(
+      app,
+      RateLimitPolicies.Auth.Verify.Email,
+      email.toLowerCase()
     );
   };
 
@@ -73,7 +78,7 @@ describe('Auth Verification (e2e) version: 1', () => {
       .getRepository(User)
       .findOneOrFail({ where: { email } });
 
-    await redis.del(`${RedisKey.VERIFY_RESEND_COOLDOWN}:${user.id}`);
+    await resetPolicy(app, ImperativeRateLimitPolicies.ResendCooldown, user.id);
   };
 
   it('sends a verification email with a 6-digit code that expires in 3 minutes', async () => {
