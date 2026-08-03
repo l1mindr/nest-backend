@@ -22,6 +22,11 @@ import {
   USER_REPOSITORY
 } from '@features/users/application/interfaces/users.interface';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import { RateLimitPolicies } from '@features/security/rate-limit/config/rate-limit.config';
+import {
+  IRateLimitService,
+  RATE_LIMIT_SERVICE
+} from '@features/security/rate-limit/services/rate-limit.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { LoginUserRequestDto } from '../../presentation/dto/request/login-user.request.dto';
@@ -49,6 +54,8 @@ export class Login implements ILogin {
     private readonly resendVerificationUseCase: IResendVerificationUseCase,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
+    @Inject(RATE_LIMIT_SERVICE)
+    private readonly rateLimitService: IRateLimitService,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(Login.name);
@@ -108,6 +115,15 @@ export class Login implements ILogin {
 
     session.refreshTokenHash = refreshTokenHash;
     await this.sessionRotationUseCase.saveHash(session);
+
+    // Only failures should count toward the per-address lockout, otherwise a
+    // user who signs in regularly from one address would eventually lock
+    // themselves out. The identifier must match what the guard's email resolver
+    // produced for this request.
+    await this.rateLimitService.reset(
+      RateLimitPolicies.Auth.Login.Email,
+      email.trim().toLowerCase()
+    );
 
     this.logger.info(
       {
