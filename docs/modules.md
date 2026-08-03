@@ -147,11 +147,17 @@ Decorators: `@SkipCsrf()` — marks routes as CSRF-exempt
 ### RateLimitModule
 
 Provides:
-- `RateLimitCheckService` — Evaluates rate limit rules
-- `RateLimitCounterService` — Redis atomic counter with TTL
+- `RateLimitService` — Counting entry point: `consume` / `peek` / `reset`
+- `RateLimitEvaluatorService` — Applies a route's policy group, fail-fast
+- `RateLimitStoreService` — Fixed window plus temporary block, atomic in Lua
+- `RateLimitKeyBuilder` — HMAC'd Redis keys and log-safe fingerprints
+- `RateLimitLogService` — The only emitter of rate limit events
+- `RateLimitResolverRegistry` — Indexes one resolver per identifier type
 - `RateLimitGuard` — Applies rate limiting to decorated routes
 
-Decorators: `@RateLimit({ limit, ttl })`
+Decorators: `@RateLimit(RateLimitPolicies.Auth.Login)` or `@RateLimit({ policies: [...] })`
+
+Configuration: `rate-limit/config/rate-limit.config.ts` — the single source of every limit
 
 ### DeviceDetectionModule
 

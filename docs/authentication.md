@@ -72,23 +72,23 @@ New accounts are registered with status `PENDING_VERIFICATION` and can only log 
 
 ### Attempt Limiting
 
-Failed attempts are tracked in Redis (`verify:attempts:{userId}`) with a TTL matching the code lifetime:
+Failed attempts are counted through the rate limit framework (`auth.verify.attempts`, keyed per user, window matching the code lifetime):
 
 - Each wrong code increments the counter and returns `400 INVALID_VERIFICATION_CODE`
 - After 5 failed attempts the current code is invalidated and the counter resets; a new code must be requested
 - All failures return the generic `400 INVALID_VERIFICATION_CODE` (wrong, consumed, or expired) to avoid leaking account state
-- Verification attempts are rate-limited per normalized email (`verify:email:{email}`, 5 per 10 minutes, `429 RATE_LIMIT_EXCEEDED`)
+- Verification is rate-limited on address, device, normalized email (5 per 10 minutes), and the submitted code itself, applied by the guard before the request reaches the use case (`429 RATE_LIMIT_EXCEEDED`). See [security.md](security.md#rate-limiting)
 
 ### Resend
 
 `POST /v1/auth/resend-verification` with `{ email }` → `ResendVerificationUseCase.execute()`:
 
 - Applies to `PENDING_VERIFICATION` accounts only
-- Enforces a **60-second cooldown** per user (Redis `verify:resend:cooldown:{userId}`, NX + expiry)
-- Enforces an **hourly limit** of 5 resends per user (Redis `verify:resend:hourly:{userId}`)
+- Enforces a **60-second cooldown** per user (`auth.resend.cooldown`, a one-per-window policy)
+- Enforces an **hourly limit** of 5 resends per user (`auth.resend.hourly`)
 - Invalidates previous codes and resets the failed-attempt counter
 - Generates new code and sends via email
-- The response is **generic** (`200 { data: { message } }`) and never reveals whether an account exists
+- The response is **generic** (`204 No Content`) and never reveals whether an account exists
 
 Resend is also triggered internally when a `PENDING_VERIFICATION` user attempts to log in; login is then rejected with `403 ACCOUNT_NOT_VERIFIED` (the message notes a new code was sent).
 

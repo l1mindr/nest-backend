@@ -64,6 +64,7 @@ test/
 │   ├── api-client.helper.ts       # ApiClient (get/post/patch/put/delete)
 │   ├── create-user.helper.ts      # createUserDto()
 │   ├── postgresql.helper.ts       # truncateDatabase
+│   ├── rate-limit.helper.ts       # counterKeyFor, blockKeyFor, resetPolicy, forceExpiry
 │   └── redis.helper.ts            # clearRedis
 ├── setup/
 │   ├── global-setup.ts            # per-worker database migration
@@ -82,6 +83,7 @@ test/
 │   ├── auth-status-v1.e2e-spec.ts
 │   ├── coin-tracker-v1.e2e-spec.ts
 │   ├── csrf-v1.e2e-spec.ts
+│   ├── rate-limit-v1.e2e-spec.ts
 │   ├── sessions-v1.e2e-spec.ts
 │   ├── users-delete-account-v1.e2e-spec.ts
 │   ├── users-v1.e2e-spec.ts

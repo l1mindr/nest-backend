@@ -153,7 +153,15 @@ security/
 ├── errors/               # Security domain errors
 ├── filters/              # Global exception filter
 ├── guards/               # JwtGuard, RolesGuard
-├── rate-limit/           # Rate limiting guard and services
+├── hashing/              # SecurityHasher (keyed digests)
+├── rate-limit/           # Multi-dimensional rate limiting framework
+│   ├── config/           # rate-limit.config.ts — every limit in the app
+│   ├── decorators/       # @RateLimit
+│   ├── guards/           # RateLimitGuard
+│   ├── resolvers/        # One per identifier type, plus the registry
+│   ├── services/         # Store (Lua), key builder, evaluator, logging
+│   ├── types/            # Rule, result, identifier enum
+│   └── utils/            # Safe raw-body field extraction
 ├── strategies/           # JwtStrategy
 ├── decorators/           # @Public, @Roles, @User, @Session
 └── security.module.ts

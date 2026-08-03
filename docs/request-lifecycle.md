@@ -6,17 +6,16 @@
 1. Bootstrap Middleware (Helmet, compression, cookie parser, URI versioning, Swagger)
 2. DeviceMiddleware (parse User-Agent → attach req.device)
 3. JwtGuard (global) — extract & validate access_token, attach req.user + req.session
-4. RolesGuard (global) — check @Roles() metadata against user role
-5. CsrfGuard (global) — validate X-CSRF-Token header for unsafe methods
-6. RateLimitGuard (per-route) — check rate limit via Redis counter
-7. DataResponseInterceptor (global) — wrap response in { data: ... }
-8. ValidationPipe (global) — whitelist, forbidNonWhitelisted, transform, 422 on error
-9. Controller — validate params, call use case
-10. Use Case — orchestrate business logic
-11. Service/Repository — data access, external calls
-12. SerializeInterceptor (per-route) — strip non-@Expose fields
-13. AuthCookieInterceptor (login/refresh) — set httpOnly cookies
-14. Response sent to client
+4. RateLimitGuard (global) — apply every declared @RateLimit policy; 429 on the first denial
+5. RolesGuard (global) — check @Roles() metadata against user role
+6. CsrfGuard (global) — validate X-CSRF-Token header for unsafe methods
+7. ValidationPipe (global) — whitelist, forbidNonWhitelisted, transform, 422 on error
+8. Controller — validate params, call use case
+9. Use Case — orchestrate business logic
+10. Service/Repository — data access, external calls
+11. SerializeInterceptor (per-route) — strip non-@Expose fields
+12. AuthCookieInterceptor (login/refresh) — set httpOnly cookies
+13. Response sent to client
 ```
 
 ## Error Flow
@@ -88,7 +87,7 @@ flowchart LR
 
 | Component | Registration |
 |-----------|-------------|
-| `RateLimitGuard` | `@RateLimit({ limit, ttl })` on route handler |
+| `RateLimitGuard` | `@RateLimit(RateLimitPolicies.…)` on route handler or controller |
 | `SerializeInterceptor` | `@Serialize(Dto)` on controller method |
 | `AuthCookieInterceptor` | `@UseInterceptors(AuthCookieInterceptor)` on login/refresh |
 

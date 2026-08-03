@@ -123,7 +123,7 @@ Indexes: `userId`, `status`, `coinId`, `(userId, status)`, `(status, coinId)`, `
 
 | Concern | Service | Keys |
 |---------|---------|------|
-| Rate limiting | `RedisCounterService` | `rate:limit:{route}:{ip}` |
+| Rate limiting | `RateLimitStoreService` | `rl:{prefix}:{identifier}:{hash}` |
 | Refresh lock | `RedisLockService` | `refresh:lock:{sessionId}` |
 | Values | `RedisService` | General get/set/del |
 
