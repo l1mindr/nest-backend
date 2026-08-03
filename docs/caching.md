@@ -9,26 +9,38 @@ Redis is used for rate limiting, distributed locking, and atomic counters. Not u
 | Service | Purpose | Key Pattern |
 |---------|---------|-------------|
 | `RedisService` | Core Redis client wrapper. `get`, `set`, `setIfNotExists` (`NX`), `setWithExpiry` (`EX`), `setIfNotExistsWithExpiry` (`EX` + `NX`), `del`, `compareAndDelete` (Lua), `eval` | Generic |
-| `RedisCounterService` | Atomic increment with TTL via Lua script. Used for rate limiting and verification attempt counting. | `rate:limit:{route}:{ip}`, `verify:attempts:{userId}` |
+| `RateLimitStoreService` | Fixed window plus temporary block, one Lua script per decision. Backs every rate limit. | `rl:{prefix}:{identifier}:{hash}` |
+| `RedisCounterService` | Generic atomic increment with TTL via Lua script. | — |
 | `RedisLockService` | Distributed lock with acquire/release. Used for refresh flow synchronization. | `refresh:lock:{sessionId}` |
-
-## Verification Attempts, Rate Limit & Cooldown
-
-`VerificationAttemptService` uses Redis to harden the email-verification flow:
-
-- `verify:attempts:{userId}` — incremented on each wrong code via `RedisCounterService`, TTL matches the code lifetime (3 minutes); after 5 failed attempts the current code is invalidated and the counter resets
-- `verify:email:{email}` — rate limit per normalized email (5 per 10 minutes); the limit is checked before any other verification logic
-- `verify:resend:cooldown:{userId}` — set with `setIfNotExistsWithExpiry` (`NX` + `EX`, 60s) to enforce the resend cooldown
-- `verify:resend:hourly:{userId}` — resends per hour (5 per hour); checked before the cooldown
 
 ## Rate Limiting
 
-`RateLimitCounterService.increment(key)`:
-1. `INCR` the Redis key
-2. Set TTL on first increment (if previous TTL was -1)
-3. Return current count
+Every counter is written by `RateLimitStoreService` through a single Lua script
+per decision, so the block check, the increment, and the expiry cannot
+interleave with another client. See
+[security.md](security.md#rate-limiting) for the policy catalogue.
 
-Keys auto-expire after the rate limit window.
+Keys are `rl:{prefix}:{identifier}:{hash}` plus a `:blocked` companion holding
+the temporary block. The identifier is HMAC-SHA256'd with
+`SECURITY_HASH_SECRET`, so a Redis dump discloses no addresses or verification
+codes.
+
+| Key | Purpose |
+|-----|---------|
+| `rl:login:ip:{hash}` | Per-address login budget |
+| `rl:login:email:{hash}` | Per-account login budget (+ `:blocked`) |
+| `rl:login:device:{hash}` | Per-device login budget (+ `:blocked`) |
+| `rl:register:{ip,device}:{hash}` | Registration budgets |
+| `rl:verify:{ip,device,email,code}:{hash}` | Verification budgets |
+| `rl:resend:{ip,device,email}:{hash}` | Resend budgets |
+| `rl:refresh:{ip,device}:{hash}` | Token refresh budgets |
+| `rl:password:{ip,user}:{hash}` | Password change budgets |
+| `rl:alert:{ip,user}:{hash}` | Price alert budgets |
+| `rl:verify:attempts:user:{hash}` | Failed verification attempts; invalidates the code at 5 |
+| `rl:resend:cooldown:user:{hash}` | 60s resend cooldown (`limit: 1`) |
+| `rl:resend:hourly:user:{hash}` | Hourly resend allowance |
+
+All keys carry a TTL and expire on their own; nothing needs sweeping.
 
 ## Refresh Lock
 
@@ -43,15 +55,11 @@ The database conditional update on session rotation remains the authoritative me
 Keys are defined in `RedisKey` enum:
 
 ```typescript
-enum RedisKey {
+export enum RedisKey {
   COIN_SYNC_LOCK = 'coin-tracker:sync:lock',
   PRICE_CHECK_LOCK = 'coin-tracker:price-check:lock',
   REFRESH_LOCK = 'refresh:lock',
-  RATE_LIMIT = 'rate:limit',
-  VERIFY_ATTEMPTS = 'verify:attempts',
-  VERIFY_RESEND_COOLDOWN = 'verify:resend:cooldown',
-  VERIFY_EMAIL_RATE_LIMIT = 'verify:email',
-  VERIFY_RESEND_HOURLY = 'verify:resend:hourly'
+  RATE_LIMIT = 'rl'
 }
 ```
 

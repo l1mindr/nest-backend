@@ -94,27 +94,184 @@ Use `@SkipCsrf()` decorator on routes that don't need CSRF (register, login, ref
 
 ## Rate Limiting
 
-### RateLimitGuard
+Requests are limited across **several identifiers at once**. A route declares
+which dimensions gate it; every rule must pass, and the first denial answers
+`429`. Limiting on one dimension alone is bypassable — an attacker rotates
+addresses to defeat a per-address limit, or rotates accounts to defeat a
+per-account one — so the dimensions are designed to cover each other.
 
-Applied via `@RateLimit({ limit, ttl })` decorator on individual routes.
+### Declaring a policy
+
+```typescript
+@Post('login')
+@RateLimit(RateLimitPolicies.Auth.Login)          // address + email + device
+async loginUser(@Body() dto: LoginUserRequestDto) { ... }
+```
+
+Or an explicit list, to combine rules across groups:
+
+```typescript
+@RateLimit({ policies: [
+  RateLimitPolicies.Auth.Login.IP,
+  RateLimitPolicies.Auth.Login.Email
+] })
+```
+
+The decorator works at class level too, applying one budget to every route on a
+controller (`PriceAlertsController` does this).
+
+### Configuration
+
+Every limit in the application lives in
+`src/features/security/rate-limit/config/rate-limit.config.ts`. **No limit or
+window may be hardcoded anywhere else.** Changing a value there changes it
+application-wide.
+
+Each rule carries:
+
+| Field | Meaning |
+|-------|---------|
+| `limit` | Requests permitted per window |
+| `windowMs` | Length of the fixed window |
+| `blockDurationMs` | Temporary block opened when the limit is exceeded; `0` disables |
+| `keyPrefix` | Redis key segment |
+| `enabled` | Set `false` to take the policy out of service |
+| `failOpen` | Behaviour when Redis is unreachable |
+| `keyGenerator` | Required for `CUSTOM` rules only |
+
+`as const satisfies RateLimitPolicyTree` makes the tree both type-checked at its
+definition site and precisely typed at the call site, so
+`RateLimitPolicies.Auth.Login.IP` autocompletes.
 
 ### Limits
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| `POST /v1/auth/register` | 5 | 60s |
-| `POST /v1/auth/login` | 5 | 60s |
-| `POST /v1/auth/refresh` | 20 | 60s |
-| `POST /v1/auth/change-password` | 3 | 300s |
+| Endpoint | Dimensions | Limit / window |
+|----------|-----------|----------------|
+| `POST /v1/auth/register` | address | 5 / 60s |
+| | device | 10 / 60s |
+| `POST /v1/auth/login` | address | 5 / 60s |
+| | email | 10 / 15m, then blocked 15m |
+| | device | 10 / 60s, then blocked 5m |
+| `POST /v1/auth/verify-email` | address | 10 / 60s |
+| | device | 10 / 60s |
+| | email | 5 / 10m |
+| | code | 20 / 10m |
+| `POST /v1/auth/resend-verification` | address | 5 / 60s |
+| | device | 10 / 60s |
+| | email | 10 / 1h |
+| `POST /v1/auth/refresh` | address, device | 20 / 60s |
+| `POST /v1/auth/change-password` | address, user | 3 / 5m |
+| `/v1/price-alerts/*` | address, user | 30 / 60s |
+
+Counted imperatively from the use cases rather than by the guard, because the
+caller reacts to the outcome instead of returning `429`:
+
+| Policy | Limit / window | Effect |
+|--------|---------------|--------|
+| `auth.verify.attempts` | 5 / 3m | Invalidates the outstanding code |
+| `auth.resend.cooldown` | 1 / 60s | Resend skipped silently |
+| `auth.resend.hourly` | 5 / 1h | Resend skipped silently |
+
+Resend limits return `204` rather than `429`: a distinguishable response would
+tell a caller which addresses are registered.
+
+### Identifiers
+
+`IP`, `DEVICE`, `USER`, `SESSION`, `EMAIL`, `USERNAME`, `VERIFICATION_CODE`,
+`ROUTE`, and `CUSTOM`. Each is owned by one resolver under `resolvers/`, indexed
+by a registry — there is no switch. Adding a dimension means adding an enum
+member, a resolver, and one entry in the module's provider array; no existing
+code changes.
+
+Body-derived dimensions (email, username, code) read the request body **before
+the validation pipe has run**, so it is treated as hostile: only a plain object
+carrying a genuine string yields a value, and everything else — arrays, numbers,
+`{ "$ne": null }` — resolves to `null`.
+
+A `null` resolution **skips** the rule rather than denying it. Denying would
+turn every malformed request into a `429` and hand an attacker a way to reject
+traffic. The compensating invariant, enforced by a unit test, is that **every
+policy group contains at least one dimension that always resolves** (address,
+device, or route), so no request is ever unlimited.
 
 ### Implementation
 
-`RateLimitCounterService.increment(key)` uses a Lua script on Redis:
-- `INCR` the key
-- Set TTL on first increment
-- Return current count
+One Lua script per decision, so the block check, the increment, the expiry, and
+the block write cannot interleave with another client:
 
-Keys: `rate:limit:{route}:{ip}`
+```
+KEYS  counter, block
+ARGV  limit, windowMs, blockDurationMs, cost
+      -> { allowed, count, resetAfterMs, blocked }
+```
+
+- An active block returns immediately **without touching the counter**, so
+  hammering a blocked endpoint cannot extend the block.
+- The expiry is attached on the first hit only, so the window never slides.
+- Tripping the limit opens the block and drops the counter, so the window
+  restarts clean when the block lifts.
+- The script never reads a clock. It works in durations from `PTTL`; the
+  application converts to an instant via `ClockService`.
+
+Keys are `rl:{prefix}:{identifier}:{hash}` (plus `:blocked`) — for example
+`rl:login:ip:9f2c…`, `rl:verify:code:41ab…`. **The identifier is HMAC-SHA256'd
+with `SECURITY_HASH_SECRET`, never stored raw**: verification codes carry ~20
+bits of entropy and addresses are dictionary-guessable, so a plain digest in a
+Redis dump would be reversible by brute force.
+
+Evaluation is **sequential and stops at the first denial**. Consuming the whole
+group in parallel would drain the address bucket for a request already rejected
+on its email dimension, punishing every co-located user for one attacker.
+
+### Behaviour when Redis is unavailable
+
+Most policies **fail open** — the request is allowed and a
+`security.rate_limit.degraded` warning is logged. Policies guarding credentials
+and verification codes (`auth.login.*`, `auth.verify.code`) **fail closed** and
+return `429`.
+
+> **Operators:** a Redis outage therefore takes login offline. Alert on
+> `security.rate_limit.degraded`; it is the only warning before that happens.
+
+### Responses
+
+Rate-limited routes carry `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and
+`X-RateLimit-Reset`, set on rejections as well as successes. A `429` adds
+`Retry-After` and `meta.retryAfter`. **Which policy tripped, and on which
+identifier, appears only in the logs** — never in the response.
+
+### Logging
+
+`security.rate_limit.{allowed,hit,blocked,skipped,degraded,exceeded}`. Every
+event carries the route, the identifier *type*, a 12-character hash of the
+identifier, the remaining budget, and the reset time. The log context type has
+no field for a raw value, so an address or a code cannot be logged even by
+accident.
+
+### Security properties
+
+| Attack | Why it fails |
+|--------|-------------|
+| Rotate address against one account | The email dimension is address-independent |
+| Rotate account from one address | The address and device dimensions apply regardless of body |
+| Rotate address *and* account | The device dimension still binds |
+| Fix a code, sweep many accounts | The code dimension is keyed on the code alone and counted separately from the email dimension |
+| Brute-force one account's code | The per-user attempt counter invalidates the code after 5 failures |
+| Use a Redis outage as a bypass | Credential policies fail closed |
+| Reverse identifiers from a Redis dump | Keys are keyed HMACs, not plain digests |
+| Extend your own block by hammering | The script returns before touching the counter |
+
+**Known trade-off.** `X-Device-Id` is honoured when it matches
+`^[A-Za-z0-9_-]{8,128}$`, so a client that rotates the header lands in a fresh
+bucket. The server-derived identifier is always computed alongside it and stored
+as `derivedDeviceId`, so the device dimension can be re-pointed at the
+unspoofable value without a data migration. Monitor the share of requests
+reporting `deviceIdSource: 'header'`.
+
+**Known trade-off.** The per-email block makes an account-lockout nuisance
+possible: anyone who knows an address can burn the budget and block it for 15
+minutes. The limit is 10 rather than 5, and a successful login resets the
+counter, so only failures accumulate.
 
 ---
 
@@ -133,12 +290,33 @@ interface DeviceContext {
   osName: string;
   deviceType: 'mobile' | 'tablet' | 'desktop';
   fingerprintRisk?: 'low' | 'medium' | 'high';
+  deviceId?: string;          // handle rate limiting keys on
+  derivedDeviceId?: string;   // always the server-derived value
+  deviceIdSource?: 'header' | 'derived';
 }
 ```
 
 Used for:
-- Session metadata (stored as JSONB on Session entity)
+- Session metadata (stored as JSONB on Session entity — the mapper picks the
+  four descriptor fields, so the identity fields are not persisted)
+- Rate limiting (the device dimension)
 - Security logging
+
+### Device identity
+
+`DeviceIdService` resolves a stable per-device handle:
+
+1. **`X-Device-Id` header**, when it matches `^[A-Za-z0-9_-]{8,128}$`. It is
+   hashed rather than used verbatim, which bounds the key length and keeps an
+   attacker-chosen string out of Redis key space and the logs. A repeated header
+   is rejected rather than guessed at.
+2. **Otherwise a derived value** — `HMAC(normalized UA | accept-language | IP
+   subnet)`. The address is truncated to its network portion (IPv4 `/24`, IPv6
+   `/64`, `::ffff:` unwrapped first), so the identifier survives a client hopping
+   addresses within its own network but changes when it moves networks.
+
+`derivedDeviceId` is populated in both cases, so the two can be swapped without
+a data migration. The header is redacted from request logs.
 
 ---
 
@@ -176,9 +354,9 @@ Refresh tokens are stored as SHA-256 hashes in the Session entity. The raw token
 `UserVerificationCode` entity stores verification codes as bcrypt hashes with 3-minute TTL. Codes are sent via `EmailService.sendVerificationEmail()` over SMTP (Nodemailer).
 
 Brute-force hardening:
-- Failed attempts are counted in Redis (`verify:attempts:{userId}`); after 5 wrong codes the current code is invalidated
-- Verification attempts are rate-limited per normalized email (`verify:email:{email}`, 5 per 10 minutes) in addition to the per-IP guard, so rotating IPs cannot bypass it
-- Code re-sends are gated by a 60-second cooldown (`verify:resend:cooldown:{userId}`) and an hourly limit of 5 per user (`verify:resend:hourly:{userId}`)
+- Failed attempts are counted by the `auth.verify.attempts` policy; after 5 wrong codes the current code is invalidated
+- Verification is limited on address, device, email (5 per 10 minutes), and the submitted code, so rotating any single one of them cannot bypass the others
+- Code re-sends are gated by a 60-second cooldown (`auth.resend.cooldown`) and an hourly limit of 5 per user (`auth.resend.hourly`)
 - All failures return the generic `INVALID_VERIFICATION_CODE` — wrong, consumed, and expired codes are indistinguishable
 - Codes are compared with `crypto.timingSafeEqual` and never logged
 
