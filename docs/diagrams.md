@@ -104,11 +104,12 @@ sequenceDiagram
     TokenVerificationService-->>JwtStrategy: IJwtPayload
 
     JwtStrategy->>TokenValidationService: validate(payload)
-    TokenValidationService->>UserQueryService: findForTokenValidation(userId)
-    UserQueryService-->>TokenValidationService: User
-
-    TokenValidationService->>SessionQueryService: findActiveById(sessionId)
-    SessionQueryService-->>TokenValidationService: Session
+    par user and session lookup in parallel
+        TokenValidationService->>UserQueryService: findForTokenValidation(userId)
+        UserQueryService-->>TokenValidationService: User
+        TokenValidationService->>SessionQueryService: findActiveSession(userId, sessionId)
+        SessionQueryService-->>TokenValidationService: Session
+    end
 
     TokenValidationService-->>JwtStrategy: { user, session }
 
