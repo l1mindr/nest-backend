@@ -47,12 +47,9 @@ export class ChangePassword implements IChangePassword {
 
     if (!isMatch) throw AuthErrors.invalidCurrentPassword();
 
-    const isSame = await this.hashingProvider.compare(
-      newPassword,
-      userWithPassword.password
-    );
-
-    if (isSame) throw AuthErrors.passwordMustBeDifferent();
+    if (newPassword === currentPassword) {
+      throw AuthErrors.passwordMustBeDifferent();
+    }
 
     const password = await this.hashingProvider.hash(newPassword);
 
