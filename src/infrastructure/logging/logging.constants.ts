@@ -15,6 +15,13 @@ export enum LogEvent {
   USER_SUSPENDED = 'user.suspended',
   USER_UNSUSPENDED = 'user.unsuspended',
 
+  ADMIN_ROLE_GRANTED = 'authorization.admin.role_granted',
+  ADMIN_ROLE_REVOKED = 'authorization.admin.role_revoked',
+  ADMIN_STATUS_CHANGED = 'authorization.admin.status_changed',
+  ADMIN_PROFILE_UPDATED = 'authorization.admin.profile_updated',
+  PERMISSIONS_GRANTED = 'authorization.permissions.granted',
+  PERMISSIONS_REVOKED = 'authorization.permissions.revoked',
+
   COIN_SYNC_STARTED = 'coin_tracker.sync.started',
   COIN_SYNC_COMPLETED = 'coin_tracker.sync.completed',
   COIN_SYNC_FAILED = 'coin_tracker.sync.failed',
