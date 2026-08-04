@@ -1,5 +1,6 @@
 import { SecurityErrors } from '@features/security/errors/security-errors';
 import { Inject, Injectable } from '@nestjs/common';
+import { AuthorizationErrors } from '../../domain/errors/authorization-errors';
 import {
   ALL_PERMISSIONS,
   Permission
@@ -72,5 +73,30 @@ export class PermissionEvaluationService implements IPermissionEvaluationService
     }
 
     return this.adminPermissionRepository.findByUserId(actor.id);
+  }
+
+  /**
+   * Whether the caller may hand these permissions to, or take them from,
+   * another administrator.
+   *
+   * An administrator can only delegate what they themselves hold. Without that
+   * rule, `ROLE_ASSIGN` alone would be equivalent to every permission — hold it
+   * and grant yourself the rest through a colleague. The same limit applies to
+   * revocation, so a narrowly-scoped administrator cannot strip the reach of
+   * one who outranks them in practice.
+   *
+   * The owner passes trivially: they are reported as holding everything.
+   */
+  async assertCanDelegate(
+    actor: AuthorizationActor,
+    permissions: readonly Permission[]
+  ): Promise<void> {
+    const held = new Set(await this.effectivePermissionsOf(actor));
+
+    const missing = permissions.filter((permission) => !held.has(permission));
+
+    if (missing.length > 0) {
+      throw AuthorizationErrors.permissionNotHeld(missing);
+    }
   }
 }

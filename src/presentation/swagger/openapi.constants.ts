@@ -28,7 +28,8 @@ export const ApiTagName = {
   SESSIONS: 'Sessions',
   COINS: 'Coins',
   PRICE_ALERTS: 'Price Alerts',
-  ADMIN_USERS: 'Admin Users'
+  ADMIN_USERS: 'Admin Users',
+  ADMIN_ACCOUNTS: 'Administrators & Permissions'
 } as const;
 
 /**
