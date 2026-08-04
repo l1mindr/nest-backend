@@ -109,6 +109,7 @@ Indexes: `userId`, `status`, `coinId`, `(userId, status)`, `(status, coinId)`, `
 | 2 | `CreateSessionsTable` | Initial session schema |
 | 3 | `CreateCoinAndPriceAlertTables` | Coin tracker entities |
 | 4 | `CreateVerificationTable` | Adds `PENDING_VERIFICATION` status and email verification codes |
+| 5 | `CreateVerificationCodeActiveLatestIndex` | Partial index for the latest active verification code lookup |
 
 ## Redis
 
