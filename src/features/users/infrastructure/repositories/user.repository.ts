@@ -1,4 +1,5 @@
 import { UserStatus } from '@features/users/domain/enums/user-status.enum';
+import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import { User } from '@features/users/domain/entities/user.entity';
 import { Injectable } from '@nestjs/common';
 import {
@@ -101,11 +102,38 @@ export class UserRepository implements IUserRepository {
     });
   }
 
+  /**
+   * Cursor-paginated over one role tier, ordered by identifier — the same
+   * contract as {@link findUsersForAdmin}, narrowed to a role so the
+   * administrator directory does not have to page through every account.
+   */
+  async findUsersByRole(
+    role: UserRole,
+    cursorId: string | null,
+    limit: number
+  ): Promise<User[]> {
+    return this.userRepo.find({
+      select: UserRepository.ADMIN_VIEW_SELECT,
+      where: cursorId ? { role, id: MoreThan(cursorId) } : { role },
+      order: { id: 'ASC' },
+      take: limit
+    });
+  }
+
   async updateUserProfile(
     id: string,
     dto: UpdateProfileRequestDto
   ): Promise<void> {
     await this.userRepo.update({ id }, dto);
+  }
+
+  async updateRole(
+    userId: string,
+    role: UserRole,
+    manager?: EntityManager
+  ): Promise<void> {
+    const repository = manager?.getRepository(User) ?? this.userRepo;
+    await repository.update({ id: userId }, { role });
   }
 
   async updateStatus(

@@ -1,6 +1,7 @@
 import { CreateUserRequestDto } from '../../presentation/dto/request/create-user.request.dto';
 import { UpdateProfileRequestDto } from '../../presentation/dto/request/update-profile.request.dto';
 import { User } from '../../domain/entities/user.entity';
+import { UserRole } from '../../domain/enums/user-role.enum';
 import { UserVerificationCode } from '../../domain/entities/user-verification-code.entity';
 import type { EntityManager } from 'typeorm';
 import type { PaginatedResult } from '@core/pagination/paginated-result.interface';
@@ -17,7 +18,17 @@ export interface IUserRepository {
   findUserWithPassword(userId: string): Promise<User | null>;
   findUserForAdmin(id: string): Promise<User | null>;
   findUsersForAdmin(cursorId: string | null, limit: number): Promise<User[]>;
+  findUsersByRole(
+    role: UserRole,
+    cursorId: string | null,
+    limit: number
+  ): Promise<User[]>;
   updateUserProfile(id: string, dto: UpdateProfileRequestDto): Promise<void>;
+  updateRole(
+    userId: string,
+    role: UserRole,
+    manager?: EntityManager
+  ): Promise<void>;
   updatePasswordHash(
     userId: string,
     hashPassword: string,
