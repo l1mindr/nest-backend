@@ -55,9 +55,7 @@ describe('ChangePassword', () => {
         password: 'old-hash'
       });
 
-      mockHashingProvider.compare
-        .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(false);
+      mockHashingProvider.compare.mockResolvedValue(true);
 
       mockHashingProvider.hash.mockResolvedValue('new-hash');
 
@@ -87,9 +85,7 @@ describe('ChangePassword', () => {
         id: 'user-id',
         password: 'old-hash'
       });
-      mockHashingProvider.compare
-        .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(false);
+      mockHashingProvider.compare.mockResolvedValue(true);
       mockHashingProvider.hash.mockResolvedValue('new-hash');
       mockRevocationUseCase.terminateOthers.mockRejectedValueOnce(error);
 
@@ -147,9 +143,7 @@ describe('ChangePassword', () => {
         password: 'hash'
       });
 
-      mockHashingProvider.compare
-        .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(true);
+      mockHashingProvider.compare.mockResolvedValue(true);
 
       await expect(
         service.changePassword('user-id', 'session-id', {
@@ -157,6 +151,23 @@ describe('ChangePassword', () => {
           newPassword: 'old'
         })
       ).rejects.toEqual(AuthErrors.passwordMustBeDifferent());
+
+      expect(mockHashingProvider.hash).not.toHaveBeenCalled();
+    });
+
+    it('should report a wrong current password before the sameness check', async () => {
+      mockUserRepository.findUserWithPassword.mockResolvedValue({
+        password: 'hash'
+      });
+
+      mockHashingProvider.compare.mockResolvedValue(false);
+
+      await expect(
+        service.changePassword('user-id', 'session-id', {
+          currentPassword: 'wrong',
+          newPassword: 'wrong'
+        })
+      ).rejects.toEqual(AuthErrors.invalidCurrentPassword());
     });
   });
 });
