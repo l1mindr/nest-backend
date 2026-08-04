@@ -4,6 +4,7 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn
@@ -59,5 +60,9 @@ export class Session {
   updatedAt!: Date;
 
   @ManyToOne(() => User, (user) => user.sessions, { nullable: false })
+  @JoinColumn({ name: 'ownerId' })
   owner!: User;
+
+  @Column({ name: 'ownerId', type: 'uuid' })
+  ownerId!: string;
 }

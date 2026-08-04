@@ -38,7 +38,8 @@ class Session {
   rotatedAt: Date;               // Timestamp of last rotation
   createdAt: Date;
   updatedAt: Date;
-  owner: User;                   // ManyToOne, indexed (owner, isRevoked, expiresAt)
+  ownerId: string;                 // FK column, indexed by IDX_session_owner_active
+  owner: User;                     // ManyToOne, indexed (ownerId, isRevoked, expiresAt)
 }
 ```
 
