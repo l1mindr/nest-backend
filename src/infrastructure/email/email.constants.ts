@@ -1,1 +1,4 @@
 export const EMAIL_TRANSPORT = Symbol('EMAIL_TRANSPORT');
+
+export const SMTP_POOL_MAX_CONNECTIONS = 5;
+export const SMTP_POOL_MAX_MESSAGES = 100;

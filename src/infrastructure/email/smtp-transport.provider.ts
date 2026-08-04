@@ -2,7 +2,11 @@ import { Provider } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import nodemailer, { Transporter } from 'nodemailer';
 import emailConfig from './email.config';
-import { EMAIL_TRANSPORT } from './email.constants';
+import {
+  EMAIL_TRANSPORT,
+  SMTP_POOL_MAX_CONNECTIONS,
+  SMTP_POOL_MAX_MESSAGES
+} from './email.constants';
 
 export function createSmtpTransport(
   config: ConfigType<typeof emailConfig>
@@ -14,7 +18,10 @@ export function createSmtpTransport(
     auth: {
       user: config.user,
       pass: config.appPassword
-    }
+    },
+    pool: true,
+    maxConnections: SMTP_POOL_MAX_CONNECTIONS,
+    maxMessages: SMTP_POOL_MAX_MESSAGES
   });
 }
 
