@@ -11,7 +11,8 @@ describe('CleanupPendingUsersUseCase', () => {
   };
 
   const mockVerificationCodeRepository = {
-    invalidatePreviousCodes: jest.fn()
+    invalidatePreviousCodes: jest.fn(),
+    deleteOlderThan: jest.fn()
   };
 
   const mockClockService = {
@@ -138,6 +139,35 @@ describe('CleanupPendingUsersUseCase', () => {
         }),
         expect.any(String)
       );
+    });
+
+    it('should delete verification codes older than 24 hours', async () => {
+      mockUserRepository.findPendingOlderThan.mockResolvedValue([]);
+      mockVerificationCodeRepository.deleteOlderThan.mockResolvedValue(3);
+
+      await useCase.execute();
+
+      const cutoffArg =
+        mockVerificationCodeRepository.deleteOlderThan.mock.calls[0][0];
+      const expectedCutoff = new Date(NOW.getTime() - 24 * 60 * 60 * 1000);
+      expect(cutoffArg.getTime()).toBe(expectedCutoff.getTime());
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deletedCodeCount: 3
+        }),
+        expect.any(String)
+      );
+    });
+
+    it('should retain codes even when no pending users are found', async () => {
+      mockUserRepository.findPendingOlderThan.mockResolvedValue([]);
+
+      await useCase.execute();
+
+      expect(
+        mockVerificationCodeRepository.deleteOlderThan
+      ).toHaveBeenCalledTimes(1);
     });
   });
 });

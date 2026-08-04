@@ -55,4 +55,14 @@ export class VerificationCodeRepository implements IVerificationCodeRepository {
       { verifiedAt: now }
     );
   }
+
+  async deleteOlderThan(cutoff: Date): Promise<number> {
+    const result = await this.repo
+      .createQueryBuilder()
+      .delete()
+      .where('"createdAt" < :cutoff', { cutoff })
+      .execute();
+
+    return result.affected ?? 0;
+  }
 }

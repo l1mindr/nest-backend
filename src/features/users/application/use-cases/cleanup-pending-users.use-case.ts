@@ -34,6 +34,24 @@ export class CleanupPendingUsersUseCase implements ICleanupPendingUsersUseCase {
     const now = this.clockService.nowDate();
     const cutoff = new Date(now.getTime() - TimeConstants.MS_PER_DAY);
 
+    await this.deactivateExpiredPendingUsers(now, cutoff);
+
+    const deletedCodeCount =
+      await this.verificationCodeRepository.deleteOlderThan(cutoff);
+
+    this.logger.info(
+      {
+        event: LogEvent.VERIFICATION_CODE_RETENTION_COMPLETED,
+        deletedCodeCount
+      },
+      'Verification code retention completed'
+    );
+  }
+
+  private async deactivateExpiredPendingUsers(
+    now: Date,
+    cutoff: Date
+  ): Promise<void> {
     const pendingUsers = await this.userRepository.findPendingOlderThan(cutoff);
 
     if (pendingUsers.length === 0) {

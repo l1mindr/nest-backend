@@ -57,6 +57,10 @@ class UserVerificationCode {
 }
 ```
 
+Codes older than 24 hours are deleted by the pending-user cleanup schedule. The
+`IDX_uvc_active_latest` partial index (`(userId, createdAt DESC) WHERE verifiedAt IS NULL`)
+serves the latest-code lookup.
+
 ---
 
 ## Embedded Types
