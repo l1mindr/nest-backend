@@ -25,9 +25,7 @@ export class SessionRepository implements ISessionRepository {
         id: sessionId,
         isRevoked: false,
         expiresAt: MoreThan(this.clockService.nowDate()),
-        owner: {
-          id: userId
-        }
+        ownerId: userId
       }
     });
   }

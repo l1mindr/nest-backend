@@ -73,6 +73,15 @@ describe('SessionRepository', () => {
 
       expect(result).toEqual(session);
       expect(mockClockService.nowDate).toHaveBeenCalledTimes(1);
+
+      const where = mockRepository.findOne.mock.calls[0][0].where;
+      expect(where).toMatchObject({
+        id: 'session-id',
+        isRevoked: false,
+        expiresAt: expect.anything(),
+        ownerId: 'user-id'
+      });
+      expect(where).not.toHaveProperty('owner');
     });
 
     it('should return null when session not found', async () => {
