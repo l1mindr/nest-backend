@@ -40,18 +40,16 @@ export class ChangePassword implements IChangePassword {
 
     if (!userWithPassword) throw TokenErrors.invalidToken();
 
-    const isMatch = await this.hashingProvider.compare(
-      currentPassword,
-      userWithPassword.password
-    );
+    const [isMatch, password] = await Promise.all([
+      this.hashingProvider.compare(currentPassword, userWithPassword.password),
+      this.hashingProvider.hash(newPassword)
+    ]);
 
     if (!isMatch) throw AuthErrors.invalidCurrentPassword();
 
     if (newPassword === currentPassword) {
       throw AuthErrors.passwordMustBeDifferent();
     }
-
-    const password = await this.hashingProvider.hash(newPassword);
 
     try {
       await this.dataSource.transaction(async (manager) => {
