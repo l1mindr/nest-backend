@@ -1,3 +1,4 @@
+import { AuthorizationModule } from '@features/authorization/authorization.module';
 import { TokenModule } from '@features/token/token.module';
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
@@ -7,6 +8,7 @@ import { CsrfGuard } from './csrf/guards/csrf.guard';
 import { DeviceDetectionModule } from './device-detection/device-detection.module';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { JwtGuard } from './guards/jwt.guard';
+import { PermissionGuard } from './guards/permission.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { RateLimitGuard } from './rate-limit/guards/rate-limit.guard';
 import { RateLimitModule } from './rate-limit/rate-limit.module';
@@ -16,6 +18,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   imports: [
     JwtModule,
     TokenModule,
+    AuthorizationModule,
     DeviceDetectionModule,
     RateLimitModule,
     CsrfModule
@@ -43,6 +46,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     {
       provide: APP_GUARD,
       useClass: RolesGuard
+    },
+    // Permissions are evaluated after the role tier so that the coarse check,
+    // which needs no database round trip, rejects first. Routes that declare no
+    // requirement short-circuit here without a query.
+    {
+      provide: APP_GUARD,
+      useClass: PermissionGuard
     },
     {
       provide: APP_GUARD,
