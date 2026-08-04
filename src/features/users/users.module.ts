@@ -107,7 +107,13 @@ import { UsersController } from './presentation/controllers/users.controller';
     INITIATE_REGISTRATION_USE_CASE,
     RESEND_VERIFICATION_USE_CASE,
     VERIFY_EMAIL_USE_CASE,
-    CLEANUP_PENDING_USERS_USE_CASE
+    CLEANUP_PENDING_USERS_USE_CASE,
+    // Suspending an administrator is the same operation as suspending any
+    // other account — same status transition, same session revocation, same
+    // notification — so the authorization module reuses these rather than
+    // growing a second implementation that could drift.
+    SUSPEND_USER_USE_CASE,
+    UNSUSPEND_USER_USE_CASE
   ]
 })
 export class UsersModule {}
