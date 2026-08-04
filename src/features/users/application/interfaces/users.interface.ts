@@ -49,6 +49,7 @@ export interface IVerificationCodeRepository {
     manager?: EntityManager
   ): Promise<void>;
   invalidatePreviousCodes(userId: string, now: Date): Promise<void>;
+  deleteOlderThan(cutoff: Date): Promise<number>;
 }
 
 export const USER_QUERY_SERVICE = Symbol('IUserQueryService');
