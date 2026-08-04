@@ -2,6 +2,7 @@ import { CreateUsersTable1700000000000 } from '../../src/infrastructure/database
 import { CreateSessionsTable1700000001000 } from '../../src/infrastructure/databases/postgres/migrations/1700000001000-CreateSessionsTable';
 import { CreateCoinAndPriceAlertTables1700000002000 } from '../../src/infrastructure/databases/postgres/migrations/1700000002000-CreateCoinAndPriceAlertTables';
 import { CreateVerificationTable1700000003000 } from '../../src/infrastructure/databases/postgres/migrations/1700000003000-CreateVerificationTable';
+import { CreateVerificationCodeActiveLatestIndex1700000004000 } from '../../src/infrastructure/databases/postgres/migrations/1700000004000-CreateVerificationCodeActiveLatestIndex';
 
 /**
  * The runtime data source resolves migrations from a `dist/**` glob, which is
@@ -14,5 +15,6 @@ export const E2E_MIGRATIONS = [
   CreateUsersTable1700000000000,
   CreateSessionsTable1700000001000,
   CreateCoinAndPriceAlertTables1700000002000,
-  CreateVerificationTable1700000003000
+  CreateVerificationTable1700000003000,
+  CreateVerificationCodeActiveLatestIndex1700000004000
 ];
