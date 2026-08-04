@@ -65,6 +65,38 @@ describe('TokenValidationService', () => {
       ).rejects.toEqual(TokenErrors.invalidToken());
     });
 
+    it('should query the user and session concurrently', async () => {
+      let resolveUser: (value: unknown) => void;
+      const pendingUser = new Promise((resolve) => {
+        resolveUser = resolve;
+      });
+
+      mockUserQueryService.findForTokenValidation.mockReturnValue(pendingUser);
+
+      const validationPromise = service.validate({
+        sub: 'user-id',
+        sessionId: 'session-id'
+      });
+
+      expect(mockSessionRepository.findActiveSession).toHaveBeenCalledWith(
+        'user-id',
+        'session-id'
+      );
+
+      resolveUser!({
+        id: 'user-id',
+        status: UserStatus.ACTIVATE
+      });
+      mockSessionRepository.findActiveSession.mockResolvedValue({
+        id: 'session-id'
+      });
+
+      await expect(validationPromise).resolves.toEqual({
+        user: { id: 'user-id', status: UserStatus.ACTIVATE },
+        session: { id: 'session-id' }
+      });
+    });
+
     it.each([UserStatus.DEACTIVATE, UserStatus.SUSPEND])(
       'should throw invalidToken when the account is %s',
       async (status) => {
