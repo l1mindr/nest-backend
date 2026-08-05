@@ -1,4 +1,8 @@
 import {
+  OwnerProtectionPolicy,
+  ProtectedAction
+} from '@features/authorization/domain/owner-protection.policy';
+import {
   ISessionRevocationUseCase,
   SESSION_REVOCATION_USE_CASE
 } from '@features/sessions/application/interfaces/sessions.interface';
@@ -42,6 +46,8 @@ export class SuspendUserUseCase implements ISuspendUserUseCase {
     if (!user) {
       throw UserErrors.userNotFound(userId);
     }
+
+    OwnerProtectionPolicy.assertNotOwner(user, ProtectedAction.SUSPEND);
 
     if (user.status === UserStatus.SUSPEND) {
       throw UserErrors.userAlreadySuspended();

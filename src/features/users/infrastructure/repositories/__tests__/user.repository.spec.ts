@@ -50,9 +50,12 @@ describe('UserRepository', () => {
       const result = await repository.findUserById('1');
 
       expect(result).toEqual(user);
+      // `role` travels with the identifier so that the callers using this as an
+      // existence check can also refuse to act on the owner, without a second
+      // query for a single column.
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: { id: '1' },
-        select: { id: true }
+        select: { id: true, role: true }
       });
     });
 

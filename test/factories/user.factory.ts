@@ -1,3 +1,8 @@
+import { AdminPermission } from '@features/authorization/domain/entities/admin-permission.entity';
+import {
+  ALL_PERMISSIONS,
+  Permission
+} from '@features/authorization/domain/enums/permission.enum';
 import { User } from '@features/users/domain/entities/user.entity';
 import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import { UserStatus } from '@features/users/domain/enums/user-status.enum';
@@ -40,21 +45,82 @@ export class UserFactory {
     );
   }
 
+  /**
+   * Registers an administrator.
+   *
+   * Permissions default to the full set: an administrator now holds nothing
+   * until granted, and most specs are exercising something other than
+   * authorization. Specs that *are* about authorization pass an explicit list
+   * to model a support, moderator or read-only administrator.
+   */
   static async admin(
+    app: INestApplication,
+    dataSource: DataSource,
+    overrides = {},
+    permissions: Permission[] = [...ALL_PERMISSIONS]
+  ): Promise<CreateUserContext> {
+    const context = await this.register(app, overrides);
+    const user = await this.promote(
+      dataSource,
+      context.user.email,
+      UserRole.ADMIN
+    );
+
+    await this.grant(dataSource, user.id, permissions);
+
+    return context;
+  }
+
+  /**
+   * Registers the single owner. Permissions are never granted: the owner
+   * bypasses evaluation rather than holding anything.
+   */
+  static async owner(
     app: INestApplication,
     dataSource: DataSource,
     overrides = {}
   ): Promise<CreateUserContext> {
     const context = await this.register(app, overrides);
-    const repo = dataSource.getRepository(User);
 
-    await repo.update(
-      { email: context.user.email },
-      {
-        role: UserRole.ADMIN
-      }
-    );
+    await this.promote(dataSource, context.user.email, UserRole.OWNER);
 
     return context;
+  }
+
+  static async grant(
+    dataSource: DataSource,
+    userId: string,
+    permissions: readonly Permission[]
+  ): Promise<void> {
+    if (permissions.length === 0) return;
+
+    const repo = dataSource.getRepository(AdminPermission);
+
+    await repo
+      .createQueryBuilder()
+      .insert()
+      .into(AdminPermission)
+      .values(
+        permissions.map((permission) => ({
+          userId,
+          permission,
+          grantedById: null
+        }))
+      )
+      .orIgnore()
+      .execute();
+  }
+
+  private static async promote(
+    dataSource: DataSource,
+    email: string,
+    role: UserRole
+  ): Promise<User> {
+    const repo = dataSource.getRepository(User);
+    const normalized = email.trim().toLowerCase();
+
+    await repo.update({ email: normalized }, { role });
+
+    return repo.findOneOrFail({ where: { email: normalized } });
   }
 }

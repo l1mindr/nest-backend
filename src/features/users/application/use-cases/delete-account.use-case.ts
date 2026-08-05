@@ -1,3 +1,4 @@
+import { OwnerProtectionPolicy } from '@features/authorization/domain/owner-protection.policy';
 import {
   ISessionRevocationUseCase,
   SESSION_REVOCATION_USE_CASE
@@ -25,6 +26,11 @@ export class DeleteAccountUseCase implements IDeleteAccountUseCase {
   async execute(userId: string): Promise<void> {
     const user = await this.userRepository.findUserById(userId);
     if (!user) throw UserErrors.userNotFound(userId);
+
+    // The owner is refused even here, on their own account: the system must
+    // always have exactly one, and there is no endpoint that could appoint a
+    // replacement afterwards.
+    OwnerProtectionPolicy.assertDeletable(user);
 
     await this.dataSource.transaction(async (manager) => {
       await manager.getRepository(User).softRemove(user);
