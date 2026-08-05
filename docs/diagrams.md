@@ -120,6 +120,51 @@ sequenceDiagram
 
 ---
 
+## Authorization Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant RolesGuard
+    participant PermissionGuard
+    participant PermissionEvaluationService
+    participant AdminPermissionRepository
+    participant Controller
+
+    Client->>RolesGuard: Authenticated request (req.user set)
+
+    alt route carries @Roles()
+        RolesGuard->>RolesGuard: RoleHierarchy.satisfies(role, minimum)
+        Note right of RolesGuard: by rank, so OWNER satisfies ADMIN
+        RolesGuard--xClient: 403 ACCESS_DENIED if below the tier
+    end
+
+    RolesGuard->>PermissionGuard: Proceed
+
+    alt route carries no @RequirePermissions()
+        PermissionGuard-->>Controller: Proceed, no lookup
+    else route declares permissions
+        PermissionGuard->>PermissionEvaluationService: assertCan(user, required)
+
+        alt caller is OWNER
+            PermissionEvaluationService-->>PermissionGuard: allowed, no lookup
+        else
+            PermissionEvaluationService->>AdminPermissionRepository: findByUserId(userId)
+            AdminPermissionRepository-->>PermissionEvaluationService: granted permissions
+            PermissionEvaluationService->>PermissionEvaluationService: every required permission held?
+            PermissionEvaluationService--xClient: 403 ACCESS_DENIED if any is missing
+        end
+
+        PermissionEvaluationService-->>PermissionGuard: allowed
+    end
+
+    PermissionGuard-->>Controller: Proceed
+    Note over Controller: Owner and target invariants are<br/>asserted by the use case, which<br/>knows which resource is involved
+    Controller-->>Client: Response
+```
+
+---
+
 ## Refresh Rotation
 
 ```mermaid
@@ -176,7 +221,7 @@ erDiagram
         varchar username UK "max 30"
         varchar password "select: false"
         enum status "PENDING_VERIFICATION | ACTIVATE | SUSPEND | DEACTIVATE"
-        enum role "USER | ADMIN"
+        enum role "OWNER | ADMIN | USER"
         date createdAt
         date updatedAt
         date deleteAt "nullable, soft delete"
@@ -234,6 +279,39 @@ erDiagram
         date updatedAt
     }
 ```
+
+---
+
+## Authorization Model
+
+```mermaid
+erDiagram
+    User ||--o{ AdminPermission : "holds"
+    User ||--o{ AdminPermission : "granted"
+    Permission ||--o{ AdminPermission : "referenced by"
+
+    User {
+        uuid id PK
+        enum role "OWNER | ADMIN | USER"
+    }
+
+    Permission {
+        varchar code PK "max 64"
+        varchar description "max 255"
+    }
+
+    AdminPermission {
+        uuid id PK
+        uuid userId FK "ON DELETE CASCADE"
+        varchar permission FK "ON DELETE RESTRICT"
+        uuid grantedById FK "nullable, ON DELETE SET NULL"
+        date grantedAt
+    }
+```
+
+`Permission` is reference data seeded by migration. `AdminPermission` is unique
+on `(userId, permission)`. At most one `User` may hold `OWNER`, enforced by the
+partial unique index `uq_user_single_owner`.
 
 ---
 

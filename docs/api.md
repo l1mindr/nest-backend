@@ -206,12 +206,81 @@ Response: `204 No Content`
 
 ## Admin Users
 
-| Method | Path | Auth | CSRF | Description |
-|--------|------|------|------|-------------|
-| `GET` | `/v1/admin/users` | Admin | - | List users (cursor-paginated) |
-| `GET` | `/v1/admin/users/:id` | Admin | - | Get user by ID |
-| `POST` | `/v1/admin/users/:id/suspend` | Admin | Required | Suspend user |
-| `PATCH` | `/v1/admin/users/:id/unsuspend` | Admin | Required | Unsuspend user |
+Access is decided by permission, not by role. Holding `ADMIN` grants nothing on
+its own; the owner satisfies every requirement without evaluation.
+
+| Method | Path | Requires | CSRF | Description |
+|--------|------|----------|------|-------------|
+| `GET` | `/v1/admin/users` | `USER_READ` | - | List users (cursor-paginated) |
+| `GET` | `/v1/admin/users/:id` | `USER_READ` | - | Get user by ID |
+| `POST` | `/v1/admin/users/:id/suspend` | `USER_SUSPEND` | Required | Suspend user |
+| `PATCH` | `/v1/admin/users/:id/unsuspend` | `USER_UNSUSPEND` | Required | Unsuspend user |
+
+The owner can never be the target of a suspension: `403 OWNER_IMMUTABLE`.
+
+---
+
+## Administrators & Permissions
+
+| Method | Path | Requires | CSRF | Description |
+|--------|------|----------|------|-------------|
+| `GET` | `/v1/admin/admins` | `ADMIN_READ` | - | List administrators with their grants |
+| `GET` | `/v1/admin/admins/:id` | `ADMIN_READ` | - | Get one administrator |
+| `POST` | `/v1/admin/admins` | **owner** | Required | Promote an active account to `ADMIN` |
+| `DELETE` | `/v1/admin/admins/:id` | **owner** | Required | Withdraw administrator status |
+| `PATCH` | `/v1/admin/admins/:id` | `ADMIN_UPDATE` | Required | Edit an administrator's profile |
+| `POST` | `/v1/admin/admins/:id/activate` | **owner** | Required | Restore a deactivated administrator |
+| `POST` | `/v1/admin/admins/:id/deactivate` | **owner** | Required | Switch off access, revoke sessions |
+| `POST` | `/v1/admin/admins/:id/suspend` | **owner** | Required | Suspend an administrator |
+| `PATCH` | `/v1/admin/admins/:id/unsuspend` | **owner** | Required | Lift the suspension |
+| `POST` | `/v1/admin/admins/:id/permissions` | `ROLE_ASSIGN` | Required | Grant permissions |
+| `DELETE` | `/v1/admin/admins/:id/permissions` | `ROLE_ASSIGN` | Required | Revoke permissions |
+| `GET` | `/v1/admin/permissions` | `ADMIN_READ` | - | The permission catalog |
+| `GET` | `/v1/admin/permissions/me` | Session | - | What the caller can do right now |
+
+### POST /v1/admin/admins
+
+Request:
+
+```json
+{
+  "userId": "7c4f2f6a-1f2d-4a1b-9c3e-8d5b6a0e1f24",
+  "permissions": ["USER_READ", "USER_SUSPEND"]
+}
+```
+
+Response: `201 Created` with the promoted administrator and their grants.
+
+Errors: `403 OWNER_IMMUTABLE`, `403 SELF_MANAGEMENT_FORBIDDEN`,
+`409 ALREADY_AN_ADMINISTRATOR`, `409 ACCOUNT_NOT_ELIGIBLE`.
+
+### POST /v1/admin/admins/:id/permissions
+
+Request:
+
+```json
+{ "permissions": ["USER_SUSPEND"] }
+```
+
+Response: `204 No Content`. Idempotent.
+
+A caller may only pass on permissions they hold themselves, otherwise
+`403 PERMISSION_NOT_HELD`. Aiming the request at your own account is
+`403 SELF_MANAGEMENT_FORBIDDEN`.
+
+### GET /v1/admin/permissions/me
+
+Response: `200 OK`
+
+```json
+{
+  "role": "ADMIN",
+  "permissions": ["USER_READ", "USER_SUSPEND"]
+}
+```
+
+Open to any authenticated caller and always scoped to the caller. An ordinary
+user sees an empty list; the owner sees every permission.
 
 ### GET /v1/admin/users
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Multi-layered security: JWT authentication, role-based authorization, CSRF double-submit protection, Redis-based rate limiting, device fingerprinting, and Helmet HTTP headers.
+Multi-layered security: JWT authentication, permission-based authorization over a three-tier role hierarchy, CSRF double-submit protection, Redis-based rate limiting, device fingerprinting, and Helmet HTTP headers.
 
 ---
 
@@ -47,31 +47,50 @@ Both are symmetric HS256 (asymmetric key rotation is a known gap).
 
 ## Authorization
 
+Access is decided by permissions, not roles. See
+[Authorization](authorization.md) for the full model; this section covers the
+security-relevant properties only.
+
+### PermissionGuard
+
+`PermissionGuard` (global `APP_GUARD`) reads `@RequirePermissions()` and defers
+the decision to `PermissionEvaluationService`, the single place a permission
+question is answered.
+
+- No `@RequirePermissions()` → allows all authenticated users, with no database lookup
+- Owner → allowed without a lookup
+- Anyone else → must hold **every** listed permission
+- Grants are read from the database per request, never from JWT claims
+
 ### RolesGuard
 
-`RolesGuard` (global `APP_GUARD`) checks the `@Roles()` decorator metadata against `request.user.role`.
-
-- No `@Roles()` → allows all authenticated users
-- `@Roles(UserRole.ADMIN)` → restricts to admin users only
-- Role is loaded from database (not from JWT claims)
+`RolesGuard` (global `APP_GUARD`) checks `@Roles()` against the caller's tier,
+comparing by **rank** so the owner satisfies any tier. Reserved for the few
+operations restricted to a tier outright — the administrator lifecycle.
 
 ### Roles
 
-| Role | Value |
-|------|-------|
-| User | `USER` (default) |
-| Admin | `ADMIN` |
+| Role | Value | Reach |
+|------|-------|-------|
+| Owner | `OWNER` | Exactly one; bypasses every authorization check |
+| Admin | `ADMIN` | Only what has been granted |
+| User | `USER` (default) | Only its own resources |
 
-### Admin Endpoints
+### Escalation controls
 
-Protected by `@Roles(UserRole.ADMIN)` on the controller class:
+| Attack | Blocked by |
+|--------|------------|
+| Self-promotion, self-granting | `assertNotSelf` |
+| Granting or revoking a permission the caller lacks | `assertCanDelegate` |
+| Creating a second owner | no role input on any endpoint, plus `uq_user_single_owner` |
+| Editing, suspending or deleting the owner | `OwnerProtectionPolicy` |
+| An administrator minting administrators | `@Roles(OWNER)` on the lifecycle routes |
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/v1/admin/users` | List users (cursor-paginated) |
-| `GET` | `/v1/admin/users/:id` | Get user by ID |
-| `POST` | `/v1/admin/users/:id/suspend` | Suspend user |
-| `PATCH` | `/v1/admin/users/:id/unsuspend` | Unsuspend user |
+`403 ACCESS_DENIED` carries no metadata: which permission was missing belongs in
+the logs, not in a response an attacker can read.
+
+Demotion and deactivation revoke all sessions, because an access token issued
+earlier carries the role the account no longer holds.
 
 ---
 

@@ -1,6 +1,6 @@
 # Nest Backend
 
-NestJS API for user authentication, session management, account administration, and cryptocurrency price tracking. Uses PostgreSQL (TypeORM), Redis (ioredis), cookie-based JWT authentication, server-side sessions, CSRF protection, role-based access control, and Jest/Supertest tests.
+NestJS API for user authentication, session management, account administration, and cryptocurrency price tracking. Uses PostgreSQL (TypeORM), Redis (ioredis), cookie-based JWT authentication, server-side sessions, CSRF protection, permission-based access control with a three-tier role hierarchy, and Jest/Supertest tests.
 
 The package metadata currently sets `"private": true` and `"license": "UNLICENSED"`. Update those fields before publishing this repository as an open-source package.
 
@@ -28,9 +28,10 @@ Each feature module (auth, users, sessions, coin-tracker) follows a vertical sli
 |----------------|------------------------------------------------------------------------------------|
 | **Auth**       | Register (email verification required), login, refresh tokens, change password; rate-limited public endpoints |
 | **Users**      | Profile retrieval/update, account deletion, admin user management (CRUD, suspend/unsuspend) |
+| **Authorization** | Hierarchical roles (OWNER/ADMIN/USER), granular permissions, administrator management, permission grants |
 | **Sessions**   | List active sessions, revoke current session, terminate other sessions              |
 | **Coin Tracker** | List/search supported coins, create/list/update/cancel price alerts              |
-| **Security**   | JWT guard, roles guard, CSRF protection, device detection, rate limiting           |
+| **Security**   | JWT guard, role and permission guards, CSRF protection, device detection, rate limiting |
 
 ## Documentation
 
@@ -42,7 +43,7 @@ The detailed project documentation lives in [docs](docs/). It is based on the cu
 | [Project Structure](docs/project-structure.md) | Repository layout and source organization.                                   |
 | [Modules](docs/modules.md)                     | Nest modules, providers, imports, exports, and module communication.         |
 | [Authentication](docs/authentication.md)       | Registration, login, refresh, password change, tokens, and cookies.          |
-| [Authorization](docs/authorization.md)         | Global JWT guard, role guard, decorators, and admin access.                  |
+| [Authorization](docs/authorization.md)         | Role hierarchy, permission model, guards, owner invariants, permission matrix. |
 | [Sessions](docs/sessions.md)                   | Session entity, session endpoints, revocation, and refresh rotation.         |
 | [Security](docs/security.md)                   | Implemented controls and current security gaps.                              |
 | [API](docs/api.md)                             | Routes, request DTOs, response envelopes, Swagger, and validation rules.     |
@@ -103,14 +104,37 @@ Rate limits apply across several identifiers at once; all must pass. See
 
 ### Admin Users (`/v1/admin/users`)
 
-All admin endpoints require the `ADMIN` role.
+Each route requires a permission rather than a role. Holding `ADMIN` grants
+nothing on its own; the owner satisfies every requirement without evaluation.
 
-| Method | Path                         | Description                                  |
-|--------|------------------------------|----------------------------------------------|
-| GET    | `/admin/users`               | List all users (cursor paginated)            |
-| GET    | `/admin/users/:id`           | Get single user by ID                        |
-| POST   | `/admin/users/:id/suspend`   | Suspend a user (requires reason)             |
-| PATCH  | `/admin/users/:id/unsuspend` | Unsuspend a previously suspended user        |
+| Method | Path                         | Requires          | Description                           |
+|--------|------------------------------|-------------------|---------------------------------------|
+| GET    | `/admin/users`               | `USER_READ`       | List all users (cursor paginated)     |
+| GET    | `/admin/users/:id`           | `USER_READ`       | Get single user by ID                 |
+| POST   | `/admin/users/:id/suspend`   | `USER_SUSPEND`    | Suspend a user (requires reason)      |
+| PATCH  | `/admin/users/:id/unsuspend` | `USER_UNSUSPEND`  | Unsuspend a previously suspended user |
+
+### Administrators & Permissions (`/v1/admin`)
+
+| Method | Path                              | Requires      | Description                             |
+|--------|-----------------------------------|---------------|-----------------------------------------|
+| GET    | `/admin/admins`                   | `ADMIN_READ`  | List administrators and their grants    |
+| GET    | `/admin/admins/:id`               | `ADMIN_READ`  | Get one administrator                   |
+| POST   | `/admin/admins`                   | **owner**     | Promote an active account to `ADMIN`    |
+| DELETE | `/admin/admins/:id`               | **owner**     | Withdraw administrator status           |
+| PATCH  | `/admin/admins/:id`               | `ADMIN_UPDATE`| Edit an administrator's profile         |
+| POST   | `/admin/admins/:id/activate`      | **owner**     | Restore a deactivated administrator     |
+| POST   | `/admin/admins/:id/deactivate`    | **owner**     | Switch off access, revoke sessions      |
+| POST   | `/admin/admins/:id/suspend`       | **owner**     | Suspend an administrator                |
+| PATCH  | `/admin/admins/:id/unsuspend`     | **owner**     | Lift the suspension                     |
+| POST   | `/admin/admins/:id/permissions`   | `ROLE_ASSIGN` | Grant permissions                       |
+| DELETE | `/admin/admins/:id/permissions`   | `ROLE_ASSIGN` | Revoke permissions                      |
+| GET    | `/admin/permissions`              | `ADMIN_READ`  | The permission catalog                  |
+| GET    | `/admin/permissions/me`           | Session       | What the caller can do right now        |
+
+The administrator lifecycle is reserved to the owner by role: an administrator
+able to create or unmake administrators would hold every permission by proxy.
+See [Authorization](docs/authorization.md) for the full permission matrix.
 
 ### Coins (`/v1/coins`)
 

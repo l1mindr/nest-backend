@@ -89,6 +89,7 @@ Imports:
 | Module | Description |
 |--------|-------------|
 | `AuthModule` | Authentication flows |
+| `AuthorizationModule` | Roles, permissions, permission evaluation, administrator management |
 | `CoinTrackerModule` | Cryptocurrency tracking |
 | `SecurityModule` | Cross-cutting guards, filters, strategies |
 | `SessionsModule` | Session lifecycle |
@@ -128,11 +129,12 @@ Controllers: `AuthController`
 | Provider | Scope |
 |----------|-------|
 | `JwtGuard` | `APP_GUARD` — validates access_token on every request (unless `@Public()`) |
-| `RolesGuard` | `APP_GUARD` — checks `@Roles()` metadata against user role |
+| `RolesGuard` | `APP_GUARD` — checks `@Roles()` metadata against the role tier, by rank so the owner satisfies any tier |
+| `PermissionGuard` | `APP_GUARD` — checks `@RequirePermissions()` metadata through `PermissionEvaluationService` |
 | `CsrfGuard` | `APP_GUARD` — validates CSRF double-submit for unsafe methods (unless `@SkipCsrf()`) |
 | `GlobalExceptionFilter` | `APP_FILTER` — maps all errors to `{ error: ... }` format |
 
-Imports: `JwtModule`, `TokenModule`, `DeviceDetectionModule`, `RateLimitModule`, `CsrfModule`
+Imports: `JwtModule`, `TokenModule`, `AuthorizationModule`, `DeviceDetectionModule`, `RateLimitModule`, `CsrfModule`
 
 ### CsrfModule
 

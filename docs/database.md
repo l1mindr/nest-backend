@@ -31,10 +31,39 @@ File: `src/infrastructure/databases/postgres/data-source.ts`
 | username | varchar(30) | UK |
 | password | varchar | `select: false` |
 | status | enum | `PENDING_VERIFICATION` (default), `ACTIVATE`, `SUSPEND`, `DEACTIVATE` |
-| role | enum | `USER` (default), `ADMIN` |
+| role | enum | `USER` (default), `ADMIN`, `OWNER` |
 | createdAt | timestamp | Auto-set |
 | updatedAt | timestamp | Auto-set |
 | deleteAt | timestamp | Nullable, soft delete |
+
+Partial unique index `uq_user_single_owner` on `role WHERE role = 'OWNER'`
+enforces that at most one owner can ever exist, independently of any
+application-level check.
+
+#### Permission Table
+
+Reference data, seeded by migration. Held back from the E2E truncation helper
+so that the foreign keys pointing at it survive between specs.
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| code | varchar(64) | PK |
+| description | varchar(255) | Not null |
+
+#### Admin Permission Table
+
+One row per permission granted to one administrator.
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | uuid | PK, default `uuid_generate_v4()` |
+| userId | uuid | FK → `user(id)` ON DELETE CASCADE |
+| permission | varchar(64) | FK → `permission(code)` ON DELETE RESTRICT |
+| grantedById | uuid | Nullable, FK → `user(id)` ON DELETE SET NULL |
+| grantedAt | timestamp | Auto-set |
+
+Unique on `(userId, permission)`, indexed on `userId`. The foreign key to the
+catalog means a grant can only ever name a permission the system knows about.
 
 #### Sessions Table
 
@@ -110,6 +139,7 @@ Indexes: `userId`, `status`, `coinId`, `(userId, status)`, `(status, coinId)`, `
 | 3 | `CreateCoinAndPriceAlertTables` | Coin tracker entities |
 | 4 | `CreateVerificationTable` | Adds `PENDING_VERIFICATION` status and email verification codes |
 | 5 | `CreateVerificationCodeActiveLatestIndex` | Partial index for the latest active verification code lookup |
+| 6 | `CreateAuthorizationTables` | Adds `OWNER` to the role enum, the single-owner index, and the permission and grant tables |
 
 ## Redis
 

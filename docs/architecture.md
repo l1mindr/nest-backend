@@ -85,6 +85,7 @@ Current features:
 | Feature | Responsibility |
 |---------|---------------|
 | `auth/` | Registration, login, refresh, change password |
+| `authorization/` | Role hierarchy, permission model, permission evaluation, administrator management |
 | `coin-tracker/` | Cryptocurrency price tracking, price alerts |
 | `security/` | Cross-cutting guards, filters, CSRF, rate limiting, device detection |
 | `sessions/` | Session lifecycle (issue, rotate, revoke, list) |
