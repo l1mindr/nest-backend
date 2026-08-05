@@ -1,4 +1,6 @@
+import { AuthorizationErrorCode } from '@features/authorization/domain/errors/authorization-error-code.enum';
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { UserRole } from '../../../domain/enums/user-role.enum';
 import { UserStatus } from '../../../domain/enums/user-status.enum';
 import { UserErrors } from '../../../domain/errors/user-errors';
 import { SuspendUserUseCase } from '../suspend-user.use-case';
@@ -121,6 +123,27 @@ describe('SuspendUserUseCase', () => {
       ).rejects.toEqual(UserErrors.userNotFound('missing-id'));
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
+      expect(mockEmailService.sendSuspensionEmail).not.toHaveBeenCalled();
+    });
+
+    it('should refuse to suspend the owner', async () => {
+      mockUserRepository.findUserForAdmin.mockResolvedValue({
+        ...activeUser,
+        id: 'owner-1',
+        role: UserRole.OWNER
+      });
+
+      await expect(
+        useCase.execute('admin-1', 'owner-1', 'reason')
+      ).rejects.toThrow(
+        expect.objectContaining({
+          code: AuthorizationErrorCode.OWNER_IMMUTABLE,
+          statusCode: 403
+        })
+      );
+
+      expect(mockDataSource.transaction).not.toHaveBeenCalled();
+      expect(mockRevocationUseCase.revokeAll).not.toHaveBeenCalled();
       expect(mockEmailService.sendSuspensionEmail).not.toHaveBeenCalled();
     });
 

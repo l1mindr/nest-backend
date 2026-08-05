@@ -1,5 +1,7 @@
+import { AuthorizationErrorCode } from '@features/authorization/domain/errors/authorization-error-code.enum';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { UserRole } from '../../../domain/enums/user-role.enum';
 import { UserStatus } from '../../../domain/enums/user-status.enum';
 import { UserErrors } from '../../../domain/errors/user-errors';
 import { UnsuspendUserUseCase } from '../unsuspend-user.use-case';
@@ -109,6 +111,32 @@ describe('UnsuspendUserUseCase', () => {
 
       await expect(useCase.execute('admin-1', 'missing-id')).rejects.toEqual(
         UserErrors.userNotFound('missing-id')
+      );
+
+      expect(mockDataSource.transaction).not.toHaveBeenCalled();
+      expect(mockEmailService.sendUnsuspensionEmail).not.toHaveBeenCalled();
+    });
+
+    /**
+     * The owner is never suspended, so is never a legitimate target here. The
+     * check is asserted anyway so the invariant does not depend on the owner's
+     * status happening to be right.
+     */
+    it('should refuse to unsuspend the owner', async () => {
+      mockUserRepository.findUserForAdmin.mockResolvedValue({
+        id: 'owner-1',
+        email: 'owner@test.com',
+        name: 'Owner',
+        role: UserRole.OWNER,
+        status: UserStatus.SUSPEND,
+        unsuspend: mockUnsuspend
+      });
+
+      await expect(useCase.execute('admin-1', 'owner-1')).rejects.toThrow(
+        expect.objectContaining({
+          code: AuthorizationErrorCode.OWNER_IMMUTABLE,
+          statusCode: 403
+        })
       );
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
