@@ -1,7 +1,9 @@
+import { AuthorizationErrors } from '@features/authorization/domain/errors/authorization-errors';
+import { Permission } from '@features/authorization/domain/enums/permission.enum';
+import { ProtectedAction } from '@features/authorization/domain/owner-protection.policy';
 import { SecurityErrors } from '@features/security/errors/security-errors';
 import { UserErrors } from '@features/users/domain/errors/user-errors';
 import {
-  adminForbiddenResponse,
   badRequestResponse,
   conflictResponse,
   csrfForbiddenResponse,
@@ -13,6 +15,7 @@ import {
   validationResponse
 } from '@presentation/swagger/api-error.catalog';
 import {
+  ApiErrorExample,
   ApiErrorResponses,
   ApiNoContent,
   ApiSuccessResponse,
@@ -68,14 +71,42 @@ const userNotFound = () =>
     'No account exists with this identifier'
   );
 
-/** `403` for the read-only administrative endpoints, which bypass CSRF. */
-const adminReadForbidden = () =>
+/** `403` for a route gated on a permission. */
+const permissionRequired = (
+  permission: Permission,
+  ...extra: ApiErrorExample[]
+) =>
   forbiddenResponse(
-    'The caller is authenticated but does not hold the `ADMIN` role.',
+    `The caller is authenticated but does not hold \`${permission}\`. Holding the \`ADMIN\` role is not sufficient on its own — an administrator reaches only what has been granted to them. The owner satisfies this without evaluation.`,
     errorExample(
       SecurityErrors.accessDenied(),
-      'The account is not an administrator'
-    )
+      `The account does not hold \`${permission}\``
+    ),
+    ...extra
+  );
+
+/** `403` for a state-changing route, where CSRF can fail for the same status. */
+const permissionOrCsrfForbidden = (
+  permission: Permission,
+  ...extra: ApiErrorExample[]
+) =>
+  forbiddenResponse(
+    `The request was authenticated but rejected: the caller does not hold \`${permission}\`, the target is protected, or the CSRF check failed.`,
+    errorExample(
+      SecurityErrors.accessDenied(),
+      `The account does not hold \`${permission}\``
+    ),
+    errorExample(
+      SecurityErrors.invalidCsrfToken(),
+      'Missing or mismatched x-csrf-token header'
+    ),
+    ...extra
+  );
+
+const ownerImmutable = (action: ProtectedAction) =>
+  errorExample(
+    AuthorizationErrors.ownerImmutable(action),
+    'The target is the owner, who can never be moderated through the API'
   );
 
 export const ApiGetProfile = () =>
@@ -86,7 +117,7 @@ export const ApiGetProfile = () =>
       description: [
         'Returns the account behind the `access_token` cookie. There is no way to read another user through this endpoint — administrators use `GET /v1/admin/users/{id}`.',
         '',
-        'The projection is deliberately narrow: the password hash, the moderation `status` and the soft-deletion instant are not exposed. `role` is included because it determines whether `/v1/admin/*` is reachable.'
+        'The projection is deliberately narrow: the password hash, the moderation `status` and the soft-deletion instant are not exposed. `role` is included because it names the tier the account sits in; what an administrator can actually reach is decided by their permissions, readable at `GET /v1/admin/permissions/me`.'
       ].join('\n')
     }),
     ApiAuthenticated(),
@@ -156,7 +187,9 @@ export const ApiDeleteAccount = () =>
         '',
         'The record is retained with a deletion timestamp rather than erased, and the email and username stay reserved — they cannot be re-registered.',
         '',
-        'There is no undo through the API. Requires authentication and a valid `x-csrf-token` header.'
+        'There is no undo through the API. Requires authentication and a valid `x-csrf-token` header.',
+        '',
+        'The owner is refused here even on their own account: the system must always have exactly one, and no endpoint can appoint a replacement afterwards.'
       ].join('\n')
     }),
     ApiCsrfProtected(),
@@ -166,7 +199,7 @@ export const ApiDeleteAccount = () =>
     }),
     ApiErrorResponses(PATH.DELETE_ACCOUNT, [
       unauthorizedResponse(),
-      csrfForbiddenResponse(),
+      csrfForbiddenResponse(ownerImmutable(ProtectedAction.DELETE)),
       notFoundResponse(
         'The authenticated account no longer exists — it has already been deleted.',
         userNotFound()
@@ -185,7 +218,7 @@ export const ApiAdminGetAllUsers = () =>
         '',
         'Unlike the self-service profile, each entry carries the moderation `status` and both registry timestamps.',
         '',
-        'Requires authentication and the `ADMIN` role.'
+        'Requires authentication and the `USER_READ` permission. Holding the `ADMIN` role is not sufficient on its own.'
       ].join('\n')
     }),
     ApiAuthenticated(),
@@ -204,7 +237,7 @@ export const ApiAdminGetAllUsers = () =>
         )
       ),
       unauthorizedResponse(),
-      adminReadForbidden(),
+      permissionRequired(Permission.USER_READ),
       validationResponse('A pagination parameter is out of range.', [
         validationError('limit', 'limit must not be greater than 100')
       ]),
@@ -220,7 +253,7 @@ export const ApiAdminGetUser = () =>
       description: [
         'Returns the administrative projection of one account, including soft-deleted ones.',
         '',
-        'Requires authentication and the `ADMIN` role.'
+        'Requires authentication and the `USER_READ` permission. Holding the `ADMIN` role is not sufficient on its own.'
       ].join('\n')
     }),
     ApiAuthenticated(),
@@ -232,7 +265,7 @@ export const ApiAdminGetUser = () =>
     }),
     ApiErrorResponses(PATH.ADMIN_GET, [
       unauthorizedResponse(),
-      adminReadForbidden(),
+      permissionRequired(Permission.USER_READ),
       notFoundResponse(
         'No account exists with this identifier.',
         userNotFound()
@@ -256,7 +289,7 @@ export const ApiAdminSuspendUser = () =>
         '',
         'Reverse it with `PATCH /v1/admin/users/{id}/unsuspend`.',
         '',
-        'Requires authentication, the `ADMIN` role and a valid `x-csrf-token` header.'
+        'Requires authentication, the `USER_SUSPEND` permission and a valid `x-csrf-token` header. The owner can never be suspended.'
       ].join('\n')
     }),
     ApiCsrfProtected(),
@@ -275,7 +308,10 @@ export const ApiAdminSuspendUser = () =>
     }),
     ApiErrorResponses(PATH.ADMIN_SUSPEND, [
       unauthorizedResponse(),
-      adminForbiddenResponse(),
+      permissionOrCsrfForbidden(
+        Permission.USER_SUSPEND,
+        ownerImmutable(ProtectedAction.SUSPEND)
+      ),
       notFoundResponse(
         'No account exists with this identifier.',
         userNotFound()
@@ -308,7 +344,7 @@ export const ApiAdminUnsuspendUser = () =>
         '',
         'Only `SUSPEND` is a legal starting point. Attempting this on an active, deactivated or still-unverified account returns `409 INVALID_STATUS_TRANSITION`, whose `error.meta` reports the states involved.',
         '',
-        'Requires authentication, the `ADMIN` role and a valid `x-csrf-token` header.'
+        'Requires authentication, the `USER_UNSUSPEND` permission and a valid `x-csrf-token` header. The owner is never suspended, so is never a target here.'
       ].join('\n')
     }),
     ApiCsrfProtected(),
@@ -319,7 +355,10 @@ export const ApiAdminUnsuspendUser = () =>
     }),
     ApiErrorResponses(PATH.ADMIN_UNSUSPEND, [
       unauthorizedResponse(),
-      adminForbiddenResponse(),
+      permissionOrCsrfForbidden(
+        Permission.USER_UNSUSPEND,
+        ownerImmutable(ProtectedAction.UNSUSPEND)
+      ),
       notFoundResponse(
         'No account exists with this identifier.',
         userNotFound()

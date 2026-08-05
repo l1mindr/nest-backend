@@ -51,20 +51,37 @@ export class AuthFactory {
     options: AuthenticatedOptions = {},
     dataSource?: DataSource
   ): Promise<AuthenticatedUserContext> {
-    let context: CreateUserContext;
-
-    if (options.withRole === UserRole.ADMIN) {
-      if (!dataSource) {
-        throw new Error('A DataSource is required to create an admin user.');
-      }
-
-      context = await UserFactory.admin(app, dataSource, options.overrides);
-    } else {
-      context = await UserFactory.register(app, options.overrides);
-    }
+    const context = await this.create(app, options, dataSource);
 
     await UserFactory.verifyEmail(app, context.user.email);
 
     return this.login(context, options.loginBy);
+  }
+
+  private static create(
+    app: INestApplication,
+    options: AuthenticatedOptions,
+    dataSource?: DataSource
+  ): Promise<CreateUserContext> {
+    if (options.withRole === UserRole.USER || options.withRole === undefined) {
+      return UserFactory.register(app, options.overrides);
+    }
+
+    if (!dataSource) {
+      throw new Error(
+        `A DataSource is required to create a ${options.withRole} account.`
+      );
+    }
+
+    if (options.withRole === UserRole.OWNER) {
+      return UserFactory.owner(app, dataSource, options.overrides);
+    }
+
+    return UserFactory.admin(
+      app,
+      dataSource,
+      options.overrides,
+      options.withPermissions
+    );
   }
 }

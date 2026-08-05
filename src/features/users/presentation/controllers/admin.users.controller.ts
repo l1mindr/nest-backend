@@ -1,6 +1,6 @@
 import { IRequest } from '@presentation/interfaces/custom-request.interface';
-import { Roles } from '@features/security/decorators/roles.decorator';
-import { RolesGuard } from '@features/security/guards/roles.guard';
+import { Permission } from '@features/authorization/domain/enums/permission.enum';
+import { RequirePermissions } from '@features/security/decorators/require-permissions.decorator';
 import { IdDto } from '@presentation/dto/id.dto';
 import { Serialize } from '@presentation/interceptors/decorators/serialize.decorator';
 import {
@@ -14,13 +14,11 @@ import {
   Patch,
   Post,
   Query,
-  Req,
-  UseGuards
+  Req
 } from '@nestjs/common';
 import { AdminUsersListRequestDto } from '../dto/request/admin-users-list.request.dto';
 import { SuspendUserRequestDto } from '../dto/request/suspend-user.request.dto';
 import { AdminUserResponseDto } from '../dto/response/admin-user.response.dto';
-import { UserRole } from '../../domain/enums/user-role.enum';
 import { ApiTagName } from '@presentation/swagger/openapi.constants';
 import { ApiTags } from '@nestjs/swagger';
 import {
@@ -39,13 +37,19 @@ import {
   ApiAdminUnsuspendUser
 } from '../swagger/users.swagger';
 
+/**
+ * Administration of ordinary user accounts.
+ *
+ * Each route declares the permission it needs rather than the role it admits,
+ * so what an administrator can reach here is decided by their grants. A
+ * read-only administrator holds `USER_READ` and nothing else; a moderator adds
+ * `USER_SUSPEND`. The owner satisfies every one of them without evaluation.
+ */
 @Controller({
   path: 'admin/users',
   version: '1'
 })
 @ApiTags(ApiTagName.ADMIN_USERS)
-@UseGuards(RolesGuard)
-@Roles(UserRole.ADMIN)
 export class AdminUsersController {
   constructor(
     @Inject(ADMIN_USERS_USE_CASE)
@@ -59,6 +63,7 @@ export class AdminUsersController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
+  @RequirePermissions(Permission.USER_READ)
   @ApiAdminGetAllUsers()
   async listUsers(@Query() query: AdminUsersListRequestDto) {
     const { items, nextCursor } = await this.adminUsersUseCase.list(
@@ -74,6 +79,7 @@ export class AdminUsersController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
+  @RequirePermissions(Permission.USER_READ)
   @ApiAdminGetUser()
   @Serialize(AdminUserResponseDto)
   getUser(
@@ -85,6 +91,7 @@ export class AdminUsersController {
 
   @Post(':id/suspend')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @RequirePermissions(Permission.USER_SUSPEND)
   @ApiAdminSuspendUser()
   async suspendUser(
     @Param() { id }: IdDto,
@@ -96,6 +103,7 @@ export class AdminUsersController {
 
   @Patch(':id/unsuspend')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @RequirePermissions(Permission.USER_UNSUSPEND)
   @ApiAdminUnsuspendUser()
   async unsuspendUser(
     @Param() { id }: IdDto,

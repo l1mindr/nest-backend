@@ -41,10 +41,16 @@ export class UserRepository implements IUserRepository {
     return repository.save(repository.create(dto));
   }
 
+  /**
+   * Existence check. `role` is carried alongside the identifier because the
+   * callers that use this to confirm an account exists are also the ones that
+   * must refuse to act on the owner, and a second query for one column would be
+   * a round trip spent on nothing.
+   */
   async findUserById(id: string): Promise<User | null> {
     return this.userRepo.findOne({
       where: { id },
-      select: { id: true }
+      select: { id: true, role: true }
     });
   }
 

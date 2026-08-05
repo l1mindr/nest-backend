@@ -1,3 +1,7 @@
+import {
+  OwnerProtectionPolicy,
+  ProtectedAction
+} from '@features/authorization/domain/owner-protection.policy';
 import { EmailService } from '@infrastructure/email/email.service';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
@@ -31,6 +35,8 @@ export class UnsuspendUserUseCase implements IUnsuspendUserUseCase {
     if (!user) {
       throw UserErrors.userNotFound(userId);
     }
+
+    OwnerProtectionPolicy.assertNotOwner(user, ProtectedAction.UNSUSPEND);
 
     const previousStatus = user.status;
 
