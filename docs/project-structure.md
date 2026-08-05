@@ -99,6 +99,7 @@ src/
 │
 ├── features/                       # Business feature modules
 │   ├── auth/
+│   ├── authorization/
 │   ├── coin-tracker/
 │   ├── security/
 │   ├── sessions/

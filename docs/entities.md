@@ -110,10 +110,15 @@ Invalid transitions throw `INVALID_STATUS_TRANSITION` domain error. Status logic
 
 ### UserRole
 
-| Value | Description |
-|-------|-------------|
-| `USER` | Standard user (default) |
-| `ADMIN` | Administrator |
+| Value | Rank | Description |
+|-------|------|-------------|
+| `OWNER` | 30 | Sole owner; bypasses every authorization check |
+| `ADMIN` | 20 | Administrator; reaches only what has been granted |
+| `USER` | 10 | Standard user (default) |
+
+Compared by rank through `RoleHierarchy`, not by equality. Granularity within
+the administrator tier is expressed by permissions, which are data — see
+[Authorization](authorization.md).
 
 ---
 
