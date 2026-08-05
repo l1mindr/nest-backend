@@ -1,0 +1,628 @@
+================================================================================
+AUTHORIZATION REDESIGN REPORT
+nest-backend — modular monolith (NestJS 11 / TypeORM / PostgreSQL)
+Branch: master   Base: c4e6f23   Head: f3fd118   Commits: 10
+================================================================================
+
+
+--------------------------------------------------------------------------------
+1. OVERVIEW OF THE NEW AUTHORIZATION ARCHITECTURE
+--------------------------------------------------------------------------------
+
+The system no longer asks "what role is this caller?" It asks "does this caller
+hold the permission this route needs?" Roles remain, but only to express three
+tiers, and only one of them — the owner — short-circuits the question.
+
+A new feature module, `src/features/authorization/`, owns the model. It follows
+the layer layout every other feature uses (domain / application / infrastructure
+/ presentation) rather than inventing a shape of its own.
+
+  Request path
+  ------------
+    JwtGuard          authenticates, attaches req.user { id, role }
+        ↓
+    RateLimitGuard
+        ↓
+    RolesGuard        only for routes reserved to a tier outright (@Roles)
+        ↓
+    PermissionGuard   reads @RequirePermissions, asks the evaluation service
+        ↓
+    CsrfGuard
+        ↓
+    Controller → Use case
+
+  Decision path (PermissionEvaluationService)
+  -------------------------------------------
+    owner?  ──────────────────────────────► allow, with no database lookup
+       │ no
+       ▼
+    load the grants held by this account
+       │
+       ▼
+    holds every required permission?  ──► allow / deny (403 ACCESS_DENIED)
+
+Four properties are worth calling out, because they are what make the design
+survive future change:
+
+  * One decision point. `PermissionEvaluationService` is the only component that
+    answers a permission question. The guard holds no rule of its own, so a
+    decision reached in a guard and one reached inside a use case cannot drift
+    apart.
+
+  * No per-role branch. Roles below administrator hold no grants, so they fall
+    out of the same evaluation as denied. Nothing has to be restated when a tier
+    is added.
+
+  * Owner bypass expressed once. `RoleHierarchy.satisfies` compares by rank, not
+    equality, so `@Roles(ADMIN)` is also satisfied by the owner. There is no
+    `if (role === OWNER)` anywhere outside `RoleHierarchy`.
+
+  * Resource-level invariants live with the use case. A guard knows which route
+    was called but not which record is being acted on. Rules of the form "not
+    against the owner", "not against yourself" are therefore preconditions
+    asserted by the use case, funnelled through one policy and one shared
+    account-resolution service so a new use case cannot forget one.
+
+
+--------------------------------------------------------------------------------
+2. ROLE HIERARCHY
+--------------------------------------------------------------------------------
+
+  Role     Rank   Reach
+  -----    ----   ---------------------------------------------------------------
+  OWNER      30   Exactly one exists. Bypasses every authorization check.
+  ADMIN      20   Reaches only what has been granted. The role alone grants
+                  nothing at all.
+  USER       10   Reaches only its own resources. Behaviour unchanged.
+
+Ranking lives in `src/features/authorization/domain/role-hierarchy.ts`:
+
+    satisfies(role, minimum)        rank(role) >= rank(minimum)
+    bypassesAuthorization(role)     role === OWNER — the single owner short-circuit
+    isAdministrative(role)          rank(role) >= ADMIN_RANK
+
+The hierarchy is code, not data, deliberately: a tier that could be reordered at
+runtime would let a data change grant privilege. Granularity *within* the
+administrator tier is data, which is exactly where flexibility is wanted.
+
+USER behaviour is untouched. Ownership is still enforced the way it always was —
+by scoping queries to `req.user.id` — and no new abstraction was introduced for
+it, because none was needed.
+
+
+--------------------------------------------------------------------------------
+3. PERMISSION MODEL
+--------------------------------------------------------------------------------
+
+Single source of truth: the `Permission` enum
+(`src/features/authorization/domain/enums/permission.enum.ts`).
+
+`PERMISSION_CATALOG` is typed `Readonly<Record<Permission, string>>`, so adding
+an enum member without describing it is a compile error. That is what keeps the
+catalog from drifting away from the enum.
+
+  Permission         Grants
+  ----------------   ------------------------------------------------------------
+  USER_READ          Read any user account and list the directory
+  USER_CREATE        Create accounts on behalf of others               (reserved)
+  USER_UPDATE        Edit the profile of any user account
+  USER_DELETE        Delete any user account                           (reserved)
+  USER_SUSPEND       Suspend a user account and revoke its sessions
+  USER_UNSUSPEND     Lift a suspension
+  ADMIN_READ         Read the administrator directory and the catalog
+  ADMIN_UPDATE       Edit another administrator's profile
+  ROLE_ASSIGN        Grant and revoke permissions on other administrators
+  AUDIT_READ         Read the audit trail                              (reserved)
+  SYSTEM_SETTINGS    Change system-wide settings                       (reserved)
+
+"Reserved" means seeded in the catalog and grantable, but no route demands one
+yet. They are named in the requested model and cost nothing to carry; the
+endpoint that eventually needs one arrives without a second round of migrations
+and grants.
+
+  Permission matrix
+  -----------------
+  GET    /v1/admin/users                        USER_READ
+  GET    /v1/admin/users/:id                    USER_READ
+  POST   /v1/admin/users/:id/suspend            USER_SUSPEND
+  PATCH  /v1/admin/users/:id/unsuspend          USER_UNSUSPEND
+  GET    /v1/admin/admins                       ADMIN_READ
+  GET    /v1/admin/admins/:id                   ADMIN_READ
+  PATCH  /v1/admin/admins/:id                   ADMIN_UPDATE
+  POST   /v1/admin/admins/:id/permissions       ROLE_ASSIGN
+  DELETE /v1/admin/admins/:id/permissions       ROLE_ASSIGN
+  GET    /v1/admin/permissions                  ADMIN_READ
+  GET    /v1/admin/permissions/me               authenticated
+  POST   /v1/admin/admins                       OWNER only
+  DELETE /v1/admin/admins/:id                   OWNER only
+  POST   /v1/admin/admins/:id/activate          OWNER only
+  POST   /v1/admin/admins/:id/deactivate        OWNER only
+  POST   /v1/admin/admins/:id/suspend           OWNER only
+  PATCH  /v1/admin/admins/:id/unsuspend         OWNER only
+
+  Administrator archetypes — descriptions of a grant set, not schema types
+  -----------------------------------------------------------------------
+  Read-only   USER_READ
+  Support     USER_READ, USER_UPDATE
+  Moderator   USER_READ, USER_SUSPEND
+  Super       every permission — still below the owner
+
+Requirements are conjunctive: `@RequirePermissions(A, B)` demands both.
+
+Freshness: grants are read per request and never carried in the access token, so
+a revocation lands on the target's very next request rather than at the next
+token rotation. The lookup only happens on routes that declare a requirement, so
+the ordinary authenticated path pays nothing for it — which matters given the
+recent latency work on that path (LAT-004, LAT-009).
+
+
+--------------------------------------------------------------------------------
+4. DATABASE CHANGES
+--------------------------------------------------------------------------------
+
+Migration: 1700000005000-CreateAuthorizationTables
+
+  a) user_role_enum rebuilt as ('OWNER', 'ADMIN', 'USER')
+
+     Rebuilt rather than extended with ALTER TYPE ... ADD VALUE, because
+     migrations run inside a transaction and PostgreSQL refuses to *use* an enum
+     value added in that same transaction — which the single-owner index below
+     has to do. Rebuilding keeps the whole migration atomic.
+
+     Existing rows keep their ADMIN or USER role. The column default stays USER.
+
+  b) Partial unique index — the database half of the single-owner invariant
+
+       CREATE UNIQUE INDEX "uq_user_single_owner"
+         ON "user" ("role") WHERE "role" = 'OWNER';
+
+     Every row matched by the predicate holds the same value, so uniqueness on
+     that value means at most one such row can exist. Two concurrent promotions
+     cannot both commit, whatever the application layer believes.
+
+  c) permission — the catalog, reference data seeded by migration
+
+       code         varchar(64)  PK
+       description  varchar(255) NOT NULL
+
+     Seeded with the 11 codes above as SQL literals rather than derived from
+     PERMISSION_CATALOG: a migration is history and must keep producing the same
+     schema however the catalog is edited later.
+
+  d) admin_permission — one row per permission granted to one administrator
+
+       id           uuid PK  default uuid_generate_v4()
+       userId       uuid     FK → user(id)        ON DELETE CASCADE
+       permission   varchar  FK → permission(code) ON DELETE RESTRICT
+       grantedById  uuid     FK → user(id)        ON DELETE SET NULL, nullable
+       grantedAt    timestamp default now()
+       UNIQUE (userId, permission)
+       INDEX (userId)
+
+     The foreign key to the catalog means a grant can only ever name a
+     permission the system knows about — a bug or a stray write cannot invent
+     privilege from an arbitrary string. `grantedById` is retained so a
+     privilege can be traced back to whoever handed it out.
+
+Verified against a real PostgreSQL instance: up, second-owner rejection at the
+database level, down (owner demoted to ADMIN before the enum shrinks), and
+re-up, all on a scratch database.
+
+Test-infrastructure consequence: `truncateDatabase` now holds back reference
+tables, since truncating `permission` would leave every later spec without the
+catalog its foreign keys point at.
+
+
+--------------------------------------------------------------------------------
+5. NEW ENDPOINTS
+--------------------------------------------------------------------------------
+
+AdminAccountsController — /v1/admin/admins
+
+  GET    /                        ADMIN_READ    List administrators + grants
+  GET    /:id                     ADMIN_READ    One administrator + grants
+  POST   /                        OWNER         Promote an active account
+  DELETE /:id                     OWNER         Withdraw administrator status
+  PATCH  /:id                     ADMIN_UPDATE  Edit an administrator's profile
+  POST   /:id/activate            OWNER         Restore a deactivated admin
+  POST   /:id/deactivate          OWNER         Switch off access, end sessions
+  POST   /:id/suspend             OWNER         Suspend (reuses the shared flow)
+  PATCH  /:id/unsuspend           OWNER         Lift the suspension
+  POST   /:id/permissions         ROLE_ASSIGN   Grant permissions (idempotent)
+  DELETE /:id/permissions         ROLE_ASSIGN   Revoke permissions (idempotent)
+
+PermissionsController — /v1/admin/permissions
+
+  GET    /                        ADMIN_READ    The permission catalog
+  GET    /:me                     authenticated What the caller can do right now
+
+Two design decisions here deviate from a literal reading of the brief. Both are
+deliberate, and both are narrower rather than wider than what was asked:
+
+  * "Create admin" promotes an existing active account instead of registering a
+    new one. An administrator is an ordinary account holding a role, not a
+    separate identity, so registration, email verification and password handling
+    stay on the single path they already follow. A create-a-user-with-credentials
+    endpoint would duplicate that path and, worse, would let one account mint
+    credentials for another — a straightforward account-takeover primitive. The
+    brief also required that existing authentication remain unchanged, which
+    this respects.
+
+  * "Delete admin" withdraws the role rather than destroying the account: role
+    set to USER, all grants deleted, all sessions revoked, in one transaction.
+    Removing administrative reach and deleting a person's data are separate
+    decisions; merging them would mean the owner could not demote a colleague
+    without destroying their account. Account deletion stays where it already
+    lives, on `DELETE /v1/user/delete-account`.
+
+`GET /v1/admin/permissions/me` was not requested. It is included because a
+client that renders navigation from the same answer the server enforces cannot
+drift out of step with it, and because the alternative — clients inferring reach
+from the role — is exactly the coupling this redesign removes.
+
+
+--------------------------------------------------------------------------------
+6. SECURITY IMPROVEMENTS
+--------------------------------------------------------------------------------
+
+  Vertical escalation
+    * ROLE_ASSIGN alone is not equivalent to every permission. A caller can only
+      delegate permissions they themselves hold (`assertCanDelegate`). Without
+      that limit, an administrator could grant the rest to a colleague and have
+      them grant those back.
+    * The same limit applies to revocation, so a narrowly-scoped administrator
+      cannot disarm a colleague whose reach exceeds their own.
+    * Self-targeting is refused across every administrative operation by a
+      single rule (`assertNotSelf`), covering self-promotion, self-granting and
+      self-demotion at once rather than one call site at a time.
+    * The administrator lifecycle is owner-only by role, so no permission set
+      unlocks minting administrators.
+
+  Owner integrity
+    * Exactly one owner, enforced both by the application and by a partial
+      unique index — the database constraint holds even under a race the
+      application layer loses.
+    * OWNER is unreachable through the API: no endpoint accepts a role, and
+      `assertRoleAssignable` stands in front of the one place a role is written.
+    * The owner cannot be suspended, unsuspended, demoted, deactivated, edited
+      by another account, or deleted — refused even on their own account, since
+      no endpoint could appoint a replacement.
+    * The owner remains an ordinary account to themselves: password change,
+      profile update and email verification are unaffected.
+
+  Horizontal escalation
+    * Unchanged and still correct: user-facing reads and writes are scoped to
+      `req.user.id`, so one user cannot address another's resources.
+
+  Token / session freshness
+    * Grants are never carried in the access token, so revocation is immediate.
+    * Demotion and deactivation revoke all sessions, because a token issued
+      earlier carries the role the account no longer holds.
+
+  Information disclosure
+    * `403 ACCESS_DENIED` carries no metadata. Which permission was missing
+      belongs in the logs, not in a response an attacker can read. The
+      authorization-specific errors that *do* explain themselves
+      (OWNER_IMMUTABLE, PERMISSION_NOT_HELD, …) only fire after the caller has
+      already passed the permission gate.
+
+  Data integrity
+    * A grant can only name a permission in the catalog (foreign key), and DTO
+      validation rejects unknown codes before that.
+    * Grants are unique per (administrator, permission) and idempotent, so a
+      replayed request is never an error and never duplicates state.
+
+  Auditability
+    * `grantedById` records who handed out each privilege.
+    * Six new log events: admin role granted/revoked, status changed, profile
+      updated, permissions granted/revoked.
+
+
+--------------------------------------------------------------------------------
+7. BREAKING CHANGES
+--------------------------------------------------------------------------------
+
+One behavioural change, and it is the point of the redesign:
+
+  * An account holding ADMIN no longer reaches `/v1/admin/*` by virtue of the
+    role. It reaches exactly what has been granted to it. Existing ADMIN
+    accounts therefore have no access until permissions are granted, or until
+    one account is promoted to OWNER.
+
+    Migration path for an existing deployment:
+      1. Promote one verified, active account to OWNER (see §12).
+      2. As that owner, grant each existing administrator the permissions they
+         actually need — `GET /v1/admin/permissions` lists the options.
+
+No API contract was broken:
+
+  * No route was removed, renamed or re-shaped.
+  * No response body changed. `role` still serializes as a string and still
+    appears in the same DTOs; `OWNER` is simply a new possible value.
+  * Status codes are unchanged — an insufficiently privileged caller still
+    receives `403 ACCESS_DENIED`, exactly as before.
+  * Authentication is untouched: same cookies, same tokens, same flows.
+  * USER behaviour is untouched end to end.
+
+Internal (non-API) changes a maintainer should know about:
+
+  * `IUserRepository` gains `findUsersByRole` and `updateRole`.
+  * `findUserById` now selects `role` alongside `id`, so the callers using it as
+    an existence check can refuse to act on the owner without a second query.
+  * `UsersModule` additionally exports the suspend and unsuspend use cases.
+  * `truncateDatabase` (test helper) holds back reference tables.
+
+
+--------------------------------------------------------------------------------
+8. FUTURE EXTENSIBILITY ANALYSIS
+--------------------------------------------------------------------------------
+
+  Add a permission to an administrator          data only — one API call
+  Remove a permission                           data only — one API call, takes
+                                                effect on the next request
+  Introduce a new permission                    enum member + catalog description
+                                                + seed migration. The route that
+                                                requires it is code either way,
+                                                so this is the floor, not
+                                                overhead.
+  Protect an existing route                     one decorator, no other change
+  Add a new administrative route                declare @RequirePermissions; the
+                                                guard and service are already
+                                                wired globally
+
+  Named custom admin roles (e.g. SUPPORT_ADMIN bundling permissions)
+    An `admin_role` / `admin_role_permission` pair plus one extra branch in
+    `PermissionEvaluationService` to union role-derived grants with per-account
+    ones. Controllers, guards, decorators, DTOs and use cases are unaffected,
+    because they speak in permissions rather than roles. This is the specific
+    "evolve without another redesign" requirement, and the seam is the
+    evaluation service.
+
+  A fourth tier
+    Add the enum value, give it a rank, and grant it permissions. No call site
+    changes: `RolesGuard` compares by rank and `PermissionGuard` does not know
+    roles exist beyond the owner short-circuit.
+
+  Resource-scoped permissions (e.g. "moderate only region X")
+    Not supported, and deliberately not designed for. The honest extension point
+    is a scope column on `admin_permission` plus a predicate in the evaluation
+    service. Flagged rather than built, since nothing in the brief needs it and
+    speculative generality here would cost clarity now.
+
+  Caching
+    Currently one indexed lookup per permission-gated request. If that ever
+    shows up in a profile, the cache belongs behind
+    `IAdminPermissionRepository.findByUserId` with invalidation on grant,
+    revoke and demotion — a single seam. Not done now: the query is on the
+    administrative path only, and immediate revocation is worth more than a
+    micro-optimisation nobody has measured.
+
+
+--------------------------------------------------------------------------------
+9. FILES ADDED (50)
+--------------------------------------------------------------------------------
+
+  Domain
+    src/features/authorization/domain/enums/permission.enum.ts
+    src/features/authorization/domain/permission.catalog.ts
+    src/features/authorization/domain/role-hierarchy.ts
+    src/features/authorization/domain/owner-protection.policy.ts
+    src/features/authorization/domain/entities/permission-definition.entity.ts
+    src/features/authorization/domain/entities/admin-permission.entity.ts
+    src/features/authorization/domain/errors/authorization-error-code.enum.ts
+    src/features/authorization/domain/errors/authorization-errors.ts
+
+  Application
+    src/features/authorization/application/interfaces/authorization.interface.ts
+    src/features/authorization/application/mappers/admin-account.mapper.ts
+    src/features/authorization/application/services/permission-evaluation.service.ts
+    src/features/authorization/application/services/admin-account.service.ts
+    src/features/authorization/application/use-cases/admin-directory.use-case.ts
+    src/features/authorization/application/use-cases/grant-admin-role.use-case.ts
+    src/features/authorization/application/use-cases/revoke-admin-role.use-case.ts
+    src/features/authorization/application/use-cases/change-admin-status.use-case.ts
+    src/features/authorization/application/use-cases/update-admin.use-case.ts
+    src/features/authorization/application/use-cases/grant-permissions.use-case.ts
+    src/features/authorization/application/use-cases/revoke-permissions.use-case.ts
+    src/features/authorization/application/use-cases/list-permissions.use-case.ts
+
+  Infrastructure
+    src/features/authorization/infrastructure/repositories/permission-catalog.repository.ts
+    src/features/authorization/infrastructure/repositories/admin-permission.repository.ts
+    src/infrastructure/databases/postgres/migrations/1700000005000-CreateAuthorizationTables.ts
+
+  Presentation
+    src/features/authorization/presentation/controllers/admin-accounts.controller.ts
+    src/features/authorization/presentation/controllers/permissions.controller.ts
+    src/features/authorization/presentation/dto/request/admin-list.request.dto.ts
+    src/features/authorization/presentation/dto/request/create-admin.request.dto.ts
+    src/features/authorization/presentation/dto/request/permission-set.request.dto.ts
+    src/features/authorization/presentation/dto/request/update-admin.request.dto.ts
+    src/features/authorization/presentation/dto/response/admin-account.response.dto.ts
+    src/features/authorization/presentation/dto/response/admin-accounts-list.response.dto.ts
+    src/features/authorization/presentation/dto/response/effective-permissions.response.dto.ts
+    src/features/authorization/presentation/dto/response/permission-catalog.response.dto.ts
+    src/features/authorization/presentation/dto/response/permission-definition.response.dto.ts
+    src/features/authorization/presentation/swagger/authorization.swagger.ts
+    src/features/authorization/authorization.module.ts
+
+  Security (guards and decorators stay where the existing ones live)
+    src/features/security/decorators/require-permissions.decorator.ts
+    src/features/security/guards/permission.guard.ts
+
+  Tests (12)
+    src/features/authorization/domain/__tests__/role-hierarchy.spec.ts
+    src/features/authorization/domain/__tests__/owner-protection.policy.spec.ts
+    src/features/authorization/application/services/__tests__/permission-evaluation.service.spec.ts
+    src/features/authorization/application/services/__tests__/admin-account.service.spec.ts
+    src/features/authorization/application/use-cases/__tests__/grant-admin-role.use-case.spec.ts
+    src/features/authorization/application/use-cases/__tests__/revoke-admin-role.use-case.spec.ts
+    src/features/authorization/application/use-cases/__tests__/change-admin-status.use-case.spec.ts
+    src/features/authorization/application/use-cases/__tests__/grant-permissions.use-case.spec.ts
+    src/features/authorization/application/use-cases/__tests__/revoke-permissions.use-case.spec.ts
+    src/features/security/guards/__tests__/permission.guard.spec.ts
+    src/features/security/guards/__tests__/roles.guard.spec.ts
+    test/v1/authorization-v1.e2e-spec.ts
+
+
+--------------------------------------------------------------------------------
+10. FILES MODIFIED (34)
+--------------------------------------------------------------------------------
+
+  Source (14)
+    src/core/errors/error-domain.enum.ts .............. + AUTHORIZATION domain
+    src/features/features.module.ts ................... + AuthorizationModule
+    src/features/security/security.module.ts .......... + PermissionGuard (global)
+    src/features/security/guards/roles.guard.ts ....... compares by rank
+    src/features/users/domain/enums/user-role.enum.ts . + OWNER
+    src/features/users/users.module.ts ................ exports suspend/unsuspend
+    src/features/users/application/interfaces/users.interface.ts
+                                                        + findUsersByRole, updateRole
+    src/features/users/infrastructure/repositories/user.repository.ts
+                                                        + role-scoped queries
+    src/features/users/application/use-cases/suspend-user.use-case.ts
+    src/features/users/application/use-cases/unsuspend-user.use-case.ts
+    src/features/users/application/use-cases/delete-account.use-case.ts
+                                                        owner invariants
+    src/features/users/presentation/controllers/admin.users.controller.ts
+                                                        permission-driven
+    src/features/users/presentation/swagger/users.swagger.ts
+    src/infrastructure/logging/logging.constants.ts ... + 6 events
+    src/presentation/swagger/openapi.constants.ts ..... + API tag
+
+  Tests (8)
+    src/features/users/infrastructure/repositories/__tests__/user.repository.spec.ts
+    src/features/users/application/use-cases/__tests__/suspend-user.use-case.spec.ts
+    src/features/users/application/use-cases/__tests__/unsuspend-user.use-case.spec.ts
+    src/features/users/application/use-cases/__tests__/delete-account.use-case.spec.ts
+    test/factories/user.factory.ts ............. + owner(), grant(), permissions
+    test/factories/auth.factory.ts ............. + OWNER and permission support
+    test/utils/types/auth.types.ts ............. + withPermissions
+    test/helpers/postgresql.helper.ts .......... holds back reference tables
+    test/setup/migrations.ts ................... registers the new migration
+
+  Documentation (10)
+    README.md, docs/authorization.md (rewritten), docs/api.md,
+    docs/architecture.md, docs/database.md, docs/diagrams.md,
+    docs/entities.md, docs/modules.md, docs/project-structure.md,
+    docs/security.md
+
+
+--------------------------------------------------------------------------------
+11. TEST COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+
+  Unit    89 suites   768 tests   all passing   (baseline was 78 / 663)
+  E2E     17 suites   171 tests   all passing   (baseline was 16 / 140)
+
+  +105 unit tests, +31 E2E tests. No pre-existing test was deleted or weakened.
+
+  Every scenario the brief listed is covered:
+
+    ✓ owner bypass ................ permission-evaluation.service.spec (4 cases),
+                                    authorization-v1.e2e (3 cases)
+    ✓ owner uniqueness ............ admin-account.service.spec,
+                                    authorization-v1.e2e (DB index rejects a
+                                    second owner)
+    ✓ admin permission evaluation . permission-evaluation.service.spec (6 cases)
+    ✓ permission denial ........... permission-evaluation.service.spec,
+                                    permission.guard.spec, e2e
+    ✓ permission grant ............ grant-permissions.use-case.spec, e2e
+    ✓ permission revoke ........... revoke-permissions.use-case.spec, e2e
+                                    (including "takes effect next request")
+    ✓ user ownership .............. e2e — user reaches its own profile, is
+                                    refused every admin route
+    ✓ cannot suspend owner ........ owner-protection.policy.spec,
+                                    suspend-user.use-case.spec, e2e
+    ✓ cannot delete owner ......... owner-protection.policy.spec,
+                                    delete-account.use-case.spec, e2e
+    ✓ cannot create second owner .. admin-account.service.spec, e2e (API and DB)
+    ✓ cannot elevate self ......... admin-account.service.spec,
+                                    grant-admin-role.use-case.spec, e2e
+    ✓ admin cannot edit owner ..... owner-protection.policy.spec, e2e
+    ✓ no permission mgmt without
+      ROLE_ASSIGN ................. e2e
+    ✓ read-only admin ............. permission-evaluation.service.spec, e2e
+    ✓ support admin ............... permission-evaluation.service.spec
+    ✓ moderator admin ............. permission-evaluation.service.spec, e2e
+
+  Beyond the list: delegation limits on both grant and revoke, the rank-based
+  RolesGuard, the owner-only lifecycle routes, promotion eligibility by status,
+  idempotent grants, unknown permission codes, and session revocation on
+  demotion.
+
+  Also verified outside the suites: the migration up / down / re-up round trip
+  against a real PostgreSQL instance, including the single-owner index rejecting
+  a second owner and the down path demoting an owner before the enum shrinks.
+
+
+--------------------------------------------------------------------------------
+12. REMAINING RECOMMENDATIONS AND FUTURE IMPROVEMENTS
+--------------------------------------------------------------------------------
+
+  REQUIRED BEFORE DEPLOY
+
+  1. Appoint the owner. No migration creates one, deliberately: it would need
+     credentials, and a seeded row with a placeholder password is a
+     default-credential liability. Promote a real, verified account:
+
+         UPDATE "user" SET role = 'OWNER'
+         WHERE email = 'owner@example.com' AND status = 'ACTIVATE';
+
+     The unique index guarantees this can only succeed once. Consider wrapping
+     it in a `scripts/promote-owner.ts` CLI alongside the existing
+     `generate-secrets.ts` if this is done often enough to be worth automating.
+
+  2. Grant existing administrators their permissions. Until then they hold the
+     role and reach nothing — see §7.
+
+  RECOMMENDED NEXT
+
+  3. Audit trail. `AUDIT_READ` is seeded but no audit log exists. The six new
+     log events carry the right shape (actor, target, permissions) to be
+     persisted rather than only written to the log stream.
+
+  4. Consider whether `USER_CREATE`, `USER_DELETE` and `SYSTEM_SETTINGS` should
+     acquire endpoints or be dropped from the catalog. They are named in the
+     model but nothing demands them; a permission an operator can grant that
+     changes nothing is a small trap.
+
+  5. The pre-existing claim in the admin-users OpenAPI description that the
+     listing includes soft-deleted accounts does not match `findUsersForAdmin`,
+     which excludes them via the soft-delete column. Untouched here because it
+     predates this work and is not an authorization concern, but worth a
+     separate fix.
+
+  6. Domain-layer isolation remains disabled in ESLint because entities still
+     carry TypeORM decorators and errors import `HttpStatus`. The new
+     authorization domain follows the same existing pattern rather than
+     diverging from it; it would move cleanly if that debt is ever paid.
+
+  OPTIONAL
+
+  7. Named custom admin roles, when the archetypes stop being ad-hoc grant sets
+     and start needing names. Design and seam described in §8.
+
+  8. Reordering `CsrfGuard` ahead of `PermissionGuard` would spare a database
+     lookup on forged requests. Left alone because it changes existing guard
+     ordering and existing behaviour for a marginal gain.
+
+================================================================================
+VERIFICATION
+================================================================================
+
+  1. ESLint ................ pnpm lint:check ........... PASS (0 problems)
+  2. TypeScript ............ pnpm typecheck ............ PASS (0 errors)
+     Build ................. pnpm build ................ PASS
+  3. Unit tests ............ pnpm test:unit ............ PASS (768/768)
+  4. E2E tests ............. pnpm test:e2e ............. PASS (171/171)
+  5. Failing tests ......... none
+  6. git diff reviewed ..... yes, across 10 atomic commits
+  7. Unrelated changes ..... none staged. Two pre-existing untracked items
+                             (AUTHENTICATION_LATENCY_AUDIT.md, docs/audit/)
+                             were present before this work and were deliberately
+                             left untracked.
+  8. Staging ............... only authorization-related files, committed in 10
+                             logical steps, each leaving the repository green.
+
+================================================================================
