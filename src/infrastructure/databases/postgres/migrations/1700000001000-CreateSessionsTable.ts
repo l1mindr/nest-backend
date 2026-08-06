@@ -13,12 +13,12 @@ export class CreateSessionsTable1700000001000 implements MigrationInterface {
         "device"           jsonb       NOT NULL,
         "ipAddress"        varchar     NOT NULL,
         "isRevoked"        boolean     NOT NULL DEFAULT false,
-        "expiresAt"        timestamp   NOT NULL,
-        "lastUsedAt"       timestamp   NOT NULL,
+        "expiresAt"        timestamp with time zone NOT NULL,
+        "lastUsedAt"       timestamp with time zone NOT NULL,
         "version"          integer     NOT NULL DEFAULT 0,
-        "rotatedAt"        timestamp,
-        "createdAt"        timestamp   NOT NULL DEFAULT now(),
-        "updatedAt"        timestamp   NOT NULL DEFAULT now(),
+        "rotatedAt"        timestamp with time zone,
+        "createdAt"        timestamp with time zone NOT NULL DEFAULT now(),
+        "updatedAt"        timestamp with time zone NOT NULL DEFAULT now(),
         "ownerId"          uuid        NOT NULL,
 
         CONSTRAINT "PK_session_id" PRIMARY KEY ("id")

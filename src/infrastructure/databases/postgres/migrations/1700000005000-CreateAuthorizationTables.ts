@@ -72,7 +72,7 @@ export class CreateAuthorizationTables1700000005000 implements MigrationInterfac
         "userId"       uuid        NOT NULL,
         "permission"   varchar(64) NOT NULL,
         "grantedById"  uuid,
-        "grantedAt"    timestamp   NOT NULL DEFAULT now(),
+        "grantedAt"    timestamp with time zone NOT NULL DEFAULT now(),
 
         CONSTRAINT "PK_admin_permission_id" PRIMARY KEY ("id"),
         CONSTRAINT "admin_permission_unique" UNIQUE ("userId", "permission"),

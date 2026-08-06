@@ -132,7 +132,7 @@ describe('UserRepository', () => {
           email: true,
           role: true,
           status: true,
-          registryDates: { createdAt: true, updatedAt: true, deleteAt: true }
+          registryDates: { createdAt: true, updatedAt: true, deletedAt: true }
         }
       });
     });
@@ -154,7 +154,7 @@ describe('UserRepository', () => {
           email: true,
           role: true,
           status: true,
-          registryDates: { createdAt: true, updatedAt: true, deleteAt: true }
+          registryDates: { createdAt: true, updatedAt: true, deletedAt: true }
         },
         where: { role: UserRole.USER },
         order: { id: 'ASC' },

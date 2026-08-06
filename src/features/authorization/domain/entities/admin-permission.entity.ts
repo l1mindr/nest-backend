@@ -42,7 +42,7 @@ export class AdminPermission {
   @Column({ type: 'uuid', nullable: true })
   grantedById!: string | null;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   grantedAt!: Date;
 
   @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })

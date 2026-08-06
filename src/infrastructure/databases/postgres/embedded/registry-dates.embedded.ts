@@ -2,12 +2,12 @@ import { RegistryDates } from '@core/registry-dates';
 import { CreateDateColumn, DeleteDateColumn, UpdateDateColumn } from 'typeorm';
 
 export class RegistryDatesOrm extends RegistryDates {
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 
-  @DeleteDateColumn()
-  deleteAt: Date;
+  @DeleteDateColumn({ type: 'timestamptz' })
+  deletedAt: Date;
 }

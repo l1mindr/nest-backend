@@ -24,9 +24,9 @@ export class CreateCoinAndPriceAlertTables1700000002000 implements MigrationInte
         "name"         varchar      NOT NULL,
         "image"        varchar,
         "isActive"     boolean      NOT NULL DEFAULT true,
-        "lastSyncedAt" timestamp    NOT NULL,
-        "createdAt"    timestamp    NOT NULL DEFAULT now(),
-        "updatedAt"    timestamp    NOT NULL DEFAULT now(),
+        "lastSyncedAt" timestamp with time zone NOT NULL,
+        "createdAt"    timestamp with time zone NOT NULL DEFAULT now(),
+        "updatedAt"    timestamp with time zone NOT NULL DEFAULT now(),
 
         CONSTRAINT "PK_coin_id" PRIMARY KEY ("id")
       )
@@ -41,14 +41,14 @@ export class CreateCoinAndPriceAlertTables1700000002000 implements MigrationInte
         "targetPrice"                 decimal      NOT NULL,
         "triggerMode"                 "public"."alert_trigger_mode_enum" NOT NULL DEFAULT 'ONCE',
         "status"                      "public"."alert_status_enum"      NOT NULL DEFAULT 'ACTIVE',
-        "expiresAt"                   timestamp,
+        "expiresAt"                   timestamp with time zone,
         "notificationChannels"        "public"."notification_channel_enum"[] NOT NULL,
         "notificationCooldownMinutes" integer      NOT NULL DEFAULT 60,
         "lastCheckedPrice"            decimal,
-        "lastTriggeredAt"             timestamp,
+        "lastTriggeredAt"             timestamp with time zone,
         "triggeredCount"              integer      NOT NULL DEFAULT 0,
-        "createdAt"                   timestamp    NOT NULL DEFAULT now(),
-        "updatedAt"                   timestamp    NOT NULL DEFAULT now(),
+        "createdAt"                   timestamp with time zone NOT NULL DEFAULT now(),
+        "updatedAt"                   timestamp with time zone NOT NULL DEFAULT now(),
 
         CONSTRAINT "PK_price_alert_id" PRIMARY KEY ("id"),
         CONSTRAINT "FK_price_alert_user" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE NO ACTION,

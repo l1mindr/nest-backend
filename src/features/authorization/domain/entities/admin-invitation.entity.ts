@@ -49,13 +49,13 @@ export class AdminInvitation {
   @Column({ type: 'varchar', length: 64, array: true, default: () => "'{}'" })
   permissions!: Permission[];
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   expiresAt!: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   acceptedAt!: Date | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   revokedAt!: Date | null;
 
   /** Retained for the audit trail; survives the inviter being deleted. */
@@ -73,6 +73,6 @@ export class AdminInvitation {
   @JoinColumn({ name: 'acceptedUserId' })
   acceptedUser!: User | null;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 }

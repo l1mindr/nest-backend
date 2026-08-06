@@ -54,7 +54,7 @@ export class User {
   sessions!: Session[];
 
   get isDeleted() {
-    return !!this.registryDates.deleteAt;
+    return !!this.registryDates.deletedAt;
   }
 
   unsuspend(): void {

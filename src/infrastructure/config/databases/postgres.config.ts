@@ -31,7 +31,10 @@ export default registerAs('database', () => {
     connectTimeoutMS,
     extra: {
       idleTimeoutMillis: idleTimeoutMs,
-      application_name: process.env.SERVICE_NAME ?? 'nest-backend'
+      application_name: process.env.SERVICE_NAME ?? 'nest-backend',
+      // Keep database-generated values and offset-less timestamp input aligned
+      // with the UTC convention documented in docs/database.md.
+      options: '-c timezone=UTC'
     }
   } as const satisfies TypeOrmModuleOptions;
 

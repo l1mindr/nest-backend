@@ -23,7 +23,7 @@ export class UserVerificationCode {
   @Column()
   codeHash!: string;
 
-  @Column()
+  @Column({ type: 'timestamptz' })
   expiresAt!: Date;
 
   @Column({ type: 'timestamptz', nullable: true })

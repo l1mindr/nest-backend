@@ -41,22 +41,22 @@ export class Session {
   @Column({ default: false })
   isRevoked!: boolean;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   expiresAt!: Date;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   lastUsedAt!: Date;
 
   @Column({ default: 0 })
   version!: number;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   rotatedAt!: Date;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt!: Date;
 
   @ManyToOne(() => User, (user) => user.sessions, { nullable: false })

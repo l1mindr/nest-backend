@@ -27,12 +27,12 @@ export class Coin {
   @Column({ default: true })
   isActive!: boolean;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   lastSyncedAt!: Date;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt!: Date;
 }

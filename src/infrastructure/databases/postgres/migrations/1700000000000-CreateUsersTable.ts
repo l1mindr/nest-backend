@@ -20,9 +20,9 @@ export class CreateUsersTable1700000000000 implements MigrationInterface {
         "password"  varchar      NOT NULL,
         "status"    "public"."user_status_enum" NOT NULL DEFAULT 'DEACTIVATE',
         "role"      "public"."user_role_enum"   NOT NULL DEFAULT 'USER',
-        "createdAt" timestamp    NOT NULL DEFAULT now(),
-        "updatedAt" timestamp    NOT NULL DEFAULT now(),
-        "deleteAt"  timestamp,
+        "createdAt" timestamp with time zone NOT NULL DEFAULT now(),
+        "updatedAt" timestamp with time zone NOT NULL DEFAULT now(),
+        "deletedAt" timestamp with time zone,
 
         CONSTRAINT "PK_user_id"            PRIMARY KEY ("id"),
         CONSTRAINT "users_email_unique"    UNIQUE ("email"),
