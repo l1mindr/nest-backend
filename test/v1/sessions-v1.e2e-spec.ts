@@ -68,10 +68,8 @@ describe('Sessions (e2e) version: 1', () => {
         deviceType: expect.stringMatching(/^(mobile|tablet|desktop)$/)
       });
 
-      expect(session.validUntil).toEqual(expect.any(String));
-      expect(new Date(session.validUntil).getTime()).toBeGreaterThan(
-        Date.now()
-      );
+      expect(session.expiresAt).toEqual(expect.any(String));
+      expect(new Date(session.expiresAt).getTime()).toBeGreaterThan(Date.now());
 
       expect(session.ipAddress).toEqual(expect.any(String));
     }

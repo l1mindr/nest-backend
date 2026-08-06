@@ -58,7 +58,7 @@ export class SessionListService {
       sessionId: session.id,
       ipAddress: session.ipAddress,
       deviceInfo: session.device,
-      validUntil: session.expiresAt,
+      expiresAt: session.expiresAt,
       lastActivityAt: session.lastUsedAt
     };
   }
