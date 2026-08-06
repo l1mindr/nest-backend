@@ -29,7 +29,7 @@ export class UserRepository implements IUserRepository {
     email: true,
     role: true,
     status: true,
-    registryDates: { createdAt: true, updatedAt: true, deleteAt: true }
+    registryDates: { createdAt: true, updatedAt: true, deletedAt: true }
   };
 
   async insertUser(

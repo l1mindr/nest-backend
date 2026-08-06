@@ -5,6 +5,7 @@ import { CreateVerificationTable1700000003000 } from '../../src/infrastructure/d
 import { CreateVerificationCodeActiveLatestIndex1700000004000 } from '../../src/infrastructure/databases/postgres/migrations/1700000004000-CreateVerificationCodeActiveLatestIndex';
 import { CreateAuthorizationTables1700000005000 } from '../../src/infrastructure/databases/postgres/migrations/1700000005000-CreateAuthorizationTables';
 import { CreateAdminInvitationTable1700000006000 } from '../../src/infrastructure/databases/postgres/migrations/1700000006000-CreateAdminInvitationTable';
+import { StandardizeDateTimeColumns1700000007000 } from '../../src/infrastructure/databases/postgres/migrations/1700000007000-StandardizeDateTimeColumns';
 
 /**
  * The runtime data source resolves migrations from a `dist/**` glob, which is
@@ -20,5 +21,6 @@ export const E2E_MIGRATIONS = [
   CreateVerificationTable1700000003000,
   CreateVerificationCodeActiveLatestIndex1700000004000,
   CreateAuthorizationTables1700000005000,
-  CreateAdminInvitationTable1700000006000
+  CreateAdminInvitationTable1700000006000,
+  StandardizeDateTimeColumns1700000007000
 ];

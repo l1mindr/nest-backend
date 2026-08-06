@@ -75,7 +75,7 @@ export class PriceAlert {
   })
   status!: AlertStatus;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   expiresAt!: Date | null;
 
   @Column({
@@ -92,16 +92,16 @@ export class PriceAlert {
   @Column({ type: 'decimal', nullable: true })
   lastCheckedPrice!: string | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   lastTriggeredAt!: Date | null;
 
   @Column({ default: 0 })
   triggeredCount!: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt!: Date;
 
   @ManyToOne(() => User, { nullable: false, onDelete: 'NO ACTION' })

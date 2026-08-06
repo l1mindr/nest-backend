@@ -110,7 +110,7 @@ describe('Users Delete Account (e2e) version: 1', () => {
     expect(res.status).toBe(204);
 
     const user = await findUserWithDeleted(context.user.email);
-    expect(user.registryDates.deleteAt).not.toBeNull();
+    expect(user.registryDates.deletedAt).not.toBeNull();
   });
 
   it('should revoke all session records on deletion', async () => {
@@ -204,7 +204,7 @@ describe('Users Delete Account (e2e) version: 1', () => {
     expect(res.status).toBe(500);
 
     const user = await findUserWithDeleted(context.user.email);
-    expect(user.registryDates.deleteAt).toBeNull();
+    expect(user.registryDates.deletedAt).toBeNull();
 
     const sessions = await findUserSessions(context.user.email);
     expect(sessions.every((session) => !session.isRevoked)).toBe(true);

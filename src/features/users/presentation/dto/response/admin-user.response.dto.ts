@@ -102,6 +102,6 @@ export class AdminUserResponseDto {
     example: null
   })
   @Expose()
-  @Transform(({ obj }) => obj.registryDates.deleteAt ?? null)
+  @Transform(({ obj }) => obj.registryDates.deletedAt ?? null)
   deletedAt!: Date | null;
 }

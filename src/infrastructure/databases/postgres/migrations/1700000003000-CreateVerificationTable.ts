@@ -15,9 +15,9 @@ export class CreateVerificationTable1700000003000 implements MigrationInterface 
         "codeHash"   varchar NOT NULL,
         "expiresAt"  timestamp with time zone NOT NULL,
         "verifiedAt" timestamp with time zone,
-        "createdAt"  timestamp NOT NULL DEFAULT now(),
-        "updatedAt"  timestamp NOT NULL DEFAULT now(),
-        "deleteAt"   timestamp,
+        "createdAt"  timestamp with time zone NOT NULL DEFAULT now(),
+        "updatedAt"  timestamp with time zone NOT NULL DEFAULT now(),
+        "deletedAt"  timestamp with time zone,
 
         CONSTRAINT "PK_user_verification_code_id" PRIMARY KEY ("id"),
         CONSTRAINT "FK_user_verification_code_user" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE
