@@ -14,7 +14,7 @@ class User {
   password: string;        // `select: false`, bcrypt hashed
   status: UserStatus;      // Default PENDING_VERIFICATION
   role: UserRole;          // Default USER
-  registryDates: RegistryDatesOrm;  // createdAt, updatedAt, deleteAt
+  registryDates: RegistryDatesOrm;  // createdAt, updatedAt, deletedAt
   sessions: Session[];     // OneToMany, cascade soft-remove/recover
 }
 ```
@@ -111,7 +111,7 @@ invitation is accepted.
 class RegistryDates {
   createdAt: Date;
   updatedAt: Date;
-  deleteAt?: Date;
+  deletedAt?: Date;
 }
 ```
 
@@ -119,9 +119,9 @@ class RegistryDates {
 
 ```typescript
 class RegistryDatesOrm extends RegistryDates {
-  @CreateDateColumn() createdAt: Date;
-  @UpdateDateColumn() updatedAt: Date;
-  @DeleteDateColumn() deleteAt: Date;
+  @CreateDateColumn({ type: 'timestamptz' }) createdAt: Date;
+  @UpdateDateColumn({ type: 'timestamptz' }) updatedAt: Date;
+  @DeleteDateColumn({ type: 'timestamptz' }) deletedAt: Date;
 }
 ```
 

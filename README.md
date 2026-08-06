@@ -190,6 +190,13 @@ matrix and visibility rules.
 - Paginated endpoints return `{ data: { items: [...], nextCursor: string | null } }` (session lists also include `currentSession`).
 - Error responses follow `{ error: { code, domain, message, meta, path, timestamp } }`.
 
+## Date & Time Convention
+
+- Every database timestamp column is `timestamp with time zone` (`timestamptz`).
+- Every point-in-time field ends with `At` (`createdAt`, `expiresAt`, `deletedAt`, …).
+- Database sessions interpret offset-less values in UTC, and API responses serialize instants as ISO-8601 UTC (e.g. `2026-08-02T14:35:00.000Z`).
+- Details: [docs/database.md](docs/database.md).
+
 ## Swagger UI
 
 Available in development mode at:
