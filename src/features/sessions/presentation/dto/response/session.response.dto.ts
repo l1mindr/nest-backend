@@ -41,7 +41,7 @@ export class SessionResponseDto {
     example: ExampleValue.EXPIRES_AT
   })
   @Expose()
-  validUntil!: Date;
+  expiresAt!: Date;
 
   @ApiProperty({
     description: 'Instant of the most recent request made with this session.',

@@ -68,7 +68,7 @@ describe('SessionListService', () => {
         sessionId: 'current',
         ipAddress: '127.0.0.1',
         deviceInfo: device,
-        validUntil: currentSession.expiresAt,
+        expiresAt: currentSession.expiresAt,
         lastActivityAt: currentSession.lastUsedAt
       });
       expect(result.items).toEqual([
@@ -76,7 +76,7 @@ describe('SessionListService', () => {
           sessionId: 'other',
           ipAddress: '10.0.0.2',
           deviceInfo: device,
-          validUntil: otherSession.expiresAt,
+          expiresAt: otherSession.expiresAt,
           lastActivityAt: otherSession.lastUsedAt
         }
       ]);

@@ -4,6 +4,6 @@ export type SessionListItem = {
   sessionId: string;
   ipAddress: string;
   deviceInfo: ISessionDevice;
-  validUntil: Date;
+  expiresAt: Date;
   lastActivityAt: Date;
 };
