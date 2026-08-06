@@ -107,34 +107,67 @@ Rate limits apply across several identifiers at once; all must pass. See
 Each route requires a permission rather than a role. Holding `ADMIN` grants
 nothing on its own; the owner satisfies every requirement without evaluation.
 
+This is the *ordinary user* population only: administrators and the owner are a
+separate population reached through `/v1/admin/administrators`, so they never
+appear in user listings and can never be addressed through these routes.
+
 | Method | Path                         | Requires          | Description                           |
 |--------|------------------------------|-------------------|---------------------------------------|
-| GET    | `/admin/users`               | `USER_READ`       | List all users (cursor paginated)     |
+| GET    | `/admin/users`               | `USER_READ`       | List users (cursor paginated)         |
 | GET    | `/admin/users/:id`           | `USER_READ`       | Get single user by ID                 |
 | POST   | `/admin/users/:id/suspend`   | `USER_SUSPEND`    | Suspend a user (requires reason)      |
 | PATCH  | `/admin/users/:id/unsuspend` | `USER_UNSUSPEND`  | Unsuspend a previously suspended user |
 
-### Administrators & Permissions (`/v1/admin`)
+### Administrators (`/v1/admin/administrators`)
 
-| Method | Path                              | Requires      | Description                             |
-|--------|-----------------------------------|---------------|-----------------------------------------|
-| GET    | `/admin/admins`                   | `ADMIN_READ`  | List administrators and their grants    |
-| GET    | `/admin/admins/:id`               | `ADMIN_READ`  | Get one administrator                   |
-| POST   | `/admin/admins`                   | **owner**     | Promote an active account to `ADMIN`    |
-| DELETE | `/admin/admins/:id`               | **owner**     | Withdraw administrator status           |
-| PATCH  | `/admin/admins/:id`               | `ADMIN_UPDATE`| Edit an administrator's profile         |
-| POST   | `/admin/admins/:id/activate`      | **owner**     | Restore a deactivated administrator     |
-| POST   | `/admin/admins/:id/deactivate`    | **owner**     | Switch off access, revoke sessions      |
-| POST   | `/admin/admins/:id/suspend`       | **owner**     | Suspend an administrator                |
-| PATCH  | `/admin/admins/:id/unsuspend`     | **owner**     | Lift the suspension                     |
-| POST   | `/admin/admins/:id/permissions`   | `ROLE_ASSIGN` | Grant permissions                       |
-| DELETE | `/admin/admins/:id/permissions`   | `ROLE_ASSIGN` | Revoke permissions                      |
-| GET    | `/admin/permissions`              | `ADMIN_READ`  | The permission catalog                  |
-| GET    | `/admin/permissions/me`           | Session       | What the caller can do right now        |
+Administrator management is **owner-only**: every route declares a permission
+that is reserved to the owner in the catalog, so no administrator can ever be
+granted access to it. Relaxing this later is one flag per permission in the
+catalog — no controller rewrite.
 
-The administrator lifecycle is reserved to the owner by role: an administrator
-able to create or unmake administrators would hold every permission by proxy.
-See [Authorization](docs/authorization.md) for the full permission matrix.
+Administrators are created by **invitation**, never by promoting an existing
+account. The owner issues an invitation; no account exists until the invitee
+accepts it by choosing a username and password.
+
+| Method | Path                                         | Requires           | Description                                  |
+|--------|----------------------------------------------|--------------------|----------------------------------------------|
+| GET    | `/admin/administrators`                      | `ADMIN_READ`       | List administrators and their grants         |
+| GET    | `/admin/administrators/:id`                  | `ADMIN_READ`       | Get one administrator                        |
+| GET    | `/admin/administrators/me`                   | Session            | The caller's own administrator profile       |
+| PATCH  | `/admin/administrators/:id`                  | `ADMIN_UPDATE`     | Edit an administrator's profile              |
+| DELETE | `/admin/administrators/:id`                  | `ADMIN_DELETE`     | Delete an administrator account              |
+| POST   | `/admin/administrators/:id/activate`         | `ADMIN_STATUS`     | Restore a deactivated administrator          |
+| POST   | `/admin/administrators/:id/deactivate`       | `ADMIN_STATUS`     | Switch off access, revoke sessions           |
+| POST   | `/admin/administrators/:id/suspend`          | `ADMIN_STATUS`     | Suspend an administrator                     |
+| PATCH  | `/admin/administrators/:id/unsuspend`        | `ADMIN_STATUS`     | Lift the suspension                          |
+| POST   | `/admin/administrators/:id/permissions`      | `ROLE_ASSIGN`      | Grant permissions                            |
+| DELETE | `/admin/administrators/:id/permissions`      | `ROLE_ASSIGN`      | Revoke permissions                           |
+
+### Administrator invitations (`/v1/admin/administrators/invitations`)
+
+| Method | Path         | Requires     | Description                                              |
+|--------|--------------|--------------|----------------------------------------------------------|
+| POST   | `/invitations` | `ADMIN_INVITE` | Invite an address to become an administrator           |
+| GET    | `/invitations` | `ADMIN_INVITE` | List the invitation log, including settled ones        |
+| DELETE | `/invitations/:id` | `ADMIN_INVITE` | Revoke a pending invitation                          |
+| POST   | `/invitations/accept` | Public    | Accept an invitation: creates the account (token = proof) |
+
+Invitation tokens are single-use, expire after 48 hours, are revocable, and are
+stored only as SHA-256 digests — a database dump yields nothing that could be
+presented.
+
+### Permissions (`/v1/admin/permissions`)
+
+| Method | Path              | Requires    | Description                                      |
+|--------|-------------------|-------------|--------------------------------------------------|
+| GET    | `/permissions`    | `ADMIN_READ`| The permission catalog                            |
+| GET    | `/permissions/me` | Session     | What the caller can do right now                  |
+
+The owner is excluded from every listing: it never appears in user management,
+in the administrator directory, in search or in statistics, and an identifier
+harvested elsewhere resolves to the same "not found" as one that was never
+issued. See [Authorization](docs/authorization.md) for the full permission
+matrix and visibility rules.
 
 ### Coins (`/v1/coins`)
 

@@ -178,8 +178,8 @@ Database schema preparation (migrations) happens once per worker in the Jest glo
 
 **UserFactory**:
 - `UserFactory.register(app, overrides?)` → registers via `POST /v1/auth/register`, returns `{ user, client, response }`
-- `UserFactory.verifyEmail(app, email)` → promotes user to `ACTIVATE` directly via repository
-- `UserFactory.admin(app, dataSource, overrides?)` → registers then promotes role to `ADMIN`
+- `UserFactory.verifyEmail(app, email)` → activates the user directly via repository
+- `UserFactory.admin(app, dataSource, overrides?, permissions?)` → registers, then elevates the role to `ADMIN` and grants permissions directly via repository (a test shortcut — production uses the invitation flow); permissions default to the full set
 
 **AuthFactory**:
 - `AuthFactory.login(context, loginBy?)` → logs in via `POST /v1/auth/login`, captures `refresh_token`/`csrf_token` cookies and `X-CSRF-Token` header

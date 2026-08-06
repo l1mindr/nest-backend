@@ -65,6 +65,29 @@ One row per permission granted to one administrator.
 Unique on `(userId, permission)`, indexed on `userId`. The foreign key to the
 catalog means a grant can only ever name a permission the system knows about.
 
+#### Admin Invitation Table
+
+A pending offer of administrator status. No account exists until the invitation
+is accepted, so a revoked or expired invitation leaves nothing that could be
+signed into.
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | uuid | PK, default `uuid_generate_v4()` |
+| email | varchar | Indexed |
+| tokenHash | varchar(64) | UK; SHA-256 of the issued token, `select: false` |
+| permissions | varchar(64)[] | Delegable permission codes only |
+| expiresAt | timestamp | 48 hours after issue |
+| acceptedAt | timestamp | Nullable |
+| revokedAt | timestamp | Nullable |
+| invitedById | uuid | Nullable, FK → `user(id)` ON DELETE SET NULL |
+| acceptedUserId | uuid | Nullable, FK → `user(id)` ON DELETE SET NULL |
+| createdAt | timestamp | Auto-set |
+
+Unique on `tokenHash`. A partial unique index on `(email) WHERE acceptedAt IS
+NULL AND revokedAt IS NULL` allows at most one outstanding invitation per
+address. Status is derived from the timestamps, not stored.
+
 #### Sessions Table
 
 | Column | Type | Constraints |
@@ -140,6 +163,7 @@ Indexes: `userId`, `status`, `coinId`, `(userId, status)`, `(status, coinId)`, `
 | 4 | `CreateVerificationTable` | Adds `PENDING_VERIFICATION` status and email verification codes |
 | 5 | `CreateVerificationCodeActiveLatestIndex` | Partial index for the latest active verification code lookup |
 | 6 | `CreateAuthorizationTables` | Adds `OWNER` to the role enum, the single-owner index, and the permission and grant tables |
+| 7 | `CreateAdminInvitationTable` | Adds `ADMIN_INVITE`/`ADMIN_DELETE`/`ADMIN_STATUS` to the catalog and the `admin_invitation` table |
 
 ## Redis
 

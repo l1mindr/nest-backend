@@ -61,6 +61,46 @@ Codes older than 24 hours are deleted by the pending-user cleanup schedule. The
 `IDX_uvc_active_latest` partial index (`(userId, createdAt DESC) WHERE verifiedAt IS NULL`)
 serves the latest-code lookup.
 
+### AdminPermission
+
+```typescript
+@Entity()
+class AdminPermission {
+  id: string;               // UUID primary key
+  userId: string;           // FK to User, CASCADE on delete
+  permission: Permission;   // FK to permission(code), RESTRICT on delete
+  grantedById: string | null;  // FK to User, SET NULL — who handed it out
+  grantedAt: Date;          // Auto-set
+}
+```
+
+Unique on `(userId, permission)`. One row per permission granted to one
+administrator; the foreign key to the catalog means a grant can only ever name
+a permission the system knows about.
+
+### AdminInvitation
+
+```typescript
+@Entity()
+class AdminInvitation {
+  id: string;              // UUID primary key
+  email: string;           // Indexed
+  tokenHash: string;       // SHA-256 of the issued token, `select: false`
+  permissions: Permission[];  // Delegable permission codes only
+  expiresAt: Date;         // 48 hours after issue
+  acceptedAt: Date | null;
+  revokedAt: Date | null;
+  invitedById: string | null;  // FK to User, SET NULL
+  acceptedUserId: string | null; // FK to User, SET NULL
+  createdAt: Date;         // Auto-set
+}
+```
+
+Unique on `tokenHash`, with a partial unique index on `(email) WHERE acceptedAt
+IS NULL AND revokedAt IS NULL` for at most one outstanding invitation per
+address. Status is derived from the timestamps. No account exists until the
+invitation is accepted.
+
 ---
 
 ## Embedded Types

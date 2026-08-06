@@ -209,6 +209,11 @@ Response: `204 No Content`
 Access is decided by permission, not by role. Holding `ADMIN` grants nothing on
 its own; the owner satisfies every requirement without evaluation.
 
+This is the *ordinary user* population only. Administrators and the owner are a
+separate population reached through `/v1/admin/administrators`, so neither can
+be listed, resolved or suspended through these routes — an administrator or
+owner identifier answers the same "not found" as one that was never issued.
+
 | Method | Path | Requires | CSRF | Description |
 |--------|------|----------|------|-------------|
 | `GET` | `/v1/admin/users` | `USER_READ` | - | List users (cursor-paginated) |
@@ -216,45 +221,88 @@ its own; the owner satisfies every requirement without evaluation.
 | `POST` | `/v1/admin/users/:id/suspend` | `USER_SUSPEND` | Required | Suspend user |
 | `PATCH` | `/v1/admin/users/:id/unsuspend` | `USER_UNSUSPEND` | Required | Unsuspend user |
 
-The owner can never be the target of a suspension: `403 OWNER_IMMUTABLE`.
+The owner can never be the target of a suspension: it is not in the `USER`
+population, so the route misses it the same way it misses an unused identifier.
 
 ---
 
 ## Administrators & Permissions
 
+Administrator management is **owner-only**: every route below declares a
+permission that the catalog marks as reserved to the owner, so no administrator
+can ever be granted access to it. Relaxing the restriction later is one flag
+per permission in the catalog — no controller or guard changes.
+
 | Method | Path | Requires | CSRF | Description |
 |--------|------|----------|------|-------------|
-| `GET` | `/v1/admin/admins` | `ADMIN_READ` | - | List administrators with their grants |
-| `GET` | `/v1/admin/admins/:id` | `ADMIN_READ` | - | Get one administrator |
-| `POST` | `/v1/admin/admins` | **owner** | Required | Promote an active account to `ADMIN` |
-| `DELETE` | `/v1/admin/admins/:id` | **owner** | Required | Withdraw administrator status |
-| `PATCH` | `/v1/admin/admins/:id` | `ADMIN_UPDATE` | Required | Edit an administrator's profile |
-| `POST` | `/v1/admin/admins/:id/activate` | **owner** | Required | Restore a deactivated administrator |
-| `POST` | `/v1/admin/admins/:id/deactivate` | **owner** | Required | Switch off access, revoke sessions |
-| `POST` | `/v1/admin/admins/:id/suspend` | **owner** | Required | Suspend an administrator |
-| `PATCH` | `/v1/admin/admins/:id/unsuspend` | **owner** | Required | Lift the suspension |
-| `POST` | `/v1/admin/admins/:id/permissions` | `ROLE_ASSIGN` | Required | Grant permissions |
-| `DELETE` | `/v1/admin/admins/:id/permissions` | `ROLE_ASSIGN` | Required | Revoke permissions |
+| `GET` | `/v1/admin/administrators` | `ADMIN_READ` | - | List administrators with their grants |
+| `GET` | `/v1/admin/administrators/:id` | `ADMIN_READ` | - | Get one administrator |
+| `GET` | `/v1/admin/administrators/me` | Session | - | The caller's own administrator profile |
+| `PATCH` | `/v1/admin/administrators/:id` | `ADMIN_UPDATE` | Required | Edit an administrator's profile |
+| `DELETE` | `/v1/admin/administrators/:id` | `ADMIN_DELETE` | Required | Delete an administrator account |
+| `POST` | `/v1/admin/administrators/:id/activate` | `ADMIN_STATUS` | Required | Restore a deactivated administrator |
+| `POST` | `/v1/admin/administrators/:id/deactivate` | `ADMIN_STATUS` | Required | Switch off access, revoke sessions |
+| `POST` | `/v1/admin/administrators/:id/suspend` | `ADMIN_STATUS` | Required | Suspend an administrator |
+| `PATCH` | `/v1/admin/administrators/:id/unsuspend` | `ADMIN_STATUS` | Required | Lift the suspension |
+| `POST` | `/v1/admin/administrators/:id/permissions` | `ROLE_ASSIGN` | Required | Grant permissions |
+| `DELETE` | `/v1/admin/administrators/:id/permissions` | `ROLE_ASSIGN` | Required | Revoke permissions |
 | `GET` | `/v1/admin/permissions` | `ADMIN_READ` | - | The permission catalog |
 | `GET` | `/v1/admin/permissions/me` | Session | - | What the caller can do right now |
 
-### POST /v1/admin/admins
+### Administrator invitations
+
+Administrators are created by invitation, never by promoting an existing
+account. No account exists until the invitation is accepted, so a revoked or
+lapsed invitation leaves nothing that could be signed into.
+
+| Method | Path | Requires | CSRF | Description |
+|--------|------|----------|------|-------------|
+| `POST` | `/v1/admin/administrators/invitations` | `ADMIN_INVITE` | Required | Invite an address to become an administrator |
+| `GET` | `/v1/admin/administrators/invitations` | `ADMIN_INVITE` | Required | List the invitation log |
+| `DELETE` | `/v1/admin/administrators/invitations/:id` | `ADMIN_INVITE` | Required | Revoke a pending invitation |
+| `POST` | `/v1/admin/administrators/invitations/accept` | Public | - | Accept an invitation (creates the account) |
+
+### POST /v1/admin/administrators/invitations
 
 Request:
 
 ```json
 {
-  "userId": "7c4f2f6a-1f2d-4a1b-9c3e-8d5b6a0e1f24",
+  "email": "new.admin@example.com",
   "permissions": ["USER_READ", "USER_SUSPEND"]
 }
 ```
 
-Response: `201 Created` with the promoted administrator and their grants.
+Response: `201 Created` with the pending invitation (never the token).
 
-Errors: `403 OWNER_IMMUTABLE`, `403 SELF_MANAGEMENT_FORBIDDEN`,
-`409 ALREADY_AN_ADMINISTRATOR`, `409 ACCOUNT_NOT_ELIGIBLE`.
+Errors: `422 EMAIL_ALREADY_EXISTS`, `422` if a permission is owner-reserved.
 
-### POST /v1/admin/admins/:id/permissions
+The token is delivered by email, is single-use, expires after 48 hours, and is
+stored only as a SHA-256 digest.
+
+### POST /v1/admin/administrators/invitations/accept
+
+Request:
+
+```json
+{
+  "token": "the-token-from-the-email",
+  "username": "new.admin",
+  "password": "Password@123",
+  "name": "New Admin"
+}
+```
+
+Response: `204 No Content`. The account is created with the `ADMIN` role, the
+permissions named on the invitation, and an `ACTIVATE` status.
+
+Errors: `404 INVITATION_NOT_FOUND` (unknown token), `409 INVITATION_NOT_PENDING`
+(reused or revoked), `410 INVITATION_EXPIRED`.
+
+The email is taken from the invitation, never from the body, and the endpoint
+is deliberately public — the token is the entire proof.
+
+### POST /v1/admin/administrators/:id/permissions
 
 Request:
 
@@ -265,7 +313,8 @@ Request:
 Response: `204 No Content`. Idempotent.
 
 A caller may only pass on permissions they hold themselves, otherwise
-`403 PERMISSION_NOT_HELD`. Aiming the request at your own account is
+`403 PERMISSION_NOT_HELD`. Owner-reserved permissions are rejected by
+validation (`422`). Aiming the request at your own account is
 `403 SELF_MANAGEMENT_FORBIDDEN`.
 
 ### GET /v1/admin/permissions/me
@@ -282,47 +331,15 @@ Response: `200 OK`
 Open to any authenticated caller and always scoped to the caller. An ordinary
 user sees an empty list; the owner sees every permission.
 
-### GET /v1/admin/users
+### Visibility rules
 
-Query params: `cursor`, `limit`
-
-Response: `200 OK`
-```json
-{
-  "items": [
-    {
-      "id": "uuid",
-      "email": "user@example.com",
-      "username": "john_doe",
-      "role": "USER",
-      "status": "ACTIVATE",
-      "createdAt": "...",
-      "updatedAt": "...",
-      "deleteAt": null
-    }
-  ],
-  "nextCursor": "base64string"
-}
-```
-
-### POST /v1/admin/users/:id/suspend
-
-Request:
-```json
-{
-  "reason": "Violation of terms of service"
-}
-```
-
-Response: `204 No Content`
-
-### PATCH /v1/admin/users/:id/unsuspend
-
-Request: No body
-
-Response: `204 No Content`
-
-Errors: `404 USER_NOT_FOUND`, `409 INVALID_STATUS_TRANSITION`
+- The owner never appears in the user listing, the administrator listing,
+  search, pagination or statistics. It is resolvable only by itself.
+- An administrator cannot see the administrator directory or resolve a peer:
+  `GET /v1/admin/administrators` and `GET .../administrators/:id` are
+  owner-reserved. An administrator gets `GET .../administrators/me` instead.
+- `GET /v1/admin/users/:id` answers `404` identically for the owner, an
+  administrator, and an identifier that was never issued.
 
 ---
 

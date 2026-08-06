@@ -65,8 +65,11 @@ question is answered.
 ### RolesGuard
 
 `RolesGuard` (global `APP_GUARD`) checks `@Roles()` against the caller's tier,
-comparing by **rank** so the owner satisfies any tier. Reserved for the few
-operations restricted to a tier outright — the administrator lifecycle.
+comparing by **rank** so the owner satisfies any tier. It is the fallback for
+operations restricted to a tier outright, but no route currently uses it: every
+administrator-management route instead declares a normal permission whose
+catalog entry is reserved to the owner, so the owner-only rule lives in data
+rather than in a controller.
 
 ### Roles
 
@@ -80,11 +83,13 @@ operations restricted to a tier outright — the administrator lifecycle.
 
 | Attack | Blocked by |
 |--------|------------|
-| Self-promotion, self-granting | `assertNotSelf` |
+| Self-granting | `assertNotSelf` in `loadManageableAdmin` |
 | Granting or revoking a permission the caller lacks | `assertCanDelegate` |
+| Passing on an owner-reserved permission | rejected by validation (`422`) before any use case runs |
 | Creating a second owner | no role input on any endpoint, plus `uq_user_single_owner` |
 | Editing, suspending or deleting the owner | `OwnerProtectionPolicy` |
-| An administrator minting administrators | `@Roles(OWNER)` on the lifecycle routes |
+| An administrator minting or inviting administrators | the `ADMIN_*` and `ROLE_ASSIGN` permissions are `ownerOnly` in the catalog, so no one but the owner can ever be evaluated against them |
+| Forging or guessing an invitation | 256-bit CSPRNG token, stored only as a SHA-256 digest |
 
 `403 ACCESS_DENIED` carries no metadata: which permission was missing belongs in
 the logs, not in a response an attacker can read.
@@ -107,7 +112,7 @@ Pattern: **Double-submit cookie**
 
 ### Skip CSRF
 
-Use `@SkipCsrf()` decorator on routes that don't need CSRF (register, login, refresh — which set the CSRF cookie and are unauthenticated).
+Use `@SkipCsrf()` decorator on routes that don't need CSRF (register, login, refresh — which set the CSRF cookie and are unauthenticated). The administrator-invitation accept route is the other exception: its proof is a 256-bit bearer token, so a CSRF token would add nothing.
 
 ---
 
