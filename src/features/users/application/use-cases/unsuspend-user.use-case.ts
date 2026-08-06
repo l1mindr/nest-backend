@@ -1,7 +1,3 @@
-import {
-  OwnerProtectionPolicy,
-  ProtectedAction
-} from '@features/authorization/domain/owner-protection.policy';
 import { EmailService } from '@infrastructure/email/email.service';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
@@ -9,6 +5,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { PinoLogger } from 'nestjs-pino';
 import { User } from '../../domain/entities/user.entity';
+import { UserRole } from '../../domain/enums/user-role.enum';
 import { UserErrors } from '../../domain/errors/user-errors';
 import {
   IUnsuspendUserUseCase,
@@ -16,6 +13,7 @@ import {
   USER_REPOSITORY
 } from '../interfaces/users.interface';
 
+/** Counterpart to `SuspendUserUseCase`; `targetRole` scopes it the same way. */
 @Injectable()
 export class UnsuspendUserUseCase implements IUnsuspendUserUseCase {
   constructor(
@@ -29,14 +27,16 @@ export class UnsuspendUserUseCase implements IUnsuspendUserUseCase {
     this.logger.setContext(UnsuspendUserUseCase.name);
   }
 
-  async execute(adminId: string, userId: string): Promise<void> {
+  async execute(
+    adminId: string,
+    userId: string,
+    targetRole: UserRole
+  ): Promise<void> {
     const user = await this.userRepository.findUserForAdmin(userId);
 
-    if (!user) {
+    if (!user || user.role !== targetRole) {
       throw UserErrors.userNotFound(userId);
     }
-
-    OwnerProtectionPolicy.assertNotOwner(user, ProtectedAction.UNSUSPEND);
 
     const previousStatus = user.status;
 

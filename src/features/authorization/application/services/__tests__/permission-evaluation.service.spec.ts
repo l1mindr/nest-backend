@@ -5,6 +5,10 @@ import {
   ALL_PERMISSIONS,
   Permission
 } from '../../../domain/enums/permission.enum';
+import {
+  DELEGABLE_PERMISSIONS,
+  isOwnerOnly
+} from '../../../domain/permission.catalog';
 import { PermissionEvaluationService } from '../permission-evaluation.service';
 
 describe('PermissionEvaluationService', () => {
@@ -154,12 +158,51 @@ describe('PermissionEvaluationService', () => {
       );
     });
 
-    it('should let a super administrator do everything short of the owner-only routes', async () => {
+    it('should let a super administrator do everything delegable', async () => {
+      mockAdminPermissionRepository.findByUserId.mockResolvedValue([
+        ...DELEGABLE_PERMISSIONS
+      ]);
+
+      await expect(service.can(admin, DELEGABLE_PERMISSIONS)).resolves.toBe(
+        true
+      );
+    });
+
+    /**
+     * The reservation is enforced at evaluation, not only at the write paths.
+     * An `ADMIN_*` row inserted by hand, by a migration slip or by a future bug
+     * still buys nothing — which is what makes owner-only administration a
+     * property of the model rather than of the grant endpoints.
+     */
+    it.each(ALL_PERMISSIONS.filter(isOwnerOnly))(
+      'should refuse %s even when the grant table says the administrator holds it',
+      async (reserved) => {
+        mockAdminPermissionRepository.findByUserId.mockResolvedValue([
+          ...ALL_PERMISSIONS
+        ]);
+
+        await expect(service.can(admin, [reserved])).resolves.toBe(false);
+      }
+    );
+
+    it('should refuse a mixed requirement containing a reserved permission', async () => {
       mockAdminPermissionRepository.findByUserId.mockResolvedValue([
         ...ALL_PERMISSIONS
       ]);
 
-      await expect(service.can(admin, ALL_PERMISSIONS)).resolves.toBe(true);
+      await expect(
+        service.can(admin, [Permission.USER_READ, Permission.ADMIN_READ])
+      ).resolves.toBe(false);
+    });
+
+    it('should not report a reserved permission as effectively held', async () => {
+      mockAdminPermissionRepository.findByUserId.mockResolvedValue([
+        ...ALL_PERMISSIONS
+      ]);
+
+      const effective = await service.effectivePermissionsOf(admin);
+
+      expect(effective.filter(isOwnerOnly)).toEqual([]);
     });
   });
 
@@ -258,12 +301,30 @@ describe('PermissionEvaluationService', () => {
       ).resolves.toBeUndefined();
     });
 
-    it('should let the owner delegate anything', async () => {
+    it('should let the owner delegate anything delegable', async () => {
       await expect(
-        service.assertCanDelegate(owner, ALL_PERMISSIONS)
+        service.assertCanDelegate(owner, DELEGABLE_PERMISSIONS)
       ).resolves.toBeUndefined();
 
       expect(mockAdminPermissionRepository.findByUserId).not.toHaveBeenCalled();
     });
+
+    /**
+     * Refused for the owner too. The reservation is not "only the owner may
+     * hand this out" but "no account other than the owner may ever hold it",
+     * so there is nobody it could legitimately be given to.
+     */
+    it.each(ALL_PERMISSIONS.filter(isOwnerOnly))(
+      'should refuse to delegate %s even for the owner',
+      async (reserved) => {
+        await expect(
+          service.assertCanDelegate(owner, [reserved])
+        ).rejects.toThrow(
+          expect.objectContaining({
+            code: AuthorizationErrorCode.PERMISSION_RESERVED_TO_OWNER
+          })
+        );
+      }
+    );
   });
 });

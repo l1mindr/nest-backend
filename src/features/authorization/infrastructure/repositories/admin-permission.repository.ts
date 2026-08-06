@@ -65,7 +65,7 @@ export class AdminPermissionRepository implements IAdminPermissionRepository {
   async grant(
     userId: string,
     permissions: readonly Permission[],
-    grantedById: string,
+    grantedById: string | null,
     manager?: EntityManager
   ): Promise<void> {
     if (permissions.length === 0) return;

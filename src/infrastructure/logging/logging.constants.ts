@@ -17,8 +17,13 @@ export enum LogEvent {
 
   ADMIN_ROLE_GRANTED = 'authorization.admin.role_granted',
   ADMIN_ROLE_REVOKED = 'authorization.admin.role_revoked',
+  ADMIN_DELETED = 'authorization.admin.deleted',
   ADMIN_STATUS_CHANGED = 'authorization.admin.status_changed',
   ADMIN_PROFILE_UPDATED = 'authorization.admin.profile_updated',
+  ADMIN_INVITED = 'authorization.invitation.created',
+  ADMIN_INVITATION_REVOKED = 'authorization.invitation.revoked',
+  ADMIN_INVITATION_ACCEPTED = 'authorization.invitation.accepted',
+  ADMIN_INVITATION_REJECTED = 'authorization.invitation.rejected',
   PERMISSIONS_GRANTED = 'authorization.permissions.granted',
   PERMISSIONS_REVOKED = 'authorization.permissions.revoked',
 

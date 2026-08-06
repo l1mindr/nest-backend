@@ -1,4 +1,5 @@
 import { DataSource } from 'typeorm';
+import { UserRole } from '../../../domain/enums/user-role.enum';
 import { UserStatus } from '../../../domain/enums/user-status.enum';
 import { User } from '../../../domain/entities/user.entity';
 import { UserRepository } from '../user.repository';
@@ -137,12 +138,12 @@ describe('UserRepository', () => {
     });
   });
 
-  describe('findUsersForAdmin', () => {
-    it('should return users without cursor', async () => {
+  describe('findUsersByRole', () => {
+    it('should scope the listing to the requested role', async () => {
       const users = [{ id: '1' }, { id: '2' }] as User[];
       mockRepository.find.mockResolvedValue(users);
 
-      const result = await repository.findUsersForAdmin(null, 21);
+      const result = await repository.findUsersByRole(UserRole.USER, null, 21);
 
       expect(result).toEqual(users);
       expect(mockRepository.find).toHaveBeenCalledWith({
@@ -155,25 +156,47 @@ describe('UserRepository', () => {
           status: true,
           registryDates: { createdAt: true, updatedAt: true, deleteAt: true }
         },
-        where: undefined,
+        where: { role: UserRole.USER },
         order: { id: 'ASC' },
         take: 21
       });
     });
 
-    it('should apply cursor filter', async () => {
+    it('should apply cursor filter alongside the role', async () => {
       const users = [{ id: '2' }] as User[];
       mockRepository.find.mockResolvedValue(users);
 
-      const result = await repository.findUsersForAdmin('cursor-id', 11);
+      const result = await repository.findUsersByRole(
+        UserRole.ADMIN,
+        'cursor-id',
+        11
+      );
 
       expect(result).toEqual(users);
       expect(mockRepository.find).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: expect.any(Object) }
+          where: { role: UserRole.ADMIN, id: expect.any(Object) }
         })
       );
     });
+
+    /**
+     * The owner is excluded by never being asked for, rather than by being
+     * filtered out of a wider result. A listing that fetched every account and
+     * removed the owner afterwards would leak through counts and pagination.
+     */
+    it.each([UserRole.USER, UserRole.ADMIN])(
+      'should never query without a role filter (%s)',
+      async (role) => {
+        mockRepository.find.mockResolvedValue([]);
+
+        await repository.findUsersByRole(role, null, 10);
+
+        expect(mockRepository.find).toHaveBeenCalledWith(
+          expect.objectContaining({ where: expect.objectContaining({ role }) })
+        );
+      }
+    );
   });
 
   describe('updateUserProfile', () => {

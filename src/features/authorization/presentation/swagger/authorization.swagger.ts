@@ -6,6 +6,7 @@ import {
   badRequestResponse,
   conflictResponse,
   forbiddenResponse,
+  goneResponse,
   internalServerErrorResponse,
   notFoundResponse,
   unauthorizedResponse,
@@ -30,31 +31,43 @@ import { ApiOperation, ApiParam } from '@nestjs/swagger';
 import { AuthorizationErrors } from '../../domain/errors/authorization-errors';
 import { Permission } from '../../domain/enums/permission.enum';
 import { ProtectedAction } from '../../domain/owner-protection.policy';
-import { CreateAdminRequestDto } from '../dto/request/create-admin.request.dto';
+import { AcceptAdminInvitationRequestDto } from '../dto/request/accept-admin-invitation.request.dto';
+import { InviteAdminRequestDto } from '../dto/request/invite-admin.request.dto';
 import { PermissionSetRequestDto } from '../dto/request/permission-set.request.dto';
 import { UpdateAdminRequestDto } from '../dto/request/update-admin.request.dto';
 import { AdminAccountResponseDto } from '../dto/response/admin-account.response.dto';
 import { AdminAccountsListResponseDto } from '../dto/response/admin-accounts-list.response.dto';
+import { AdminInvitationResponseDto } from '../dto/response/admin-invitation.response.dto';
+import { AdminInvitationsListResponseDto } from '../dto/response/admin-invitations-list.response.dto';
 import { EffectivePermissionsResponseDto } from '../dto/response/effective-permissions.response.dto';
 import { PermissionCatalogResponseDto } from '../dto/response/permission-catalog.response.dto';
 
 /**
- * Operation documentation for the administrator and permission endpoints.
+ * Operation documentation for the administrator, invitation and permission
+ * endpoints.
  *
- * Two access rules recur and are documented once here: `ownerOnly()` for the
- * lifecycle operations reserved to the owner, and `permissionRequired()` for
- * everything the owner can delegate.
+ * One access rule recurs and is documented once here: `permissionRequired()`.
+ * Routes reserved to the owner are not documented differently — they require an
+ * owner-reserved permission, which is a permission nobody else can be granted.
+ * `ownerReserved()` says so in the description without introducing a second
+ * kind of gate.
  */
 
+const ADMINS = '/v1/admin/administrators';
+const INVITATIONS = `${ADMINS}/invitations`;
+
 const PATH = {
-  LIST: '/v1/admin/admins',
-  CREATE: '/v1/admin/admins',
-  DETAIL: `/v1/admin/admins/${ExampleValue.ADMIN_ID}`,
-  ACTIVATE: `/v1/admin/admins/${ExampleValue.ADMIN_ID}/activate`,
-  DEACTIVATE: `/v1/admin/admins/${ExampleValue.ADMIN_ID}/deactivate`,
-  SUSPEND: `/v1/admin/admins/${ExampleValue.ADMIN_ID}/suspend`,
-  UNSUSPEND: `/v1/admin/admins/${ExampleValue.ADMIN_ID}/unsuspend`,
-  PERMISSIONS: `/v1/admin/admins/${ExampleValue.ADMIN_ID}/permissions`,
+  LIST: ADMINS,
+  SELF: `${ADMINS}/me`,
+  DETAIL: `${ADMINS}/${ExampleValue.ADMIN_ID}`,
+  ACTIVATE: `${ADMINS}/${ExampleValue.ADMIN_ID}/activate`,
+  DEACTIVATE: `${ADMINS}/${ExampleValue.ADMIN_ID}/deactivate`,
+  SUSPEND: `${ADMINS}/${ExampleValue.ADMIN_ID}/suspend`,
+  UNSUSPEND: `${ADMINS}/${ExampleValue.ADMIN_ID}/unsuspend`,
+  PERMISSIONS: `${ADMINS}/${ExampleValue.ADMIN_ID}/permissions`,
+  INVITATIONS,
+  INVITATION_DETAIL: `${INVITATIONS}/${ExampleValue.USER_ID}`,
+  INVITATION_ACCEPT: `${INVITATIONS}/accept`,
   CATALOG: '/v1/admin/permissions',
   MINE: '/v1/admin/permissions/me'
 } as const;
@@ -62,10 +75,18 @@ const PATH = {
 const adminIdParam = () =>
   ApiParam({
     name: 'id',
-    description:
-      'Identifier of the administrator being administered, as returned in `id` by `GET /v1/admin/admins`.',
+    description: `Identifier of the administrator being administered, as returned in \`id\` by \`GET ${ADMINS}\`.`,
     format: 'uuid',
     example: ExampleValue.ADMIN_ID,
+    required: true
+  });
+
+const invitationIdParam = () =>
+  ApiParam({
+    name: 'id',
+    description: `Identifier of the invitation, as returned in \`id\` by \`GET ${INVITATIONS}\`.`,
+    format: 'uuid',
+    example: ExampleValue.USER_ID,
     required: true
   });
 
@@ -73,12 +94,6 @@ const accountNotFound = () =>
   errorExample(
     UserErrors.userNotFound(ExampleValue.USER_ID),
     'No account exists with this identifier'
-  );
-
-const notAnAdministrator = () =>
-  errorExample(
-    AuthorizationErrors.notAnAdministrator(ExampleValue.USER_ID),
-    'The account exists but does not hold the `ADMIN` role'
   );
 
 const ownerImmutable = (action: ProtectedAction) =>
@@ -91,14 +106,6 @@ const selfManagement = (action: ProtectedAction) =>
   errorExample(
     AuthorizationErrors.selfManagementForbidden(action),
     'An administrator aimed the operation at their own account'
-  );
-
-/** `403` for a route reserved to the owner by role. */
-const ownerOnly = (...extra: ApiErrorExample[]) =>
-  forbiddenResponse(
-    'Reserved to the owner. Administrators are refused here no matter which permissions they hold, because an administrator able to create or unmake administrators would hold every permission by proxy.',
-    errorExample(SecurityErrors.accessDenied(), 'The caller is not the owner'),
-    ...extra
   );
 
 /** `403` for a route gated on a permission. */
@@ -115,15 +122,26 @@ const permissionRequired = (
     ...extra
   );
 
+/**
+ * The paragraph appended to every operation whose permission is owner-reserved.
+ * Written once so the reason is stated identically everywhere it applies.
+ */
+const ownerReserved = (permission: Permission) =>
+  `Requires \`${permission}\`, which is reserved to the owner: it cannot be granted to an administrator, so in practice only the owner may call this. An administrator able to create or unmake administrators would hold every permission by proxy. Relaxing this is a change to the permission catalog, not to the route.`;
+
 export const ApiAdminList = () =>
   applyDecorators(
     ApiOperation({
       operationId: 'listAdministrators',
       summary: 'List administrators and the permissions they hold',
       description: [
-        'Cursor-paginated over accounts holding the `ADMIN` role, ordered by identifier. The owner is not listed: the owner is not an administrator but the tier above one, and holds every permission unconditionally.',
+        'Cursor-paginated over accounts holding the `ADMIN` role, ordered by identifier. The owner is never listed, for anyone — the owner is not an administrator but the tier above one, and is excluded by the query rather than filtered from the result.',
         '',
-        'Each entry carries its grants, which is the only thing that decides what that administrator can actually reach. An empty `permissions` array is a real state, not a placeholder — it means the account holds the role and nothing else.'
+        'Administrators cannot see one another: `ADMIN_READ` is owner-reserved, so this endpoint answers `403` to every administrator. `GET /me` is where an administrator reads their own profile.',
+        '',
+        'Each entry carries its grants, which is the only thing that decides what that administrator can actually reach. An empty `permissions` array is a real state, not a placeholder — it means the account holds the role and nothing else.',
+        '',
+        ownerReserved(Permission.ADMIN_READ)
       ].join('\n')
     }),
     ApiAuthenticated(),
@@ -150,6 +168,38 @@ export const ApiAdminList = () =>
     ])
   );
 
+export const ApiAdminSelf = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'getOwnAdministratorProfile',
+      summary: 'Get your own administrator profile and permissions',
+      description: [
+        'The one administrator endpoint scoped to the caller, and therefore the one that needs no permission: it can only ever return the account making the request.',
+        '',
+        'This is what an administrator reads instead of the directory. `GET /v1/admin/administrators` is owner-reserved, so an administrator cannot enumerate their peers; here they see themselves and the grants that decide what they can reach.',
+        '',
+        'The owner may call it too and is reported as holding every permission, which is how they are actually treated — they bypass evaluation rather than being granted anything.'
+      ].join('\n')
+    }),
+    ApiAuthenticated(),
+    ApiSuccessResponse({
+      status: 200,
+      description: 'The calling administrator.',
+      type: AdminAccountResponseDto
+    }),
+    ApiErrorResponses(PATH.SELF, [
+      unauthorizedResponse(),
+      forbiddenResponse(
+        'The caller is an ordinary user, which has no administrator profile to return.',
+        errorExample(
+          SecurityErrors.accessDenied(),
+          'The caller holds neither `ADMIN` nor `OWNER`'
+        )
+      ),
+      internalServerErrorResponse()
+    ])
+  );
+
 export const ApiAdminGet = () =>
   applyDecorators(
     ApiOperation({
@@ -158,7 +208,9 @@ export const ApiAdminGet = () =>
       description: [
         'Returns a single administrator together with the permissions granted to them.',
         '',
-        'The owner can be read through this endpoint and is reported as holding every permission, which is how they are actually treated: they bypass evaluation rather than being granted anything.'
+        'The owner is resolvable only by the owner. To anyone else an owner identifier answers `404` — the same answer an identifier that was never issued gives — so this endpoint cannot be used to confirm which account is the owner. Ordinary users answer the same way, for the same reason.',
+        '',
+        ownerReserved(Permission.ADMIN_READ)
       ].join('\n')
     }),
     ApiAuthenticated(),
@@ -172,12 +224,8 @@ export const ApiAdminGet = () =>
       unauthorizedResponse(),
       permissionRequired(Permission.ADMIN_READ),
       notFoundResponse(
-        'No account exists with this identifier.',
+        'No administrator exists with this identifier, or it identifies an account the caller may not resolve.',
         accountNotFound()
-      ),
-      conflictResponse(
-        'The account exists but is not an administrator.',
-        notAnAdministrator()
       ),
       validationResponse('The `id` path parameter is not a UUID.', [
         validationError('id', 'id must be a UUID')
@@ -186,75 +234,213 @@ export const ApiAdminGet = () =>
     ])
   );
 
-export const ApiAdminCreate = () =>
+export const ApiAdminInvitationCreate = () =>
   applyDecorators(
     ApiOperation({
-      operationId: 'createAdministrator',
-      summary: 'Promote an account to administrator',
+      operationId: 'inviteAdministrator',
+      summary: 'Invite someone to become an administrator',
       description: [
-        'Grants the `ADMIN` role to an existing, active account and optionally assigns its opening set of permissions, in one transaction.',
+        'Issues a single-use, time-limited invitation to an email address and sends the token to it. **No account is created here.**',
         '',
-        "This promotes rather than registers. An administrator is an ordinary account holding a role, not a separate kind of identity, so sign-up, email verification and password handling stay on the single path they already follow — and no endpoint here can mint credentials on someone else's behalf.",
+        'That is the point of the flow: a promotion-based design has to create the privileged account up front, so a revoked or forgotten invitation leaves a dormant administrator account behind that can still be signed into. Here the account comes into existence only when the invitee accepts and sets their own password — until then the only trace is an invitation row and an email.',
         '',
-        'Only an `ACTIVATE` account qualifies: promoting an unverified one would create an administrator nobody can sign in as, and promoting a suspended one would quietly undo a moderation decision.',
+        'The token is generated from a CSPRNG and only its SHA-256 digest is stored, so a database dump yields nothing that can be presented. It is returned in no response, including this one.',
         '',
-        'Reserved to the owner. `OWNER` is not an assignable role through any endpoint.'
+        'At most one invitation is outstanding per address: re-inviting an address supersedes the previous invitation rather than adding a second. The address must not already belong to an account.',
+        '',
+        'Delivery failure does not roll the invitation back — the owner can revoke and re-issue, whereas a rollback would leave them unable to tell whether the address is now invited.',
+        '',
+        ownerReserved(Permission.ADMIN_INVITE)
       ].join('\n')
     }),
     ApiCsrfProtected(),
-    ApiRequestBody(CreateAdminRequestDto, [
+    ApiRequestBody(InviteAdminRequestDto, [
       {
-        summary: 'Promote with a read-only permission set',
+        summary: 'Invite a read-only administrator',
         value: {
-          userId: ExampleValue.USER_ID,
+          email: ExampleValue.EMAIL,
           permissions: [Permission.USER_READ]
         }
       },
       {
-        summary: 'Promote a moderator',
+        summary: 'Invite a moderator',
         value: {
-          userId: ExampleValue.USER_ID,
+          email: ExampleValue.EMAIL,
           permissions: [Permission.USER_READ, Permission.USER_SUSPEND]
         }
       },
       {
-        summary: 'Promote with no permissions yet',
-        value: { userId: ExampleValue.USER_ID }
+        summary: 'Invite with no permissions yet',
+        value: { email: ExampleValue.EMAIL }
       }
     ]),
     ApiSuccessResponse({
       status: 201,
-      description: 'The newly promoted administrator.',
-      type: AdminAccountResponseDto
+      description:
+        'The invitation as issued. The token is not included — it exists only in the delivered email.',
+      type: AdminInvitationResponseDto
     }),
-    ApiErrorResponses(PATH.CREATE, [
+    ApiErrorResponses(PATH.INVITATIONS, [
       unauthorizedResponse(),
-      ownerOnly(
-        ownerImmutable(ProtectedAction.ROLE_CHANGE),
-        selfManagement(ProtectedAction.ROLE_CHANGE)
-      ),
-      notFoundResponse(
-        'No account exists with this identifier.',
-        accountNotFound()
-      ),
+      permissionRequired(Permission.ADMIN_INVITE),
       conflictResponse(
-        'The account cannot be promoted in its current state.',
+        'The address already belongs to an account.',
         errorExample(
-          AuthorizationErrors.alreadyAnAdministrator(ExampleValue.USER_ID),
-          'The account already holds an administrative role'
-        ),
-        errorExample(
-          AuthorizationErrors.accountNotEligible(
-            UserStatus.PENDING_VERIFICATION
-          ),
-          'The account is not active, so it cannot be promoted'
+          UserErrors.emailAlreadyExists(),
+          'Administrators are always new accounts, so a taken address is refused'
         )
       ),
-      validationResponse('The body is malformed.', [
-        validationError('userId', 'userId must be a UUID'),
+      validationResponse('The body failed validation.', [
+        validationError('email', 'email must be an email'),
         validationError(
           'permissions',
-          'each value in permissions must be one of the following values: USER_READ, USER_CREATE, ...'
+          'permissions must contain only delegable permission codes; owner-reserved permissions cannot be granted'
+        )
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiAdminInvitationList = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'listAdministratorInvitations',
+      summary: 'List administrator invitations',
+      description: [
+        'The invitation log, cursor-paginated and ordered by identifier. Settled invitations are kept and listed: revoking or accepting one does not erase the fact that it was issued, which is what makes this an audit trail rather than a work queue.',
+        '',
+        '`status` is derived at read time — an invitation whose `expiresAt` has passed reports `EXPIRED` without anything having updated the row.',
+        '',
+        ownerReserved(Permission.ADMIN_INVITE)
+      ].join('\n')
+    }),
+    ApiAuthenticated(),
+    ApiSuccessResponse({
+      status: 200,
+      description:
+        'One page of invitations. `nextCursor` is `null` once the last page has been reached.',
+      type: AdminInvitationsListResponseDto
+    }),
+    ApiErrorResponses(PATH.INVITATIONS, [
+      badRequestResponse(
+        'The `cursor` query parameter was not produced by this endpoint.',
+        errorExample(
+          UserErrors.invalidCursor(),
+          'Cursor is not valid base64url, or does not decode to an identifier'
+        )
+      ),
+      unauthorizedResponse(),
+      permissionRequired(Permission.ADMIN_INVITE),
+      validationResponse('A pagination parameter is out of range.', [
+        validationError('limit', 'limit must not be greater than 100')
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiAdminInvitationRevoke = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'revokeAdministratorInvitation',
+      summary: 'Revoke a pending invitation',
+      description: [
+        'Withdraws an invitation before it is used. The token stops being accepted immediately.',
+        '',
+        'The row is marked revoked rather than deleted, so the audit trail still shows that an invitation was issued and thought better of.',
+        '',
+        'An expired invitation may still be revoked — that is how the owner clears the way to re-invite the same address. An already accepted or already revoked one cannot: there is nothing left to withdraw, and revoking an accepted invitation would not unmake the account it created. Delete the administrator instead.',
+        '',
+        ownerReserved(Permission.ADMIN_INVITE)
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    invitationIdParam(),
+    ApiNoContent({ description: 'Invitation revoked. No body is returned.' }),
+    ApiErrorResponses(PATH.INVITATION_DETAIL, [
+      unauthorizedResponse(),
+      permissionRequired(Permission.ADMIN_INVITE),
+      notFoundResponse(
+        'No invitation exists with this identifier.',
+        errorExample(
+          AuthorizationErrors.invitationNotFound(),
+          'Unknown invitation'
+        )
+      ),
+      conflictResponse(
+        'The invitation has already been settled.',
+        errorExample(
+          AuthorizationErrors.invitationNotPending(),
+          'Already accepted or already revoked'
+        )
+      ),
+      validationResponse('The `id` path parameter is not a UUID.', [
+        validationError('id', 'id must be a UUID')
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiAdminInvitationAccept = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'acceptAdministratorInvitation',
+      summary: 'Accept an invitation and create the administrator account',
+      description: [
+        'The only endpoint that creates an administrator, and the only one in this group that is unauthenticated — the invitee has no account yet, so the token is the entire proof of who they are.',
+        '',
+        'Creating the account, granting the invited permissions and burning the invitation happen in one transaction. If any step fails none of it happened and the token is still usable.',
+        '',
+        'The email is taken from the invitation, never from the request: the token is what proves control of that address. The account is created `ACTIVATE` with no verification code, because receiving the token at the invited address already establishes exactly what verification would.',
+        '',
+        'Single use. A token that has been accepted, revoked or expired is refused, and so is one that was never issued — an unknown token and a wrong token give the same `404`, so this endpoint cannot be used to probe for live invitations.'
+      ].join('\n')
+    }),
+    ApiRequestBody(AcceptAdminInvitationRequestDto, [
+      {
+        summary: 'Accept and set credentials',
+        value: {
+          token: 'x7Qk2m9YbR4tG1hV8sN0wP3jL6cA5dE2fU9iO4yZ1kM',
+          username: ExampleValue.USERNAME,
+          password: ExampleValue.PASSWORD,
+          name: ExampleValue.NAME
+        }
+      }
+    ]),
+    ApiNoContent({
+      description:
+        'Account created with the invited permissions and the invitation burned. Sign in normally. No body is returned.'
+    }),
+    ApiErrorResponses(PATH.INVITATION_ACCEPT, [
+      notFoundResponse(
+        'The token does not match a known invitation. Deliberately indistinguishable from a token that never existed.',
+        errorExample(
+          AuthorizationErrors.invitationNotFound(),
+          'Unknown or mistyped token'
+        )
+      ),
+      conflictResponse(
+        'The invitation cannot be accepted, or the chosen username is taken.',
+        errorExample(
+          AuthorizationErrors.invitationNotPending(),
+          'Already accepted, or revoked by the owner'
+        ),
+        errorExample(
+          UserErrors.usernameAlreadyExists(),
+          'The chosen username belongs to another account'
+        )
+      ),
+      goneResponse(
+        'The invitation expired before it was accepted. Ask the owner to issue a new one.',
+        errorExample(
+          AuthorizationErrors.invitationExpired(),
+          'Past `expiresAt`'
+        )
+      ),
+      validationResponse('The body failed validation.', [
+        validationError('password', 'password is not strong enough'),
+        validationError(
+          'token',
+          'token must be longer than or equal to 40 characters'
         )
       ]),
       internalServerErrorResponse()
@@ -265,36 +451,34 @@ export const ApiAdminDelete = () =>
   applyDecorators(
     ApiOperation({
       operationId: 'deleteAdministrator',
-      summary: 'Withdraw administrator status',
+      summary: 'Delete an administrator',
       description: [
-        'Drops the account back to `USER`, deletes every permission it held and revokes all of its sessions, in one transaction.',
+        'Soft-deletes the account, drops every permission it held and revokes all of its sessions, in one transaction.',
         '',
-        "The account itself survives. Removing administrative reach and deleting a person's account are separate decisions, and merging them would mean the owner could not demote a colleague without destroying their data. Account deletion stays on `DELETE /v1/user/delete-account`.",
+        'Administrators are created by invitation and were never ordinary users, so there is no earlier state to fall back to. Demoting one to `USER` would push an account into the user population that never belonged there, and it would surface in user management as a result — deletion is the honest end of an administrator.',
         '',
-        'Sessions are revoked because an access token issued before the demotion would otherwise keep being judged by the role recorded on it.',
+        'Sessions are revoked because an access token issued before the deletion would otherwise keep being judged by the role recorded on it.',
         '',
-        'Reserved to the owner. The owner cannot be demoted through any endpoint.'
+        'The owner cannot be reached through this route, and neither can the caller themselves.',
+        '',
+        ownerReserved(Permission.ADMIN_DELETE)
       ].join('\n')
     }),
     ApiCsrfProtected(),
     adminIdParam(),
     ApiNoContent({
       description:
-        'Administrator status withdrawn, permissions deleted and sessions revoked. No body is returned.'
+        'Administrator deleted, permissions dropped and sessions revoked. No body is returned.'
     }),
     ApiErrorResponses(PATH.DETAIL, [
       unauthorizedResponse(),
-      ownerOnly(
-        ownerImmutable(ProtectedAction.ROLE_CHANGE),
-        selfManagement(ProtectedAction.ROLE_CHANGE)
+      permissionRequired(
+        Permission.ADMIN_DELETE,
+        selfManagement(ProtectedAction.DELETE)
       ),
       notFoundResponse(
-        'No account exists with this identifier.',
+        'No administrator exists with this identifier. The owner and ordinary users answer the same way.',
         accountNotFound()
-      ),
-      conflictResponse(
-        'The account is not an administrator, so there is nothing to withdraw.',
-        notAnAdministrator()
       ),
       validationResponse('The `id` path parameter is not a UUID.', [
         validationError('id', 'id must be a UUID')
@@ -332,10 +516,6 @@ export const ApiAdminUpdate = () =>
         'No account exists with this identifier.',
         accountNotFound()
       ),
-      conflictResponse(
-        'The account is not an administrator.',
-        notAnAdministrator()
-      ),
       validationResponse('The body failed validation.', [
         validationError(
           'name',
@@ -349,17 +529,16 @@ export const ApiAdminUpdate = () =>
 const statusChangeErrors = (path: string, from: UserStatus, to: UserStatus) =>
   ApiErrorResponses(path, [
     unauthorizedResponse(),
-    ownerOnly(
-      ownerImmutable(ProtectedAction.STATUS_CHANGE),
+    permissionRequired(
+      Permission.ADMIN_STATUS,
       selfManagement(ProtectedAction.STATUS_CHANGE)
     ),
     notFoundResponse(
-      'No account exists with this identifier.',
+      'No administrator exists with this identifier. The owner and ordinary users answer the same way.',
       accountNotFound()
     ),
     conflictResponse(
       'The administrator is not in a state this transition can start from.',
-      notAnAdministrator(),
       errorExample(
         UserErrors.invalidStatusTransition(from, to),
         `Only a ${from} administrator can be moved to ${to}`
@@ -381,7 +560,7 @@ export const ApiAdminActivate = () =>
         '',
         'Only deactivation is reversible here. Lifting a suspension is a separate decision with its own notification, and an account that never verified its email must still do so.',
         '',
-        'Reserved to the owner.'
+        ownerReserved(Permission.ADMIN_STATUS)
       ].join('\n')
     }),
     ApiCsrfProtected(),
@@ -406,7 +585,7 @@ export const ApiAdminDeactivate = () =>
         '',
         'This is the reversible lever — a colleague on leave, an account under investigation — as distinct from suspension, which is a moderation decision that emails the user.',
         '',
-        'Reserved to the owner.'
+        ownerReserved(Permission.ADMIN_STATUS)
       ].join('\n')
     }),
     ApiCsrfProtected(),
@@ -430,7 +609,11 @@ export const ApiAdminSuspend = () =>
       description: [
         'Identical in effect to suspending any other account — the same status transition, the same session revocation, the same notification email — because it is the same operation, reached through a route the owner alone may call.',
         '',
-        'Reverse it with `PATCH /v1/admin/admins/{id}/unsuspend`. Reserved to the owner; the owner cannot be suspended.'
+        'Scoped to the administrator population: an ordinary user identifier answers `404` here, just as an administrator identifier does on the user suspension route. Neither route can reach the owner.',
+        '',
+        `Reverse it with \`PATCH ${ADMINS}/{id}/unsuspend\`.`,
+        '',
+        ownerReserved(Permission.ADMIN_STATUS)
       ].join('\n')
     }),
     ApiCsrfProtected(),
@@ -447,9 +630,9 @@ export const ApiAdminSuspend = () =>
     }),
     ApiErrorResponses(PATH.SUSPEND, [
       unauthorizedResponse(),
-      ownerOnly(ownerImmutable(ProtectedAction.SUSPEND)),
+      permissionRequired(Permission.ADMIN_STATUS),
       notFoundResponse(
-        'No account exists with this identifier.',
+        'No administrator exists with this identifier. The owner and ordinary users answer the same way.',
         accountNotFound()
       ),
       conflictResponse(
@@ -477,7 +660,7 @@ export const ApiAdminUnsuspend = () =>
       description: [
         'Returns a `SUSPEND` administrator to `ACTIVATE` and emails them to say so. Sessions are not restored — they were revoked when the suspension was applied.',
         '',
-        'Reserved to the owner.'
+        ownerReserved(Permission.ADMIN_STATUS)
       ].join('\n')
     }),
     ApiCsrfProtected(),
@@ -488,9 +671,9 @@ export const ApiAdminUnsuspend = () =>
     }),
     ApiErrorResponses(PATH.UNSUSPEND, [
       unauthorizedResponse(),
-      ownerOnly(ownerImmutable(ProtectedAction.UNSUSPEND)),
+      permissionRequired(Permission.ADMIN_STATUS),
       notFoundResponse(
-        'No account exists with this identifier.',
+        'No administrator exists with this identifier. The owner and ordinary users answer the same way.',
         accountNotFound()
       ),
       conflictResponse(
@@ -551,14 +734,10 @@ export const ApiAdminGrantPermissions = () =>
         'No account exists with this identifier.',
         accountNotFound()
       ),
-      conflictResponse(
-        'The account is not an administrator, so it cannot hold permissions.',
-        notAnAdministrator()
-      ),
       validationResponse('The body failed validation.', [
         validationError(
           'permissions',
-          'permissions must contain at least 1 elements'
+          'permissions must contain only delegable permission codes; owner-reserved permissions cannot be granted'
         )
       ]),
       internalServerErrorResponse()
@@ -597,14 +776,10 @@ export const ApiAdminRevokePermissions = () =>
         'No account exists with this identifier.',
         accountNotFound()
       ),
-      conflictResponse(
-        'The account is not an administrator.',
-        notAnAdministrator()
-      ),
       validationResponse('The body failed validation.', [
         validationError(
           'permissions',
-          'each value in permissions must be a valid enum value'
+          'permissions must contain only delegable permission codes; owner-reserved permissions cannot be granted'
         )
       ]),
       internalServerErrorResponse()

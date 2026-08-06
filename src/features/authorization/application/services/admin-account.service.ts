@@ -1,18 +1,15 @@
 import { User } from '@features/users/domain/entities/user.entity';
 import { UserRole } from '@features/users/domain/enums/user-role.enum';
-import { UserStatus } from '@features/users/domain/enums/user-status.enum';
 import { UserErrors } from '@features/users/domain/errors/user-errors';
 import {
   IUserRepository,
   USER_REPOSITORY
 } from '@features/users/application/interfaces/users.interface';
 import { Inject, Injectable } from '@nestjs/common';
-import { AuthorizationErrors } from '../../domain/errors/authorization-errors';
 import {
   OwnerProtectionPolicy,
   ProtectedAction
 } from '../../domain/owner-protection.policy';
-import { RoleHierarchy } from '../../domain/role-hierarchy';
 
 /**
  * Resolves the account an administrative operation is aimed at, and refuses the
@@ -32,7 +29,13 @@ export class AdminAccountService {
 
   /**
    * The target of an operation on an existing administrator: it must exist, be
-   * an administrator, not be the owner, and not be the caller.
+   * an administrator, and not be the caller.
+   *
+   * An account outside the administrator population — an ordinary user, or the
+   * owner — answers "not found" rather than explaining itself. That is what
+   * keeps the owner invisible: an identifier harvested elsewhere cannot be used
+   * here to confirm that it belongs to the owner, because the answer is the
+   * same one an unused identifier gives.
    *
    * Blocking self-targeting is what stops an administrator from widening their
    * own reach; the self-service endpoints remain available for anything they
@@ -45,41 +48,11 @@ export class AdminAccountService {
   ): Promise<User> {
     const target = await this.load(targetId);
 
-    OwnerProtectionPolicy.assertNotOwner(target, action);
-    OwnerProtectionPolicy.assertNotSelf(actorId, targetId, action);
-
     if (target.role !== UserRole.ADMIN) {
-      throw AuthorizationErrors.notAnAdministrator(targetId);
+      throw UserErrors.userNotFound(targetId);
     }
 
-    return target;
-  }
-
-  /**
-   * The target of a promotion: an ordinary account that is eligible to become
-   * an administrator.
-   *
-   * Only an active account qualifies — promoting one that has never verified
-   * its email would create an administrator nobody can sign in as, and
-   * promoting a suspended one would quietly undo a moderation decision.
-   */
-  async loadPromotableUser(actorId: string, targetId: string): Promise<User> {
-    const target = await this.load(targetId);
-
-    OwnerProtectionPolicy.assertNotOwner(target, ProtectedAction.ROLE_CHANGE);
-    OwnerProtectionPolicy.assertNotSelf(
-      actorId,
-      targetId,
-      ProtectedAction.ROLE_CHANGE
-    );
-
-    if (RoleHierarchy.isAdministrative(target.role)) {
-      throw AuthorizationErrors.alreadyAnAdministrator(targetId);
-    }
-
-    if (target.status !== UserStatus.ACTIVATE) {
-      throw AuthorizationErrors.accountNotEligible(target.status);
-    }
+    OwnerProtectionPolicy.assertNotSelf(actorId, targetId, action);
 
     return target;
   }

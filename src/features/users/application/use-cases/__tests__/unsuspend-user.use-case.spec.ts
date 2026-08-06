@@ -1,4 +1,3 @@
-import { AuthorizationErrorCode } from '@features/authorization/domain/errors/authorization-error-code.enum';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { UserRole } from '../../../domain/enums/user-role.enum';
@@ -73,11 +72,12 @@ describe('UnsuspendUserUseCase', () => {
         id: 'user-1',
         email: 'suspended@test.com',
         name: 'Suspended User',
+        role: UserRole.USER,
         status: UserStatus.SUSPEND,
         unsuspend: mockUnsuspend
       });
 
-      await useCase.execute('admin-1', 'user-1');
+      await useCase.execute('admin-1', 'user-1', UserRole.USER);
 
       expect(mockUserRepository.findUserForAdmin).toHaveBeenCalledWith(
         'user-1'
@@ -109,9 +109,9 @@ describe('UnsuspendUserUseCase', () => {
     it('should throw when user is not found', async () => {
       mockUserRepository.findUserForAdmin.mockResolvedValue(null);
 
-      await expect(useCase.execute('admin-1', 'missing-id')).rejects.toEqual(
-        UserErrors.userNotFound('missing-id')
-      );
+      await expect(
+        useCase.execute('admin-1', 'missing-id', UserRole.USER)
+      ).rejects.toEqual(UserErrors.userNotFound('missing-id'));
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
       expect(mockEmailService.sendUnsuspensionEmail).not.toHaveBeenCalled();
@@ -120,9 +120,10 @@ describe('UnsuspendUserUseCase', () => {
     /**
      * The owner is never suspended, so is never a legitimate target here. The
      * check is asserted anyway so the invariant does not depend on the owner's
-     * status happening to be right.
+     * status happening to be right — and it answers `404` rather than a
+     * distinct refusal, which would confirm the identifier is the owner's.
      */
-    it('should refuse to unsuspend the owner', async () => {
+    it('should answer NOT_FOUND for the owner rather than confirming it exists', async () => {
       mockUserRepository.findUserForAdmin.mockResolvedValue({
         id: 'owner-1',
         email: 'owner@test.com',
@@ -132,15 +133,67 @@ describe('UnsuspendUserUseCase', () => {
         unsuspend: mockUnsuspend
       });
 
-      await expect(useCase.execute('admin-1', 'owner-1')).rejects.toThrow(
-        expect.objectContaining({
-          code: AuthorizationErrorCode.OWNER_IMMUTABLE,
-          statusCode: 403
-        })
-      );
+      await expect(
+        useCase.execute('admin-1', 'owner-1', UserRole.USER)
+      ).rejects.toEqual(UserErrors.userNotFound('owner-1'));
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
       expect(mockEmailService.sendUnsuspensionEmail).not.toHaveBeenCalled();
+    });
+
+    it('should refuse the owner on the administrator route too', async () => {
+      mockUserRepository.findUserForAdmin.mockResolvedValue({
+        id: 'owner-1',
+        email: 'owner@test.com',
+        name: 'Owner',
+        role: UserRole.OWNER,
+        status: UserStatus.SUSPEND,
+        unsuspend: mockUnsuspend
+      });
+
+      await expect(
+        useCase.execute('owner-2', 'owner-1', UserRole.ADMIN)
+      ).rejects.toEqual(UserErrors.userNotFound('owner-1'));
+
+      expect(mockDataSource.transaction).not.toHaveBeenCalled();
+    });
+
+    /**
+     * The isolation rule in both directions: the user route cannot reach an
+     * administrator, and the administrator route cannot reach a user.
+     */
+    it('should refuse an administrator when the user route is administering', async () => {
+      mockUserRepository.findUserForAdmin.mockResolvedValue({
+        id: 'admin-9',
+        email: 'admin@test.com',
+        name: 'An Administrator',
+        role: UserRole.ADMIN,
+        status: UserStatus.SUSPEND,
+        unsuspend: mockUnsuspend
+      });
+
+      await expect(
+        useCase.execute('admin-1', 'admin-9', UserRole.USER)
+      ).rejects.toEqual(UserErrors.userNotFound('admin-9'));
+
+      expect(mockDataSource.transaction).not.toHaveBeenCalled();
+      expect(mockEmailService.sendUnsuspensionEmail).not.toHaveBeenCalled();
+    });
+
+    it('should unsuspend an administrator when the administrator route is administering', async () => {
+      mockUserRepository.findUserForAdmin.mockResolvedValue({
+        id: 'admin-9',
+        email: 'admin@test.com',
+        name: 'An Administrator',
+        role: UserRole.ADMIN,
+        status: UserStatus.SUSPEND,
+        unsuspend: mockUnsuspend
+      });
+
+      await useCase.execute('owner-1', 'admin-9', UserRole.ADMIN);
+
+      expect(mockDataSource.transaction).toHaveBeenCalled();
+      expect(mockEmailService.sendUnsuspensionEmail).toHaveBeenCalled();
     });
 
     it('should throw when user status is active', async () => {
@@ -148,11 +201,14 @@ describe('UnsuspendUserUseCase', () => {
         id: 'user-2',
         email: 'active@test.com',
         name: 'Active User',
+        role: UserRole.USER,
         status: UserStatus.ACTIVATE,
         unsuspend: mockUnsuspend
       });
 
-      await expect(useCase.execute('admin-1', 'user-2')).rejects.toEqual(
+      await expect(
+        useCase.execute('admin-1', 'user-2', UserRole.USER)
+      ).rejects.toEqual(
         UserErrors.invalidStatusTransition(
           UserStatus.ACTIVATE,
           UserStatus.ACTIVATE
@@ -168,11 +224,14 @@ describe('UnsuspendUserUseCase', () => {
         id: 'user-3',
         email: 'pending@test.com',
         name: 'Pending User',
+        role: UserRole.USER,
         status: UserStatus.PENDING_VERIFICATION,
         unsuspend: mockUnsuspend
       });
 
-      await expect(useCase.execute('admin-1', 'user-3')).rejects.toEqual(
+      await expect(
+        useCase.execute('admin-1', 'user-3', UserRole.USER)
+      ).rejects.toEqual(
         UserErrors.invalidStatusTransition(
           UserStatus.PENDING_VERIFICATION,
           UserStatus.ACTIVATE
@@ -188,11 +247,14 @@ describe('UnsuspendUserUseCase', () => {
         id: 'user-4',
         email: 'deactivated@test.com',
         name: 'Deactivated User',
+        role: UserRole.USER,
         status: UserStatus.DEACTIVATE,
         unsuspend: mockUnsuspend
       });
 
-      await expect(useCase.execute('admin-1', 'user-4')).rejects.toEqual(
+      await expect(
+        useCase.execute('admin-1', 'user-4', UserRole.USER)
+      ).rejects.toEqual(
         UserErrors.invalidStatusTransition(
           UserStatus.DEACTIVATE,
           UserStatus.ACTIVATE
@@ -208,15 +270,16 @@ describe('UnsuspendUserUseCase', () => {
         id: 'user-1',
         email: 'suspended@test.com',
         name: 'Suspended User',
+        role: UserRole.USER,
         status: UserStatus.SUSPEND,
         unsuspend: mockUnsuspend
       });
       const dbError = new Error('Database failure');
       mockDataSource.transaction.mockRejectedValue(dbError);
 
-      await expect(useCase.execute('admin-1', 'user-1')).rejects.toThrow(
-        dbError
-      );
+      await expect(
+        useCase.execute('admin-1', 'user-1', UserRole.USER)
+      ).rejects.toThrow(dbError);
 
       expect(mockEmailService.sendUnsuspensionEmail).not.toHaveBeenCalled();
     });
@@ -226,11 +289,12 @@ describe('UnsuspendUserUseCase', () => {
         id: 'user-1',
         email: 'suspended@test.com',
         name: 'Suspended User',
+        role: UserRole.USER,
         status: UserStatus.SUSPEND,
         unsuspend: mockUnsuspend
       });
 
-      await useCase.execute('admin-1', 'user-1');
+      await useCase.execute('admin-1', 'user-1', UserRole.USER);
 
       expect(mockDataSource.transaction).toHaveBeenCalled();
     });
@@ -240,11 +304,12 @@ describe('UnsuspendUserUseCase', () => {
         id: 'user-1',
         email: 'suspended@test.com',
         name: null,
+        role: UserRole.USER,
         status: UserStatus.SUSPEND,
         unsuspend: mockUnsuspend
       });
 
-      await useCase.execute('admin-1', 'user-1');
+      await useCase.execute('admin-1', 'user-1', UserRole.USER);
 
       expect(mockEmailService.sendUnsuspensionEmail).toHaveBeenCalledWith(
         'suspended@test.com',

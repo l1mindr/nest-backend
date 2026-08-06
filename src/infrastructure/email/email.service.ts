@@ -8,6 +8,17 @@ export abstract class EmailService {
     expiresInMinutes: number
   ): Promise<void>;
 
+  /**
+   * Delivers the administrator invitation token. The token is passed in plain
+   * because the mailbox is the only place it is ever meant to exist — the
+   * server keeps nothing but its digest.
+   */
+  abstract sendAdminInvitationEmail(
+    email: string,
+    token: string,
+    expiresInHours: number
+  ): Promise<void>;
+
   abstract sendSuspensionEmail(
     email: string,
     displayName: string | null,

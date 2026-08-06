@@ -17,18 +17,13 @@ export interface IUserRepository {
   findByEmailOrUsernameForAuth(identifier: string): Promise<User | null>;
   findUserWithPassword(userId: string): Promise<User | null>;
   findUserForAdmin(id: string): Promise<User | null>;
-  findUsersForAdmin(cursorId: string | null, limit: number): Promise<User[]>;
   findUsersByRole(
     role: UserRole,
     cursorId: string | null,
     limit: number
   ): Promise<User[]>;
   updateUserProfile(id: string, dto: UpdateProfileRequestDto): Promise<void>;
-  updateRole(
-    userId: string,
-    role: UserRole,
-    manager?: EntityManager
-  ): Promise<void>;
+  softDeleteUser(user: User, manager?: EntityManager): Promise<void>;
   updatePasswordHash(
     userId: string,
     hashPassword: string,
@@ -129,11 +124,17 @@ export interface ICleanupPendingUsersUseCase {
 export const SUSPEND_USER_USE_CASE = Symbol('ISuspendUserUseCase');
 
 export interface ISuspendUserUseCase {
-  execute(adminId: string, userId: string, reason: string): Promise<void>;
+  /** `targetRole` is the population the calling route administers. */
+  execute(
+    adminId: string,
+    userId: string,
+    reason: string,
+    targetRole: UserRole
+  ): Promise<void>;
 }
 
 export const UNSUSPEND_USER_USE_CASE = Symbol('IUnsuspendUserUseCase');
 
 export interface IUnsuspendUserUseCase {
-  execute(adminId: string, userId: string): Promise<void>;
+  execute(adminId: string, userId: string, targetRole: UserRole): Promise<void>;
 }

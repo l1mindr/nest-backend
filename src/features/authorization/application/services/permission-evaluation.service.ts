@@ -5,6 +5,7 @@ import {
   ALL_PERMISSIONS,
   Permission
 } from '../../domain/enums/permission.enum';
+import { isOwnerOnly } from '../../domain/permission.catalog';
 import { RoleHierarchy } from '../../domain/role-hierarchy';
 import {
   ADMIN_PERMISSION_REPOSITORY,
@@ -44,6 +45,12 @@ export class PermissionEvaluationService implements IPermissionEvaluationService
 
     if (required.length === 0) return true;
 
+    // An owner-reserved requirement is unsatisfiable for anyone else, whatever
+    // the grant table happens to contain. Checked here rather than trusting the
+    // write paths, so a row inserted by hand or by a future bug still cannot
+    // hand administrator management to an administrator.
+    if (required.some(isOwnerOnly)) return false;
+
     const held = new Set(
       await this.adminPermissionRepository.findByUserId(actor.id)
     );
@@ -72,7 +79,11 @@ export class PermissionEvaluationService implements IPermissionEvaluationService
       return [...ALL_PERMISSIONS];
     }
 
-    return this.adminPermissionRepository.findByUserId(actor.id);
+    const held = await this.adminPermissionRepository.findByUserId(actor.id);
+
+    // Same defence as `can`: an owner-reserved code that somehow reached the
+    // grant table is not reported as held, because it would not be honoured.
+    return held.filter((permission) => !isOwnerOnly(permission));
   }
 
   /**
@@ -85,12 +96,20 @@ export class PermissionEvaluationService implements IPermissionEvaluationService
    * revocation, so a narrowly-scoped administrator cannot strip the reach of
    * one who outranks them in practice.
    *
-   * The owner passes trivially: they are reported as holding everything.
+   * The owner passes the "holds it" test trivially, but not the reservation
+   * test: an owner-reserved permission has nobody it can legitimately be given
+   * to, so handing one out is refused for every caller alike.
    */
   async assertCanDelegate(
     actor: AuthorizationActor,
     permissions: readonly Permission[]
   ): Promise<void> {
+    const reserved = permissions.filter(isOwnerOnly);
+
+    if (reserved.length > 0) {
+      throw AuthorizationErrors.permissionReservedToOwner(reserved);
+    }
+
     const held = new Set(await this.effectivePermissionsOf(actor));
 
     const missing = permissions.filter((permission) => !held.has(permission));

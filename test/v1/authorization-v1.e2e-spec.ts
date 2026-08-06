@@ -1,4 +1,5 @@
 import { Permission } from '@features/authorization/domain/enums/permission.enum';
+import { DELEGABLE_PERMISSIONS } from '@features/authorization/domain/permission.catalog';
 import { User } from '@features/users/domain/entities/user.entity';
 import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import { UserStatus } from '@features/users/domain/enums/user-status.enum';
@@ -22,6 +23,8 @@ import { AuthenticatedUserContext } from '../utils/types/factory.types';
 describe('Authorization (e2e) version: 1', () => {
   let app: INestApplication;
   let dataSource: DataSource;
+
+  const ADMINS = '/v1/admin/administrators';
 
   beforeAll(async () => {
     const { app: testApp, dataSource: testDataSource } =
@@ -69,7 +72,10 @@ describe('Authorization (e2e) version: 1', () => {
   });
 
   const findByEmail = (email: string) =>
-    dataSource.getRepository(User).findOneOrFail({ where: { email } });
+    dataSource.getRepository(User).findOneOrFail({
+      where: { email },
+      select: { id: true, email: true, name: true, role: true, status: true }
+    });
 
   describe('owner bypass', () => {
     it('should let the owner reach a route without holding the permission', async () => {
@@ -96,31 +102,13 @@ describe('Authorization (e2e) version: 1', () => {
     it('should let the owner through routes reserved to the owner', async () => {
       const context = await owner();
 
-      const res = await context.client.get('/v1/admin/admins');
+      const res = await context.client.get(ADMINS);
 
       expect(res.status).toBe(200);
     });
   });
 
   describe('owner uniqueness and immutability', () => {
-    it('should refuse to promote anyone to owner, since no endpoint accepts a role', async () => {
-      const ownerContext = await owner();
-      const target = await UserFactory.register(app, otherUser('1'));
-      await UserFactory.verifyEmail(app, target.user.email);
-      const targetUser = await findByEmail(target.user.email);
-
-      const res = await ownerContext.client.post('/v1/admin/admins', {
-        headers: csrf(ownerContext),
-        body: { userId: targetUser.id, role: UserRole.OWNER }
-      });
-
-      // `role` is not a member of the DTO, so the body is rejected outright.
-      expect(res.status).toBe(422);
-
-      const stored = await findByEmail(target.user.email);
-      expect(stored.role).toBe(UserRole.USER);
-    });
-
     it('should refuse a second owner at the database level', async () => {
       await owner();
       const second = await UserFactory.register(app, otherUser('2'));
@@ -130,42 +118,6 @@ describe('Authorization (e2e) version: 1', () => {
           .getRepository(User)
           .update({ email: second.user.email }, { role: UserRole.OWNER })
       ).rejects.toThrow();
-    });
-
-    it('should refuse to suspend the owner', async () => {
-      const ownerContext = await owner();
-      const adminContext = await admin(
-        [Permission.USER_SUSPEND],
-        otherUser('3')
-      );
-      const ownerUser = await findByEmail(ownerContext.user.email);
-
-      const res = await adminContext.client.post(
-        `/v1/admin/users/${ownerUser.id}/suspend`,
-        {
-          headers: csrf(adminContext),
-          body: { reason: 'attempting to suspend the owner' }
-        }
-      );
-
-      expect(res.status).toBe(403);
-      expect(res.body.error.code).toBe('OWNER_IMMUTABLE');
-
-      const stored = await findByEmail(ownerContext.user.email);
-      expect(stored.status).toBe(UserStatus.ACTIVATE);
-    });
-
-    it('should refuse to withdraw the owner role', async () => {
-      const ownerContext = await owner();
-      const ownerUser = await findByEmail(ownerContext.user.email);
-
-      const res = await ownerContext.client.delete(
-        `/v1/admin/admins/${ownerUser.id}`,
-        { headers: csrf(ownerContext) }
-      );
-
-      expect(res.status).toBe(403);
-      expect(res.body.error.code).toBe('OWNER_IMMUTABLE');
     });
 
     it('should refuse to delete the owner account', async () => {
@@ -188,6 +140,26 @@ describe('Authorization (e2e) version: 1', () => {
       });
 
       expect(res.status).toBe(204);
+    });
+
+    /**
+     * The owner is the tier above administrator, so it is not in the
+     * administrator population either — and the delete route therefore misses
+     * it the same way every other route does.
+     */
+    it('should refuse to delete the owner through the administrator route', async () => {
+      const ownerContext = await owner();
+      const ownerUser = await findByEmail(ownerContext.user.email);
+
+      const res = await ownerContext.client.delete(
+        `${ADMINS}/${ownerUser.id}`,
+        { headers: csrf(ownerContext) }
+      );
+
+      expect(res.status).toBe(404);
+
+      const stored = await findByEmail(ownerContext.user.email);
+      expect(stored.role).toBe(UserRole.OWNER);
     });
   });
 
@@ -305,71 +277,19 @@ describe('Authorization (e2e) version: 1', () => {
   });
 
   describe('administrator lifecycle', () => {
-    it('should let the owner promote an active account with permissions', async () => {
-      const ownerContext = await owner();
-      const target = await plainUser(otherUser('7'));
-      const targetUser = await findByEmail(target.user.email);
-
-      const res = await ownerContext.client.post('/v1/admin/admins', {
-        headers: csrf(ownerContext),
-        body: {
-          userId: targetUser.id,
-          permissions: [Permission.USER_READ]
-        }
-      });
-
-      expect(res.status).toBe(201);
-      expect(res.body.role).toBe(UserRole.ADMIN);
-      expect(res.body.permissions).toEqual([Permission.USER_READ]);
-    });
-
-    it('should refuse an administrator creating another administrator', async () => {
-      const adminContext = await admin(Object.values(Permission));
-      const target = await plainUser(otherUser('8'));
-      const targetUser = await findByEmail(target.user.email);
-
-      const res = await adminContext.client.post('/v1/admin/admins', {
-        headers: csrf(adminContext),
-        body: { userId: targetUser.id }
-      });
-
-      // Owner-only by role: no permission set unlocks this.
-      expect(res.status).toBe(403);
-
-      const stored = await findByEmail(target.user.email);
-      expect(stored.role).toBe(UserRole.USER);
-    });
-
-    it('should refuse to promote an unverified account', async () => {
-      const ownerContext = await owner();
-      const target = await UserFactory.register(app, otherUser('9'));
-      const targetUser = await findByEmail(target.user.email);
-
-      const res = await ownerContext.client.post('/v1/admin/admins', {
-        headers: csrf(ownerContext),
-        body: { userId: targetUser.id }
-      });
-
-      expect(res.status).toBe(409);
-      expect(res.body.error.code).toBe('ACCOUNT_NOT_ELIGIBLE');
-    });
-
-    it('should withdraw the role, purge the grants and end the sessions', async () => {
+    it('should delete the administrator, purge the grants and end the sessions', async () => {
       const ownerContext = await owner();
       const adminContext = await admin([Permission.USER_READ], otherUser('10'));
       const adminUser = await findByEmail(adminContext.user.email);
 
       const res = await ownerContext.client.delete(
-        `/v1/admin/admins/${adminUser.id}`,
+        `${ADMINS}/${adminUser.id}`,
         { headers: csrf(ownerContext) }
       );
 
       expect(res.status).toBe(204);
 
-      const stored = await findByEmail(adminContext.user.email);
-      expect(stored.role).toBe(UserRole.USER);
-
-      // The access token predates the demotion; the session behind it is gone.
+      // The access token predates the deletion; the session behind it is gone.
       const after = await adminContext.client.get('/v1/admin/users');
       expect(after.status).toBe(401);
     });
@@ -380,7 +300,7 @@ describe('Authorization (e2e) version: 1', () => {
       const adminUser = await findByEmail(adminContext.user.email);
 
       const deactivate = await ownerContext.client.post(
-        `/v1/admin/admins/${adminUser.id}/deactivate`,
+        `${ADMINS}/${adminUser.id}/deactivate`,
         { headers: csrf(ownerContext) }
       );
       expect(deactivate.status).toBe(204);
@@ -389,13 +309,54 @@ describe('Authorization (e2e) version: 1', () => {
       );
 
       const activate = await ownerContext.client.post(
-        `/v1/admin/admins/${adminUser.id}/activate`,
+        `${ADMINS}/${adminUser.id}/activate`,
         { headers: csrf(ownerContext) }
       );
       expect(activate.status).toBe(204);
       expect((await findByEmail(adminContext.user.email)).status).toBe(
         UserStatus.ACTIVATE
       );
+    });
+
+    it('should let the owner suspend and unsuspend an administrator', async () => {
+      const ownerContext = await owner();
+      const adminContext = await admin([Permission.USER_READ], otherUser('18'));
+      const adminUser = await findByEmail(adminContext.user.email);
+
+      const suspend = await ownerContext.client.post(
+        `${ADMINS}/${adminUser.id}/suspend`,
+        {
+          headers: csrf(ownerContext),
+          body: { reason: 'Access under review.' }
+        }
+      );
+      expect(suspend.status).toBe(204);
+      expect((await findByEmail(adminContext.user.email)).status).toBe(
+        UserStatus.SUSPEND
+      );
+
+      const unsuspend = await ownerContext.client.patch(
+        `${ADMINS}/${adminUser.id}/unsuspend`,
+        { headers: csrf(ownerContext) }
+      );
+      expect(unsuspend.status).toBe(204);
+      expect((await findByEmail(adminContext.user.email)).status).toBe(
+        UserStatus.ACTIVATE
+      );
+    });
+
+    it('should let the owner edit an administrator profile', async () => {
+      const ownerContext = await owner();
+      const adminContext = await admin([], otherUser('19'));
+      const adminUser = await findByEmail(adminContext.user.email);
+
+      const res = await ownerContext.client.patch(`${ADMINS}/${adminUser.id}`, {
+        headers: csrf(ownerContext),
+        body: { name: 'Renamed' }
+      });
+
+      expect(res.status).toBe(204);
+      expect((await findByEmail(adminContext.user.email)).name).toBe('Renamed');
     });
   });
 
@@ -408,69 +369,17 @@ describe('Authorization (e2e) version: 1', () => {
       const self = await findByEmail(context.user.email);
 
       const res = await context.client.post(
-        `/v1/admin/admins/${self.id}/permissions`,
+        `${ADMINS}/${self.id}/permissions`,
         {
           headers: csrf(context),
           body: { permissions: [Permission.USER_READ] }
         }
       );
 
-      expect(res.status).toBe(403);
-      expect(res.body.error.code).toBe('SELF_MANAGEMENT_FORBIDDEN');
-    });
-
-    it('should refuse an administrator passing on a permission they do not hold', async () => {
-      const granter = await admin([Permission.ROLE_ASSIGN]);
-      const receiver = await admin([Permission.USER_READ], otherUser('12'));
-      const receiverUser = await findByEmail(receiver.user.email);
-
-      const res = await granter.client.post(
-        `/v1/admin/admins/${receiverUser.id}/permissions`,
-        {
-          headers: csrf(granter),
-          body: { permissions: [Permission.SYSTEM_SETTINGS] }
-        }
-      );
-
-      expect(res.status).toBe(403);
-      expect(res.body.error.code).toBe('PERMISSION_NOT_HELD');
-    });
-
-    it('should refuse permission management without ROLE_ASSIGN', async () => {
-      const granter = await admin([
-        Permission.USER_READ,
-        Permission.USER_SUSPEND
-      ]);
-      const receiver = await admin([Permission.USER_READ], otherUser('13'));
-      const receiverUser = await findByEmail(receiver.user.email);
-
-      const res = await granter.client.post(
-        `/v1/admin/admins/${receiverUser.id}/permissions`,
-        {
-          headers: csrf(granter),
-          body: { permissions: [Permission.USER_SUSPEND] }
-        }
-      );
-
+      // ROLE_ASSIGN is owner-reserved, so the guard refuses before the
+      // self-management rule is ever consulted.
       expect(res.status).toBe(403);
       expect(res.body.error.code).toBe('ACCESS_DENIED');
-    });
-
-    it('should refuse an administrator editing the owner', async () => {
-      const ownerContext = await owner();
-      const adminContext = await admin(
-        [Permission.ADMIN_UPDATE],
-        otherUser('14')
-      );
-      const ownerUser = await findByEmail(ownerContext.user.email);
-
-      const res = await adminContext.client.patch(
-        `/v1/admin/admins/${ownerUser.id}`,
-        { headers: csrf(adminContext), body: { name: 'Not The Owner' } }
-      );
-
-      expect(res.status).toBe(403);
-      expect(res.body.error.code).toBe('OWNER_IMMUTABLE');
     });
 
     it('should reject an unknown permission code before it reaches the grant table', async () => {
@@ -479,10 +388,46 @@ describe('Authorization (e2e) version: 1', () => {
       const receiverUser = await findByEmail(receiver.user.email);
 
       const res = await ownerContext.client.post(
-        `/v1/admin/admins/${receiverUser.id}/permissions`,
+        `${ADMINS}/${receiverUser.id}/permissions`,
         {
           headers: csrf(ownerContext),
           body: { permissions: ['NOT_A_PERMISSION'] }
+        }
+      );
+
+      expect(res.status).toBe(422);
+    });
+
+    /**
+     * The reservation is enforced at evaluation, not only at the write paths,
+     * so a grant row inserted straight into the database still buys nothing.
+     */
+    it('should ignore an owner-reserved grant row inserted behind the API', async () => {
+      const context = await admin([]);
+      const self = await findByEmail(context.user.email);
+
+      await UserFactory.grant(dataSource, self.id, [
+        Permission.ADMIN_READ,
+        Permission.ROLE_ASSIGN
+      ]);
+
+      expect((await context.client.get(ADMINS)).status).toBe(403);
+
+      const mine = await context.client.get('/v1/admin/permissions/me');
+      expect(mine.body.permissions).not.toContain(Permission.ADMIN_READ);
+      expect(mine.body.permissions).not.toContain(Permission.ROLE_ASSIGN);
+    });
+
+    it('should refuse to delegate an owner-reserved permission even for the owner', async () => {
+      const ownerContext = await owner();
+      const target = await admin([], otherUser('20'));
+      const targetUser = await findByEmail(target.user.email);
+
+      const res = await ownerContext.client.post(
+        `${ADMINS}/${targetUser.id}/permissions`,
+        {
+          headers: csrf(ownerContext),
+          body: { permissions: [Permission.ADMIN_READ] }
         }
       );
 
@@ -499,7 +444,7 @@ describe('Authorization (e2e) version: 1', () => {
       expect((await target.client.get('/v1/admin/users')).status).toBe(403);
 
       const grant = await ownerContext.client.post(
-        `/v1/admin/admins/${targetUser.id}/permissions`,
+        `${ADMINS}/${targetUser.id}/permissions`,
         {
           headers: csrf(ownerContext),
           body: { permissions: [Permission.USER_READ] }
@@ -511,7 +456,7 @@ describe('Authorization (e2e) version: 1', () => {
       expect((await target.client.get('/v1/admin/users')).status).toBe(200);
 
       const revoke = await ownerContext.client.delete(
-        `/v1/admin/admins/${targetUser.id}/permissions`,
+        `${ADMINS}/${targetUser.id}/permissions`,
         {
           headers: csrf(ownerContext),
           body: { permissions: [Permission.USER_READ] }
@@ -528,14 +473,14 @@ describe('Authorization (e2e) version: 1', () => {
       const targetUser = await findByEmail(target.user.email);
 
       const first = await ownerContext.client.post(
-        `/v1/admin/admins/${targetUser.id}/permissions`,
+        `${ADMINS}/${targetUser.id}/permissions`,
         {
           headers: csrf(ownerContext),
           body: { permissions: [Permission.USER_READ] }
         }
       );
       const second = await ownerContext.client.post(
-        `/v1/admin/admins/${targetUser.id}/permissions`,
+        `${ADMINS}/${targetUser.id}/permissions`,
         {
           headers: csrf(ownerContext),
           body: { permissions: [Permission.USER_READ] }
@@ -545,16 +490,14 @@ describe('Authorization (e2e) version: 1', () => {
       expect(first.status).toBe(204);
       expect(second.status).toBe(204);
 
-      const view = await ownerContext.client.get(
-        `/v1/admin/admins/${targetUser.id}`
-      );
+      const view = await ownerContext.client.get(`${ADMINS}/${targetUser.id}`);
       expect(view.body.permissions).toEqual([Permission.USER_READ]);
     });
   });
 
   describe('permission catalog', () => {
-    it('should list every permission for an administrator who can read', async () => {
-      const context = await admin([Permission.ADMIN_READ]);
+    it('should list every permission for the owner', async () => {
+      const context = await owner();
 
       const res = await context.client.get('/v1/admin/permissions');
 
@@ -570,6 +513,19 @@ describe('Authorization (e2e) version: 1', () => {
 
     it('should refuse the catalog to an ordinary user', async () => {
       const context = await plainUser();
+
+      const res = await context.client.get('/v1/admin/permissions');
+
+      expect(res.status).toBe(403);
+    });
+
+    /**
+     * The catalog is only useful to whoever assigns permissions, which is the
+     * owner alone — so it sits behind the same owner-reserved `ADMIN_READ` the
+     * directory does.
+     */
+    it('should refuse the catalog to an administrator', async () => {
+      const context = await admin(DELEGABLE_PERMISSIONS as Permission[]);
 
       const res = await context.client.get('/v1/admin/permissions');
 

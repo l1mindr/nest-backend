@@ -57,7 +57,12 @@ describe('AdminAccountService', () => {
       );
     });
 
-    it('should refuse the owner as a target', async () => {
+    /**
+     * The owner must be indistinguishable from an identifier that was never
+     * issued. A dedicated refusal would confirm the account exists and that it
+     * is the owner, which is precisely what an enumeration attempt wants.
+     */
+    it('should answer NOT_FOUND rather than a distinct refusal for the owner', async () => {
       mockUserRepository.findUserForAdmin.mockResolvedValue(
         account({ role: UserRole.OWNER })
       );
@@ -66,13 +71,26 @@ describe('AdminAccountService', () => {
         service.loadManageableAdmin(
           ACTOR_ID,
           'target-1',
-          ProtectedAction.ROLE_CHANGE
+          ProtectedAction.SUSPEND
         )
       ).rejects.toThrow(
         expect.objectContaining({
-          code: AuthorizationErrorCode.OWNER_IMMUTABLE
+          code: UserErrorCode.USER_NOT_FOUND,
+          statusCode: 404
         })
       );
+    });
+
+    it('should not leak that the target is the owner through the error metadata', async () => {
+      mockUserRepository.findUserForAdmin.mockResolvedValue(
+        account({ role: UserRole.OWNER })
+      );
+
+      const error = await service
+        .loadManageableAdmin(ACTOR_ID, 'target-1', ProtectedAction.DELETE)
+        .catch((caught: unknown) => caught);
+
+      expect(JSON.stringify(error)).not.toContain(UserRole.OWNER);
     });
 
     it('should refuse a caller aiming at their own account', async () => {
@@ -93,7 +111,8 @@ describe('AdminAccountService', () => {
       );
     });
 
-    it('should refuse a target that is not an administrator', async () => {
+    /** An ordinary user is administered through the user endpoints, not here. */
+    it('should answer NOT_FOUND for an ordinary user', async () => {
       mockUserRepository.findUserForAdmin.mockResolvedValue(
         account({ role: UserRole.USER })
       );
@@ -106,100 +125,31 @@ describe('AdminAccountService', () => {
         )
       ).rejects.toThrow(
         expect.objectContaining({
-          code: AuthorizationErrorCode.NOT_AN_ADMINISTRATOR,
-          statusCode: 409
+          code: UserErrorCode.USER_NOT_FOUND,
+          statusCode: 404
         })
       );
     });
 
-    it('should check the owner before the role, so the owner never reads as a non-administrator', async () => {
+    /**
+     * Population before identity: an owner aiming at themselves must still read
+     * as absent rather than as a self-management refusal, which would confirm
+     * the caller is the owner to anyone who stole a session.
+     */
+    it('should check the population before self-targeting', async () => {
       mockUserRepository.findUserForAdmin.mockResolvedValue(
-        account({ role: UserRole.OWNER })
+        account({ id: ACTOR_ID, role: UserRole.OWNER })
       );
 
       await expect(
         service.loadManageableAdmin(
           ACTOR_ID,
-          'target-1',
-          ProtectedAction.SUSPEND
+          ACTOR_ID,
+          ProtectedAction.STATUS_CHANGE
         )
       ).rejects.toThrow(
         expect.objectContaining({
-          code: AuthorizationErrorCode.OWNER_IMMUTABLE
-        })
-      );
-    });
-  });
-
-  describe('loadPromotableUser', () => {
-    it('should return an active ordinary account', async () => {
-      const target = account({ role: UserRole.USER });
-      mockUserRepository.findUserForAdmin.mockResolvedValue(target);
-
-      await expect(
-        service.loadPromotableUser(ACTOR_ID, 'target-1')
-      ).resolves.toBe(target);
-    });
-
-    it('should refuse an account that is already an administrator', async () => {
-      mockUserRepository.findUserForAdmin.mockResolvedValue(
-        account({ role: UserRole.ADMIN })
-      );
-
-      await expect(
-        service.loadPromotableUser(ACTOR_ID, 'target-1')
-      ).rejects.toThrow(
-        expect.objectContaining({
-          code: AuthorizationErrorCode.ALREADY_AN_ADMINISTRATOR,
-          statusCode: 409
-        })
-      );
-    });
-
-    it('should refuse the owner, so a second owner cannot be created', async () => {
-      mockUserRepository.findUserForAdmin.mockResolvedValue(
-        account({ role: UserRole.OWNER })
-      );
-
-      await expect(
-        service.loadPromotableUser(ACTOR_ID, 'target-1')
-      ).rejects.toThrow(
-        expect.objectContaining({
-          code: AuthorizationErrorCode.OWNER_IMMUTABLE
-        })
-      );
-    });
-
-    it('should refuse self-promotion', async () => {
-      mockUserRepository.findUserForAdmin.mockResolvedValue(
-        account({ id: ACTOR_ID, role: UserRole.USER })
-      );
-
-      await expect(
-        service.loadPromotableUser(ACTOR_ID, ACTOR_ID)
-      ).rejects.toThrow(
-        expect.objectContaining({
-          code: AuthorizationErrorCode.SELF_MANAGEMENT_FORBIDDEN
-        })
-      );
-    });
-
-    it.each([
-      UserStatus.PENDING_VERIFICATION,
-      UserStatus.SUSPEND,
-      UserStatus.DEACTIVATE
-    ])('should refuse to promote a %s account', async (status) => {
-      mockUserRepository.findUserForAdmin.mockResolvedValue(
-        account({ role: UserRole.USER, status })
-      );
-
-      await expect(
-        service.loadPromotableUser(ACTOR_ID, 'target-1')
-      ).rejects.toThrow(
-        expect.objectContaining({
-          code: AuthorizationErrorCode.ACCOUNT_NOT_ELIGIBLE,
-          statusCode: 409,
-          metadata: { status }
+          code: UserErrorCode.USER_NOT_FOUND
         })
       );
     });

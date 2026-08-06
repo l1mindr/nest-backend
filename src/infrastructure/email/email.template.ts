@@ -18,6 +18,12 @@ export interface UnsuspensionEmailData {
   unsuspendedAt: Date;
 }
 
+export interface AdminInvitationEmailData {
+  projectName: string;
+  token: string;
+  expiresInHours: number;
+}
+
 export interface RenderedEmail {
   subject: string;
   html: string;
@@ -138,6 +144,66 @@ export function buildVerificationEmail(
 
   return {
     subject: `Verify your ${projectName} email`,
+    html,
+    text
+  };
+}
+
+/**
+ * The invitation to become an administrator.
+ *
+ * The token is the whole credential, so the copy says plainly that it is
+ * single-use and time-limited, and never names who was invited or by whom —
+ * a misdirected email should disclose nothing about the administrator
+ * population.
+ */
+export function buildAdminInvitationEmail(
+  data: AdminInvitationEmailData
+): RenderedEmail {
+  const { projectName, token, expiresInHours } = data;
+  const expiryLabel = `This invitation expires in ${expiresInHours} ${
+    expiresInHours === 1 ? 'hour' : 'hours'
+  }.`;
+
+  const html = wrapHtml(
+    `
+    <p style="margin:0 0 16px;font-size:16px;">${greeting(null)}</p>
+    <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">
+      You have been invited to become an administrator of
+      ${escapeHtml(projectName)}. Use the invitation token below to choose a
+      username and password and finish setting up your account.
+      <strong>${expiryLabel}</strong>
+    </p>
+    <p style="margin:0 0 24px;text-align:center;">
+      <span style="display:inline-block;padding:16px 24px;background-color:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;font-family:monospace;font-size:16px;word-break:break-all;color:#1d4ed8;font-weight:bold;">${escapeHtml(
+        token
+      )}</span>
+    </p>
+    <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">
+      This token can be used once and grants administrator access to
+      ${escapeHtml(projectName)}. Do not forward this email. If you were not
+      expecting an invitation, ignore it — no account is created until the
+      invitation is accepted.
+    </p>
+    `,
+    projectName
+  );
+
+  const text = [
+    `${projectName}`,
+    '',
+    `${greeting(null)}`,
+    '',
+    `You have been invited to become an administrator of ${projectName}. Use the invitation token below to choose a username and password and finish setting up your account. ${expiryLabel}`,
+    '',
+    `Invitation token: ${token}`,
+    '',
+    'This token can be used once and grants administrator access. Do not forward this email. If you were not expecting an invitation, ignore it — no account is created until the invitation is accepted.',
+    ''
+  ].join('\n');
+
+  return {
+    subject: `You have been invited to administer ${projectName}`,
     html,
     text
   };
