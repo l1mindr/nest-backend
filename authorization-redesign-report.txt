@@ -608,7 +608,458 @@ Internal (non-API) changes a maintainer should know about:
      ordering and existing behaviour for a marginal gain.
 
 ================================================================================
-VERIFICATION
+PHASE 2 — INVITATION FLOW, OWNER-ONLY ADMINISTRATION, ISOLATION, OWNER VISIBILITY
+================================================================================
+
+Phase 1 delivered permission-driven access control. Phase 2 replaces the last
+role-based decision with a permission that only the owner can ever hold, swaps
+promotion for an invitation flow, and seals the boundary between the user and
+administrator populations. Everything here is a Phase-2 change; the Phase-1
+verification below this section remains the record for what it shipped.
+
+
+-------------------------------------------------------------------------------
+2.1 OWNER-ONLY ADMINISTRATION WITHOUT A ROLE CHECK
+-------------------------------------------------------------------------------
+
+Phase 1 reserved the administrator lifecycle to the owner with @Roles(OWNER) on
+the controller — a decision enforced by role at the call site. Phase 2 removes
+that mechanism entirely.
+
+PERMISSION_CATALOG entries now carry an ownerOnly flag:
+
+    interface PermissionMeta {
+      description: string;
+      ownerOnly:   boolean;   // can never be granted, never satisfies anyone
+    }                          // but the owner, who bypasses evaluation anyway
+
+    ADMIN_READ, ADMIN_INVITE, ADMIN_UPDATE, ADMIN_DELETE,
+    ADMIN_STATUS, ROLE_ASSIGN        →  ownerOnly: true
+    USER_*, AUDIT_READ, SYSTEM_SETTINGS →  ownerOnly: false
+
+Every administrator route still declares @RequirePermissions(...) exactly like
+a user-facing route. There is no @Roles anywhere in the authorization
+controllers. The owner-only rule lives in the catalog, not in a controller,
+because:
+
+  * the guard refuses on the ordinary permission path — the only mechanism it
+    knows — so there is no second, role-shaped decision to drift from it;
+  * no grant row can name an owner-only code (DTO validation rejects them with
+    422 before a use case runs), so no permission set ever unlocks them;
+  * relaxing the restriction later is one flag per permission, and granting it
+    to an administrator. No controller, guard or use case changes.
+
+DELEGABLE_PERMISSIONS derives from the flag: (Object.keys(PERMISSION_CATALOG))
+.filter(p => !ownerOnly). PermissionSetRequestDto validates @IsIn(...) against
+it, so an owner-reserved code in a grant, revoke or invitation payload is a
+validation error, not a runtime surprise.
+
+
+-------------------------------------------------------------------------------
+2.2 ADMINISTRATOR INVITATIONS REPLACE PROMOTION
+-------------------------------------------------------------------------------
+
+Creating an administrator no longer promotes an existing account. It issues an
+invitation; the account is created only when the invitee accepts it.
+
+    owner                            server                           invitee
+      │ POST /administrators/invitations                              │
+      │ { email, permissions }                                        │
+      │  ──────────────────────────────────►                          │
+      │    201 { id, email, expiresAt } (never the token)             │
+      │                                                                │
+      │                       email  [ accept-link?token=... ]        │
+      │  ◄────────────────────────────────────────────────────────────│
+      │                                                                │
+      │                       POST /administrators/invitations/accept │
+      │                        { token, username, password, name }    │
+      │  ◄────────────────────────────────────────────────────────────│
+      │                       204 (account created, ADMIN, ACTIVATE)  │
+
+  * Until acceptance, NO ACCOUNT EXISTS. A revoked or lapsed invitation leaves
+    nothing that could be signed into — the property that made promotion
+    untenable, since promotion creates the privileged account up front and a
+    forgotten invite leaves a dormant administrator behind.
+  * The token is 32 bytes from a CSPRNG, sent only by email, and stored only as
+    a SHA-256 digest (tokenHash, select: false). A database dump yields nothing
+    that could be presented. 256 bits of entropy means the plain digest has no
+    dictionary to run against.
+  * Single-use, expires after 48 hours, revocable while pending. Re-inviting an
+    address supersedes (revokes) any outstanding invitation for it first, so
+    lapsed re-invites are one call rather than revoke-then-invite.
+  * An address that already has an account cannot be invited (422 EMAIL_ALREADY
+    EXISTS), so acceptance can never collide with an existing login.
+  * The accepted email comes from the invitation row, never from the body, and
+    the accept route is @Public() + @SkipCsrf() — the token is the entire proof
+    of entitlement, and the invitee has no account or session yet. A CSRF token
+    would add nothing to a 256-bit bearer proof.
+  * The only place in the system that writes the ADMIN role is
+    AcceptAdminInvitationUseCase, and even there assertRoleAssignable(ADMIN)
+    stands in front of the write, so OWNER cannot arrive however it is called.
+  * Everything happens in one transaction: create the account, grant the
+    invited permissions (as real admin_permission rows with their catalog FK,
+    grantedById = the inviter), and burn the invitation. Any failure rolls all
+    of it back and the token stays usable.
+  * The account is created ACTIVATE with no verification code: receiving the
+    token at the invited address already proves control of that mailbox.
+  * Unknown, reused and revoked tokens answer 404/409/410 respectively, so the
+    endpoint does not confirm whether a given address was ever invited.
+
+
+-------------------------------------------------------------------------------
+2.3 PERMISSION MATRIX — PHASE 2
+-------------------------------------------------------------------------------
+
+    GET    /v1/admin/users                              USER_READ
+    GET    /v1/admin/users/:id                          USER_READ
+    POST   /v1/admin/users/:id/suspend                  USER_SUSPEND
+    PATCH  /v1/admin/users/:id/unsuspend                USER_UNSUSPEND
+
+    GET    /v1/admin/administrators                     ADMIN_READ      (owner)
+    GET    /v1/admin/administrators/:id                 ADMIN_READ      (owner)
+    GET    /v1/admin/administrators/me                  authenticated
+    PATCH  /v1/admin/administrators/:id                 ADMIN_UPDATE    (owner)
+    DELETE /v1/admin/administrators/:id                 ADMIN_DELETE    (owner)
+    POST   /v1/admin/administrators/:id/activate        ADMIN_STATUS    (owner)
+    POST   /v1/admin/administrators/:id/deactivate      ADMIN_STATUS    (owner)
+    POST   /v1/admin/administrators/:id/suspend         ADMIN_STATUS    (owner)
+    PATCH  /v1/admin/administrators/:id/unsuspend       ADMIN_STATUS    (owner)
+    POST   /v1/admin/administrators/:id/permissions     ROLE_ASSIGN     (owner)
+    DELETE /v1/admin/administrators/:id/permissions     ROLE_ASSIGN     (owner)
+
+    POST   /v1/admin/administrators/invitations         ADMIN_INVITE    (owner)
+    GET    /v1/admin/administrators/invitations         ADMIN_INVITE    (owner)
+    DELETE /v1/admin/administrators/invitations/:id     ADMIN_INVITE    (owner)
+    POST   /v1/admin/administrators/invitations/accept  public
+
+    GET    /v1/admin/permissions                        ADMIN_READ      (owner)
+    GET    /v1/admin/permissions/me                     authenticated
+
+"(owner)" marks permissions whose catalog entry forbids delegation. Routes are
+reached through the ordinary evaluation; the owner bypasses it, everyone else
+fails it with 403 ACCESS_DENIED and no metadata.
+
+DELETE is now a true account deletion rather than a demotion: the account is
+hard-deleted and its grants with it. Suspension and unsuspension of an
+administrator reuse the shared user flows, told which population they are
+administering, so the same use case that cannot touch an administrator through
+the user route cannot touch an ordinary user through this one.
+
+
+-------------------------------------------------------------------------------
+2.4 DATABASE CHANGES
+-------------------------------------------------------------------------------
+
+Migration: 1700000006000-CreateAdminInvitationTable
+
+  a) permission catalog grows three codes, written as literals:
+     ADMIN_INVITE, ADMIN_DELETE, ADMIN_STATUS (ON CONFLICT DO NOTHING).
+     Delegability is decided in PERMISSION_CATALOG, not here.
+
+  b) admin_invitation
+
+       id             uuid PK      default uuid_generate_v4()
+       email          varchar      indexed (IDX_admin_invitation_email)
+       tokenHash      varchar(64)  UNIQUE — sha-256 digest, never the token
+       permissions    varchar(64)[] default '{}' — delegable codes only
+       expiresAt      timestamp    48 hours after issue
+       acceptedAt     timestamp    NULL until settled
+       revokedAt      timestamp    NULL until settled
+       invitedById    uuid         FK → user(id) ON DELETE SET NULL
+       acceptedUserId uuid         FK → user(id) ON DELETE SET NULL
+       createdAt      timestamp    default now()
+
+     Status is derived, not stored: PENDING while both timestamps are null,
+     ACCEPTED/REVOKED by whichever settled it, EXPIRED when expiresAt passes.
+
+     Partial unique index uq_admin_invitation_pending_email:
+       ON (email) WHERE acceptedAt IS NULL AND revokedAt IS NULL
+     At most one outstanding invitation per address. Two live tokens for one
+     email would both look valid, yet only the first could create the account.
+
+  c) test-infrastructure: migrations.ts registers the new migration; the
+     admin_invitation table is cleared between specs by the truncate helper.
+
+Verified against a real PostgreSQL instance: up, duplicate-pending rejection at
+the database level, down, re-up.
+
+
+-------------------------------------------------------------------------------
+2.5 ISOLATION AND VISIBILITY
+-------------------------------------------------------------------------------
+
+The user and administrator populations are separated at the QUERY level, not
+filtered in memory:
+
+  * findUsersByRole(role, cursor, limit) pages one role tier. User management
+    pages USER, the administrator directory pages ADMIN. The owner — being
+    neither — appears in NO listing at all, including pagination and
+    statistics, and cannot be reached through either set of routes.
+  * The suspend and unsuspend use cases take a targetRole parameter, so the
+    user route can only address USER accounts and the administrator route can
+    only address ADMIN accounts.
+  * AdminUsersController serves USER only. Administrator identifiers resolve
+    to the same 404 USER_NOT_FOUND as identifiers that were never issued, so a
+    harvested id cannot be probed.
+  * AdminAccountsController serves ADMIN only and is owner-reserved as a whole.
+    An administrator cannot list, resolve, edit or suspend a peer. The only
+    administrator an administrator can address is themselves, via GET /me —
+    which needs no permission because it is scoped to the caller, and which
+    exists precisely so a refused directory still has a self-view.
+  * The owner's only visibility of itself is through its own account endpoints,
+    which behave like any other account's (password, profile, verification).
+
+
+-------------------------------------------------------------------------------
+2.6 SECURITY IMPROVEMENTS — PHASE 2
+-------------------------------------------------------------------------------
+
+  Vertical escalation
+    * No permission set can unlock administrator management: the ADMIN_* and
+      ROLE_ASSIGN codes are owner-reserved in the catalog, cannot be granted,
+      and fail validation (422) before a use case runs.
+    * The single role write is guarded by assertRoleAssignable, so OWNER can
+      never be produced by any code path.
+
+  Horizontal escalation
+    * The accept route is public by design, but the token is the entire proof:
+      256 bits of CSPRNG entropy, stored only as a digest, single-use, 48h
+      expiry, revocable. An unknown token is indistinguishable from one never
+      issued (404), so the endpoint is not an oracle for whether an address was
+      invited.
+    * An address with an existing account cannot be invited, so acceptance
+      cannot take over an existing login.
+
+  Information disclosure
+    * /admin/users answers 404 identically for an ordinary user id, an
+      administrator id, the owner and an unused id. Same for /admin/
+      administrators. Enumeration through identifiers is closed at the query
+      layer.
+    * Invitation acceptance error codes (404/409/410) intentionally do not
+      confirm whether an email was ever invited.
+
+  Data integrity
+    * Invited permissions are written as real grants inside the acceptance
+      transaction, with a catalog foreign key and grantedById, so nothing
+      outlives a failed acceptance.
+    * At most one pending invitation per address (partial unique index), and
+      the token hash is unique, so a token cannot be replayed.
+
+  Auditability
+    * New log events: ADMIN_INVITED, ADMIN_INVITATION_ACCEPTED,
+      ADMIN_INVITATION_REJECTED (with reason and status), EMAIL_SEND_FAILED.
+    * invitedById is retained even after the inviter's account is deleted, and
+      recorded at acceptance onto the grants handed out.
+
+  Owner integrity
+    * Unchanged from Phase 1 and still enforced: single-owner index,
+      assertRoleAssignable, assertNotSelf on every administrator route,
+      assertNotOwner on every owner-affecting operation.
+
+
+-------------------------------------------------------------------------------
+2.7 BREAKING CHANGES — PHASE 2
+-------------------------------------------------------------------------------
+
+  API contract:
+    * /v1/admin/admins is RENAMED to /v1/admin/administrators. Clients must
+      update the prefix.
+    * POST /v1/admin/admins (promote) is REMOVED, replaced by the invitation
+      endpoints.
+    * DELETE /v1/admin/administrators/:id now deletes the account instead of
+      demoting it to USER. Clients that depended on demotion must re-point to
+      an explicit demotion flow if one is added later.
+    * /v1/admin/users no longer returns administrators or the owner, because
+      they are no longer in the USER population the route serves. Clients that
+      expected a complete account directory must read both directories (neither
+      of which an administrator can see, by design).
+    * Owner-reserved permissions in a grant/revoke/invite payload now fail with
+      422 instead of succeeding and being ignored.
+
+  Internal:
+    * PERMISSION_CATALOG is no longer Record<Permission, string>; it is
+      Record<Permission, PermissionMeta> (description + ownerOnly).
+    * IUserRepository gains findUsersByRole; findUserForAdmin/findUsersByRole
+      scope by role; suspend/unsuspend take a targetRole argument.
+    * GrantAdminRole/RevokeAdminRole use cases are deleted (their DTO,
+      create-admin.request.dto.ts, with them); the role is written only by
+      invitation acceptance.
+    * UsersModule/AuthModule wiring changes for the invitation flow, and the
+      email service gains sendAdminInvitationEmail.
+
+
+-------------------------------------------------------------------------------
+2.8 FILES ADDED IN PHASE 2 (23)
+-------------------------------------------------------------------------------
+
+  Domain
+    src/features/authorization/domain/admin-invitation.policy.ts
+    src/features/authorization/domain/entities/admin-invitation.entity.ts
+    src/features/authorization/domain/__tests__/admin-invitation.policy.spec.ts
+
+  Application
+    src/features/authorization/application/invitation.constants.ts
+    src/features/authorization/application/mappers/admin-invitation.mapper.ts
+    src/features/authorization/application/services/admin-invitation-token.service.ts
+    src/features/authorization/application/services/__tests__/admin-invitation-token.service.spec.ts
+    src/features/authorization/application/use-cases/accept-admin-invitation.use-case.ts
+    src/features/authorization/application/use-cases/delete-admin.use-case.ts
+    src/features/authorization/application/use-cases/invite-admin.use-case.ts
+    src/features/authorization/application/use-cases/list-admin-invitations.use-case.ts
+    src/features/authorization/application/use-cases/revoke-admin-invitation.use-case.ts
+    src/features/authorization/application/use-cases/__tests__/accept-admin-invitation.use-case.spec.ts
+    src/features/authorization/application/use-cases/__tests__/invite-admin.use-case.spec.ts
+    src/features/authorization/application/use-cases/__tests__/revoke-admin-invitation.use-case.spec.ts
+
+  Infrastructure
+    src/features/authorization/infrastructure/repositories/admin-invitation.repository.ts
+    src/infrastructure/databases/postgres/migrations/1700000006000-CreateAdminInvitationTable.ts
+
+  Presentation
+    src/features/authorization/presentation/controllers/admin-invitations.controller.ts
+    src/features/authorization/presentation/dto/request/accept-admin-invitation.request.dto.ts
+    src/features/authorization/presentation/dto/request/invite-admin.request.dto.ts
+    src/features/authorization/presentation/dto/response/admin-invitation.response.dto.ts
+    src/features/authorization/presentation/dto/response/admin-invitations-list.response.dto.ts
+
+  Tests
+    test/v1/admin-invitation-v1.e2e-spec.ts
+
+
+-------------------------------------------------------------------------------
+2.9 FILES MODIFIED IN PHASE 2
+-------------------------------------------------------------------------------
+
+  Source
+    src/features/authorization/domain/permission.catalog.ts ..... PermissionMeta,
+                                                                    ownerOnly flag
+    src/features/authorization/domain/enums/permission.enum.ts .. + ADMIN_INVITE/
+                                                                    ADMIN_DELETE/
+                                                                    ADMIN_STATUS
+    src/features/authorization/domain/errors/authorization-errors.ts
+    src/features/authorization/domain/errors/authorization-error-code.enum.ts
+                                                                    invitation codes
+    src/features/authorization/application/interfaces/authorization.interface.ts
+    src/features/authorization/application/services/admin-account.service.ts
+    src/features/authorization/application/services/permission-evaluation.service.ts
+                                                                    assertCanDelegate
+                                                                    honors ownerOnly
+    src/features/authorization/application/use-cases/admin-directory.use-case.ts
+                                                                    role-scoped
+    src/features/authorization/presentation/controllers/admin-accounts.controller.ts
+                                                                    /administrators,
+                                                                    owner-reserved
+                                                                    permissions, GET /me
+    src/features/authorization/presentation/dto/request/permission-set.request.dto.ts
+                                                                    @IsIn(DELEGABLE_PERMISSIONS)
+    src/features/authorization/presentation/swagger/authorization.swagger.ts
+    src/features/authorization/authorization.module.ts
+    src/features/users/infrastructure/repositories/user.repository.ts
+                                                                    + findUsersByRole
+    src/features/users/application/interfaces/users.interface.ts
+    src/features/users/application/use-cases/admin-users.use-case.ts
+    src/features/users/application/use-cases/suspend-user.use-case.ts ... targetRole
+    src/features/users/application/use-cases/unsuspend-user.use-case.ts .. targetRole
+    src/features/users/presentation/controllers/admin.users.controller.ts
+    src/features/users/presentation/dto/request/create-user.request.dto.ts
+    src/features/auth/auth.module.ts
+    src/infrastructure/email/email.service.ts, smtp-email.service.ts,
+    src/infrastructure/email/email.template.ts .... invitation email
+    src/infrastructure/logging/logging.constants.ts ... + invitation events
+    src/presentation/swagger/api-error.catalog.ts
+
+  Removed
+    src/features/authorization/application/use-cases/grant-admin-role.use-case.ts
+    src/features/authorization/application/use-cases/revoke-admin-role.use-case.ts
+    src/features/authorization/application/use-cases/__tests__/grant-admin-role.use-case.spec.ts
+    src/features/authorization/application/use-cases/__tests__/revoke-admin-role.use-case.spec.ts
+    src/features/authorization/presentation/dto/request/create-admin.request.dto.ts
+
+  Tests
+    test/v1/admin-user-v1.e2e-spec.ts ..... isolation (plain-USER targets)
+    test/v1/authorization-v1.e2e-spec.ts ... owner-reserved permissions, 422s
+    test/setup/migrations.ts
+    test/helpers/email.helper.ts
+    src/features/authorization/application/services/__tests__/admin-account.service.spec.ts
+    src/features/authorization/application/services/__tests__/permission-evaluation.service.spec.ts
+    src/features/users/application/use-cases/__tests__/admin-users.use-case.spec.ts
+    src/features/users/application/use-cases/__tests__/suspend-user.use-case.spec.ts
+    src/features/users/application/use-cases/__tests__/unsuspend-user.use-case.spec.ts
+    src/features/users/infrastructure/repositories/__tests__/user.repository.spec.ts
+
+  Documentation
+    README.md, docs/authorization.md, docs/api.md, docs/security.md,
+    docs/database.md, docs/entities.md, docs/testing.md
+
+
+-------------------------------------------------------------------------------
+2.10 TEST COVERAGE SUMMARY — PHASE 2
+-------------------------------------------------------------------------------
+
+  Unit    92 suites   839 tests   all passing   (Phase 1 was 89 / 768)
+  E2E     18 suites   211 tests   all passing   (Phase 1 was 17 / 171)
+
+  +71 unit tests, +40 E2E tests. No pre-existing test was deleted or weakened
+  (the two removed unit suites replaced their role-grant coverage with the
+  invitation and deletion coverage that supersedes it).
+
+  Invitation flow (admin-invitation-v1, 43 e2e cases + unit specs):
+    ✓ owner invites with delegable permissions
+    ✓ owner-reserved permission on an invitation → 422
+    ✓ duplicate outstanding invitation is superseded, not blocked
+    ✓ accept creates an ADMIN account with the invited grants, ACTIVATE
+    ✓ email comes from the invitation, never the body (extra field → 422)
+    ✓ unknown token → 404; reused/revoked → 409; expired → 410
+    ✓ revoke a pending invitation → token is dead; listing shows it settled
+    ✓ acceptance is atomic — a failure rolls back account, grants, invitation
+    ✓ acceptance is public + SkipCsrf; CSRF cookie is not required
+    ✓ an address that already has an account cannot be invited (422)
+    ✓ username taken by an existing account → 422, nothing partially created
+
+  Owner-only administration:
+    ✓ no administrator can hold, receive or be granted an owner-reserved code
+    ✓ administrators are refused every /administrators route (403)
+    ✓ GET /me returns the caller's own profile without any permission
+    ✓ DELETE now hard-deletes an administrator and their grants
+
+  Isolation and visibility:
+    ✓ /admin/users returns only USER-role accounts
+    ✓ administrator and owner identifiers through /admin/users/:id → 404
+    ✓ /admin/administrators returns only ADMIN-role accounts
+    ✓ the owner appears in neither listing
+    ✓ suspend through the user route cannot target an administrator, and vice
+      versa
+
+  Phase-1 behaviour re-verified unchanged: owner bypass, single-owner index,
+  assertNotSelf, assertCanDelegate on grant and revoke, delegation limits,
+  idempotent grants, immediate revocation, session revocation on demotion/
+  deactivation.
+
+
+-------------------------------------------------------------------------------
+2.11 REMAINING RECOMMENDATIONS — PHASE 2
+-------------------------------------------------------------------------------
+
+  1. Deliver the invitation email. The token is logged only in the success log
+     of the email call, never persisted; the SMTP integration behind
+     sendAdminInvitationEmail is the remaining piece to wire in production
+     (the e2e suite asserts the helper call, not delivery).
+
+  2. The accept route logs invitation id, status and reason on rejection. The
+     endpoint deliberately returns the same code for "unknown token" and
+     "never issued", so rate limiting on /invitations/accept is the only
+     protection against token guessing — the 256-bit space makes it academic,
+     but a per-IP limiter is cheap to add.
+
+  3. Phase-1 recommendation #4 stands: USER_CREATE, USER_DELETE and
+     SYSTEM_SETTINGS are still catalog-only. With the invitation flow in place,
+     consider whether USER_CREATE should gain an endpoint or be dropped.
+
+  4. docs/audit/ and AUTHENTICATION_LATENCY_AUDIT.md remain deliberately
+     untracked, as in Phase 1.
+
+================================================================================
+VERIFICATION (Phase 1)
 ================================================================================
 
   1. ESLint ................ pnpm lint:check ........... PASS (0 problems)
@@ -619,10 +1070,25 @@ VERIFICATION
   5. Failing tests ......... none
   6. git diff reviewed ..... yes, across 10 atomic commits
   7. Unrelated changes ..... none staged. Two pre-existing untracked items
-                             (AUTHENTICATION_LATENCY_AUDIT.md, docs/audit/)
-                             were present before this work and were deliberately
-                             left untracked.
+                              (AUTHENTICATION_LATENCY_AUDIT.md, docs/audit/)
+                              were present before this work and were deliberately
+                              left untracked.
   8. Staging ............... only authorization-related files, committed in 10
-                             logical steps, each leaving the repository green.
+                              logical steps, each leaving the repository green.
+
+================================================================================
+VERIFICATION (Phase 2)
+================================================================================
+
+  1. ESLint ................ pnpm lint:check ........... PASS (0 problems)
+  2. TypeScript ............ pnpm typecheck ............ PASS (0 errors)
+  3. Unit tests ............ pnpm test:unit ............ PASS (839/839, 92 suites)
+  4. E2E tests ............. pnpm test:e2e ............. PASS (211/211, 18 suites)
+  5. Failing tests ......... none
+  6. Migration round trip ... up / down / re-up verified against a real
+                              PostgreSQL instance
+   7. git diff reviewed ..... done — the Phase 2 changes landed as three
+                              atomic commits: the feature, its tests and the
+                              documentation
 
 ================================================================================
