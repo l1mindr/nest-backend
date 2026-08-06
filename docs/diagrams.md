@@ -222,9 +222,9 @@ erDiagram
         varchar password "select: false"
         enum status "PENDING_VERIFICATION | ACTIVATE | SUSPEND | DEACTIVATE"
         enum role "OWNER | ADMIN | USER"
-        date createdAt
-        date updatedAt
-        date deleteAt "nullable, soft delete"
+        timestamptz createdAt
+        timestamptz updatedAt
+        timestamptz deletedAt "nullable, soft delete"
     }
 
     Session {
@@ -233,21 +233,23 @@ erDiagram
         jsonb device "ISessionDevice"
         varchar ipAddress
         boolean isRevoked
-        date expiresAt "7 days"
-        date lastUsedAt
+        timestamptz expiresAt "7 days"
+        timestamptz lastUsedAt
         integer version "optimistic concurrency"
-        date rotatedAt
-        date createdAt
-        date updatedAt
+        timestamptz rotatedAt
+        timestamptz createdAt
+        timestamptz updatedAt
     }
 
     UserVerificationCode {
         uuid id PK
         uuid userId FK
         varchar codeHash "bcrypt"
-        date expiresAt "3 minutes"
-        date verifiedAt "nullable"
-        date createdAt
+        timestamptz expiresAt "3 minutes"
+        timestamptz verifiedAt "nullable"
+        timestamptz createdAt
+        timestamptz updatedAt
+        timestamptz deletedAt "nullable, soft delete"
     }
 
     Coin {
@@ -256,9 +258,9 @@ erDiagram
         varchar name
         varchar image "nullable"
         boolean isActive "default true"
-        date lastSyncedAt
-        date createdAt
-        date updatedAt
+        timestamptz lastSyncedAt
+        timestamptz createdAt
+        timestamptz updatedAt
     }
 
     PriceAlert {
@@ -269,14 +271,14 @@ erDiagram
         decimal targetPrice "> 0"
         enum triggerMode "ONCE | REPEAT"
         enum status "ACTIVE | TRIGGERED | EXPIRED | CANCELLED"
-        date expiresAt "nullable"
+        timestamptz expiresAt "nullable"
         enum notificationChannels "EMAIL | SMS"
         integer notificationCooldownMinutes "default 60"
         decimal lastCheckedPrice "nullable"
-        date lastTriggeredAt "nullable"
+        timestamptz lastTriggeredAt "nullable"
         integer triggeredCount "default 0"
-        date createdAt
-        date updatedAt
+        timestamptz createdAt
+        timestamptz updatedAt
     }
 ```
 
@@ -305,7 +307,7 @@ erDiagram
         uuid userId FK "ON DELETE CASCADE"
         varchar permission FK "ON DELETE RESTRICT"
         uuid grantedById FK "nullable, ON DELETE SET NULL"
-        date grantedAt
+        timestamptz grantedAt
     }
 ```
 

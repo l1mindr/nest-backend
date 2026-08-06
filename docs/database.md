@@ -1,5 +1,29 @@
 # Database
 
+## Date & Time Conventions
+
+One convention covers every instant in the project:
+
+- **Every timestamp column is `timestamp with time zone` (`timestamptz`).**
+  No column uses the naive `timestamp`, `date` or `datetime` types.
+- **Every field that represents a point in time ends with the `At` suffix**
+  (`createdAt`, `updatedAt`, `deletedAt`, `expiresAt`, `verifiedAt`,
+  `lastUsedAt`, `grantedAt`, `acceptedAt`, …). Duration or count fields never
+  do (`notificationCooldownMinutes`, `triggeredCount`).
+- **All stored instants use UTC semantics.** Every database session is opened
+  with `timezone=UTC` (see `postgres.config.ts`), so database-generated values
+  and offset-less timestamp input are interpreted consistently.
+- **API responses serialize instants as ISO-8601 with a UTC designator**
+  (e.g. `2026-08-02T14:35:00.000Z`).
+
+Two deliberate exceptions exist:
+
+- `error.timestamp` in the error envelope: standard error metadata for *when*
+  an error was produced, kept under that conventional name rather than
+  renamed. Still ISO-8601 UTC.
+- `validUntil` no longer exists: the sessions listing exposes `expiresAt`,
+  matching the entity and the convention.
+
 ## PostgreSQL
 
 ### Runtime Configuration
@@ -32,9 +56,9 @@ File: `src/infrastructure/databases/postgres/data-source.ts`
 | password | varchar | `select: false` |
 | status | enum | `PENDING_VERIFICATION` (default), `ACTIVATE`, `SUSPEND`, `DEACTIVATE` |
 | role | enum | `USER` (default), `ADMIN`, `OWNER` |
-| createdAt | timestamp | Auto-set |
-| updatedAt | timestamp | Auto-set |
-| deleteAt | timestamp | Nullable, soft delete |
+| createdAt | timestamp with time zone | Auto-set |
+| updatedAt | timestamp with time zone | Auto-set |
+| deletedAt | timestamp with time zone | Nullable, soft delete |
 
 Partial unique index `uq_user_single_owner` on `role WHERE role = 'OWNER'`
 enforces that at most one owner can ever exist, independently of any
@@ -60,7 +84,7 @@ One row per permission granted to one administrator.
 | userId | uuid | FK → `user(id)` ON DELETE CASCADE |
 | permission | varchar(64) | FK → `permission(code)` ON DELETE RESTRICT |
 | grantedById | uuid | Nullable, FK → `user(id)` ON DELETE SET NULL |
-| grantedAt | timestamp | Auto-set |
+| grantedAt | timestamp with time zone | Auto-set |
 
 Unique on `(userId, permission)`, indexed on `userId`. The foreign key to the
 catalog means a grant can only ever name a permission the system knows about.
@@ -77,12 +101,12 @@ signed into.
 | email | varchar | Indexed |
 | tokenHash | varchar(64) | UK; SHA-256 of the issued token, `select: false` |
 | permissions | varchar(64)[] | Delegable permission codes only |
-| expiresAt | timestamp | 48 hours after issue |
-| acceptedAt | timestamp | Nullable |
-| revokedAt | timestamp | Nullable |
+| expiresAt | timestamp with time zone | 48 hours after issue |
+| acceptedAt | timestamp with time zone | Nullable |
+| revokedAt | timestamp with time zone | Nullable |
 | invitedById | uuid | Nullable, FK → `user(id)` ON DELETE SET NULL |
 | acceptedUserId | uuid | Nullable, FK → `user(id)` ON DELETE SET NULL |
-| createdAt | timestamp | Auto-set |
+| createdAt | timestamp with time zone | Auto-set |
 
 Unique on `tokenHash`. A partial unique index on `(email) WHERE acceptedAt IS
 NULL AND revokedAt IS NULL` allows at most one outstanding invitation per
@@ -97,12 +121,12 @@ address. Status is derived from the timestamps, not stored.
 | device | jsonb | NOT NULL |
 | ipAddress | varchar | |
 | isRevoked | boolean | Default false |
-| expiresAt | timestamp | |
-| lastUsedAt | timestamp | |
+| expiresAt | timestamp with time zone | |
+| lastUsedAt | timestamp with time zone | |
 | version | integer | Optimistic concurrency |
-| rotatedAt | timestamp | Nullable |
-| createdAt | timestamp | Auto-set |
-| updatedAt | timestamp | Auto-set |
+| rotatedAt | timestamp with time zone | Nullable |
+| createdAt | timestamp with time zone | Auto-set |
+| updatedAt | timestamp with time zone | Auto-set |
 | ownerId | uuid | FK → User.id |
 
 Indexes: `(ownerId, isRevoked, expiresAt)`, `(ownerId, isRevoked, expiresAt, createdAt)`, `expiresAt`
@@ -116,7 +140,9 @@ Indexes: `(ownerId, isRevoked, expiresAt)`, `(ownerId, isRevoked, expiresAt, cre
 | codeHash | varchar | bcrypt hash |
 | expiresAt | timestamp with time zone | 3 minutes |
 | verifiedAt | timestamp with time zone | Nullable |
-| createdAt | timestamp | Auto-set |
+| createdAt | timestamp with time zone | Auto-set |
+| updatedAt | timestamp with time zone | Auto-set |
+| deletedAt | timestamp with time zone | Nullable, soft delete |
 
 #### Coins Table
 
@@ -127,9 +153,9 @@ Indexes: `(ownerId, isRevoked, expiresAt)`, `(ownerId, isRevoked, expiresAt, cre
 | name | varchar | |
 | image | varchar | Nullable |
 | isActive | boolean | Default true |
-| lastSyncedAt | timestamp | |
-| createdAt | timestamp | Auto-set |
-| updatedAt | timestamp | Auto-set |
+| lastSyncedAt | timestamp with time zone | |
+| createdAt | timestamp with time zone | Auto-set |
+| updatedAt | timestamp with time zone | Auto-set |
 
 #### Price Alerts Table
 
@@ -142,14 +168,14 @@ Indexes: `(ownerId, isRevoked, expiresAt)`, `(ownerId, isRevoked, expiresAt, cre
 | targetPrice | decimal | CHECK > 0 |
 | triggerMode | enum | `ONCE` (default), `REPEAT` |
 | status | enum | `ACTIVE` (default), `TRIGGERED`, `EXPIRED`, `CANCELLED` |
-| expiresAt | timestamp | Nullable |
+| expiresAt | timestamp with time zone | Nullable |
 | notificationChannels | enum[] | `EMAIL`, `SMS`; CHECK non-empty |
 | notificationCooldownMinutes | integer | Default 60, CHECK > 0 |
 | lastCheckedPrice | decimal | Nullable |
-| lastTriggeredAt | timestamp | Nullable |
+| lastTriggeredAt | timestamp with time zone | Nullable |
 | triggeredCount | integer | Default 0 |
-| createdAt | timestamp | Auto-set |
-| updatedAt | timestamp | Auto-set |
+| createdAt | timestamp with time zone | Auto-set |
+| updatedAt | timestamp with time zone | Auto-set |
 
 Indexes: `userId`, `status`, `coinId`, `(userId, status)`, `(status, coinId)`, `expiresAt`
 
@@ -164,6 +190,7 @@ Indexes: `userId`, `status`, `coinId`, `(userId, status)`, `(status, coinId)`, `
 | 5 | `CreateVerificationCodeActiveLatestIndex` | Partial index for the latest active verification code lookup |
 | 6 | `CreateAuthorizationTables` | Adds `OWNER` to the role enum, the single-owner index, and the permission and grant tables |
 | 7 | `CreateAdminInvitationTable` | Adds `ADMIN_INVITE`/`ADMIN_DELETE`/`ADMIN_STATUS` to the catalog and the `admin_invitation` table |
+| 8 | `StandardizeDateTimeColumns` | Converts every legacy naive `timestamp` column to `timestamptz` and renames `deleteAt` → `deletedAt`, preserving data. No-op on fresh installs, which already create `timestamptz` columns |
 
 ## Redis
 

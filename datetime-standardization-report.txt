@@ -1,0 +1,113 @@
+DATETIME STANDARDIZATION REPORT
+===============================
+
+Date: 2026-08-06
+Scope: full date/time audit and standardization across the project
+
+1. Overview
+-----------
+Every instant in the project is now represented with a single convention:
+`timestamp with time zone` (timestamptz), a field name ending in `At`, UTC
+database-session semantics, and ISO-8601 UTC API serialization.
+
+Before this change the schema was inconsistent: most point-in-time columns used
+Postgres `timestamp` (naive, no time zone) or the default TypeORM timestamp
+behavior, and the soft-delete column was named `deleteAt` instead of
+`deletedAt`. Postgres interprets naive `timestamp` in the session time zone,
+and the pg driver converts it using the Node process timezone, so timestamps
+were not guaranteed to be read back as the UTC instant that was written.
+
+Documented exceptions (intentional):
+- `error.timestamp` in the error envelope. This is error metadata describing
+  when an error was produced, kept under its conventional name. It remains
+  ISO-8601 UTC.
+- `notificationCooldownMinutes`, `triggeredCount`, `version` are durations /
+  counters and intentionally carry no `At` suffix.
+
+2. Naming changes
+-----------------
+- `deleteAt` -> `deletedAt` everywhere (soft-delete column):
+  * core/registry-dates.ts (base interface)
+  * infrastructure/databases/postgres/embedded/registry-dates.embedded.ts
+  * features/users/domain/entities/user.entity.ts (soft-delete getter)
+  * features/users/presentation/dto/response/admin-user.response.dto.ts
+  * features/users/infrastructure/repositories/user.repository.ts
+  * user.repository.spec.ts, users-delete-account-v1.e2e-spec.ts
+- `validUntil` -> `expiresAt` (breaking API change, intentional):
+  * features/sessions/domain/types/session-list-item.type.ts
+  * features/sessions/application/services/session-list.service.ts
+  * features/sessions/presentation/dto/response/session.response.dto.ts
+  * session-list.service.spec.ts, sessions-v1.e2e-spec.ts
+  The response field now matches the entity column and the `At` convention.
+
+3. DB schema changes
+--------------------
+All of these columns are now `timestamp with time zone`:
+
+  user:               createdAt, updatedAt, deletedAt
+  session:            expiresAt, lastUsedAt, rotatedAt, createdAt, updatedAt
+  coin:               lastSyncedAt, createdAt, updatedAt
+  price_alert:        expiresAt, lastTriggeredAt, createdAt, updatedAt
+  user_verification_code: createdAt, updatedAt, deletedAt
+  admin_permission:   grantedAt
+  admin_invitation:   expiresAt, acceptedAt, revokedAt, createdAt
+
+(verification code `expiresAt`/`verifiedAt` were already timestamptz.)
+
+4. Migration details
+--------------------
+- Historical migrations 0000-0006 were corrected so a fresh install already
+  produces `timestamp with time zone` columns and `deletedAt`.
+- New forward migration `1700000007000-StandardizeDateTimeColumns` upgrades
+  environments that already applied the old migrations, without losing data:
+  * `deleteAt` -> `deletedAt` rename, guarded on column existence.
+  * every project-owned legacy `timestamp without time zone` column converted
+    with `USING "col" AT TIME ZONE 'UTC'` - exact under the UTC policy, no
+    shift.
+  * down() restores the legacy shape for exactly the columns that predate the
+    standardization (verification `expiresAt`/`verifiedAt` left untouched).
+  * on a fresh install every statement is a no-op.
+- Wired into test/setup/migrations.ts as the final migration.
+
+5. UTC handling
+---------------
+- postgres.config.ts: every DB session now opens with `options: '-c timezone=UTC'`.
+- API serializes instants as ISO-8601 UTC (e.g. 2026-08-02T14:35:00.000Z).
+
+6. Entities updated (9)
+-----------------------
+registry-dates.embedded.ts, session.entity.ts, coin.entity.ts,
+price-alert.entity.ts, admin-invitation.entity.ts, admin-permission.entity.ts,
+user-verification-code.entity.ts, user.entity.ts, and core/registry-dates.ts.
+
+7. DTOs / services / types updated
+----------------------------------
+- admin-user.response.dto.ts (deletedAt transform), user.repository.ts (select)
+- session.response.dto.ts, session-list.service.ts, session-list-item.type.ts
+
+8. API changes
+--------------
+- Sessions listing response: `validUntil` -> `expiresAt`. No other public
+  field names changed; error envelope `timestamp` kept by design.
+
+9. Test summary
+---------------
+- Unit: 839/839 passed.
+- E2E: 211/211 passed; the e2e migration registry includes the corrected
+  historical migrations and the new forward migration.
+- Lint and typecheck clean.
+
+10. Docs updates
+----------------
+- docs/database.md: new "Date & Time Conventions" section; all column tables
+  now read `timestamp with time zone`; `deletedAt`; migration table entry 8.
+- docs/entities.md: RegistryDates reflects `deletedAt` and timestamptz.
+- docs/diagrams.md: ER diagrams use timestamptz types and `deletedAt`.
+- README.md: new "Date & Time Convention" section.
+
+11. Remaining recommendations (not in scope)
+--------------------------------------------
+- Type nullable entity columns consistently as `Date | null` and enable
+  stricter compiler checks so nullability is enforced statically.
+- Review `deletedAt` query patterns before adding indexes; this change does not
+  introduce new soft-delete query paths.
