@@ -96,22 +96,13 @@ export class UserRepository implements IUserRepository {
     });
   }
 
-  async findUsersForAdmin(
-    cursorId: string | null,
-    limit: number
-  ): Promise<User[]> {
-    return this.userRepo.find({
-      select: UserRepository.ADMIN_VIEW_SELECT,
-      where: cursorId ? { id: MoreThan(cursorId) } : undefined,
-      order: { id: 'ASC' },
-      take: limit
-    });
-  }
-
   /**
-   * Cursor-paginated over one role tier, ordered by identifier — the same
-   * contract as {@link findUsersForAdmin}, narrowed to a role so the
-   * administrator directory does not have to page through every account.
+   * Cursor-paginated over one role tier, ordered by identifier.
+   *
+   * Every administrative listing goes through here rather than over all
+   * accounts, which is what keeps the two populations apart: user management
+   * pages `USER`, the administrator directory pages `ADMIN`, and the owner —
+   * being neither — appears in no listing at all.
    */
   async findUsersByRole(
     role: UserRole,
@@ -133,13 +124,9 @@ export class UserRepository implements IUserRepository {
     await this.userRepo.update({ id }, dto);
   }
 
-  async updateRole(
-    userId: string,
-    role: UserRole,
-    manager?: EntityManager
-  ): Promise<void> {
+  async softDeleteUser(user: User, manager?: EntityManager): Promise<void> {
     const repository = manager?.getRepository(User) ?? this.userRepo;
-    await repository.update({ id: userId }, { role });
+    await repository.softRemove(user);
   }
 
   async updateStatus(

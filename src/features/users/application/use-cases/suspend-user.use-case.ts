@@ -1,8 +1,4 @@
 import {
-  OwnerProtectionPolicy,
-  ProtectedAction
-} from '@features/authorization/domain/owner-protection.policy';
-import {
   ISessionRevocationUseCase,
   SESSION_REVOCATION_USE_CASE
 } from '@features/sessions/application/interfaces/sessions.interface';
@@ -13,6 +9,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { PinoLogger } from 'nestjs-pino';
 import { User } from '../../domain/entities/user.entity';
+import { UserRole } from '../../domain/enums/user-role.enum';
 import { UserStatus } from '../../domain/enums/user-status.enum';
 import { UserErrors } from '../../domain/errors/user-errors';
 import {
@@ -21,6 +18,16 @@ import {
   USER_REPOSITORY
 } from '../interfaces/users.interface';
 
+/**
+ * Suspension, shared by user management and administrator management.
+ *
+ * `targetRole` names the population the calling route administers. Asserting it
+ * is what keeps the two endpoints from reaching into each other: the user route
+ * passes `USER` and so cannot touch an administrator, the administrator route
+ * passes `ADMIN` and so cannot touch an ordinary user. The owner matches
+ * neither and is therefore unreachable through both — answering "not found"
+ * rather than a distinct refusal, which would confirm the account exists.
+ */
 @Injectable()
 export class SuspendUserUseCase implements ISuspendUserUseCase {
   constructor(
@@ -39,15 +46,14 @@ export class SuspendUserUseCase implements ISuspendUserUseCase {
   async execute(
     adminId: string,
     userId: string,
-    reason: string
+    reason: string,
+    targetRole: UserRole
   ): Promise<void> {
     const user = await this.userRepository.findUserForAdmin(userId);
 
-    if (!user) {
+    if (!user || user.role !== targetRole) {
       throw UserErrors.userNotFound(userId);
     }
-
-    OwnerProtectionPolicy.assertNotOwner(user, ProtectedAction.SUSPEND);
 
     if (user.status === UserStatus.SUSPEND) {
       throw UserErrors.userAlreadySuspended();

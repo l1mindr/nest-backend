@@ -6,6 +6,10 @@
  *
  * Codes are `<RESOURCE>_<ACTION>` and are never reused once retired — a grant
  * row referencing a retired code would silently change meaning.
+ *
+ * Whether a permission may be delegated at all is a separate question, answered
+ * by `PERMISSION_CATALOG`: the `ADMIN_*` and `ROLE_ASSIGN` codes are reserved to
+ * the owner and can never be held by anyone else.
  */
 export enum Permission {
   USER_READ = 'USER_READ',
@@ -16,7 +20,10 @@ export enum Permission {
   USER_UNSUSPEND = 'USER_UNSUSPEND',
 
   ADMIN_READ = 'ADMIN_READ',
+  ADMIN_INVITE = 'ADMIN_INVITE',
   ADMIN_UPDATE = 'ADMIN_UPDATE',
+  ADMIN_DELETE = 'ADMIN_DELETE',
+  ADMIN_STATUS = 'ADMIN_STATUS',
 
   ROLE_ASSIGN = 'ROLE_ASSIGN',
 

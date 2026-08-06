@@ -1,6 +1,7 @@
 import { IRequest } from '@presentation/interfaces/custom-request.interface';
 import { Permission } from '@features/authorization/domain/enums/permission.enum';
 import { RequirePermissions } from '@features/security/decorators/require-permissions.decorator';
+import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import { IdDto } from '@presentation/dto/id.dto';
 import { Serialize } from '@presentation/interceptors/decorators/serialize.decorator';
 import {
@@ -44,6 +45,13 @@ import {
  * so what an administrator can reach here is decided by their grants. A
  * read-only administrator holds `USER_READ` and nothing else; a moderator adds
  * `USER_SUSPEND`. The owner satisfies every one of them without evaluation.
+ *
+ * *Ordinary* accounts only. Administrators and the owner are a separate
+ * population with their own endpoints, and every route here is scoped to
+ * `USER` — in the query for listings, and by passing the administered role to
+ * the shared suspension use cases. An administrator identifier is therefore
+ * indistinguishable from one that was never issued, which is what keeps the
+ * owner from being discoverable through user management.
  */
 @Controller({
   path: 'admin/users',
@@ -98,7 +106,12 @@ export class AdminUsersController {
     @Body() body: SuspendUserRequestDto,
     @Req() req: IRequest
   ): Promise<void> {
-    await this.suspendUserUseCase.execute(req.user.id, id, body.reason);
+    await this.suspendUserUseCase.execute(
+      req.user.id,
+      id,
+      body.reason,
+      UserRole.USER
+    );
   }
 
   @Patch(':id/unsuspend')
@@ -109,6 +122,6 @@ export class AdminUsersController {
     @Param() { id }: IdDto,
     @Req() req: IRequest
   ): Promise<void> {
-    await this.unsuspendUserUseCase.execute(req.user.id, id);
+    await this.unsuspendUserUseCase.execute(req.user.id, id, UserRole.USER);
   }
 }

@@ -1,8 +1,7 @@
 import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import { UserStatus } from '@features/users/domain/enums/user-status.enum';
 import { UserErrorCode } from '@features/users/domain/errors/user-error-code.enum';
-import { AuthorizationErrorCode } from '../../../domain/errors/authorization-error-code.enum';
-import { AuthorizationErrors } from '../../../domain/errors/authorization-errors';
+import { UserErrors } from '@features/users/domain/errors/user-errors';
 import { ProtectedAction } from '../../../domain/owner-protection.policy';
 import { ChangeAdminStatusUseCase } from '../change-admin-status.use-case';
 
@@ -98,12 +97,12 @@ describe('ChangeAdminStatusUseCase', () => {
 
     it('should refuse to deactivate the owner', async () => {
       mockAdminAccountService.loadManageableAdmin.mockRejectedValue(
-        AuthorizationErrors.ownerImmutable(ProtectedAction.STATUS_CHANGE)
+        UserErrors.userNotFound(TARGET_ID)
       );
 
       await expect(useCase.deactivate(OWNER_ID, TARGET_ID)).rejects.toThrow(
         expect.objectContaining({
-          code: AuthorizationErrorCode.OWNER_IMMUTABLE
+          code: UserErrorCode.USER_NOT_FOUND
         })
       );
     });

@@ -74,6 +74,17 @@ describe('Admin Users (e2e) version: 1', () => {
       dataSource
     );
 
+    // The listing pages the `USER` population only. The caller is an
+    // administrator, so it must not appear; a plain account has to exist for
+    // the listing to have anything to return.
+    await AuthFactory.authenticated(app, {
+      overrides: {
+        email: 'listed@test.com',
+        username: 'listed',
+        password: 'Password@123'
+      }
+    });
+
     const res = await adminContext.client.get('/v1/admin/users');
 
     expect(res.status).toBe(200);
@@ -137,10 +148,11 @@ describe('Admin Users (e2e) version: 1', () => {
       cursor = page.body.nextCursor;
     }
 
-    // Should have 1 admin + 3 created = 4 users total
-    expect(allIds).toHaveLength(4);
+    // The administrator is excluded from its own management, so only the
+    // three directly-created users are listed.
+    expect(allIds).toHaveLength(3);
     // No duplicates
-    expect(new Set(allIds).size).toBe(4);
+    expect(new Set(allIds).size).toBe(3);
   });
 
   it('GET /admin/users with invalid cursor should return 400', async () => {
@@ -258,8 +270,18 @@ describe('Admin Users (e2e) version: 1', () => {
       dataSource
     );
 
+    // The administrator route resolves ordinary users, not administrators, so
+    // the target is a plain account.
+    const targetContext = await AuthFactory.authenticated(app, {
+      overrides: {
+        email: 'targeted@test.com',
+        username: 'targeted',
+        password: 'Password@123'
+      }
+    });
+
     const target = await dataSource.getRepository(User).findOneOrFail({
-      where: { email: adminContext.user.email }
+      where: { email: targetContext.user.email }
     });
 
     const res = await adminContext.client.get(`/v1/admin/users/${target.id}`);
@@ -268,9 +290,9 @@ describe('Admin Users (e2e) version: 1', () => {
     expect(res.body).toEqual({
       ...adminUserResponseShape,
       id: target.id,
-      username: adminContext.user.username,
-      email: adminContext.user.email,
-      role: UserRole.ADMIN,
+      username: targetContext.user.username,
+      email: targetContext.user.email,
+      role: UserRole.USER,
       status: UserStatus.ACTIVATE
     });
   });

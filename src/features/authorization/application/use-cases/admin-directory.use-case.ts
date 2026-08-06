@@ -4,6 +4,8 @@ import {
   isValidUUID
 } from '@core/pagination/cursor.util';
 import { paginate } from '@core/pagination/paginate.util';
+import { SecurityErrors } from '@features/security/errors/security-errors';
+import { User } from '@features/users/domain/entities/user.entity';
 import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import { UserErrors } from '@features/users/domain/errors/user-errors';
 import {
@@ -12,11 +14,11 @@ import {
 } from '@features/users/application/interfaces/users.interface';
 import { Inject, Injectable } from '@nestjs/common';
 import { ADMINS_PAGE_SIZE_DEFAULT } from '../../presentation/dto/request/admin-list.request.dto';
-import { AuthorizationErrors } from '../../domain/errors/authorization-errors';
 import { RoleHierarchy } from '../../domain/role-hierarchy';
 import {
   ADMIN_PERMISSION_REPOSITORY,
   AdminAccount,
+  AuthorizationActor,
   IAdminDirectoryUseCase,
   IAdminPermissionRepository,
   IPermissionEvaluationService,
@@ -72,18 +74,52 @@ export class AdminDirectoryUseCase implements IAdminDirectoryUseCase {
     };
   }
 
-  async findById(userId: string): Promise<AdminAccount> {
+  /**
+   * Resolves one administrator.
+   *
+   * The owner is reachable only by the owner. To anybody else an owner
+   * identifier is simply absent — the same answer as an identifier that was
+   * never issued — so this endpoint cannot be used to confirm which account is
+   * the owner. Everything that is not an administrator answers the same way,
+   * for the same reason.
+   */
+  async findById(
+    actor: AuthorizationActor,
+    userId: string
+  ): Promise<AdminAccount> {
     const account = await this.userRepository.findUserForAdmin(userId);
 
     if (!account) throw UserErrors.userNotFound(userId);
 
-    if (!RoleHierarchy.isAdministrative(account.role)) {
-      throw AuthorizationErrors.notAnAdministrator(userId);
+    const isSelf = account.id === actor.id;
+    const visible =
+      account.role === UserRole.ADMIN ||
+      (RoleHierarchy.bypassesAuthorization(account.role) && isSelf);
+
+    if (!visible) throw UserErrors.userNotFound(userId);
+
+    return this.withPermissions(account);
+  }
+
+  /** The caller's own administrator profile, whatever tier they sit in. */
+  async findSelf(actor: AuthorizationActor): Promise<AdminAccount> {
+    if (!RoleHierarchy.isAdministrative(actor.role)) {
+      throw SecurityErrors.accessDenied();
     }
 
-    // Asked of the evaluation service rather than read straight from the grant
-    // table, so that the owner is described the way they are actually treated:
-    // holding everything, because they bypass evaluation.
+    const account = await this.userRepository.findUserForAdmin(actor.id);
+
+    if (!account) throw UserErrors.userNotFound(actor.id);
+
+    return this.withPermissions(account);
+  }
+
+  /**
+   * Asked of the evaluation service rather than read straight from the grant
+   * table, so that the owner is described the way they are actually treated:
+   * holding everything, because they bypass evaluation.
+   */
+  private async withPermissions(account: User): Promise<AdminAccount> {
     return {
       account,
       permissions:

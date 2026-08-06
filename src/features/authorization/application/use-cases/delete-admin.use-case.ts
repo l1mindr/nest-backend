@@ -1,4 +1,3 @@
-import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import {
   IUserRepository,
   USER_REPOSITORY
@@ -11,32 +10,28 @@ import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { PinoLogger } from 'nestjs-pino';
-import {
-  OwnerProtectionPolicy,
-  ProtectedAction
-} from '../../domain/owner-protection.policy';
+import { ProtectedAction } from '../../domain/owner-protection.policy';
 import { AdminAccountService } from '../services/admin-account.service';
 import {
   ADMIN_PERMISSION_REPOSITORY,
   IAdminPermissionRepository,
-  IRevokeAdminRoleUseCase
+  IDeleteAdminUseCase
 } from '../interfaces/authorization.interface';
 
 /**
- * Withdraws administrator status: the account drops back to `USER`, every grant
- * it held is deleted and all of its sessions are revoked.
+ * Deletes an administrator: the account is soft-removed, every grant it held is
+ * dropped and all of its sessions are revoked, in one transaction.
  *
- * The account itself survives. Removing administrative reach and deleting a
- * person's account are different decisions, and conflating them would mean the
- * owner could not demote a colleague without destroying their data; account
- * deletion remains where it already lives, on the self-service endpoint.
+ * Administrators are created by invitation and were never ordinary users, so
+ * there is no earlier state to fall back to — demoting one to `USER` would put
+ * an account into the user population that never belonged there, and would show
+ * up in user management as a result.
  *
- * Sessions are revoked because the access token outlives the demotion, and the
- * role on it is what the next request would otherwise be judged by. Reserved to
- * the owner.
+ * Sessions are revoked because the access token outlives the deletion, and the
+ * role on it is what the next request would otherwise be judged by.
  */
 @Injectable()
-export class RevokeAdminRoleUseCase implements IRevokeAdminRoleUseCase {
+export class DeleteAdminUseCase implements IDeleteAdminUseCase {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
@@ -48,31 +43,29 @@ export class RevokeAdminRoleUseCase implements IRevokeAdminRoleUseCase {
     private readonly dataSource: DataSource,
     private readonly logger: PinoLogger
   ) {
-    this.logger.setContext(RevokeAdminRoleUseCase.name);
+    this.logger.setContext(DeleteAdminUseCase.name);
   }
 
   async execute(actorId: string, targetId: string): Promise<void> {
-    await this.adminAccountService.loadManageableAdmin(
+    const target = await this.adminAccountService.loadManageableAdmin(
       actorId,
       targetId,
-      ProtectedAction.ROLE_CHANGE
+      ProtectedAction.DELETE
     );
 
-    OwnerProtectionPolicy.assertRoleAssignable(UserRole.USER);
-
     await this.dataSource.transaction(async (manager) => {
-      await this.userRepository.updateRole(targetId, UserRole.USER, manager);
       await this.adminPermissionRepository.revokeAll(targetId, manager);
       await this.revocationUseCase.revokeAll(targetId, manager);
+      await this.userRepository.softDeleteUser(target, manager);
     });
 
     this.logger.info(
       {
-        event: LogEvent.ADMIN_ROLE_REVOKED,
+        event: LogEvent.ADMIN_DELETED,
         actorId,
         userId: targetId
       },
-      'Administrator role revoked'
+      'Administrator account deleted'
     );
   }
 }

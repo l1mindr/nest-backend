@@ -85,24 +85,6 @@ const permissionRequired = (
     ...extra
   );
 
-/** `403` for a state-changing route, where CSRF can fail for the same status. */
-const permissionOrCsrfForbidden = (
-  permission: Permission,
-  ...extra: ApiErrorExample[]
-) =>
-  forbiddenResponse(
-    `The request was authenticated but rejected: the caller does not hold \`${permission}\`, the target is protected, or the CSRF check failed.`,
-    errorExample(
-      SecurityErrors.accessDenied(),
-      `The account does not hold \`${permission}\``
-    ),
-    errorExample(
-      SecurityErrors.invalidCsrfToken(),
-      'Missing or mismatched x-csrf-token header'
-    ),
-    ...extra
-  );
-
 const ownerImmutable = (action: ProtectedAction) =>
   errorExample(
     AuthorizationErrors.ownerImmutable(action),
@@ -308,10 +290,7 @@ export const ApiAdminSuspendUser = () =>
     }),
     ApiErrorResponses(PATH.ADMIN_SUSPEND, [
       unauthorizedResponse(),
-      permissionOrCsrfForbidden(
-        Permission.USER_SUSPEND,
-        ownerImmutable(ProtectedAction.SUSPEND)
-      ),
+      permissionRequired(Permission.USER_SUSPEND),
       notFoundResponse(
         'No account exists with this identifier.',
         userNotFound()
@@ -355,10 +334,7 @@ export const ApiAdminUnsuspendUser = () =>
     }),
     ApiErrorResponses(PATH.ADMIN_UNSUSPEND, [
       unauthorizedResponse(),
-      permissionOrCsrfForbidden(
-        Permission.USER_UNSUSPEND,
-        ownerImmutable(ProtectedAction.UNSUSPEND)
-      ),
+      permissionRequired(Permission.USER_UNSUSPEND),
       notFoundResponse(
         'No account exists with this identifier.',
         userNotFound()

@@ -166,6 +166,20 @@ export const conflictResponse = (
   examples
 });
 
+/**
+ * `410` for a resource that existed and has since lapsed. Distinguished from
+ * `404` so a client can tell "this was never valid" from "this is no longer
+ * valid" and offer the right recovery.
+ */
+export const goneResponse = (
+  description: string,
+  ...examples: ApiErrorExample[]
+): ApiErrorResponseOptions => ({
+  status: HttpStatus.GONE,
+  description,
+  examples
+});
+
 /** `422` produced by the global `ValidationPipe` and by unique constraints. */
 export const validationResponse = (
   description: string,

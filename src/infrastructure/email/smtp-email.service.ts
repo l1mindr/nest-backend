@@ -5,6 +5,7 @@ import { Transporter } from 'nodemailer';
 import emailConfig from './email.config';
 import { EMAIL_TRANSPORT } from './email.constants';
 import {
+  buildAdminInvitationEmail,
   buildSuspensionEmail,
   buildUnsuspensionEmail,
   buildVerificationEmail
@@ -40,6 +41,20 @@ export class SmtpEmailService extends EmailService {
       projectName: this.projectName,
       code,
       expiresInMinutes
+    });
+
+    await this.send({ to: email, ...rendered });
+  }
+
+  async sendAdminInvitationEmail(
+    email: string,
+    token: string,
+    expiresInHours: number
+  ): Promise<void> {
+    const rendered = buildAdminInvitationEmail({
+      projectName: this.projectName,
+      token,
+      expiresInHours
     });
 
     await this.send({ to: email, ...rendered });

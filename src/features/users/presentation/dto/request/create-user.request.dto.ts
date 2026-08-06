@@ -1,3 +1,4 @@
+import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import { UserStatus } from '@features/users/domain/enums/user-status.enum';
 import { ExampleValue } from '@presentation/swagger/openapi.constants';
 import { EmailField } from '@presentation/validation/fields/email-field.decorator';
@@ -37,6 +38,18 @@ export class CreateUserRequestDto {
   @IsOptional()
   @IsEnum(UserStatus)
   status?: UserStatus;
+
+  @ApiPropertyOptional({
+    description:
+      'Role tier the account is created with. Defaults to `USER`. Only the invitation-acceptance flow sets anything else, and `OWNER` is refused there.',
+    enum: UserRole,
+    enumName: 'UserRole',
+    default: UserRole.USER,
+    example: UserRole.USER
+  })
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
 
   @ApiPropertyOptional({
     description: 'Display name shown on the profile.',

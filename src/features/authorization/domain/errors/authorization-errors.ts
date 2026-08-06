@@ -23,16 +23,6 @@ export class AuthorizationErrors {
     );
   }
 
-  static ownerAlreadyExists() {
-    return new AppError(
-      AuthorizationErrorCode.OWNER_ALREADY_EXISTS,
-      ErrorDomain.AUTHORIZATION,
-      HttpStatus.CONFLICT,
-      undefined,
-      'An owner already exists; the system allows exactly one'
-    );
-  }
-
   static ownerRoleNotAssignable() {
     return new AppError(
       AuthorizationErrorCode.OWNER_ROLE_NOT_ASSIGNABLE,
@@ -43,30 +33,10 @@ export class AuthorizationErrors {
     );
   }
 
-  static notAnAdministrator(userId?: string) {
-    return new AppError(
-      AuthorizationErrorCode.NOT_AN_ADMINISTRATOR,
-      ErrorDomain.AUTHORIZATION,
-      HttpStatus.CONFLICT,
-      userId ? { userId } : undefined,
-      'The target account is not an administrator'
-    );
-  }
-
-  static alreadyAnAdministrator(userId?: string) {
-    return new AppError(
-      AuthorizationErrorCode.ALREADY_AN_ADMINISTRATOR,
-      ErrorDomain.AUTHORIZATION,
-      HttpStatus.CONFLICT,
-      userId ? { userId } : undefined,
-      'The target account is already an administrator'
-    );
-  }
-
   /**
    * Raised whenever a caller aims an administrative operation at their own
-   * account. Covers self-promotion, self-granting and self-demotion in one
-   * rule, so none of them can be forgotten at a single call site.
+   * account. Covers self-granting and self-demotion in one rule, so neither can
+   * be forgotten at a single call site.
    */
   static selfManagementForbidden(action: string) {
     return new AppError(
@@ -89,13 +59,52 @@ export class AuthorizationErrors {
     );
   }
 
-  static accountNotEligible(status: string) {
+  /**
+   * A permission reserved to the owner was aimed at somebody else. Refused for
+   * every caller, the owner included: the point of the reservation is that no
+   * account other than the owner can ever hold it.
+   */
+  static permissionReservedToOwner(permissions: readonly Permission[]) {
     return new AppError(
-      AuthorizationErrorCode.ACCOUNT_NOT_ELIGIBLE,
+      AuthorizationErrorCode.PERMISSION_RESERVED_TO_OWNER,
+      ErrorDomain.AUTHORIZATION,
+      HttpStatus.FORBIDDEN,
+      { permissions: [...permissions] },
+      'This permission is reserved to the owner and cannot be granted'
+    );
+  }
+
+  /**
+   * Deliberately indistinguishable from a token that never existed, so the
+   * acceptance endpoint cannot be used to probe for live invitations.
+   */
+  static invitationNotFound() {
+    return new AppError(
+      AuthorizationErrorCode.INVITATION_NOT_FOUND,
+      ErrorDomain.AUTHORIZATION,
+      HttpStatus.NOT_FOUND,
+      undefined,
+      'Invitation not found'
+    );
+  }
+
+  static invitationNotPending() {
+    return new AppError(
+      AuthorizationErrorCode.INVITATION_NOT_PENDING,
       ErrorDomain.AUTHORIZATION,
       HttpStatus.CONFLICT,
-      { status },
-      'Only an active account can be promoted to administrator'
+      undefined,
+      'This invitation has already been accepted or revoked'
+    );
+  }
+
+  static invitationExpired() {
+    return new AppError(
+      AuthorizationErrorCode.INVITATION_EXPIRED,
+      ErrorDomain.AUTHORIZATION,
+      HttpStatus.GONE,
+      undefined,
+      'This invitation has expired'
     );
   }
 }

@@ -46,6 +46,10 @@ import { RefreshTokenHasher } from './infrastructure/providers/refresh-token-has
       provide: HashingProvider,
       useClass: BcryptProvider
     }
-  ]
+  ],
+  // Accepting an administrator invitation creates an account with a password
+  // the invitee chooses, so it hashes through the same provider registration
+  // does rather than a second binding that could be configured differently.
+  exports: [HashingProvider]
 })
 export class AuthModule {}

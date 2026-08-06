@@ -2,10 +2,12 @@ import { User } from '@features/users/domain/entities/user.entity';
 import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import type { EntityManager } from 'typeorm';
 import type { PaginatedResult } from '@core/pagination/paginated-result.interface';
+import { AdminInvitation } from '../../domain/entities/admin-invitation.entity';
 import { AdminPermission } from '../../domain/entities/admin-permission.entity';
 import { PermissionDefinition } from '../../domain/entities/permission-definition.entity';
 import { Permission } from '../../domain/enums/permission.enum';
-import { CreateAdminRequestDto } from '../../presentation/dto/request/create-admin.request.dto';
+import { AcceptAdminInvitationRequestDto } from '../../presentation/dto/request/accept-admin-invitation.request.dto';
+import { InviteAdminRequestDto } from '../../presentation/dto/request/invite-admin.request.dto';
 import { PermissionSetRequestDto } from '../../presentation/dto/request/permission-set.request.dto';
 import { UpdateAdminRequestDto } from '../../presentation/dto/request/update-admin.request.dto';
 
@@ -46,7 +48,8 @@ export interface IAdminPermissionRepository {
   grant(
     userId: string,
     permissions: readonly Permission[],
-    grantedById: string,
+    /** `null` when the granting account has since been deleted. */
+    grantedById: string | null,
     manager?: EntityManager
   ): Promise<void>;
   revoke(
@@ -85,18 +88,18 @@ export const ADMIN_DIRECTORY_USE_CASE = Symbol('IAdminDirectoryUseCase');
 
 export interface IAdminDirectoryUseCase {
   list(cursor?: string, limit?: number): Promise<PaginatedResult<AdminAccount>>;
-  findById(userId: string): Promise<AdminAccount>;
+  /**
+   * The owner is resolvable only by itself, so that an identifier harvested
+   * elsewhere cannot be used to confirm which account is the owner.
+   */
+  findById(actor: AuthorizationActor, userId: string): Promise<AdminAccount>;
+  /** The caller's own administrator profile. */
+  findSelf(actor: AuthorizationActor): Promise<AdminAccount>;
 }
 
-export const GRANT_ADMIN_ROLE_USE_CASE = Symbol('IGrantAdminRoleUseCase');
+export const DELETE_ADMIN_USE_CASE = Symbol('IDeleteAdminUseCase');
 
-export interface IGrantAdminRoleUseCase {
-  execute(actorId: string, dto: CreateAdminRequestDto): Promise<AdminAccount>;
-}
-
-export const REVOKE_ADMIN_ROLE_USE_CASE = Symbol('IRevokeAdminRoleUseCase');
-
-export interface IRevokeAdminRoleUseCase {
+export interface IDeleteAdminUseCase {
   execute(actorId: string, targetId: string): Promise<void>;
 }
 
@@ -141,4 +144,64 @@ export const LIST_PERMISSIONS_USE_CASE = Symbol('IListPermissionsUseCase');
 
 export interface IListPermissionsUseCase {
   execute(): Promise<PermissionDefinition[]>;
+}
+
+export const ADMIN_INVITATION_REPOSITORY = Symbol('IAdminInvitationRepository');
+
+export interface IAdminInvitationRepository {
+  create(
+    invitation: Partial<AdminInvitation>,
+    manager?: EntityManager
+  ): Promise<AdminInvitation>;
+  findById(id: string): Promise<AdminInvitation | null>;
+  findByTokenHash(tokenHash: string): Promise<AdminInvitation | null>;
+  findPage(cursorId: string | null, limit: number): Promise<AdminInvitation[]>;
+  findPendingByEmail(email: string): Promise<AdminInvitation[]>;
+  markRevoked(
+    id: string,
+    revokedAt: Date,
+    manager?: EntityManager
+  ): Promise<void>;
+  markAccepted(
+    id: string,
+    acceptedAt: Date,
+    acceptedUserId: string,
+    manager?: EntityManager
+  ): Promise<void>;
+}
+
+export const INVITE_ADMIN_USE_CASE = Symbol('IInviteAdminUseCase');
+
+export interface IInviteAdminUseCase {
+  execute(
+    actorId: string,
+    dto: InviteAdminRequestDto
+  ): Promise<AdminInvitation>;
+}
+
+export const REVOKE_ADMIN_INVITATION_USE_CASE = Symbol(
+  'IRevokeAdminInvitationUseCase'
+);
+
+export interface IRevokeAdminInvitationUseCase {
+  execute(actorId: string, invitationId: string): Promise<void>;
+}
+
+export const LIST_ADMIN_INVITATIONS_USE_CASE = Symbol(
+  'IListAdminInvitationsUseCase'
+);
+
+export interface IListAdminInvitationsUseCase {
+  execute(
+    cursor?: string,
+    limit?: number
+  ): Promise<PaginatedResult<AdminInvitation>>;
+}
+
+export const ACCEPT_ADMIN_INVITATION_USE_CASE = Symbol(
+  'IAcceptAdminInvitationUseCase'
+);
+
+export interface IAcceptAdminInvitationUseCase {
+  execute(dto: AcceptAdminInvitationRequestDto): Promise<void>;
 }

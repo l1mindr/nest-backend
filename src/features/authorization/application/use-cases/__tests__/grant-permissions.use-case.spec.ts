@@ -1,4 +1,6 @@
 import { UserRole } from '@features/users/domain/enums/user-role.enum';
+import { UserErrorCode } from '@features/users/domain/errors/user-error-code.enum';
+import { UserErrors } from '@features/users/domain/errors/user-errors';
 import { AuthorizationErrorCode } from '../../../domain/errors/authorization-error-code.enum';
 import { AuthorizationErrors } from '../../../domain/errors/authorization-errors';
 import { Permission } from '../../../domain/enums/permission.enum';
@@ -59,7 +61,7 @@ describe('GrantPermissionsUseCase', () => {
 
   it('should validate the target before touching the grant table', async () => {
     mockAdminAccountService.loadManageableAdmin.mockRejectedValue(
-      AuthorizationErrors.notAnAdministrator(TARGET_ID)
+      UserErrors.userNotFound(TARGET_ID)
     );
 
     await expect(
@@ -68,7 +70,7 @@ describe('GrantPermissionsUseCase', () => {
       })
     ).rejects.toThrow(
       expect.objectContaining({
-        code: AuthorizationErrorCode.NOT_AN_ADMINISTRATOR
+        code: UserErrorCode.USER_NOT_FOUND
       })
     );
 

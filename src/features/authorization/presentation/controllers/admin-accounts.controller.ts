@@ -1,6 +1,5 @@
 import { Permission } from '@features/authorization/domain/enums/permission.enum';
 import { RequirePermissions } from '@features/security/decorators/require-permissions.decorator';
-import { Roles } from '@features/security/decorators/roles.decorator';
 import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import { SuspendUserRequestDto } from '@features/users/presentation/dto/request/suspend-user.request.dto';
 import {
@@ -28,55 +27,59 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { AdminListRequestDto } from '../dto/request/admin-list.request.dto';
-import { CreateAdminRequestDto } from '../dto/request/create-admin.request.dto';
 import { PermissionSetRequestDto } from '../dto/request/permission-set.request.dto';
 import { UpdateAdminRequestDto } from '../dto/request/update-admin.request.dto';
 import {
   ADMIN_DIRECTORY_USE_CASE,
   CHANGE_ADMIN_STATUS_USE_CASE,
-  GRANT_ADMIN_ROLE_USE_CASE,
+  DELETE_ADMIN_USE_CASE,
   GRANT_PERMISSIONS_USE_CASE,
   IAdminDirectoryUseCase,
   IChangeAdminStatusUseCase,
-  IGrantAdminRoleUseCase,
+  IDeleteAdminUseCase,
   IGrantPermissionsUseCase,
-  IRevokeAdminRoleUseCase,
   IRevokePermissionsUseCase,
   IUpdateAdminUseCase,
-  REVOKE_ADMIN_ROLE_USE_CASE,
   REVOKE_PERMISSIONS_USE_CASE,
   UPDATE_ADMIN_USE_CASE
 } from '../../application/interfaces/authorization.interface';
 import { AdminAccountMapper } from '../../application/mappers/admin-account.mapper';
 import {
   ApiAdminActivate,
-  ApiAdminCreate,
   ApiAdminDeactivate,
   ApiAdminDelete,
   ApiAdminGet,
   ApiAdminGrantPermissions,
   ApiAdminList,
   ApiAdminRevokePermissions,
+  ApiAdminSelf,
   ApiAdminSuspend,
   ApiAdminUnsuspend,
   ApiAdminUpdate
 } from '../swagger/authorization.swagger';
 
 /**
- * Administration of administrators.
+ * Administration of administrators, kept entirely separate from the user
+ * endpoints so that neither population can be reached through the other's
+ * routes.
  *
- * Two kinds of gate appear here, and the difference is deliberate. Reads and
- * edits are permission-driven, so the owner can delegate them. The lifecycle of
- * an administrator — who becomes one, who stops being one, whose access is
- * switched off — is reserved to the owner by role, because an administrator who
- * could create or unmake administrators would effectively hold every permission
- * by proxy.
+ * Every route declares a permission rather than a role, including the ones only
+ * the owner can currently use: the `ADMIN_*` and `ROLE_ASSIGN` codes are marked
+ * owner-reserved in `PERMISSION_CATALOG`, so no administrator can be granted
+ * them and the guard refuses on the ordinary permission path. That is what makes
+ * administrator management owner-only without a single role check in this class
+ * — and what makes relaxing it later one flag in the catalog rather than a
+ * rewrite of these controllers.
  *
- * No rule is evaluated in this class; the decorators declare what is needed and
- * the use cases enforce what may be touched.
+ * The one exception is `GET /me`, which is scoped to the caller and so needs no
+ * permission at all. It is why an administrator refused the directory still has
+ * somewhere to read their own profile and grants.
+ *
+ * No rule is evaluated here; the decorators declare what is needed and the use
+ * cases enforce what may be touched.
  */
 @Controller({
-  path: 'admin/admins',
+  path: 'admin/administrators',
   version: '1'
 })
 @ApiTags(ApiTagName.ADMIN_ACCOUNTS)
@@ -84,10 +87,8 @@ export class AdminAccountsController {
   constructor(
     @Inject(ADMIN_DIRECTORY_USE_CASE)
     private readonly adminDirectoryUseCase: IAdminDirectoryUseCase,
-    @Inject(GRANT_ADMIN_ROLE_USE_CASE)
-    private readonly grantAdminRoleUseCase: IGrantAdminRoleUseCase,
-    @Inject(REVOKE_ADMIN_ROLE_USE_CASE)
-    private readonly revokeAdminRoleUseCase: IRevokeAdminRoleUseCase,
+    @Inject(DELETE_ADMIN_USE_CASE)
+    private readonly deleteAdminUseCase: IDeleteAdminUseCase,
     @Inject(CHANGE_ADMIN_STATUS_USE_CASE)
     private readonly changeAdminStatusUseCase: IChangeAdminStatusUseCase,
     @Inject(UPDATE_ADMIN_USE_CASE)
@@ -119,35 +120,38 @@ export class AdminAccountsController {
     };
   }
 
+  /**
+   * Declared before `:id` so the literal segment wins the match — Nest resolves
+   * routes in declaration order.
+   */
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiAdminSelf()
+  async getSelf(@Req() req: IRequest) {
+    return this.adminAccountMapper.toResponse(
+      await this.adminDirectoryUseCase.findSelf(req.user)
+    );
+  }
+
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions(Permission.ADMIN_READ)
   @ApiAdminGet()
-  async getAdmin(@Param() { id }: IdDto) {
+  async getAdmin(@Param() { id }: IdDto, @Req() req: IRequest) {
     return this.adminAccountMapper.toResponse(
-      await this.adminDirectoryUseCase.findById(id)
-    );
-  }
-
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @Roles(UserRole.OWNER)
-  @ApiAdminCreate()
-  async createAdmin(@Body() body: CreateAdminRequestDto, @Req() req: IRequest) {
-    return this.adminAccountMapper.toResponse(
-      await this.grantAdminRoleUseCase.execute(req.user.id, body)
+      await this.adminDirectoryUseCase.findById(req.user, id)
     );
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(UserRole.OWNER)
+  @RequirePermissions(Permission.ADMIN_DELETE)
   @ApiAdminDelete()
   async deleteAdmin(
     @Param() { id }: IdDto,
     @Req() req: IRequest
   ): Promise<void> {
-    await this.revokeAdminRoleUseCase.execute(req.user.id, id);
+    await this.deleteAdminUseCase.execute(req.user.id, id);
   }
 
   @Patch(':id')
@@ -164,7 +168,7 @@ export class AdminAccountsController {
 
   @Post(':id/activate')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(UserRole.OWNER)
+  @RequirePermissions(Permission.ADMIN_STATUS)
   @ApiAdminActivate()
   async activateAdmin(
     @Param() { id }: IdDto,
@@ -175,7 +179,7 @@ export class AdminAccountsController {
 
   @Post(':id/deactivate')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(UserRole.OWNER)
+  @RequirePermissions(Permission.ADMIN_STATUS)
   @ApiAdminDeactivate()
   async deactivateAdmin(
     @Param() { id }: IdDto,
@@ -184,27 +188,38 @@ export class AdminAccountsController {
     await this.changeAdminStatusUseCase.deactivate(req.user.id, id);
   }
 
+  /**
+   * Suspension is the same operation the user routes expose, reached through a
+   * route only the owner can call. `ADMIN` is passed as the population being
+   * administered, which is what stops this route touching an ordinary user and
+   * the user route touching an administrator.
+   */
   @Post(':id/suspend')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(UserRole.OWNER)
+  @RequirePermissions(Permission.ADMIN_STATUS)
   @ApiAdminSuspend()
   async suspendAdmin(
     @Param() { id }: IdDto,
     @Body() body: SuspendUserRequestDto,
     @Req() req: IRequest
   ): Promise<void> {
-    await this.suspendUserUseCase.execute(req.user.id, id, body.reason);
+    await this.suspendUserUseCase.execute(
+      req.user.id,
+      id,
+      body.reason,
+      UserRole.ADMIN
+    );
   }
 
   @Patch(':id/unsuspend')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(UserRole.OWNER)
+  @RequirePermissions(Permission.ADMIN_STATUS)
   @ApiAdminUnsuspend()
   async unsuspendAdmin(
     @Param() { id }: IdDto,
     @Req() req: IRequest
   ): Promise<void> {
-    await this.unsuspendUserUseCase.execute(req.user.id, id);
+    await this.unsuspendUserUseCase.execute(req.user.id, id, UserRole.ADMIN);
   }
 
   @Post(':id/permissions')
