@@ -17,7 +17,7 @@ import {
   REFRESH,
   REGISTER
 } from './application/interfaces/auth.interface';
-import { BcryptProvider } from './infrastructure/providers/bcrypt.provider';
+import { Argon2Provider } from './infrastructure/providers/argon2.provider';
 import { HashingProvider } from './infrastructure/providers/hashing.provider';
 import { RefreshTokenHasher } from './infrastructure/providers/refresh-token-hasher.provider';
 
@@ -44,7 +44,7 @@ import { RefreshTokenHasher } from './infrastructure/providers/refresh-token-has
     RefreshTokenHasher,
     {
       provide: HashingProvider,
-      useClass: BcryptProvider
+      useClass: Argon2Provider
     }
   ],
   // Accepting an administrator invitation creates an account with a password
