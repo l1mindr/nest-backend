@@ -1,4 +1,9 @@
 import { EmailService } from '@infrastructure/email/email.service';
+import {
+  EmailMessage,
+  EmailMessageType
+} from '@infrastructure/email/email.message';
+import { EmailPublisher } from '@infrastructure/email/email.publisher';
 
 interface SentVerification {
   to: string;
@@ -65,5 +70,50 @@ export const capturingEmailService: EmailService = {
   },
   async sendUnsuspensionEmail() {
     // no-op
+  }
+};
+
+/**
+ * The queue is deliberately bypassed in E2E: delivery runs on the BullMQ
+ * worker, which resolves asynchronously, while specs read the mailbox
+ * synchronously right after a request returns. Publishing through this fake
+ * records the message the same way the queue's EmailProcessor would, so the
+ * queue's own asynchronous delivery is left to its unit tests.
+ */
+export const capturingEmailPublisher: EmailPublisher = {
+  async publish(message: EmailMessage): Promise<void> {
+    switch (message.type) {
+      case EmailMessageType.VERIFICATION:
+        await capturingEmailService.sendVerificationEmail(
+          message.to,
+          message.data.code,
+          message.data.expiresInMinutes
+        );
+        return;
+
+      case EmailMessageType.ADMIN_INVITATION:
+        await capturingEmailService.sendAdminInvitationEmail(
+          message.to,
+          message.data.token,
+          message.data.expiresInHours
+        );
+        return;
+
+      case EmailMessageType.SUSPENSION:
+        await capturingEmailService.sendSuspensionEmail(
+          message.to,
+          message.data.displayName,
+          message.data.reason,
+          new Date(message.data.suspendedAt)
+        );
+        return;
+
+      case EmailMessageType.UNSUSPENSION:
+        await capturingEmailService.sendUnsuspensionEmail(
+          message.to,
+          message.data.displayName,
+          new Date(message.data.unsuspendedAt)
+        );
+    }
   }
 };
