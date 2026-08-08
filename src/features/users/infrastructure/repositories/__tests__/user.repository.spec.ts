@@ -212,6 +212,48 @@ describe('UserRepository', () => {
     });
   });
 
+  describe('updatePasswordHashConditional', () => {
+    it('should update the hash only when the current hash matches', async () => {
+      mockRepository.update.mockResolvedValue({ affected: 1 });
+
+      const updated = await repository.updatePasswordHashConditional(
+        '1',
+        '$argon2id$new-hash',
+        '$2b$10$legacy-bcrypt-hash'
+      );
+
+      expect(updated).toBe(true);
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        { id: '1', password: '$2b$10$legacy-bcrypt-hash' },
+        { password: '$argon2id$new-hash' }
+      );
+    });
+
+    it('should return false when the current hash no longer matches', async () => {
+      mockRepository.update.mockResolvedValue({ affected: 0 });
+
+      const updated = await repository.updatePasswordHashConditional(
+        '1',
+        '$argon2id$new-hash',
+        '$2b$10$stale-bcrypt-hash'
+      );
+
+      expect(updated).toBe(false);
+    });
+
+    it('should treat an undefined affected count as not updated', async () => {
+      mockRepository.update.mockResolvedValue({ affected: undefined });
+
+      const updated = await repository.updatePasswordHashConditional(
+        '1',
+        '$argon2id$new-hash',
+        '$2b$10$stale-bcrypt-hash'
+      );
+
+      expect(updated).toBe(false);
+    });
+  });
+
   describe('findPendingOlderThan', () => {
     it('should find pending users older than cutoff', async () => {
       const cutoff = new Date('2024-01-01T00:00:00Z');

@@ -23,7 +23,9 @@ describe('Login', () => {
   };
 
   const mockHashingProvider = {
-    compare: jest.fn()
+    compare: jest.fn(),
+    hash: jest.fn(),
+    needsMigration: jest.fn()
   };
 
   const mockRefreshTokenHasher = {
@@ -51,7 +53,8 @@ describe('Login', () => {
   };
 
   const mockUserRepository = {
-    updateStatus: jest.fn()
+    updateStatus: jest.fn(),
+    updatePasswordHashConditional: jest.fn()
   };
 
   const mockRateLimitService = {
@@ -64,7 +67,8 @@ describe('Login', () => {
     setContext: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
-    error: jest.fn()
+    error: jest.fn(),
+    debug: jest.fn()
   };
 
   const pendingUserWithinWindow = {
@@ -305,6 +309,151 @@ describe('Login', () => {
 
       expect(mockUserRepository.updateStatus).not.toHaveBeenCalled();
       expect(mockResendVerificationUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('bcrypt to Argon2id migration', () => {
+    const legacyBcryptHash = '$2b$04$VZ6W0YV3GZ8wXQ8p5Y5Z4eXXXXXXXXXX';
+    const argon2Hash = '$argon2id$v=19$m=8192,t=1,p=1$test-salt$test-hash';
+
+    async function flushBackgroundWork(): Promise<void> {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+
+    beforeEach(() => {
+      mockUserQueryService.findByEmailOrUsername.mockResolvedValue({
+        id: 'user-id',
+        email: 'test@test.com',
+        password: legacyBcryptHash,
+        status: UserStatus.ACTIVATE
+      });
+
+      mockHashingProvider.compare.mockResolvedValue(true);
+      mockHashingProvider.needsMigration.mockReturnValue(true);
+      mockHashingProvider.hash.mockResolvedValue(argon2Hash);
+      mockUserRepository.updatePasswordHashConditional.mockResolvedValue(true);
+
+      mockSessionIssueUseCase.execute.mockResolvedValue({
+        id: 'session-id'
+      });
+
+      mockTokenIssueService.issuePair.mockResolvedValue({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token'
+      });
+
+      mockSessionRotationUseCase.saveHash.mockResolvedValue(undefined);
+    });
+
+    it('should migrate a legacy bcrypt hash after a successful login', async () => {
+      await service.login(
+        {
+          email: 'test@test.com',
+          password: '123456'
+        },
+        '127.0.0.1',
+        {} as any
+      );
+
+      await flushBackgroundWork();
+
+      expect(mockHashingProvider.hash).toHaveBeenCalledWith('123456');
+      expect(
+        mockUserRepository.updatePasswordHashConditional
+      ).toHaveBeenCalledWith('user-id', argon2Hash, legacyBcryptHash);
+    });
+
+    it('should not migrate when the stored hash is already Argon2id', async () => {
+      mockHashingProvider.needsMigration.mockReturnValue(false);
+      mockUserQueryService.findByEmailOrUsername.mockResolvedValue({
+        id: 'user-id',
+        email: 'test@test.com',
+        password: argon2Hash,
+        status: UserStatus.ACTIVATE
+      });
+
+      await service.login(
+        {
+          email: 'test@test.com',
+          password: '123456'
+        },
+        '127.0.0.1',
+        {} as any
+      );
+
+      await flushBackgroundWork();
+
+      expect(mockHashingProvider.hash).not.toHaveBeenCalled();
+      expect(
+        mockUserRepository.updatePasswordHashConditional
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should not migrate when the password is wrong', async () => {
+      mockHashingProvider.compare.mockResolvedValue(false);
+
+      await expect(
+        service.login(
+          {
+            email: 'test@test.com',
+            password: 'wrong-password'
+          },
+          '127.0.0.1',
+          {} as any
+        )
+      ).rejects.toEqual(AuthErrors.invalidCredentials());
+
+      await flushBackgroundWork();
+
+      expect(mockHashingProvider.needsMigration).not.toHaveBeenCalled();
+      expect(mockHashingProvider.hash).not.toHaveBeenCalled();
+    });
+
+    it('should complete login when another request already migrated the hash', async () => {
+      mockUserRepository.updatePasswordHashConditional.mockResolvedValue(false);
+
+      const result = await service.login(
+        {
+          email: 'test@test.com',
+          password: '123456'
+        },
+        '127.0.0.1',
+        {} as any
+      );
+
+      await flushBackgroundWork();
+
+      expect(result).toEqual({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token'
+      });
+      expect(mockLogger.debug).toHaveBeenCalled();
+    });
+
+    it('should complete login when migration fails', async () => {
+      mockHashingProvider.hash.mockRejectedValue(new Error('argon2 failure'));
+
+      const result = await service.login(
+        {
+          email: 'test@test.com',
+          password: '123456'
+        },
+        '127.0.0.1',
+        {} as any
+      );
+
+      await flushBackgroundWork();
+
+      expect(result).toEqual({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token'
+      });
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'auth.password.migration_failed'
+        }),
+        expect.any(String)
+      );
     });
   });
 });
