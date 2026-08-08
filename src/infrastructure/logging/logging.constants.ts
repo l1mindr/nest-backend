@@ -35,6 +35,10 @@ export enum LogEvent {
   COIN_SYNC_FAILED = 'coin_tracker.sync.failed',
   COIN_SYNC_SKIPPED = 'coin_tracker.sync.skipped',
 
+  ASSET_SYNC_STARTED = 'assets.sync.started',
+  ASSET_SYNC_COMPLETED = 'assets.sync.completed',
+  ASSET_SYNC_FAILED = 'assets.sync.failed',
+
   PRICE_ALERT_CREATED = 'coin_tracker.alert.created',
   PRICE_ALERT_UPDATED = 'coin_tracker.alert.updated',
   PRICE_ALERT_TRIGGERED = 'coin_tracker.alert.triggered',

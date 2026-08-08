@@ -193,6 +193,63 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
         'EMAIL_QUEUE_PUBLISH_TIMEOUT_MS must not exceed 30000 milliseconds; publishing is on the request path.'
     }),
 
+  // Asset catalogue synchronization from CoinGecko. The recurring BullMQ job
+  // fires every ASSET_SYNC_INTERVAL seconds; a failed run is retried with
+  // exponential backoff rather than never, since a temporary CoinGecko outage
+  // must not delete or corrupt the persisted catalogue.
+  ASSET_SYNC_INTERVAL: Joi.number()
+    .integer()
+    .min(300)
+    .max(604800)
+    .default(3600)
+    .optional()
+    .messages({
+      'number.min':
+        'ASSET_SYNC_INTERVAL must be at least 300 seconds (5 minutes).',
+      'number.max':
+        'ASSET_SYNC_INTERVAL must not exceed 604800 seconds (7 days).'
+    }),
+  ASSET_SYNC_QUEUE_ATTEMPTS: Joi.number()
+    .integer()
+    .min(1)
+    .max(20)
+    .default(4)
+    .optional()
+    .messages({
+      'number.min': 'ASSET_SYNC_QUEUE_ATTEMPTS must be at least 1.',
+      'number.max': 'ASSET_SYNC_QUEUE_ATTEMPTS must be between 1 and 20.'
+    }),
+  ASSET_SYNC_QUEUE_BACKOFF_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .max(1800000)
+    .default(60000)
+    .optional()
+    .messages({
+      'number.min':
+        'ASSET_SYNC_QUEUE_BACKOFF_MS must be at least 1000 milliseconds.',
+      'number.max':
+        'ASSET_SYNC_QUEUE_BACKOFF_MS must not exceed 1800000 milliseconds.'
+    }),
+  ASSET_SYNC_QUEUE_KEEP_COMPLETED: Joi.number()
+    .integer()
+    .min(0)
+    .max(100000)
+    .default(10)
+    .optional(),
+  ASSET_SYNC_QUEUE_KEEP_FAILED: Joi.number()
+    .integer()
+    .min(0)
+    .max(100000)
+    .default(50)
+    .optional(),
+
+  // Optional CoinGecko API key for plans that require one. Read from the
+  // environment only; it is never committed and never exposed to clients.
+  COINGECKO_API_KEY: Joi.string().min(16).max(128).optional().messages({
+    'string.min': 'COINGECKO_API_KEY must be at least 16 characters when set.'
+  }),
+
   BCRYPT_ROUNDS: Joi.number()
     .integer()
     .min(4)
