@@ -206,6 +206,58 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
       'number.max': 'BCRYPT_ROUNDS must be between 4 and 15.'
     }),
 
+  // Argon2id parameters for password hashing. Defaults reflect the production
+  // configuration documented in docs/password-hashing.md. Validation runs at
+  // startup so a misconfigured cost cannot silently weaken password storage.
+  ARGON2_MEMORY_COST: Joi.number()
+    .integer()
+    .min(8192)
+    .max(1048576)
+    .default(65536)
+    .optional()
+    .messages({
+      'number.base': 'ARGON2_MEMORY_COST must be a valid integer (KB).',
+      'number.integer': 'ARGON2_MEMORY_COST must be a valid integer (KB).',
+      'number.min': 'ARGON2_MEMORY_COST must be at least 8192 KB (8 MiB).',
+      'number.max': 'ARGON2_MEMORY_COST must not exceed 1048576 KB (1 GiB).'
+    }),
+  ARGON2_TIME_COST: Joi.number()
+    .integer()
+    .min(1)
+    .max(10)
+    .default(3)
+    .optional()
+    .messages({
+      'number.base': 'ARGON2_TIME_COST must be a valid integer.',
+      'number.integer': 'ARGON2_TIME_COST must be a valid integer.',
+      'number.min': 'ARGON2_TIME_COST must be at least 1.',
+      'number.max': 'ARGON2_TIME_COST must not exceed 10.'
+    }),
+  ARGON2_PARALLELISM: Joi.number()
+    .integer()
+    .min(1)
+    .max(16)
+    .default(4)
+    .optional()
+    .messages({
+      'number.base': 'ARGON2_PARALLELISM must be a valid integer.',
+      'number.integer': 'ARGON2_PARALLELISM must be a valid integer.',
+      'number.min': 'ARGON2_PARALLELISM must be at least 1.',
+      'number.max': 'ARGON2_PARALLELISM must not exceed 16.'
+    }),
+  ARGON2_HASH_LENGTH: Joi.number()
+    .integer()
+    .min(16)
+    .max(64)
+    .default(32)
+    .optional()
+    .messages({
+      'number.base': 'ARGON2_HASH_LENGTH must be a valid integer (bytes).',
+      'number.integer': 'ARGON2_HASH_LENGTH must be a valid integer (bytes).',
+      'number.min': 'ARGON2_HASH_LENGTH must be at least 16 bytes.',
+      'number.max': 'ARGON2_HASH_LENGTH must not exceed 64 bytes.'
+    }),
+
   LOG_LEVEL: Joi.string()
     .valid('info', 'debug', 'warn', 'error', 'silent')
     .optional(),
