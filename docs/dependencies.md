@@ -31,7 +31,8 @@
 
 | Package | Purpose |
 |---------|---------|
-| `bcrypt` | Password hashing (10 rounds) |
+| `argon2` | Password hashing (Argon2id) + legacy bcrypt verification |
+| `bcrypt` | Legacy password hashes + verification-code hashing |
 | `helmet` | HTTP security headers |
 | `cookie-parser` | Cookie extraction |
 | `jsonwebtoken` | JWT utilities (internal use) |

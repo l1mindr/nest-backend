@@ -25,7 +25,7 @@ Change Password: POST /v1/auth/change-password    → 204 No Content (authentica
 
 1. `AuthController.register()` → `RegisterUseCase.execute(dto)`
 2. Validates email uniqueness via `UserRepository.findByEmailOrUsername()`
-3. Hashes password with `BcryptProvider` (10 rounds)
+3. Hashes password with `HashingProvider` (Argon2id)
 4. Creates user with status `PENDING_VERIFICATION`
 5. Generates a 3-minute verification code (bcrypt-hashed, stored in `UserVerificationCode`)
 6. Returns 201
@@ -66,7 +66,8 @@ New accounts are registered with status `PENDING_VERIFICATION` and can only log 
 ### Verification Code
 
 - **TTL**: 3 minutes
-- **Storage**: bcrypt hash (plaintext not stored)
+- **Storage**: bcrypt hash (plaintext not stored) — a separate concern from
+  passwords; see [password-hashing.md](password-hashing.md)
 - **Entity**: `UserVerificationCode` (userId, codeHash, expiresAt, verifiedAt)
 - **Cleanup**: Previous codes are invalidated on new code generation
 
@@ -104,14 +105,20 @@ Emails are sent over SMTP (Gmail) via `SmtpEmailService` (Nodemailer). Delivery 
 
 1. `AuthController.login()` → `LoginUseCase.login(dto, ipAddress, device)`
 2. Finds user by email or username
-3. Compares password with `BcryptProvider.compare()`
-4. Checks user status:
+3. Compares password with `HashingProvider.compare()` (verifies Argon2id hashes,
+   and legacy bcrypt hashes) — the password hash is **never** compared with
+   `===`; verification goes through the provider
+4. On a successful **legacy bcrypt** login, rehashes the password with Argon2id
+   in the background (conditional update — safe under concurrent logins);
+   migration failure never fails the login. See
+   [password-hashing.md](password-hashing.md#legacy-bcrypt-support-and-automatic-migration)
+5. Checks user status:
    - `PENDING_VERIFICATION` → triggers resend of a new verification code, then rejects with `ACCOUNT_NOT_VERIFIED` (403)
    - `SUSPEND` → rejects with `INVALID_CREDENTIALS` (401)
-5. Issues session via `SessionIssueUseCase.execute()`
-6. Issues access token (15min) + refresh token (7d) via `TokenIssueService`
-7. Stores refresh token hash on session
-8. Sets cookies via `AuthCookieInterceptor`
+6. Issues session via `SessionIssueUseCase.execute()`
+7. Issues access token (15min) + refresh token (7d) via `TokenIssueService`
+8. Stores refresh token hash on session
+9. Sets cookies via `AuthCookieInterceptor`
 
 ### Cookies Set
 
@@ -182,7 +189,7 @@ Emails are sent over SMTP (Gmail) via `SmtpEmailService` (Nodemailer). Delivery 
 
 1. `AuthController.changePassword()` → `ChangePassword.changePassword(userId, sessionId, dto)`
 2. Verifies current password; rejects new password identical to current with `PASSWORD_MUST_BE_DIFFERENT`
-3. Hashes new password (bcrypt)
+3. Hashes new password (Argon2id)
 4. **Atomic transaction**:
    - `UserRepository.updatePasswordHash(userId, hash, manager)`
    - `SessionRevocationUseCase.terminateOthers(userId, sessionId, manager)` — revokes ALL sessions except current

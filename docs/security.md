@@ -346,18 +346,28 @@ a data migration. The header is redacted from request logs.
 
 ## Password Hashing
 
-### HashingProvider → BcryptProvider
+### HashingProvider → Argon2Provider (Argon2id)
 
-Abstract hashing interface with bcrypt implementation:
+Abstract hashing interface with an Argon2id implementation that also verifies
+legacy bcrypt hashes. See [docs/password-hashing.md](password-hashing.md) for
+the full migration story, parameters, and rationale.
 
 | Method | Description |
 |--------|-------------|
-| `hash(plain: string): Promise<string>` | Hash with 10 salt rounds |
-| `compare(plain: string, hash: string): Promise<boolean>` | Timing-safe comparison |
+| `hash(plain: string \| Buffer): Promise<string>` | Argon2id hash (`m=65536, t=3, p=4, l=32`, salt 16 B) |
+| `compare(plain: string \| Buffer, hash: string): Promise<boolean>` | Verifies by stored format: Argon2id or legacy bcrypt; unsupported formats rejected |
+| `needsMigration(hash: string): boolean` | True for legacy bcrypt hashes awaiting Argon2id upgrade |
 
 Used for:
-- Password hashing during registration and password change
+- Password hashing during registration, password change, and admin invitations
+- Automatic bcrypt → Argon2id migration on successful legacy login (conditional
+  update, off the request path, failure never blocks login)
 - **Not** used for refresh tokens (uses SHA-256 via `RefreshTokenHasher`)
+- **Not** used for verification codes (still bcrypt, out of scope — see
+  `VerificationCodeService`)
+
+bcrypt remains a dependency only for verifying pre-migration hashes. It
+disappears from the database as legacy users log in.
 
 ---
 

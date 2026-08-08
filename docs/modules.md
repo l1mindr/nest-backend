@@ -117,7 +117,7 @@ Controllers: `AuthController`
 - `AuthCookieService` — Sets httpOnly JWT cookies + CSRF cookie on response
 
 **Providers:**
-- `HashingProvider` (abstract) → `BcryptProvider` — Password hashing with bcrypt (10 rounds)
+- `HashingProvider` (abstract) → `Argon2Provider` — Argon2id password hashing + legacy bcrypt verification
 - `RefreshTokenHasher` — SHA-256 hashing for refresh token storage
 
 ---

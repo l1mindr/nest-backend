@@ -111,7 +111,7 @@ AppModule
     ├── AuthModule
     │   ├── UsersModule, SessionsModule, TokenModule
     │   ├── DeviceDetectionModule, CsrfModule
-    │   └── Providers: HashingProvider -> BcryptProvider
+    │   └── Providers: HashingProvider -> Argon2Provider
     ├── CoinTrackerModule
     ├── SecurityModule (global guards + filter)
     │   ├── JwtGuard, RolesGuard, CsrfGuard (APP_GUARD)
