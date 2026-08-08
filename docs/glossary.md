@@ -15,4 +15,5 @@
 | **Session Version** | Integer field on Session entity incremented on each rotation. Used for optimistic locking to detect concurrent reuse. |
 | **User Role** | `USER` (default) or `ADMIN`. Controls access to admin endpoints. |
 | **User Status** | `PENDING_VERIFICATION` (default on register), `ACTIVATE`, `SUSPEND`, `DEACTIVATE`. Controls login eligibility. |
+| **Argon2id** | Password hashing algorithm (PHC winner); used for all new password hashes. See [password-hashing.md](password-hashing.md). |
 | **Verification Code** | bcrypt-hashed 6-digit code sent via email. 3-minute TTL. Used to activate accounts after registration. |

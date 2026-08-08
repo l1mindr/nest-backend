@@ -11,7 +11,7 @@ class User {
   name: string | null;     // Optional, `select: false`
   email: string;           // Unique, indexed
   username: string;        // Unique, max 30 chars
-  password: string;        // `select: false`, bcrypt hashed
+  password: string;        // `select: false`, Argon2id hashed
   status: UserStatus;      // Default PENDING_VERIFICATION
   role: UserRole;          // Default USER
   registryDates: RegistryDatesOrm;  // createdAt, updatedAt, deletedAt
