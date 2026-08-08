@@ -54,7 +54,7 @@
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
-    "dotenv-expand": "^13.0.0",
+    "dotenv-expand": "^1000.0.0",
     "express": "^5.2.1",
     "helmet": "^8.2.0",
     "ioredis": "^5.11.1",
