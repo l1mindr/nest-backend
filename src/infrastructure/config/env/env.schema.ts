@@ -141,6 +141,58 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
     'string.empty': 'EMAIL_FROM is required as the sender address.'
   }),
 
+  // Namespaces every BullMQ key so deployments sharing a Redis instance do not
+  // consume each other's jobs.
+  QUEUE_PREFIX: Joi.string().min(1).max(40).default('bull').optional(),
+
+  // Email delivery is queued and retried; see docs/email.md for how these
+  // interact with the verification code lifetime.
+  EMAIL_QUEUE_ATTEMPTS: Joi.number()
+    .integer()
+    .min(1)
+    .max(20)
+    .default(5)
+    .optional()
+    .messages({
+      'number.min': 'EMAIL_QUEUE_ATTEMPTS must be at least 1.',
+      'number.max': 'EMAIL_QUEUE_ATTEMPTS must be between 1 and 20.'
+    }),
+  EMAIL_QUEUE_BACKOFF_MS: Joi.number()
+    .integer()
+    .min(100)
+    .max(300000)
+    .default(5000)
+    .optional()
+    .messages({
+      'number.min':
+        'EMAIL_QUEUE_BACKOFF_MS must be between 100 and 300000 milliseconds.',
+      'number.max':
+        'EMAIL_QUEUE_BACKOFF_MS must be between 100 and 300000 milliseconds.'
+    }),
+  EMAIL_QUEUE_KEEP_COMPLETED: Joi.number()
+    .integer()
+    .min(0)
+    .max(100000)
+    .default(100)
+    .optional(),
+  EMAIL_QUEUE_KEEP_FAILED: Joi.number()
+    .integer()
+    .min(0)
+    .max(100000)
+    .default(1000)
+    .optional(),
+  // Caps how long publishing may block a request when Redis is unreachable.
+  EMAIL_QUEUE_PUBLISH_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(100)
+    .max(30000)
+    .default(2000)
+    .optional()
+    .messages({
+      'number.max':
+        'EMAIL_QUEUE_PUBLISH_TIMEOUT_MS must not exceed 30000 milliseconds; publishing is on the request path.'
+    }),
+
   BCRYPT_ROUNDS: Joi.number()
     .integer()
     .min(4)
