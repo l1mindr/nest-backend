@@ -1,5 +1,7 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
-import { EmailService } from '@infrastructure/email/email.service';
+import { emailDedupeKey } from '@infrastructure/email/email-dedupe.key';
+import { EmailMessageType } from '@infrastructure/email/email.message';
+import { EmailPublisher } from '@infrastructure/email/email.publisher';
 import { ImperativeRateLimitPolicies } from '@features/security/rate-limit/config/rate-limit.config';
 import { RateLimitRule } from '@features/security/rate-limit/types/rate-limit-rule.interface';
 import { UserStatus } from '../../../domain/enums/user-status.enum';
@@ -50,8 +52,8 @@ describe('ResendVerificationUseCase', () => {
     nowDate: jest.fn()
   };
 
-  const mockEmailService = {
-    sendVerificationEmail: jest.fn()
+  const mockEmailPublisher = {
+    publish: jest.fn()
   };
 
   const mockLogger = {
@@ -64,6 +66,10 @@ describe('ResendVerificationUseCase', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     allowPolicies();
+    mockVerificationCodeRepository.store.mockResolvedValue({
+      id: 'verification-code-id'
+    });
+    mockEmailPublisher.publish.mockResolvedValue(undefined);
 
     useCase = new ResendVerificationUseCase(
       mockUserRepository as any,
@@ -71,7 +77,7 @@ describe('ResendVerificationUseCase', () => {
       mockVerificationCodeService as any,
       mockRateLimitService as any,
       mockClockService as unknown as ClockService,
-      mockEmailService as unknown as EmailService,
+      mockEmailPublisher as unknown as EmailPublisher,
       mockLogger as any
     );
   });
@@ -112,10 +118,21 @@ describe('ResendVerificationUseCase', () => {
         'new-hash',
         expect.any(Date)
       );
-      expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
-        'test@test.com',
-        '654321',
-        VERIFICATION_CODE_TTL_MINUTES
+      expect(mockEmailPublisher.publish).toHaveBeenCalledWith(
+        {
+          type: EmailMessageType.VERIFICATION,
+          to: 'test@test.com',
+          data: {
+            code: '654321',
+            expiresInMinutes: VERIFICATION_CODE_TTL_MINUTES
+          }
+        },
+        {
+          dedupeKey: emailDedupeKey(
+            EmailMessageType.VERIFICATION,
+            'verification-code-id'
+          )
+        }
       );
     });
 
@@ -127,7 +144,7 @@ describe('ResendVerificationUseCase', () => {
       expect(
         mockVerificationCodeRepository.invalidatePreviousCodes
       ).not.toHaveBeenCalled();
-      expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should not resend for a non-pending user', async () => {
@@ -140,7 +157,7 @@ describe('ResendVerificationUseCase', () => {
       await useCase.execute('test@test.com');
 
       expect(mockRateLimitService.consume).not.toHaveBeenCalled();
-      expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should not resend while the cooldown is active', async () => {
@@ -156,7 +173,7 @@ describe('ResendVerificationUseCase', () => {
       expect(
         mockVerificationCodeRepository.invalidatePreviousCodes
       ).not.toHaveBeenCalled();
-      expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should not resend once the hourly limit is reached', async () => {
@@ -177,7 +194,7 @@ describe('ResendVerificationUseCase', () => {
       expect(
         mockVerificationCodeRepository.invalidatePreviousCodes
       ).not.toHaveBeenCalled();
-      expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
       expect(mockLogger.warn).toHaveBeenCalled();
     });
 
@@ -194,7 +211,7 @@ describe('ResendVerificationUseCase', () => {
       await expect(useCase.execute('test@test.com')).resolves.toBeUndefined();
     });
 
-    it('should not throw when email delivery fails', async () => {
+    it('should key the email on the stored code so a retry sends one email', async () => {
       mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
         id: 'user-id',
         email: 'test@test.com',
@@ -202,13 +219,40 @@ describe('ResendVerificationUseCase', () => {
       });
       mockVerificationCodeService.generate.mockReturnValue('654321');
       mockVerificationCodeService.hash.mockResolvedValue('new-hash');
-      mockEmailService.sendVerificationEmail.mockRejectedValue(
-        new Error('smtp down')
+      mockVerificationCodeRepository.store.mockResolvedValue({
+        id: 'stored-code-id'
+      });
+
+      await useCase.execute('test@test.com');
+
+      expect(mockEmailPublisher.publish).toHaveBeenCalledWith(
+        expect.anything(),
+        { dedupeKey: 'verification.stored-code-id' }
       );
+    });
 
-      await expect(useCase.execute('test@test.com')).resolves.toBeUndefined();
+    it('should queue the email only after the new code is stored', async () => {
+      const order: string[] = [];
 
-      expect(mockLogger.error).toHaveBeenCalled();
+      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
+        id: 'user-id',
+        email: 'test@test.com',
+        status: UserStatus.PENDING_VERIFICATION
+      });
+      mockVerificationCodeService.generate.mockReturnValue('654321');
+      mockVerificationCodeService.hash.mockResolvedValue('new-hash');
+      mockVerificationCodeRepository.store.mockImplementation(async () => {
+        order.push('store');
+
+        return { id: 'verification-code-id' };
+      });
+      mockEmailPublisher.publish.mockImplementation(async () => {
+        order.push('publish');
+      });
+
+      await useCase.execute('test@test.com');
+
+      expect(order).toEqual(['store', 'publish']);
     });
   });
 });
