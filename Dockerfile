@@ -9,7 +9,10 @@ ENV PATH=$PNPM_HOME:$PATH
 
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# .pnpmfile.cjs carries a checksum in pnpm-lock.yaml (pnpmfileChecksum), so a
+# frozen install only works when the hooks file is present in the same image
+# stage that runs it.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
 
 FROM base AS dependencies
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
