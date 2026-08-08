@@ -62,6 +62,17 @@ export enum LogEvent {
 
   EMAIL_SENT = 'email.sent',
   EMAIL_SEND_FAILED = 'email.send.failed',
+
+  // The life of one queued email. `queued` is logged on the request path, the
+  // rest by the worker; `jobId` ties them together. None of them may carry the
+  // message payload, which holds verification codes and invitation tokens.
+  EMAIL_JOB_QUEUED = 'email.job.queued',
+  EMAIL_JOB_QUEUE_FAILED = 'email.job.queue_failed',
+  EMAIL_JOB_STARTED = 'email.job.started',
+  EMAIL_JOB_SENT = 'email.job.sent',
+  EMAIL_JOB_RETRY = 'email.job.retry',
+  EMAIL_JOB_FAILED = 'email.job.failed',
+
   EMAIL_VERIFIED = 'email.verify.succeeded',
   VERIFICATION_ATTEMPTS_EXCEEDED = 'email.verify.attempts_exceeded',
   VERIFICATION_RESEND_LIMIT_EXCEEDED = 'email.verify.resend_limit_exceeded'
