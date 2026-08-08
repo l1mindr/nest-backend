@@ -1,5 +1,8 @@
 allowBuilds:
   '@scarf/scarf': false
   bcrypt: true
+  # Optional native accelerator behind bullmq's msgpackr dependency. Left
+  # unbuilt so installs need no toolchain; msgpackr falls back to its JS path.
+  msgpackr-extract: false
 overrides:
   '@compodoc/compodoc>@angular-devkit/schematics': 21.2.13
