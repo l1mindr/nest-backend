@@ -1,5 +1,6 @@
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { EmailMessageType } from '@infrastructure/email/email.message';
 import { UserRole } from '../../../domain/enums/user-role.enum';
 import { UserStatus } from '../../../domain/enums/user-status.enum';
 import { UserErrors } from '../../../domain/errors/user-errors';
@@ -19,8 +20,8 @@ describe('UnsuspendUserUseCase', () => {
     findUserForAdmin: jest.fn()
   };
 
-  const mockEmailService = {
-    sendUnsuspensionEmail: jest.fn()
+  const mockEmailPublisher = {
+    publish: jest.fn()
   };
 
   const mockClockService = {
@@ -49,7 +50,7 @@ describe('UnsuspendUserUseCase', () => {
 
     useCase = new UnsuspendUserUseCase(
       mockUserRepository as any,
-      mockEmailService as any,
+      mockEmailPublisher as any,
       mockClockService as unknown as ClockService,
       mockDataSource as any,
       mockLogger as any
@@ -88,11 +89,14 @@ describe('UnsuspendUserUseCase', () => {
         status: UserStatus.ACTIVATE
       });
 
-      expect(mockEmailService.sendUnsuspensionEmail).toHaveBeenCalledWith(
-        'suspended@test.com',
-        'Suspended User',
-        now
-      );
+      expect(mockEmailPublisher.publish).toHaveBeenCalledWith({
+        type: EmailMessageType.UNSUSPENSION,
+        to: 'suspended@test.com',
+        data: {
+          displayName: 'Suspended User',
+          unsuspendedAt: now.toISOString()
+        }
+      });
 
       expect(mockLogger.info).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -114,7 +118,7 @@ describe('UnsuspendUserUseCase', () => {
       ).rejects.toEqual(UserErrors.userNotFound('missing-id'));
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
-      expect(mockEmailService.sendUnsuspensionEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     /**
@@ -138,7 +142,7 @@ describe('UnsuspendUserUseCase', () => {
       ).rejects.toEqual(UserErrors.userNotFound('owner-1'));
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
-      expect(mockEmailService.sendUnsuspensionEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should refuse the owner on the administrator route too', async () => {
@@ -177,7 +181,7 @@ describe('UnsuspendUserUseCase', () => {
       ).rejects.toEqual(UserErrors.userNotFound('admin-9'));
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
-      expect(mockEmailService.sendUnsuspensionEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should unsuspend an administrator when the administrator route is administering', async () => {
@@ -193,7 +197,7 @@ describe('UnsuspendUserUseCase', () => {
       await useCase.execute('owner-1', 'admin-9', UserRole.ADMIN);
 
       expect(mockDataSource.transaction).toHaveBeenCalled();
-      expect(mockEmailService.sendUnsuspensionEmail).toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).toHaveBeenCalled();
     });
 
     it('should throw when user status is active', async () => {
@@ -216,7 +220,7 @@ describe('UnsuspendUserUseCase', () => {
       );
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
-      expect(mockEmailService.sendUnsuspensionEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should throw when user status is pending verification', async () => {
@@ -239,7 +243,7 @@ describe('UnsuspendUserUseCase', () => {
       );
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
-      expect(mockEmailService.sendUnsuspensionEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should throw when user status is deactivated', async () => {
@@ -262,7 +266,7 @@ describe('UnsuspendUserUseCase', () => {
       );
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
-      expect(mockEmailService.sendUnsuspensionEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should not send email when transaction fails', async () => {
@@ -281,7 +285,7 @@ describe('UnsuspendUserUseCase', () => {
         useCase.execute('admin-1', 'user-1', UserRole.USER)
       ).rejects.toThrow(dbError);
 
-      expect(mockEmailService.sendUnsuspensionEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should not restore sessions or affect revoked sessions', async () => {
@@ -311,11 +315,14 @@ describe('UnsuspendUserUseCase', () => {
 
       await useCase.execute('admin-1', 'user-1', UserRole.USER);
 
-      expect(mockEmailService.sendUnsuspensionEmail).toHaveBeenCalledWith(
-        'suspended@test.com',
-        null,
-        now
-      );
+      expect(mockEmailPublisher.publish).toHaveBeenCalledWith({
+        type: EmailMessageType.UNSUSPENSION,
+        to: 'suspended@test.com',
+        data: {
+          displayName: null,
+          unsuspendedAt: now.toISOString()
+        }
+      });
     });
   });
 });
