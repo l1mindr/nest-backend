@@ -1,7 +1,7 @@
 import { Session } from '@features/sessions/domain/entities/session.entity';
 import { User } from '@features/users/domain/entities/user.entity';
 import { INestApplication } from '@nestjs/common';
-import { compare } from 'bcrypt';
+import * as argon2 from 'argon2';
 import { DataSource } from 'typeorm';
 import { createMigratedTestApp } from '../bootstrap/test-app';
 import { AuthFactory } from '../factories/auth.factory';
@@ -55,7 +55,7 @@ describe('Auth Change Password (e2e) version: 1', () => {
     const user = await findUserWithPassword(context.user.email);
     const sessions = await findUserSessions(user.id);
 
-    expect(await compare('NewPassword@123', user.password)).toBe(true);
+    expect(await argon2.verify(user.password, 'NewPassword@123')).toBe(true);
     expect(sessions.filter((session) => session.isRevoked)).toHaveLength(1);
     expect(sessions.filter((session) => !session.isRevoked)).toHaveLength(1);
   });
@@ -80,8 +80,10 @@ describe('Auth Change Password (e2e) version: 1', () => {
     const user = await findUserWithPassword(context.user.email);
     const sessions = await findUserSessions(user.id);
 
-    expect(await compare(context.user.password, user.password)).toBe(true);
-    expect(await compare('NewPassword@123', user.password)).toBe(false);
+    expect(await argon2.verify(user.password, context.user.password)).toBe(
+      true
+    );
+    expect(await argon2.verify(user.password, 'NewPassword@123')).toBe(false);
     expect(sessions.every((session) => !session.isRevoked)).toBe(true);
   });
 

@@ -7,10 +7,14 @@ import { User } from '@features/users/domain/entities/user.entity';
 import { UserRole } from '@features/users/domain/enums/user-role.enum';
 import { UserStatus } from '@features/users/domain/enums/user-status.enum';
 import { INestApplication } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { DataSource } from 'typeorm';
 import { ApiClient } from '../helpers/api-client.helper';
 import { createUserDto } from '../helpers/create-user.helper';
-import { CreateUserContext } from '../utils/types/factory.types';
+import {
+  CreateUserContext,
+  CreateUserResponse
+} from '../utils/types/factory.types';
 
 export class UserFactory {
   static async register(
@@ -43,6 +47,37 @@ export class UserFactory {
       { email: email.trim().toLowerCase() },
       { status: UserStatus.ACTIVATE }
     );
+  }
+
+  /**
+   * Creates an already-active account with a legacy bcrypt password hash,
+   * bypassing the API. Used by the password-hashing e2e spec to model a user
+   * who registered before the Argon2id migration.
+   */
+  static async createWithBcryptPassword(
+    app: INestApplication,
+    dataSource: DataSource,
+    overrides = {}
+  ): Promise<CreateUserContext> {
+    const user = createUserDto(overrides);
+    const repo = dataSource.getRepository(User);
+
+    await repo.save(
+      repo.create({
+        email: user.email.trim().toLowerCase(),
+        username: user.username,
+        password: bcrypt.hashSync(user.password, 4),
+        name: null,
+        role: UserRole.USER,
+        status: UserStatus.ACTIVATE
+      })
+    );
+
+    return {
+      user,
+      client: new ApiClient(app),
+      response: {} as CreateUserResponse
+    };
   }
 
   /**
