@@ -1,4 +1,5 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { EmailMessageType } from '@infrastructure/email/email.message';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { UserErrorCode } from '@features/users/domain/errors/user-error-code.enum';
 import { Permission } from '../../../domain/enums/permission.enum';
@@ -21,8 +22,8 @@ describe('InviteAdminUseCase', () => {
     insertUser: jest.fn()
   };
 
-  const mockEmailService = {
-    sendAdminInvitationEmail: jest.fn()
+  const mockEmailPublisher = {
+    publish: jest.fn()
   };
 
   const mockClockService = { nowDate: jest.fn() };
@@ -67,7 +68,7 @@ describe('InviteAdminUseCase', () => {
       mockUserRepository as any,
       tokenService,
       mockClockService as unknown as ClockService,
-      mockEmailService as any,
+      mockEmailPublisher as any,
       mockDataSource as any,
       mockLogger as any
     );
@@ -89,10 +90,18 @@ describe('InviteAdminUseCase', () => {
         expect.anything()
       );
 
-      expect(mockEmailService.sendAdminInvitationEmail).toHaveBeenCalledWith(
-        'invitee@test.com',
-        expect.any(String),
-        INVITATION_TTL_HOURS
+      expect(mockEmailPublisher.publish).toHaveBeenCalledWith(
+        {
+          type: EmailMessageType.ADMIN_INVITATION,
+          to: 'invitee@test.com',
+          data: {
+            token: expect.any(String),
+            expiresInHours: INVITATION_TTL_HOURS
+          }
+        },
+        expect.objectContaining({
+          dedupeKey: expect.any(String)
+        })
       );
     });
 
@@ -113,8 +122,7 @@ describe('InviteAdminUseCase', () => {
       await useCase.execute(ACTOR_ID, { email: 'invitee@test.com' } as any);
 
       const stored = mockInvitationRepository.create.mock.calls[0][0];
-      const emailed =
-        mockEmailService.sendAdminInvitationEmail.mock.calls[0][1];
+      const emailed = mockEmailPublisher.publish.mock.calls[0][0].data.token;
 
       expect(stored.tokenHash).toBe(tokenService.hash(emailed));
       expect(stored.tokenHash).not.toBe(emailed);
@@ -125,10 +133,9 @@ describe('InviteAdminUseCase', () => {
       await useCase.execute(ACTOR_ID, { email: 'a@test.com' } as any);
       await useCase.execute(ACTOR_ID, { email: 'b@test.com' } as any);
 
-      const [first, second] =
-        mockEmailService.sendAdminInvitationEmail.mock.calls.map(
-          (call: unknown[]) => call[1]
-        );
+      const [first, second] = mockEmailPublisher.publish.mock.calls.map(
+        (call: any) => call[0].data.token
+      );
 
       expect(first).not.toBe(second);
     });
@@ -176,7 +183,7 @@ describe('InviteAdminUseCase', () => {
       );
 
       expect(mockInvitationRepository.create).not.toHaveBeenCalled();
-      expect(mockEmailService.sendAdminInvitationEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     /**
@@ -208,20 +215,16 @@ describe('InviteAdminUseCase', () => {
      * Delivery failure must not roll the invitation back: the owner can revoke
      * and re-issue, whereas a rollback leaves them unable to tell whether the
      * address is now invited.
+     *
+     * Publishing never throws — queue failures are logged but don't reject —
+     * so the invitation always stands.
      */
-    it('should keep the invitation when delivery fails', async () => {
-      mockEmailService.sendAdminInvitationEmail.mockRejectedValue(
-        new Error('SMTP down')
-      );
+    it('should keep the invitation when publishing fails', async () => {
+      mockEmailPublisher.publish.mockResolvedValue(undefined);
 
       await expect(
         useCase.execute(ACTOR_ID, { email: 'invitee@test.com' } as any)
       ).resolves.toEqual(expect.objectContaining({ id: 'invitation-1' }));
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ event: LogEvent.EMAIL_SEND_FAILED }),
-        expect.any(String)
-      );
     });
 
     it('should record the invitation in the audit log', async () => {
@@ -244,8 +247,7 @@ describe('InviteAdminUseCase', () => {
     it('should not write the token into the audit log', async () => {
       await useCase.execute(ACTOR_ID, { email: 'invitee@test.com' } as any);
 
-      const emailed =
-        mockEmailService.sendAdminInvitationEmail.mock.calls[0][1];
+      const emailed = mockEmailPublisher.publish.mock.calls[0][0].data.token;
 
       expect(JSON.stringify(mockLogger.info.mock.calls)).not.toContain(emailed);
     });

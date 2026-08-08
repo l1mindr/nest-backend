@@ -1,5 +1,7 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
-import { EmailService } from '@infrastructure/email/email.service';
+import { emailDedupeKey } from '@infrastructure/email/email-dedupe.key';
+import { EmailMessageType } from '@infrastructure/email/email.message';
+import { EmailPublisher } from '@infrastructure/email/email.publisher';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { UserErrors } from '@features/users/domain/errors/user-errors';
 import {
@@ -39,7 +41,7 @@ export class InviteAdminUseCase implements IInviteAdminUseCase {
     private readonly userRepository: IUserRepository,
     private readonly tokenService: AdminInvitationTokenService,
     private readonly clockService: ClockService,
-    private readonly emailService: EmailService,
+    private readonly emailPublisher: EmailPublisher,
     private readonly dataSource: DataSource,
     private readonly logger: PinoLogger
   ) {
@@ -106,23 +108,27 @@ export class InviteAdminUseCase implements IInviteAdminUseCase {
 
     // Delivery failure must not roll the invitation back: the owner can revoke
     // and re-issue, whereas a rollback would leave them unable to tell whether
-    // the address is now invited or not.
-    try {
-      await this.emailService.sendAdminInvitationEmail(
-        email,
-        token,
-        INVITATION_TTL_HOURS
-      );
-    } catch (error: unknown) {
-      this.logger.error(
-        {
-          event: LogEvent.EMAIL_SEND_FAILED,
-          invitationId: invitation.id,
-          err: error
-        },
-        'Administrator invitation email delivery failed'
-      );
-    }
+    // the address is now invited or not. Publishing cannot throw, so the
+    // invitation stands either way.
+    //
+    // Keyed on the invitation row, so re-inviting an address delivers the token
+    // for the new invitation and never a second copy of the same one.
+    await this.emailPublisher.publish(
+      {
+        type: EmailMessageType.ADMIN_INVITATION,
+        to: email,
+        data: {
+          token,
+          expiresInHours: INVITATION_TTL_HOURS
+        }
+      },
+      {
+        dedupeKey: emailDedupeKey(
+          EmailMessageType.ADMIN_INVITATION,
+          invitation.id
+        )
+      }
+    );
 
     return invitation;
   }
