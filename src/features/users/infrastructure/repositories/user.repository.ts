@@ -147,6 +147,32 @@ export class UserRepository implements IUserRepository {
     await repository.update({ id: userId }, { password: hashPassword });
   }
 
+  /**
+   * Conditionally updates a password hash only if the current hash matches.
+   *
+   * Used for safe bcrypt → Argon2id migration to prevent race conditions where
+   * concurrent logins might overwrite a newer password.
+   *
+   * @returns true if the hash was updated, false if the condition failed
+   */
+  async updatePasswordHashConditional(
+    userId: string,
+    newHash: string,
+    currentHash: string
+  ): Promise<boolean> {
+    const result = await this.userRepo.update(
+      {
+        id: userId,
+        password: currentHash
+      },
+      {
+        password: newHash
+      }
+    );
+
+    return (result.affected ?? 0) > 0;
+  }
+
   async findPendingOlderThan(cutoff: Date): Promise<User[]> {
     return this.userRepo.find({
       where: {
