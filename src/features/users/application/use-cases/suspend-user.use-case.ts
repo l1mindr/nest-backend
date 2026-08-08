@@ -2,7 +2,8 @@ import {
   ISessionRevocationUseCase,
   SESSION_REVOCATION_USE_CASE
 } from '@features/sessions/application/interfaces/sessions.interface';
-import { EmailService } from '@infrastructure/email/email.service';
+import { EmailMessageType } from '@infrastructure/email/email.message';
+import { EmailPublisher } from '@infrastructure/email/email.publisher';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
@@ -35,7 +36,7 @@ export class SuspendUserUseCase implements ISuspendUserUseCase {
     private readonly userRepository: IUserRepository,
     @Inject(SESSION_REVOCATION_USE_CASE)
     private readonly revocationUseCase: ISessionRevocationUseCase,
-    private readonly emailService: EmailService,
+    private readonly emailPublisher: EmailPublisher,
     private readonly clockService: ClockService,
     private readonly dataSource: DataSource,
     private readonly logger: PinoLogger
@@ -68,12 +69,19 @@ export class SuspendUserUseCase implements ISuspendUserUseCase {
 
     const now = this.clockService.nowDate();
 
-    await this.emailService.sendSuspensionEmail(
-      user.email,
-      user.name,
-      reason,
-      now
-    );
+    // Queued rather than sent: the suspension and the session revocation are
+    // already committed, and the administrator waiting on this response should
+    // not wait on SMTP. No deduplication key is needed — a second run of this
+    // use case is refused by the `SUSPEND` status check above.
+    await this.emailPublisher.publish({
+      type: EmailMessageType.SUSPENSION,
+      to: user.email,
+      data: {
+        displayName: user.name,
+        reason,
+        suspendedAt: now.toISOString()
+      }
+    });
 
     this.logger.info(
       {
