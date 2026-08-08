@@ -93,6 +93,14 @@ export class Login implements ILogin {
       throw AuthErrors.invalidCredentials();
     }
 
+    // Automatic bcrypt → Argon2id migration
+    // If the user authenticated successfully with a legacy bcrypt hash,
+    // migrate it to Argon2id for future logins. This happens asynchronously
+    // and does not block the login flow.
+    if (this.hashingProvider.needsMigration(user.password)) {
+      this.migrateBcryptToArgon2id(user.id, password, user.password);
+    }
+
     const { now, expiresAt } = this.clockService.snapshot();
     const userAgent = this.deviceMapper.toSessionUserAgent(device);
 
@@ -136,5 +144,63 @@ export class Login implements ILogin {
     );
 
     return { accessToken, refreshToken };
+  }
+
+  /**
+   * Migrates a bcrypt hash to Argon2id asynchronously.
+   *
+   * This happens in the background after authentication succeeds. If migration
+   * fails, the login still completes successfully — the bcrypt hash is retained
+   * and migration will be retried on the next login.
+   *
+   * Uses conditional update to prevent race conditions where concurrent logins
+   * might overwrite a newer password hash.
+   */
+  private migrateBcryptToArgon2id(
+    userId: string,
+    plainPassword: string,
+    currentBcryptHash: string
+  ): void {
+    // Fire and forget - do not await
+    this.hashingProvider
+      .hash(plainPassword)
+      .then((argon2Hash) =>
+        this.userRepository.updatePasswordHashConditional(
+          userId,
+          argon2Hash,
+          currentBcryptHash
+        )
+      )
+      .then((updated) => {
+        if (updated) {
+          this.logger.info(
+            {
+              event: LogEvent.PASSWORD_MIGRATED,
+              userId
+            },
+            'Password migrated from bcrypt to Argon2id'
+          );
+        } else {
+          this.logger.debug(
+            {
+              event: LogEvent.PASSWORD_MIGRATION_SKIPPED,
+              userId,
+              reason: 'Hash already changed'
+            },
+            'Password migration skipped - hash was updated by another request'
+          );
+        }
+      })
+      .catch((error: unknown) => {
+        // Migration failure does not break successful login
+        this.logger.warn(
+          {
+            event: LogEvent.PASSWORD_MIGRATION_FAILED,
+            userId,
+            err: error
+          },
+          'Failed to migrate password from bcrypt to Argon2id - will retry on next login'
+        );
+      });
   }
 }

@@ -7,6 +7,9 @@ export enum LogEvent {
   LOGOUT = 'auth.logout',
   PASSWORD_CHANGED = 'auth.password.changed',
   PASSWORD_CHANGE_FAILED = 'auth.password.change_failed',
+  PASSWORD_MIGRATED = 'auth.password.migrated',
+  PASSWORD_MIGRATION_SKIPPED = 'auth.password.migration_skipped',
+  PASSWORD_MIGRATION_FAILED = 'auth.password.migration_failed',
 
   REFRESH_ROTATED = 'auth.refresh.rotated',
   REFRESH_REUSE_DETECTED = 'auth.refresh.reuse_detected',
