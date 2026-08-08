@@ -1,5 +1,7 @@
-import { EmailService } from '@infrastructure/email/email.service';
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { emailDedupeKey } from '@infrastructure/email/email-dedupe.key';
+import { EmailMessageType } from '@infrastructure/email/email.message';
+import { EmailPublisher } from '@infrastructure/email/email.publisher';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { ImperativeRateLimitPolicies } from '@features/security/rate-limit/config/rate-limit.config';
 import {
@@ -33,7 +35,7 @@ export class ResendVerificationUseCase implements IResendVerificationUseCase {
     @Inject(RATE_LIMIT_SERVICE)
     private readonly rateLimitService: IRateLimitService,
     private readonly clockService: ClockService,
-    private readonly emailService: EmailService,
+    private readonly emailPublisher: EmailPublisher,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(ResendVerificationUseCase.name);
@@ -80,23 +82,29 @@ export class ResendVerificationUseCase implements IResendVerificationUseCase {
     const codeHash = await this.verificationCodeService.hash(code);
     const expiresAt = new Date(now.getTime() + VERIFICATION_CODE_TTL_MS);
 
-    await this.verificationCodeRepository.store(user.id, codeHash, expiresAt);
+    const verificationCode = await this.verificationCodeRepository.store(
+      user.id,
+      codeHash,
+      expiresAt
+    );
 
-    try {
-      await this.emailService.sendVerificationEmail(
-        user.email,
-        code,
-        VERIFICATION_CODE_TTL_MINUTES
-      );
-    } catch (error: unknown) {
-      this.logger.error(
-        {
-          event: LogEvent.EMAIL_SEND_FAILED,
-          userId: user.id,
-          err: error
-        },
-        'Verification email delivery failed on resend'
-      );
-    }
+    // Keyed on the stored code row, so the email that arrives always matches the
+    // code the database will accept.
+    await this.emailPublisher.publish(
+      {
+        type: EmailMessageType.VERIFICATION,
+        to: user.email,
+        data: {
+          code,
+          expiresInMinutes: VERIFICATION_CODE_TTL_MINUTES
+        }
+      },
+      {
+        dedupeKey: emailDedupeKey(
+          EmailMessageType.VERIFICATION,
+          verificationCode.id
+        )
+      }
+    );
   }
 }

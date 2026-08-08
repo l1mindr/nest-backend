@@ -1,5 +1,7 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
-import { EmailService } from '@infrastructure/email/email.service';
+import { emailDedupeKey } from '@infrastructure/email/email-dedupe.key';
+import { EmailMessageType } from '@infrastructure/email/email.message';
+import { EmailPublisher } from '@infrastructure/email/email.publisher';
 import { UserStatus } from '../../../domain/enums/user-status.enum';
 import { UserErrors } from '../../../domain/errors/user-errors';
 import { VERIFICATION_CODE_TTL_MINUTES } from '../../verification.constants';
@@ -25,21 +27,14 @@ describe('InitiateRegistrationUseCase', () => {
     nowDate: jest.fn()
   };
 
-  const mockEmailService = {
-    sendVerificationEmail: jest.fn()
+  const mockEmailPublisher = {
+    publish: jest.fn()
   };
 
   const mockManager = { getRepository: jest.fn() };
 
   const mockDataSource = {
     transaction: jest.fn()
-  };
-
-  const mockLogger = {
-    setContext: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn()
   };
 
   const pendingUser = {
@@ -57,15 +52,18 @@ describe('InitiateRegistrationUseCase', () => {
     mockVerificationCodeService.generate.mockReturnValue('123456');
     mockVerificationCodeService.hash.mockResolvedValue('hashed-code');
     mockClockService.nowDate.mockReturnValue(new Date('2024-01-01T00:00:00Z'));
+    mockVerificationCodeRepository.store.mockResolvedValue({
+      id: 'verification-code-id'
+    });
+    mockEmailPublisher.publish.mockResolvedValue(undefined);
 
     useCase = new InitiateRegistrationUseCase(
       mockUserRepository as any,
       mockVerificationCodeRepository as any,
       mockVerificationCodeService as any,
       mockClockService as unknown as ClockService,
-      mockEmailService as unknown as EmailService,
-      mockDataSource as any,
-      mockLogger as any
+      mockEmailPublisher as unknown as EmailPublisher,
+      mockDataSource as any
     );
   });
 
@@ -102,25 +100,53 @@ describe('InitiateRegistrationUseCase', () => {
       );
     });
 
-    it('should send verification email with code and expiry', async () => {
+    it('should queue the verification email with the code and expiry', async () => {
       await useCase.execute({} as any);
 
-      expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
-        'test@test.com',
-        '123456',
-        VERIFICATION_CODE_TTL_MINUTES
+      expect(mockEmailPublisher.publish).toHaveBeenCalledWith(
+        {
+          type: EmailMessageType.VERIFICATION,
+          to: 'test@test.com',
+          data: {
+            code: '123456',
+            expiresInMinutes: VERIFICATION_CODE_TTL_MINUTES
+          }
+        },
+        {
+          dedupeKey: emailDedupeKey(
+            EmailMessageType.VERIFICATION,
+            'verification-code-id'
+          )
+        }
       );
     });
 
-    it('should not throw when email delivery fails', async () => {
-      mockEmailService.sendVerificationEmail.mockRejectedValue(
-        new Error('smtp down')
+    it('should queue the email only after the transaction commits', async () => {
+      const order: string[] = [];
+
+      mockDataSource.transaction.mockImplementation(
+        async (callback: (manager: unknown) => Promise<unknown>) => {
+          const result = await callback(mockManager);
+          order.push('commit');
+
+          return result;
+        }
       );
+      mockEmailPublisher.publish.mockImplementation(async () => {
+        order.push('publish');
+      });
 
-      await expect(useCase.execute({} as any)).resolves.toBeUndefined();
+      await useCase.execute({} as any);
 
-      expect(mockUserRepository.insertUser).toHaveBeenCalled();
-      expect(mockLogger.error).toHaveBeenCalled();
+      expect(order).toEqual(['commit', 'publish']);
+    });
+
+    it('should not queue an email when the transaction fails', async () => {
+      mockUserRepository.insertUser.mockRejectedValue(new Error('unknown'));
+
+      await expect(useCase.execute({} as any)).rejects.toThrow('unknown');
+
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should propagate unique constraint errors', async () => {

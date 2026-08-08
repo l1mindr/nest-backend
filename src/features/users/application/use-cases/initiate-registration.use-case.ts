@@ -1,8 +1,8 @@
-import { EmailService } from '@infrastructure/email/email.service';
 import { ClockService } from '@infrastructure/clock/clock.service';
-import { LogEvent } from '@infrastructure/logging/logging.constants';
+import { emailDedupeKey } from '@infrastructure/email/email-dedupe.key';
+import { EmailMessageType } from '@infrastructure/email/email.message';
+import { EmailPublisher } from '@infrastructure/email/email.publisher';
 import { Inject, Injectable } from '@nestjs/common';
-import { PinoLogger } from 'nestjs-pino';
 import { DataSource } from 'typeorm';
 import { CreateUserRequestDto } from '../../presentation/dto/request/create-user.request.dto';
 import { User } from '../../domain/entities/user.entity';
@@ -30,12 +30,9 @@ export class InitiateRegistrationUseCase implements IInitiateRegistrationUseCase
     private readonly verificationCodeRepository: IVerificationCodeRepository,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly clockService: ClockService,
-    private readonly emailService: EmailService,
-    private readonly dataSource: DataSource,
-    private readonly logger: PinoLogger
-  ) {
-    this.logger.setContext(InitiateRegistrationUseCase.name);
-  }
+    private readonly emailPublisher: EmailPublisher,
+    private readonly dataSource: DataSource
+  ) {}
 
   async execute(dto: CreateUserRequestDto): Promise<void> {
     const code = this.verificationCodeService.generate();
@@ -44,44 +41,54 @@ export class InitiateRegistrationUseCase implements IInitiateRegistrationUseCase
     const expiresAt = new Date(now.getTime() + VERIFICATION_CODE_TTL_MS);
 
     let user: User;
+    let verificationCodeId: string;
+
     try {
-      user = await this.dataSource.transaction(async (manager) => {
-        const created = await this.userRepository.insertUser(
-          {
-            ...dto,
-            status: UserStatus.PENDING_VERIFICATION
-          },
-          manager
-        );
+      ({ user, verificationCodeId } = await this.dataSource.transaction(
+        async (manager) => {
+          const created = await this.userRepository.insertUser(
+            {
+              ...dto,
+              status: UserStatus.PENDING_VERIFICATION
+            },
+            manager
+          );
 
-        await this.verificationCodeRepository.store(
-          created.id,
-          codeHash,
-          expiresAt,
-          manager
-        );
+          const verificationCode = await this.verificationCodeRepository.store(
+            created.id,
+            codeHash,
+            expiresAt,
+            manager
+          );
 
-        return created;
-      });
+          return { user: created, verificationCodeId: verificationCode.id };
+        }
+      ));
     } catch (error: unknown) {
       throwOnUniqueConstraint(error);
     }
 
-    try {
-      await this.emailService.sendVerificationEmail(
-        user.email,
-        code,
-        VERIFICATION_CODE_TTL_MINUTES
-      );
-    } catch (error: unknown) {
-      this.logger.error(
-        {
-          event: LogEvent.EMAIL_SEND_FAILED,
-          userId: user.id,
-          err: error
-        },
-        'Verification email delivery failed after registration'
-      );
-    }
+    // Published after the commit, never inside it: a rolled-back registration
+    // would otherwise leave a queued email naming an account that never
+    // existed, and the worker has no way to tell that it should not send.
+    //
+    // The stored code row identifies the occasion, so a registration retried by
+    // the client sends one email per issued code rather than one per attempt.
+    await this.emailPublisher.publish(
+      {
+        type: EmailMessageType.VERIFICATION,
+        to: user.email,
+        data: {
+          code,
+          expiresInMinutes: VERIFICATION_CODE_TTL_MINUTES
+        }
+      },
+      {
+        dedupeKey: emailDedupeKey(
+          EmailMessageType.VERIFICATION,
+          verificationCodeId
+        )
+      }
+    );
   }
 }
