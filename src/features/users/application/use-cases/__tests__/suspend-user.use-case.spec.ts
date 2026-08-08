@@ -1,4 +1,5 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { EmailMessageType } from '@infrastructure/email/email.message';
 import { UserRole } from '../../../domain/enums/user-role.enum';
 import { UserStatus } from '../../../domain/enums/user-status.enum';
 import { UserErrors } from '../../../domain/errors/user-errors';
@@ -15,8 +16,8 @@ describe('SuspendUserUseCase', () => {
     revokeAll: jest.fn()
   };
 
-  const mockEmailService = {
-    sendSuspensionEmail: jest.fn()
+  const mockEmailPublisher = {
+    publish: jest.fn()
   };
 
   const mockClockService = {
@@ -62,7 +63,7 @@ describe('SuspendUserUseCase', () => {
     useCase = new SuspendUserUseCase(
       mockUserRepository as any,
       mockRevocationUseCase as any,
-      mockEmailService as any,
+      mockEmailPublisher as any,
       mockClockService as unknown as ClockService,
       mockDataSource as any,
       mockLogger as any
@@ -104,12 +105,15 @@ describe('SuspendUserUseCase', () => {
         capturedManager
       );
 
-      expect(mockEmailService.sendSuspensionEmail).toHaveBeenCalledWith(
-        'active@test.com',
-        'Active User',
-        'Violation of terms',
-        now
-      );
+      expect(mockEmailPublisher.publish).toHaveBeenCalledWith({
+        type: EmailMessageType.SUSPENSION,
+        to: 'active@test.com',
+        data: {
+          displayName: 'Active User',
+          reason: 'Violation of terms',
+          suspendedAt: now.toISOString()
+        }
+      });
 
       expect(mockLogger.info).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -129,7 +133,7 @@ describe('SuspendUserUseCase', () => {
       ).rejects.toEqual(UserErrors.userNotFound('missing-id'));
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
-      expect(mockEmailService.sendSuspensionEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     /**
@@ -150,7 +154,7 @@ describe('SuspendUserUseCase', () => {
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
       expect(mockRevocationUseCase.revokeAll).not.toHaveBeenCalled();
-      expect(mockEmailService.sendSuspensionEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should refuse the owner on the administrator route too', async () => {
@@ -183,7 +187,7 @@ describe('SuspendUserUseCase', () => {
       ).rejects.toEqual(UserErrors.userNotFound('admin-9'));
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
-      expect(mockEmailService.sendSuspensionEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should refuse an ordinary user when the administrator route is administering', async () => {
@@ -206,7 +210,7 @@ describe('SuspendUserUseCase', () => {
       await useCase.execute('owner-1', 'admin-9', 'reason', UserRole.ADMIN);
 
       expect(mockDataSource.transaction).toHaveBeenCalled();
-      expect(mockEmailService.sendSuspensionEmail).toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).toHaveBeenCalled();
     });
 
     it('should throw when user is already suspended', async () => {
@@ -217,7 +221,7 @@ describe('SuspendUserUseCase', () => {
       ).rejects.toEqual(UserErrors.userAlreadySuspended());
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
-      expect(mockEmailService.sendSuspensionEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should rollback transaction and not send email on failure', async () => {
@@ -229,7 +233,7 @@ describe('SuspendUserUseCase', () => {
         useCase.execute('admin-1', 'user-1', 'reason', UserRole.USER)
       ).rejects.toThrow(dbError);
 
-      expect(mockEmailService.sendSuspensionEmail).not.toHaveBeenCalled();
+      expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('should use null as display name when user has no name', async () => {
@@ -248,12 +252,15 @@ describe('SuspendUserUseCase', () => {
 
       await useCase.execute('admin-1', 'user-1', 'reason', UserRole.USER);
 
-      expect(mockEmailService.sendSuspensionEmail).toHaveBeenCalledWith(
-        'active@test.com',
-        null,
-        'reason',
-        now
-      );
+      expect(mockEmailPublisher.publish).toHaveBeenCalledWith({
+        type: EmailMessageType.SUSPENSION,
+        to: 'active@test.com',
+        data: {
+          displayName: null,
+          reason: 'reason',
+          suspendedAt: now.toISOString()
+        }
+      });
     });
   });
 });
