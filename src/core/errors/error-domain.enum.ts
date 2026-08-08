@@ -1,6 +1,7 @@
 export enum ErrorDomain {
   AUTH = 'AUTH',
   AUTHORIZATION = 'AUTHORIZATION',
+  ASSETS = 'ASSETS',
   COIN_TRACKER = 'COIN_TRACKER',
   USER = 'USER',
   SESSION = 'SESSION',
