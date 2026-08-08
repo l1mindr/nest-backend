@@ -1,5 +1,6 @@
 allowBuilds:
   '@scarf/scarf': false
+  argon2: true
   bcrypt: true
   # Optional native accelerator behind bullmq's msgpackr dependency. Left
   # unbuilt so installs need no toolchain; msgpackr falls back to its JS path.
