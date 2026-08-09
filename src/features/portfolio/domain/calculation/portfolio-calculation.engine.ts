@@ -1,8 +1,6 @@
 import { compareDecimals, divideDecimals } from '@core/decimal/decimal.util';
-import {
-  AverageCostCalculator,
-  CostBasisCalculator
-} from './cost-basis.calculator';
+import { AverageCostCalculator } from './average-cost.calculator';
+import { CostBasisCalculator } from './cost-basis.calculator';
 import { CalculationErrors } from './errors/calculation-errors';
 import { CALCULATION_DIVISION_MAX_FRACTION_DIGITS } from './portfolio-calculation.constants';
 import {
