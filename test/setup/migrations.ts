@@ -8,6 +8,7 @@ import { CreateAdminInvitationTable1700000006000 } from '../../src/infrastructur
 import { StandardizeDateTimeColumns1700000007000 } from '../../src/infrastructure/databases/postgres/migrations/1700000007000-StandardizeDateTimeColumns';
 import { CreateAssetsTable1700000008000 } from '../../src/infrastructure/databases/postgres/migrations/1700000008000-CreateAssetsTable';
 import { CreatePortfolioTables1700000009000 } from '../../src/infrastructure/databases/postgres/migrations/1700000009000-CreatePortfolioTables';
+import { CreatePortfolioTransactionTable1700000010000 } from '../../src/infrastructure/databases/postgres/migrations/1700000010000-CreatePortfolioTransactionTable';
 
 /**
  * The runtime data source resolves migrations from a `dist/**` glob, which is
@@ -26,5 +27,6 @@ export const E2E_MIGRATIONS = [
   CreateAdminInvitationTable1700000006000,
   StandardizeDateTimeColumns1700000007000,
   CreateAssetsTable1700000008000,
-  CreatePortfolioTables1700000009000
+  CreatePortfolioTables1700000009000,
+  CreatePortfolioTransactionTable1700000010000
 ];
