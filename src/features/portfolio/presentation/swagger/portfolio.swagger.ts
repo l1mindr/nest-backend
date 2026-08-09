@@ -1,4 +1,5 @@
 import {
+  badRequestResponse,
   csrfForbiddenResponse,
   internalServerErrorResponse,
   notFoundResponse,
@@ -29,10 +30,13 @@ import {
 import { PortfolioErrors } from '../../domain/errors/portfolio-errors';
 import { CreateHoldingRequestDto } from '../dto/request/create-holding.request.dto';
 import { CreatePortfolioRequestDto } from '../dto/request/create-portfolio.request.dto';
+import { CreatePortfolioTransactionRequestDto } from '../dto/request/create-portfolio-transaction.request.dto';
 import { UpdateHoldingRequestDto } from '../dto/request/update-holding.request.dto';
 import { HoldingListResponseDto } from '../dto/response/holding-list.response.dto';
 import { HoldingResponseDto } from '../dto/response/holding.response.dto';
 import { PortfolioResponseDto } from '../dto/response/portfolio.response.dto';
+import { PortfolioTransactionListResponseDto } from '../dto/response/portfolio-transaction-list.response.dto';
+import { PortfolioTransactionResponseDto } from '../dto/response/portfolio-transaction.response.dto';
 import { PortfolioValuationResponseDto } from '../dto/response/portfolio-valuation.response.dto';
 
 /**
@@ -47,7 +51,9 @@ const PATH = {
   PORTFOLIOS: '/v1/portfolios',
   HOLDINGS: '/v1/holdings',
   HOLDING: `/v1/holdings/${ExampleValue.HOLDING_ID}`,
-  VALUATION: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/valuation`
+  VALUATION: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/valuation`,
+  TRANSACTIONS: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/transactions`,
+  TRANSACTION: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/transactions/${ExampleValue.HOLDING_ID}`
 } as const;
 
 /** The `:id` route parameter of the single-holding endpoints. */
@@ -101,6 +107,52 @@ const emptyUpdate = () =>
     PortfolioErrors.holdingEmptyUpdate(),
     'The body contained no updatable field'
   );
+
+const transactionNotFound = () =>
+  errorExample(
+    PortfolioErrors.transactionNotFound(ExampleValue.HOLDING_ID),
+    'No such transaction, or it belongs to another account'
+  );
+
+const transactionTypeNotSupported = () =>
+  errorExample(
+    PortfolioErrors.transactionTypeNotSupported(),
+    'DEPOSIT and WITHDRAWAL are reserved for a future cash model'
+  );
+
+const transactionPriceRequired = () =>
+  errorExample(
+    PortfolioErrors.transactionPriceRequired(),
+    'BUY and SELL transactions must record the price at the time of the trade'
+  );
+
+const invalidTransactionCursor = () =>
+  errorExample(
+    PortfolioErrors.invalidCursor(),
+    'The cursor is not a base64url JSON object with a valid ISO instant and a UUID'
+  );
+
+/** The `:portfolioId` route parameter of the transaction endpoints. */
+const transactionPortfolioIdParam = () =>
+  ApiParam({
+    name: 'portfolioId',
+    description:
+      'Identifier of the portfolio source, as returned in `id` by `GET /v1/portfolios`.',
+    format: 'uuid',
+    example: ExampleValue.PORTFOLIO_ID,
+    required: true
+  });
+
+/** The `:id` route parameter of the single-transaction endpoints. */
+const transactionIdParam = () =>
+  ApiParam({
+    name: 'id',
+    description:
+      'Identifier of the transaction, as returned in `id` by `GET /v1/portfolios/:portfolioId/transactions`.',
+    format: 'uuid',
+    example: ExampleValue.HOLDING_ID,
+    required: true
+  });
 
 export const ApiCreatePortfolio = () =>
   applyDecorators(
@@ -412,6 +464,205 @@ export const ApiDeleteHolding = () =>
         holdingNotFound()
       ),
       validationResponse('The `id` is not a UUID.', [
+        validationError('id', 'id must be a UUID')
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiCreatePortfolioTransaction = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'createPortfolioTransaction',
+      summary: 'Record a transaction in a portfolio source',
+      description: [
+        'Appends a transaction to the ledger of one of the caller’s portfolio sources. A transaction is a historical event — `occurredAt`, `amount` and `price` are stored exactly as supplied and never rewritten from a live price.',
+        '',
+        '`BUY` and `SELL` record the `price` per unit at the time of the trade and require it. `TRANSFER_IN` and `TRANSFER_OUT` move assets between sources and take an optional `price`. `DEPOSIT` and `WITHDRAWAL` are reserved for a future cash model and are rejected for now.',
+        '',
+        '`portfolioId` must name a source owned by the caller and `assetId` a known asset — both are validated before anything is written. Recorded transactions are historical input, not live positions: nothing is added to or subtracted from the `amount` of a holding, which remains the manually recorded position.',
+        '',
+        'Requires authentication and a valid `x-csrf-token` header.'
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    transactionPortfolioIdParam(),
+    ApiRequestBody(CreatePortfolioTransactionRequestDto, [
+      {
+        summary: 'Buy Bitcoin at a recorded price',
+        value: {
+          assetId: ExampleValue.ASSET_ID,
+          type: 'BUY',
+          amount: '0.5',
+          price: '60000.50',
+          fee: '0.75',
+          occurredAt: ExampleValue.TIMESTAMP,
+          notes: 'Dollar-cost average'
+        }
+      },
+      {
+        summary: 'Transfer out to another source',
+        value: {
+          assetId: ExampleValue.ASSET_ID,
+          type: 'TRANSFER_OUT',
+          amount: '0.25',
+          occurredAt: ExampleValue.TIMESTAMP
+        }
+      }
+    ]),
+    ApiSuccessResponse({
+      status: 201,
+      description:
+        'The transaction was recorded and is returned with its asset resolved.',
+      type: PortfolioTransactionResponseDto
+    }),
+    ApiErrorResponses(PATH.TRANSACTIONS, [
+      unauthorizedResponse(),
+      csrfForbiddenResponse(),
+      notFoundResponse(
+        'The portfolio source or the asset does not exist. A source owned by another account is reported the same way, so ownership cannot be probed.',
+        portfolioNotFound(),
+        assetNotFound()
+      ),
+      validationResponse(
+        'The body failed validation, or the transaction type is not recordable.',
+        [
+          validationError(
+            'amount',
+            'must be a positive decimal number with at most 18 fractional digits'
+          ),
+          validationError(
+            'price',
+            'must be a positive decimal number with at most 8 fractional digits'
+          ),
+          validationError(
+            'fee',
+            'must be a non-negative decimal number with at most 8 fractional digits'
+          ),
+          validationError(
+            'occurredAt',
+            'occurredAt must be a valid ISO 8601 date string'
+          ),
+          validationError('portfolioId', 'portfolioId must be a UUID'),
+          validationError('assetId', 'assetId must be a UUID'),
+          validationError(
+            'type',
+            'type must be one of the following values: BUY, SELL, TRANSFER_IN, TRANSFER_OUT, DEPOSIT, WITHDRAWAL'
+          ),
+          transactionTypeNotSupported(),
+          transactionPriceRequired()
+        ]
+      ),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiListPortfolioTransactions = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'listPortfolioTransactions',
+      summary: 'List the transactions of a portfolio source',
+      description: [
+        'Returns the transactions recorded against one of the caller’s portfolio sources, newest first (`occurredAt` descending, then `id` for ties). Each entry carries its asset resolved inline.',
+        '',
+        'Results are forward-paginated with an opaque cursor: omit `cursor` for the first page and copy the `nextCursor` of every response verbatim into the next request until it is `null`. Filters (`assetId`, `type`, `from`, `to`) narrow the window before pagination.',
+        '',
+        'Requires authentication.'
+      ].join('\n')
+    }),
+    ApiAuthenticated(),
+    transactionPortfolioIdParam(),
+    ApiExtraModels(PortfolioTransactionListResponseDto),
+    ApiSuccessResponse({
+      status: 200,
+      description: 'A page of transactions recorded against the source.',
+      type: PortfolioTransactionListResponseDto
+    }),
+    ApiErrorResponses(PATH.TRANSACTIONS, [
+      unauthorizedResponse(),
+      badRequestResponse(
+        'The `cursor` query parameter was not produced by this endpoint.',
+        invalidTransactionCursor()
+      ),
+      notFoundResponse(
+        'No portfolio source with this identifier belongs to the caller. Sources owned by another account are reported the same way, so ownership cannot be probed.',
+        portfolioNotFound()
+      ),
+      validationResponse('A query parameter failed validation.', [
+        validationError('portfolioId', 'portfolioId must be a UUID'),
+        validationError('assetId', 'assetId must be a UUID'),
+        validationError(
+          'type',
+          'type must be one of the following values: BUY, SELL, TRANSFER_IN, TRANSFER_OUT, DEPOSIT, WITHDRAWAL'
+        ),
+        validationError('from', 'from must be a valid ISO 8601 date string'),
+        validationError('to', 'to must be a valid ISO 8601 date string')
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiGetPortfolioTransaction = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'getPortfolioTransaction',
+      summary: 'Get a portfolio transaction by id',
+      description: [
+        'Returns the transaction with the given `id` when it belongs to one of the caller’s portfolio sources. The `price` is the value recorded at creation time, never a live price.',
+        '',
+        'Requires authentication.'
+      ].join('\n')
+    }),
+    ApiAuthenticated(),
+    transactionPortfolioIdParam(),
+    transactionIdParam(),
+    ApiSuccessResponse({
+      status: 200,
+      description: 'The transaction owned by the caller.',
+      type: PortfolioTransactionResponseDto
+    }),
+    ApiErrorResponses(PATH.TRANSACTION, [
+      unauthorizedResponse(),
+      notFoundResponse(
+        'No transaction with this identifier belongs to the caller, or the portfolio source does not exist. Both are reported the same way, so ownership cannot be probed.',
+        portfolioNotFound(),
+        transactionNotFound()
+      ),
+      validationResponse('The `id` or `portfolioId` is not a UUID.', [
+        validationError('portfolioId', 'portfolioId must be a UUID'),
+        validationError('id', 'id must be a UUID')
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiDeletePortfolioTransaction = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'deletePortfolioTransaction',
+      summary: 'Delete a portfolio transaction',
+      description: [
+        'Removes a transaction the caller recorded. Deleting is the documented way to correct a mistaken ledger entry; the row is removed, not soft-marked.',
+        '',
+        'Requires authentication and a valid `x-csrf-token` header.'
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    transactionPortfolioIdParam(),
+    transactionIdParam(),
+    ApiNoContent({
+      description: 'The transaction is deleted. No body is returned.'
+    }),
+    ApiErrorResponses(PATH.TRANSACTION, [
+      unauthorizedResponse(),
+      csrfForbiddenResponse(),
+      notFoundResponse(
+        'No transaction with this identifier belongs to the caller, or the portfolio source does not exist. Both are reported the same way, so ownership cannot be probed.',
+        portfolioNotFound(),
+        transactionNotFound()
+      ),
+      validationResponse('The `id` or `portfolioId` is not a UUID.', [
+        validationError('portfolioId', 'portfolioId must be a UUID'),
         validationError('id', 'id must be a UUID')
       ]),
       internalServerErrorResponse()
