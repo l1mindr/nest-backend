@@ -72,8 +72,8 @@ describe('FifoCostBasisCalculator', () => {
         expect.objectContaining({
           amount: '1',
           proceeds: '150',
-          costBasisReleased: '100',
-          realizedGain: '50'
+          releasedCostBasis: '100',
+          realizedPnl: '50'
         })
       ]
     });
@@ -92,8 +92,8 @@ describe('FifoCostBasisCalculator', () => {
         expect.objectContaining({
           amount: '1.5',
           proceeds: '270',
-          costBasisReleased: '200',
-          realizedGain: '70'
+          releasedCostBasis: '200',
+          realizedPnl: '70'
         })
       ]
     });
@@ -105,7 +105,7 @@ describe('FifoCostBasisCalculator', () => {
       totalCost: '100'
     });
     expect(result.realizedPnl).toEqual([
-      expect.objectContaining({ costBasisReleased: '100', realizedGain: '20' })
+      expect.objectContaining({ releasedCostBasis: '100', realizedPnl: '20' })
     ]);
   });
 
@@ -123,7 +123,7 @@ describe('FifoCostBasisCalculator', () => {
       quantity: '1',
       totalCost: '100',
       realizedPnl: [
-        expect.objectContaining({ costBasisReleased: '0', realizedGain: '150' })
+        expect.objectContaining({ releasedCostBasis: '0', realizedPnl: '150' })
       ]
     });
   });
@@ -147,8 +147,8 @@ describe('FifoCostBasisCalculator', () => {
         expect.objectContaining({
           amount: '2',
           proceeds: '140000',
-          costBasisReleased: '120000',
-          realizedGain: '20000'
+          releasedCostBasis: '120000',
+          realizedPnl: '20000'
         })
       ]
     });

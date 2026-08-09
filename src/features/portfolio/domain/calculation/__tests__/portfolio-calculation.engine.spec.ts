@@ -147,8 +147,8 @@ describe('PortfolioCalculationEngine', () => {
         expect.objectContaining({
           amount: '2',
           proceeds: '140000',
-          costBasisReleased: '120000',
-          realizedGain: '20000'
+          releasedCostBasis: '120000',
+          realizedPnl: '20000'
         })
       ]);
     });
@@ -200,8 +200,8 @@ describe('PortfolioCalculationEngine', () => {
         averageCost: '0',
         realizedPnl: [
           expect.objectContaining({
-            costBasisReleased: '50000',
-            realizedGain: '20000'
+            releasedCostBasis: '50000',
+            realizedPnl: '20000'
           })
         ]
       });
@@ -216,7 +216,7 @@ describe('PortfolioCalculationEngine', () => {
       });
       expect(result.totalCost).toBe('0');
       expect(result.realizedPnl).toEqual([
-        expect.objectContaining({ realizedGain: '20000' })
+        expect.objectContaining({ realizedPnl: '20000' })
       ]);
     });
   });
@@ -237,8 +237,8 @@ describe('PortfolioCalculationEngine', () => {
         averageCost: '150',
         realizedPnl: [
           expect.objectContaining({
-            costBasisReleased: '150',
-            realizedGain: '0'
+            releasedCostBasis: '150',
+            realizedPnl: '0'
           })
         ]
       });
@@ -255,8 +255,8 @@ describe('PortfolioCalculationEngine', () => {
         averageCost: '200',
         realizedPnl: [
           expect.objectContaining({
-            costBasisReleased: '100',
-            realizedGain: '50'
+            releasedCostBasis: '100',
+            realizedPnl: '50'
           })
         ]
       });
@@ -273,8 +273,8 @@ describe('PortfolioCalculationEngine', () => {
         averageCost: '100',
         realizedPnl: [
           expect.objectContaining({
-            costBasisReleased: '200',
-            realizedGain: '-50'
+            releasedCostBasis: '200',
+            realizedPnl: '-50'
           })
         ]
       });
