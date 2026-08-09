@@ -66,7 +66,8 @@ describe('AverageCostCalculator', () => {
     it('should accumulate quantity and cost for a single BUY', () => {
       expect(calculator.calculate([buy('1', '50000')], opening())).toEqual({
         quantity: '1',
-        totalCost: '50000'
+        totalCost: '50000',
+        realizedPnl: []
       });
     });
 
@@ -75,14 +76,16 @@ describe('AverageCostCalculator', () => {
         calculator.calculate([buy('1', '50000'), buy('1', '70000')], opening())
       ).toEqual({
         quantity: '2',
-        totalCost: '120000'
+        totalCost: '120000',
+        realizedPnl: []
       });
     });
 
     it('should multiply 0.1 x 0.2 exactly', () => {
       expect(calculator.calculate([buy('0.1', '0.2')], opening())).toEqual({
         quantity: '0.1',
-        totalCost: '0.02'
+        totalCost: '0.02',
+        realizedPnl: []
       });
     });
 
@@ -91,7 +94,8 @@ describe('AverageCostCalculator', () => {
         calculator.calculate([buy('0.00000001', '50000')], opening())
       ).toEqual({
         quantity: '0.00000001',
-        totalCost: '0.0005'
+        totalCost: '0.0005',
+        realizedPnl: []
       });
     });
 
@@ -100,7 +104,8 @@ describe('AverageCostCalculator', () => {
         calculator.calculate([buy('1', '50000', '10')], opening())
       ).toEqual({
         quantity: '1',
-        totalCost: '50000'
+        totalCost: '50000',
+        realizedPnl: []
       });
     });
 
@@ -108,7 +113,8 @@ describe('AverageCostCalculator', () => {
       expect(calculator.calculate([buy('1', '50000', '0')], opening())).toEqual(
         {
           quantity: '1',
-          totalCost: '50000'
+          totalCost: '50000',
+          realizedPnl: []
         }
       );
     });
@@ -119,7 +125,8 @@ describe('AverageCostCalculator', () => {
       const state = { quantity: '2', totalCost: '120000' };
       expect(calculator.calculate([sell('1', '70000')], state)).toEqual({
         quantity: '1',
-        totalCost: '120000'
+        totalCost: '120000',
+        realizedPnl: []
       });
     });
 
@@ -153,7 +160,8 @@ describe('AverageCostCalculator', () => {
     it('should increase quantity without creating acquisition cost', () => {
       expect(calculator.calculate([transferIn('1.5')], opening())).toEqual({
         quantity: '1.5',
-        totalCost: '0'
+        totalCost: '0',
+        realizedPnl: []
       });
     });
 
@@ -162,7 +170,8 @@ describe('AverageCostCalculator', () => {
         calculator.calculate([transferIn('1.5', '99999')], opening())
       ).toEqual({
         quantity: '1.5',
-        totalCost: '0'
+        totalCost: '0',
+        realizedPnl: []
       });
     });
   });
@@ -172,7 +181,8 @@ describe('AverageCostCalculator', () => {
       const state = { quantity: '2', totalCost: '120000' };
       expect(calculator.calculate([transferOut('1')], state)).toEqual({
         quantity: '1',
-        totalCost: '120000'
+        totalCost: '120000',
+        realizedPnl: []
       });
     });
 
@@ -317,14 +327,18 @@ describe('AverageCostCalculator', () => {
   describe('state handling', () => {
     it('should return the opening state for an empty transaction list', () => {
       const state = { quantity: '1.5', totalCost: '90000' };
-      expect(calculator.calculate([], state)).toEqual(state);
+      expect(calculator.calculate([], state)).toEqual({
+        ...state,
+        realizedPnl: []
+      });
     });
 
     it('should add to the opening state', () => {
       const state = { quantity: '1.5', totalCost: '90000' };
       expect(calculator.calculate([buy('0.5', '60000')], state)).toEqual({
         quantity: '2',
-        totalCost: '120000'
+        totalCost: '120000',
+        realizedPnl: []
       });
     });
 
