@@ -38,6 +38,9 @@ import { PortfolioResponseDto } from '../dto/response/portfolio.response.dto';
 import { PortfolioTransactionListResponseDto } from '../dto/response/portfolio-transaction-list.response.dto';
 import { PortfolioTransactionResponseDto } from '../dto/response/portfolio-transaction.response.dto';
 import { PortfolioValuationResponseDto } from '../dto/response/portfolio-valuation.response.dto';
+import { PortfolioPnlResponseDto } from '../dto/response/portfolio-pnl.response.dto';
+import { PortfolioPnlPositionResponseDto } from '../dto/response/portfolio-pnl-position.response.dto';
+import { RealizedPnlEventResponseDto } from '../dto/response/realized-pnl-event.response.dto';
 
 /**
  * Operation documentation for `PortfoliosController` and `HoldingsController`.
@@ -52,6 +55,7 @@ const PATH = {
   HOLDINGS: '/v1/holdings',
   HOLDING: `/v1/holdings/${ExampleValue.HOLDING_ID}`,
   VALUATION: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/valuation`,
+  PNL: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/pnl`,
   TRANSACTIONS: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/transactions`,
   TRANSACTION: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/transactions/${ExampleValue.HOLDING_ID}`
 } as const;
@@ -296,6 +300,56 @@ export const ApiGetPortfolioValuation = () =>
       validationResponse('The `id` is not a UUID.', [
         validationError('id', 'id must be a UUID')
       ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiGetPortfolioPnl = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'getPortfolioPnl',
+      summary: 'Compute the current P&L of a portfolio source by id',
+      description: [
+        'Computes the current P&L of every asset traded in the portfolio source with the given `id`, and the portfolio totals, when the source belongs to the caller.',
+        '',
+        'The calculation replays the recorded transaction ledger through the portfolio calculation engine, once per asset, using the `costBasis` strategy to release acquisition cost on disposal (`AVERAGE` by default). Everything is computed on demand with exact decimal arithmetic and returned as decimal strings — nothing is coerced through a JavaScript float, and nothing is persisted or cached.',
+        '',
+        'The only market-price input is `asset.currentPrice`, the last price the synchroniser stored. The endpoint never calls a price provider. When an asset has no price, its `currentPrice`, `currentValue`, `unrealizedPnl` and `totalPnl` are `null` (never `0`), and `totalCurrentValue`, `totalUnrealizedPnl` and `totalPnl` become `null` while `totalRealizedPnl` stays available. `pricedPositions`/`unpricedPositions` explain the totals.',
+        '',
+        'Realized P&L is reported gross of fees: a SELL records `proceeds` and a separate `fee`, and the fee is never subtracted from `proceeds` or `realizedPnl`. `TRANSFER_IN` carries zero cost basis and never realizes P&L; `TRANSFER_OUT` releases basis but does not realize P&L; only `SELL` creates a realized P&L event.',
+        '',
+        'All monetary values are in the portfolio currency (`USD`).',
+        '',
+        'Requires authentication.'
+      ].join('\n')
+    }),
+    ApiAuthenticated(),
+    ApiExtraModels(
+      PortfolioPnlResponseDto,
+      PortfolioPnlPositionResponseDto,
+      RealizedPnlEventResponseDto
+    ),
+    ApiSuccessResponse({
+      status: 200,
+      description: 'The computed P&L of the portfolio source.',
+      type: PortfolioPnlResponseDto
+    }),
+    ApiErrorResponses(PATH.PNL, [
+      unauthorizedResponse(),
+      notFoundResponse(
+        'No portfolio source with this identifier belongs to the caller. Sources owned by another account are reported the same way, so ownership cannot be probed.',
+        portfolioNotFound()
+      ),
+      validationResponse(
+        'The `portfolioId` is not a UUID, or `costBasis` is not a supported strategy.',
+        [
+          validationError('portfolioId', 'portfolioId must be a UUID'),
+          validationError(
+            'costBasis',
+            'costBasis must be one of the following values: AVERAGE, FIFO, LIFO'
+          )
+        ]
+      ),
       internalServerErrorResponse()
     ])
   );

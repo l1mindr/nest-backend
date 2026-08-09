@@ -11,6 +11,7 @@ import { PortfolioTransactionRepository } from './infrastructure/repositories/po
 import { CreatePortfolioUseCase } from './application/use-cases/create-portfolio.use-case';
 import { GetPortfolioUseCase } from './application/use-cases/get-portfolio.use-case';
 import { GetPortfolioValuationUseCase } from './application/use-cases/get-portfolio-valuation.use-case';
+import { GetPortfolioPnlUseCase } from './application/use-cases/get-portfolio-pnl.use-case';
 import { ListPortfoliosUseCase } from './application/use-cases/list-portfolios.use-case';
 import { CreateHoldingUseCase } from './application/use-cases/create-holding.use-case';
 import { UpdateHoldingUseCase } from './application/use-cases/update-holding.use-case';
@@ -22,11 +23,15 @@ import { GetPortfolioTransactionUseCase } from './application/use-cases/get-port
 import { DeletePortfolioTransactionUseCase } from './application/use-cases/delete-portfolio-transaction.use-case';
 import { PortfolioMapper } from './application/mappers/portfolio.mapper';
 import { PortfolioValuationMapper } from './application/mappers/portfolio-valuation.mapper';
+import { PortfolioPnlMapper } from './application/mappers/portfolio-pnl.mapper';
 import { HoldingMapper } from './application/mappers/holding.mapper';
 import { PortfolioTransactionMapper } from './application/mappers/portfolio-transaction.mapper';
 import { PortfoliosController } from './presentation/controllers/portfolios.controller';
 import { HoldingsController } from './presentation/controllers/holdings.controller';
 import { PortfolioTransactionsController } from './presentation/controllers/portfolio-transactions.controller';
+import { PortfolioPnlController } from './presentation/controllers/portfolio-pnl.controller';
+import { PortfolioCalculationEngine } from './domain/calculation/portfolio-calculation.engine';
+import { CostBasisStrategy } from './domain/calculation/types/cost-basis.strategy.enum';
 import {
   CREATE_HOLDING_USE_CASE,
   CREATE_PORTFOLIO_TRANSACTION_USE_CASE,
@@ -35,11 +40,14 @@ import {
   DELETE_PORTFOLIO_TRANSACTION_USE_CASE,
   GET_PORTFOLIO_USE_CASE,
   GET_PORTFOLIO_VALUATION_USE_CASE,
+  GET_PORTFOLIO_PNL_USE_CASE,
   GET_PORTFOLIO_TRANSACTION_USE_CASE,
   HOLDING_REPOSITORY,
+  IPortfolioCalculationEngineFactory,
   LIST_HOLDINGS_USE_CASE,
   LIST_PORTFOLIO_TRANSACTIONS_USE_CASE,
   LIST_PORTFOLIOS_USE_CASE,
+  PORTFOLIO_CALCULATION_ENGINE,
   PORTFOLIO_REPOSITORY,
   PORTFOLIO_TRANSACTION_REPOSITORY,
   UPDATE_HOLDING_USE_CASE
@@ -53,7 +61,8 @@ import {
   controllers: [
     PortfoliosController,
     HoldingsController,
-    PortfolioTransactionsController
+    PortfolioTransactionsController,
+    PortfolioPnlController
   ],
   providers: [
     PortfolioRepository,
@@ -73,6 +82,18 @@ import {
     {
       provide: GET_PORTFOLIO_VALUATION_USE_CASE,
       useExisting: GetPortfolioValuationUseCase
+    },
+    GetPortfolioPnlUseCase,
+    {
+      provide: GET_PORTFOLIO_PNL_USE_CASE,
+      useExisting: GetPortfolioPnlUseCase
+    },
+    {
+      provide: PORTFOLIO_CALCULATION_ENGINE,
+      useFactory: (): IPortfolioCalculationEngineFactory => ({
+        create: (strategy: CostBasisStrategy) =>
+          new PortfolioCalculationEngine(strategy)
+      })
     },
     ListPortfoliosUseCase,
     { provide: LIST_PORTFOLIOS_USE_CASE, useExisting: ListPortfoliosUseCase },
@@ -106,6 +127,7 @@ import {
     },
     PortfolioMapper,
     PortfolioValuationMapper,
+    PortfolioPnlMapper,
     HoldingMapper,
     PortfolioTransactionMapper
   ]
