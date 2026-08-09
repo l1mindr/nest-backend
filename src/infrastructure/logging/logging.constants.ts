@@ -61,6 +61,8 @@ export enum LogEvent {
   HOLDING_UPDATED = 'portfolio.holding.updated',
   HOLDING_DELETED = 'portfolio.holding.deleted',
   PORTFOLIO_VALUATION_COMPUTED = 'portfolio.valuation.computed',
+  PORTFOLIO_TRANSACTION_CREATED = 'portfolio.transaction.created',
+  PORTFOLIO_TRANSACTION_DELETED = 'portfolio.transaction.deleted',
 
   RATE_LIMIT_EXCEEDED = 'security.rate_limit.exceeded',
   RATE_LIMIT_ALLOWED = 'security.rate_limit.allowed',
