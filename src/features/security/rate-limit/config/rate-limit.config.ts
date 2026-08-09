@@ -236,6 +236,37 @@ export const RateLimitPolicies = {
         failOpen: true
       }
     }
+  },
+
+  Assets: {
+    /**
+     * Manual synchronization rewrites the shared catalogue from CoinGecko, so
+     * it is deliberately tight: an owner can nudge the data on demand, but not
+     * hammer the external API. A `POST /v1/assets/sync` that is already pending
+     * is deduplicated by BullMQ regardless of these limits.
+     */
+    Sync: {
+      IP: {
+        name: 'assets.sync.ip',
+        identifier: RateLimitIdentifier.IP,
+        keyPrefix: 'asset-sync',
+        limit: 12,
+        windowMs: HOURS,
+        blockDurationMs: 0,
+        enabled: true,
+        failOpen: true
+      },
+      User: {
+        name: 'assets.sync.user',
+        identifier: RateLimitIdentifier.USER,
+        keyPrefix: 'asset-sync',
+        limit: 12,
+        windowMs: HOURS,
+        blockDurationMs: 0,
+        enabled: true,
+        failOpen: true
+      }
+    }
   }
 } as const satisfies RateLimitPolicyTree;
 

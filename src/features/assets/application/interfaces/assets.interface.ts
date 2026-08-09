@@ -1,30 +1,15 @@
 import type { PaginatedResult } from '@core/pagination/paginated-result.interface';
 import type { Asset } from '../../domain/entities/asset.entity';
 
-export const COINGECKO_PORT = Symbol('CoinGeckoPort');
+export const MARKET_DATA_PORT = Symbol('MarketDataPort');
 
-export interface CoinGeckoMarketData {
-  id: string;
-  symbol: string;
-  name: string;
-  image?: string;
-  current_price?: number;
-  market_cap?: number;
-  market_cap_rank?: number;
-  total_volume?: number;
-  circulating_supply?: number;
-  total_supply?: number;
-  max_supply?: number;
-  price_change_24h?: number;
-  price_change_percentage_24h?: number;
-  last_updated?: string;
-}
-
-export interface CoinGeckoPort {
-  fetchMarketData(): Promise<CoinGeckoMarketData[]>;
-}
-
-export interface AssetSyncData {
+/**
+ * One asset as reported by the external market data source, already mapped to
+ * the application's vocabulary. Decimal quantities are decimal strings; `null`
+ * means the provider did not report a value. Providers (e.g. CoinGecko) are
+ * responsible for turning their own wire format into this shape.
+ */
+export interface MarketDataEntry {
   coinGeckoId: string;
   symbol: string;
   name: string;
@@ -38,6 +23,13 @@ export interface AssetSyncData {
   maxSupply: string | null;
   priceChange24h: string | null;
   priceChangePercentage24h: string | null;
+}
+
+export interface MarketDataPort {
+  fetchMarketData(): Promise<MarketDataEntry[]>;
+}
+
+export interface AssetSyncData extends MarketDataEntry {
   lastSyncedAt: Date;
 }
 

@@ -5,6 +5,7 @@ import {
   forbiddenResponse,
   internalServerErrorResponse,
   notFoundResponse,
+  rateLimitResponse,
   unauthorizedResponse,
   validationError,
   validationResponse
@@ -20,7 +21,7 @@ import {
   ApiCsrfProtected
 } from '@presentation/swagger/api-security.decorator';
 import { ExampleValue } from '@presentation/swagger/openapi.constants';
-import { applyDecorators, HttpStatus } from '@nestjs/common';
+import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiProperty } from '@nestjs/swagger';
 import { AssetErrors } from '../../domain/errors/asset-errors';
 import { ASSETS_PAGE_SIZE_MAX } from '../dto/request/asset-list.request.dto';
@@ -31,25 +32,19 @@ import { AssetResponseDto } from '../dto/response/asset.response.dto';
  * Operation documentation for `AssetsController` and `AssetSyncController`.
  *
  * Reading the catalogue only requires authentication. Synchronising it is the
- * exception: it rewrites the catalogue from CoinGecko, so it is restricted to
- * the owner and additionally demands a valid `x-csrf-token` header.
+ * exception: it rewrites the catalogue from CoinGecko in the background, so it
+ * is restricted to the owner, demands a valid `x-csrf-token` header and is
+ * rate limited.
  */
 
-/** Result of a completed CoinGecko synchronisation run. */
-class SyncAssetsResponseDto {
+/** Acknowledgement that a synchronization run has been queued. */
+class AssetSyncAcceptedResponseDto {
   @ApiProperty({
     description:
-      'Number of assets CoinGecko reported for the market range being synchronised.',
-    example: 2500
+      'Identifier of the queued BullMQ job. Repeated triggers while one manual sync is pending or running reuse the same job instead of enqueuing another.',
+    example: 'asset-sync:manual-asset-sync'
   })
-  receivedCount!: number;
-
-  @ApiProperty({
-    description:
-      'Number of assets that were persisted after normalisation (raw records that failed validation are excluded).',
-    example: 2498
-  })
-  synchronizedCount!: number;
+  jobId!: string;
 }
 
 const PATH = {
@@ -90,22 +85,6 @@ const ownerOnlyForbidden = (): ApiErrorResponseOptions =>
     ),
     CommonErrors.invalidCsrfToken
   );
-
-const coingeckoUnavailable = (): ApiErrorResponseOptions => ({
-  status: HttpStatus.BAD_GATEWAY,
-  description:
-    'The synchronisation run could not be completed because CoinGecko was unreachable or returned nothing usable.',
-  examples: [
-    errorExample(
-      AssetErrors.coingeckoApiError(),
-      'The CoinGecko request failed or timed out'
-    ),
-    errorExample(
-      AssetErrors.emptySync(),
-      'CoinGecko responded, but no record survived validation'
-    )
-  ]
-});
 
 export const ApiListAssets = () =>
   applyDecorators(
@@ -179,24 +158,26 @@ export const ApiSyncAssets = () =>
   applyDecorators(
     ApiOperation({
       operationId: 'syncAssets',
-      summary: 'Sync assets from CoinGecko',
+      summary: 'Queue an asset synchronization from CoinGecko',
       description: [
-        'Fetches the current CoinGecko market range and upserts the asset catalogue from it. Running it replaces the market snapshot with what CoinGecko reports now; assets that CoinGecko no longer returns are left untouched rather than deleted.',
+        'Enqueues a background job that fetches the current CoinGecko market range and upserts the asset catalogue from it. The request answers `202` once the job is queued; CoinGecko is never called on the request path.',
         '',
-        'Restricted to the owner: rewriting the shared catalogue from an external source is not something an administrator is allowed to trigger. Requires authentication, the `OWNER` role and a valid `x-csrf-token` header.'
+        'The job preserves an asset’s `currentPrice` when CoinGecko reports no price for it, so a partial or failed run never clears a price we already have. Repeated triggers while one manual sync is pending or running are deduplicated.',
+        '',
+        'Restricted to the owner: rewriting the shared catalogue from an external source is not something an administrator is allowed to trigger, and the endpoint is rate limited. Requires authentication, the `OWNER` role and a valid `x-csrf-token` header.'
       ].join('\n')
     }),
     ApiCsrfProtected(),
     ApiSuccessResponse({
-      status: 200,
+      status: 202,
       description:
-        'The run completed. `receivedCount` counts the raw records CoinGecko returned, `synchronizedCount` how many were persisted after validation.',
-      type: SyncAssetsResponseDto
+        'The job was queued. `jobId` identifies it for observability; the catalogue updates asynchronously once the worker processes it.',
+      type: AssetSyncAcceptedResponseDto
     }),
     ApiErrorResponses(PATH.SYNC, [
       unauthorizedResponse(),
       ownerOnlyForbidden(),
-      coingeckoUnavailable(),
+      rateLimitResponse('The sync rate limit was reached.'),
       internalServerErrorResponse()
     ])
   );

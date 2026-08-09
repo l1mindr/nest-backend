@@ -24,23 +24,63 @@ export class AssetErrors {
     );
   }
 
-  static coingeckoApiError(detail?: string) {
-    return new AppError(
-      AssetErrorCode.COINGECKO_API_ERROR,
-      ErrorDomain.ASSETS,
-      HttpStatus.BAD_GATEWAY,
-      detail ? { detail } : undefined,
-      'Failed to fetch data from CoinGecko'
-    );
-  }
-
   static emptySync() {
     return new AppError(
       AssetErrorCode.ASSET_SYNC_EMPTY_RESPONSE,
       ErrorDomain.ASSETS,
       HttpStatus.BAD_GATEWAY,
       undefined,
-      'No valid assets in CoinGecko response'
+      'No valid assets in market data response'
+    );
+  }
+
+  static providerRateLimited() {
+    return new AppError(
+      AssetErrorCode.MARKET_DATA_PROVIDER_RATE_LIMITED,
+      ErrorDomain.ASSETS,
+      HttpStatus.TOO_MANY_REQUESTS,
+      undefined,
+      'Market data provider rate limit reached'
+    );
+  }
+
+  static providerTimeout() {
+    return new AppError(
+      AssetErrorCode.MARKET_DATA_PROVIDER_TIMEOUT,
+      ErrorDomain.ASSETS,
+      HttpStatus.GATEWAY_TIMEOUT,
+      undefined,
+      'Market data provider request timed out'
+    );
+  }
+
+  static providerUnavailable() {
+    return new AppError(
+      AssetErrorCode.MARKET_DATA_PROVIDER_UNAVAILABLE,
+      ErrorDomain.ASSETS,
+      HttpStatus.BAD_GATEWAY,
+      undefined,
+      'Market data provider is unavailable'
+    );
+  }
+
+  static providerBadRequest() {
+    return new AppError(
+      AssetErrorCode.MARKET_DATA_PROVIDER_BAD_REQUEST,
+      ErrorDomain.ASSETS,
+      HttpStatus.BAD_GATEWAY,
+      undefined,
+      'Market data provider rejected the request'
+    );
+  }
+
+  static providerInvalidResponse() {
+    return new AppError(
+      AssetErrorCode.MARKET_DATA_PROVIDER_INVALID_RESPONSE,
+      ErrorDomain.ASSETS,
+      HttpStatus.BAD_GATEWAY,
+      undefined,
+      'Market data provider returned an invalid response'
     );
   }
 }
