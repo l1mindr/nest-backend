@@ -1,0 +1,334 @@
+PORTFOLIO TRANSACTIONS REPORT — MILESTONE M5
+=============================================
+
+1. OBJECTIVE
+============
+
+Expose an append-only transaction ledger scoped to a portfolio. A transaction
+is a historical fact (what happened, when, at what price, with what fee) and is
+deliberately independent of the aggregate state tracked in M2/M3 holdings.
+
+Design decisions:
+  - Only BUY, SELL, TRANSFER_IN, TRANSFER_OUT are accepted; DEPOSIT and
+    WITHDRAWAL are rejected with a 422 TRANSACTION_TYPE_NOT_SUPPORTED (they
+    have no asset reference, so the schema cannot represent them).
+  - Transactions do NOT mutate holding amounts and never touch portfolio
+    valuation. M4 valuation still reads only `holding.amount`.
+  - The `price` is kept exactly as supplied — never replaced by
+    `asset.currentPrice` or any live quote. The ledger is the user's record of
+    what they paid, not a market snapshot.
+  - No P&L / cost-basis / capital-gains computation was added. The ledger is
+    the foundation a future P&L feature would build on.
+
+The central constraint, consistent with M4: all monetary/quantity input is
+decimal strings, validated for exact shape and stored as numeric columns. No
+JavaScript float arithmetic anywhere.
+
+2. VALIDATION
+=============
+
+Validator refactor (src/features/portfolio/presentation/validators/decimal-string.validator.ts):
+  - IsDecimalString was made parameterizable via registerDecorator + a
+    constraints array: `IsDecimalString({ maxFractionDigits, allowZero })`.
+    class-validator instantiates the validator without constructor arguments,
+    so the options are carried through `args.constraints` and read inside
+    validate().
+  - The default message was changed from the amount-specific
+    "amount must be a positive decimal number..." to the generic
+    "must be a positive decimal number with at most N fractional digits",
+    so the same validator serves amount/price/fee. Swagger examples were
+    updated accordingly.
+  - Fee reuses the validator with allowZero: true (a fee of "0" is legal).
+
+Where validation lives:
+  - Global pipeline (presentation/validation/pipe/validation.constants.ts):
+    whitelist, forbidNonWhitelisted, transform, enableImplicitConversion false,
+    422 error status. occurAt/from/to stay strings in the DTOs and are
+    converted with new Date() inside the use case / query mapping.
+  - Create DTO: assetId UUID; type enum; amount decimal string (positive, <= 18
+    fractional digits); price optional decimal string (positive, <= 8, required
+    by the use case for BUY/SELL); fee optional decimal string (non-negative,
+    <= 8); occurredAt ISO 8601; notes trimmed, max 1000 chars.
+  - List DTO: limit int 1..100 (default 20), cursor string, assetId UUID,
+    type enum, from/to ISO 8601.
+
+3. DOMAIN MODEL
+===============
+
+  src/features/portfolio/domain/entities/portfolio-transaction.entity.ts
+  src/features/portfolio/domain/enums/portfolio-transaction-type.enum.ts
+  src/features/portfolio/domain/errors/portfolio-errors.ts (extended)
+  src/features/portfolio/domain/errors/portfolio-error-code.enum.ts (extended)
+
+PortfolioTransactionType: BUY | SELL | TRANSFER_IN | TRANSFER_OUT | DEPOSIT | WITHDRAWAL
+  The enum carries all six values (schema enum has all six too) so the API can
+  answer the question "why is DEPOSIT not supported" with a precise error
+  rather than a generic validation failure.
+
+Entity:
+  id            uuid PK (default uuid_generate_v4())
+  userId        uuid, FK NO ACTION -> "user".id
+  portfolioId   uuid, FK NO ACTION -> portfolio.id
+  assetId       uuid, FK NO ACTION -> asset.id
+  type          portfolio_transaction_type_enum
+  amount        numeric(36,18) NOT NULL, CHK amount > 0
+  price         numeric(30,8)  nullable, CHK price > 0
+  fee           numeric(30,8)  nullable, CHK fee >= 0
+  occurredAt    timestamptz NOT NULL
+  notes         varchar(1000) nullable
+  createdAt/updatedAt timestamptz, now() defaults
+
+  Indexes:
+    IDX_portfolio_transaction_user_id
+    (portfolioId, occurredAt DESC, id DESC)  — keyset pagination order
+    (portfolioId, assetId, occurredAt DESC)  — per-asset ledger scans
+
+  The FK action (NO ACTION) mirrors the holdings table exactly; user/portfolio/
+  asset deletion is out of scope for this milestone.
+
+PortfolioErrorCode additions:
+  TRANSACTION_NOT_FOUND         (404)
+  TRANSACTION_TYPE_NOT_SUPPORTED (422, logged in the swagger error catalog)
+  TRANSACTION_PRICE_REQUIRED    (422)
+  INVALID_CURSOR                (400, documented via badRequestResponse)
+
+4. MIGRATION
+============
+
+  src/infrastructure/databases/postgres/migrations/1700000010000-CreatePortfolioTransactionTable.ts
+
+  Creates the table, the portfolio_transaction_type_enum type, indexes, and
+  check/FK constraints. Registered in test/setup/migrations.ts (E2E_MIGRATIONS)
+  so the e2e worker databases pick it up. Verified up/down/re-up on a scratch
+  database: down drops the table AND the enum type; re-up recreates both.
+
+5. REPOSITORY
+=============
+
+  src/features/portfolio/infrastructure/repositories/portfolio-transaction.repository.ts
+  Contracts in src/features/portfolio/application/interfaces/portfolio.interface.ts
+  (IPortfolioTransactionRepository + PORTFOLIO_TRANSACTION_REPOSITORY symbol).
+
+  create(data)                       — create + save
+  findByIdAndPortfolioAndUser(id, portfolioId, userId)
+                                     — single query, joins asset + portfolio
+  listByPortfolioAndUser(filter)     — QueryBuilder, every value parameterized;
+     scoped by userId + portfolioId; optional assetId/type/from/to filters;
+     keyset cursor predicate
+       (occurredAt < :cursorOccurredAt OR
+        (occurredAt = :cursorOccurredAt AND id < :cursorId))
+     ordered by (occurredAt DESC, id DESC), take(limit)
+  deleteByIdAndPortfolioAndUser(id, portfolioId, userId)
+                                     — delete + affected==1
+
+6. USE CASES
+============
+
+  src/features/portfolio/application/use-cases/
+    create-portfolio-transaction.use-case.ts
+    get-portfolio-transaction.use-case.ts
+    list-portfolio-transactions.use-case.ts
+    delete-portfolio-transaction.use-case.ts
+
+  Every use case first resolves the portfolio via findByIdAndUser(portfolioId,
+  userId) — a portfolio owned by another account is indistinguishable from a
+  missing one (404 PORTFOLIO_NOT_FOUND). All repository calls are additionally
+  scoped by userId.
+
+  Create:
+    portfolio 404 -> asset 404 -> type support (422) -> price required for
+    BUY/SELL (422) -> repository.create. Logs
+    LogEvent.PORTFOLIO_TRANSACTION_CREATED with transactionId, type, amount,
+    price, fee. Attaches portfolio + asset relations to the saved entity so the
+    response is complete without a second query.
+
+  Get:
+    portfolio 404 -> findByIdAndPortfolioAndUser -> 404 TRANSACTION_NOT_FOUND.
+
+  List:
+    portfolio 404 -> parseCursor (see below) -> listByPortfolioAndUser with
+    take(limit + 1) -> paginate (items + nextCursor, hasMore when limit+1 rows
+    came back). Filters and the cursor are combined in the same keyset query;
+    filtering after pagination is never done in memory.
+
+  Delete:
+    portfolio 404 -> deleteByIdAndPortfolioAndUser -> 404 when nothing matched
+    -> logs LogEvent.PORTFOLIO_TRANSACTION_DELETED.
+
+  Cursor:
+    base64url of JSON { occurredAt: ISO, id }. Strictly validated on read:
+    base64 decodes, parses as JSON, id passes isValidUUID, occurredAt passes
+    Date.parse. Any violation -> 400 INVALID_CURSOR. The cursor is only ever
+    evaluated against the caller's own rows, so tampering cannot probe other
+    users' data.
+
+7. API ENDPOINT
+===============
+
+  src/features/portfolio/presentation/controllers/portfolio-transactions.controller.ts
+  path 'portfolios/:portfolioId/transactions', version '1'.
+
+  POST   /v1/portfolios/:portfolioId/transactions            -> 201 transaction
+  GET    /v1/portfolios/:portfolioId/transactions            -> paginated list
+  GET    /v1/portfolios/:portfolioId/transactions/:id        -> 200 transaction
+  DELETE /v1/portfolios/:portfolioId/transactions/:id        -> 204
+
+  Route-param DTOs (dedicated, per the "no generic IdDto" pattern):
+    PortfolioTransactionParamsDto       (portfolioId)
+    PortfolioTransactionIdParamsDto     (portfolioId + id)
+
+  Response DTOs:
+    portfolio-transaction.response.dto.ts — id, portfolioId, asset {id, symbol,
+      name}, type, amount, price, fee, occurredAt, notes, createdAt, updatedAt.
+      userId is intentionally absent.
+    portfolio-transaction-list.response.dto.ts — items + nextCursor.
+
+  Mapper: src/features/portfolio/application/mappers/portfolio-transaction.mapper.ts
+
+  Swagger: ApiCreatePortfolioTransaction / ApiListPortfolioTransactions /
+    ApiGetPortfolioTransaction / ApiDeletePortfolioTransaction added to
+    portfolio.swagger.ts with the shared error catalog and 404 ownership docs.
+
+  Module wiring: portfolio.module.ts registers the four use cases, the
+  repository, the mapper, the controller, and PortfolioTransaction in
+  TypeOrmModule.forFeature.
+
+  Decimal-string asymmetry (verified by e2e and identical to holdings):
+    - POST echoes the decimal strings exactly as sent (typeorm save() returns
+      the in-memory entity): amount "0.5", price "60000.50", fee "0.75".
+    - GET / list re-read from Postgres and return scale-padded strings:
+      amount "0.500000000000000000", price "60000.50000000".
+
+8. AUTHORIZATION MODEL
+======================
+
+  Identical to the rest of the feature:
+    - JwtGuard (APP_GUARD) requires authentication on every endpoint.
+    - Ownership is pre-checked via findByIdAndUser; all repository queries are
+      scoped by userId + portfolioId.
+    - Foreign/unknown portfolios and foreign/unknown transactions return 404 —
+      never 403 — so no ownership probing is possible.
+  CSRF: POST and DELETE are protected by the global CSRF middleware (mutating
+  methods); e2e exercises this by sending the X-CSRF-Token header.
+
+9. TESTS
+========
+
+  Unit — use case specs (4 suites, 47 tests total across the feature):
+    create: 201 happy path incl. relations attached; portfolio 404; asset 404;
+      DEPOSIT/WITHDRAWAL 422; BUY/SELL without price 422; fee default null.
+    list:   portfolio 404; cursor parse (valid round-trip, malformed base64,
+      bad JSON, non-object, bad id, bad date -> INVALID_CURSOR); filters passed
+      to the repository; hasMore from limit+1; default limit.
+    get:    200 happy path; portfolio 404; transaction 404.
+    delete: 204 happy path + log event; portfolio 404; transaction 404.
+
+  E2E — test/v1/portfolio-v1.e2e-spec.ts, Transactions block (48 tests):
+    create BUY/SELL/TRANSFER_IN/TRANSFER_OUT (input decimal strings echoed);
+    401 unauthenticated; 404 foreign portfolio; 404 unknown portfolio; 422 for
+    DEPOSIT/WITHDRAWAL; 422 BUY without price; 422 invalid amount (negative,
+    > 18 fractional digits); 422 invalid price (> 8 digits); 422 unknown asset;
+    422 unknown type; unknown extra field (forbidNonWhitelisted); 422 fee with
+    negative value; 400 invalid cursor; list with default/smaller limit and
+    nextCursor pagination round-trip; list filters (assetId, type, from/to);
+    list returns scale-padded decimals; get by id (padded) + 404 for another
+    portfolio's id; delete 204 + 404 after delete.
+
+  Verification results:
+    ESLint:       PASS (0 errors)
+    TypeScript:   PASS (tsc --noEmit, 0 errors)
+    Build:        PASS (nest build)
+    Unit tests:   968 passed (113 suites)
+    E2E (test/v1): 274 passed (19 suites)
+    Migration:    PASS (up / down / re-up on scratch DB, enum dropped+recreated)
+
+  Commits:
+    75df283 refactor(portfolio): parameterize decimal string validator
+    25bc661 feat(portfolio): add portfolio transaction domain
+    b929d36 feat(portfolio): add portfolio transaction migration
+    1cd3162 feat(portfolio): add portfolio transaction DTOs
+    11233bd feat(portfolio): add transaction repository and use cases
+    9402430 feat(portfolio): expose portfolio transaction endpoints
+    c1ebb73 test(portfolio): add transaction use case unit tests
+    9160e85 test(portfolio): add transaction e2e coverage
+
+10. FILES ADDED
+===============
+
+Domain:
+  src/features/portfolio/domain/entities/portfolio-transaction.entity.ts
+  src/features/portfolio/domain/enums/portfolio-transaction-type.enum.ts
+
+Infrastructure:
+  src/features/portfolio/infrastructure/repositories/portfolio-transaction.repository.ts
+  src/infrastructure/databases/postgres/migrations/1700000010000-CreatePortfolioTransactionTable.ts
+
+Application:
+  src/features/portfolio/application/use-cases/create-portfolio-transaction.use-case.ts
+  src/features/portfolio/application/use-cases/get-portfolio-transaction.use-case.ts
+  src/features/portfolio/application/use-cases/list-portfolio-transactions.use-case.ts
+  src/features/portfolio/application/use-cases/delete-portfolio-transaction.use-case.ts
+  src/features/portfolio/application/mappers/portfolio-transaction.mapper.ts
+  src/features/portfolio/application/use-cases/__tests__/create-portfolio-transaction.use-case.spec.ts
+  src/features/portfolio/application/use-cases/__tests__/get-portfolio-transaction.use-case.spec.ts
+  src/features/portfolio/application/use-cases/__tests__/list-portfolio-transactions.use-case.spec.ts
+  src/features/portfolio/application/use-cases/__tests__/delete-portfolio-transaction.use-case.spec.ts
+
+Presentation:
+  src/features/portfolio/presentation/dto/request/create-portfolio-transaction.request.dto.ts
+  src/features/portfolio/presentation/dto/request/portfolio-transaction-list.request.dto.ts
+  src/features/portfolio/presentation/dto/request/portfolio-transaction.params.dto.ts
+  src/features/portfolio/presentation/dto/response/portfolio-transaction.response.dto.ts
+  src/features/portfolio/presentation/dto/response/portfolio-transaction-list.response.dto.ts
+  src/features/portfolio/presentation/controllers/portfolio-transactions.controller.ts
+
+Report:
+  portfolio-transactions-report.txt
+
+11. FILES MODIFIED
+==================
+
+  src/features/portfolio/presentation/validators/decimal-string.validator.ts
+      — IsDecimalString parameterized (maxFractionDigits, allowZero)
+  src/features/portfolio/domain/errors/portfolio-errors.ts
+      — transactionNotFound / transactionTypeNotSupported / transactionPriceRequired
+  src/features/portfolio/domain/errors/portfolio-error-code.enum.ts
+      — TRANSACTION_NOT_FOUND, TRANSACTION_TYPE_NOT_SUPPORTED,
+        TRANSACTION_PRICE_REQUIRED, INVALID_CURSOR
+  src/features/portfolio/application/interfaces/portfolio.interface.ts
+      — transaction repository contracts, cursor/filter/data types, use case
+        interfaces + symbols, CreatePortfolioTransactionData
+  src/features/portfolio/presentation/swagger/portfolio.swagger.ts
+      — 4 transaction operations + PATH.TRANSACTIONS / PATH.TRANSACTION
+  src/features/portfolio/portfolio.module.ts
+      — controller, use cases, repository, mapper, entity registration
+  src/infrastructure/logging/logging.constants.ts
+      — PORTFOLIO_TRANSACTION_CREATED / PORTFOLIO_TRANSACTION_DELETED
+  test/setup/migrations.ts
+      — CreatePortfolioTransactionTable1700000010000 in E2E_MIGRATIONS
+  test/v1/portfolio-v1.e2e-spec.ts
+      — Transactions e2e block (48 tests)
+
+12. REMAINING CONSIDERATIONS
+============================
+
+a) Ledger does not affect holdings/valuation. Updating holding amounts on
+   BUY/SELL would need cost-basis semantics (FIFO/avg) that M5 explicitly
+   defers. This is the intended follow-up (M6).
+
+b) DEPOSIT/WITHDRAWAL are rejected because the schema requires an asset.
+   Cash-like transactions would need either a nullable asset or a separate
+   table; not done here.
+
+c) No update/upsert of transactions: ledger entries are treated as immutable
+   facts (insert + delete only). Editing would require an audit trail
+   question; not introduced speculatively.
+
+d) Cursor validity: a cursor points into the (occurredAt, id) ordering and
+   stays correct while that page's rows are unchanged; inserts before the
+   boundary are fine, and the docs say so. No total-count endpoint exists —
+   list returns items + nextCursor, matching the holdings list.
+
+e) price/fee fractional-digit caps (8) mirror the holding columns' scale.
+   amounts cap at 18 to match numeric(36,18). If higher precision quotes ever
+   arrive, both the validator caps and the numeric scales must move together.
