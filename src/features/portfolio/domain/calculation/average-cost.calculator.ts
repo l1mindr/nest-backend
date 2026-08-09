@@ -16,7 +16,10 @@ import {
 } from './cost-basis-validation';
 import { CalculationErrors } from './errors/calculation-errors';
 import { CostBasisOpeningState } from './types/calculation-input.types';
-import { CostBasisResult } from './types/calculation-result.types';
+import {
+  CostBasisResult,
+  RealizedPnlEvent
+} from './types/calculation-result.types';
 import {
   CalculationTransaction,
   CalculationTransactionType
@@ -47,6 +50,7 @@ export class AverageCostCalculator implements CostBasisCalculator {
   ): CostBasisResult {
     let quantity = assertOpeningQuantity(opening.quantity);
     let totalCost = assertOpeningCost(opening.totalCost);
+    const realizedPnl: RealizedPnlEvent[] = [];
 
     for (const transaction of transactions) {
       if (!transaction || typeof transaction !== 'object') {
@@ -85,6 +89,6 @@ export class AverageCostCalculator implements CostBasisCalculator {
       }
     }
 
-    return { quantity, totalCost };
+    return { quantity, totalCost, realizedPnl };
   }
 }

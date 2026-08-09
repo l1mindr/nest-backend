@@ -1,5 +1,33 @@
+import { CalculationTransactionType } from './calculation-transaction.types';
+
 /**
- * The exact state produced by a cost-basis strategy. Both values are decimal
+ * A single realized P&L event produced by a SELL disposal.
+ *
+ * All monetary values are exact decimal strings. P&L is reported gross of
+ * fees: `proceeds` is `amount × price`, the transaction fee is carried
+ * through unchanged, and the application layer decides how to net it.
+ */
+export interface RealizedPnlEvent {
+  /** Opaque id of the SELL transaction that produced the event. */
+  transactionId?: string;
+  /** ISO 8601 timestamp of the disposal. */
+  occurredAt: string;
+  /** Only SELL disposals realize P&L; transfers are custody moves. */
+  type: CalculationTransactionType.SELL;
+  /** Quantity disposed, as a decimal string. */
+  amount: string;
+  /** Gross proceeds (`amount × price`), as a decimal string. */
+  proceeds: string;
+  /** Acquisition cost released from the position, as a decimal string. */
+  costBasisReleased: string;
+  /** Signed realized gain (`proceeds − costBasisReleased`). */
+  realizedGain: string;
+  /** Fee carried through for the application layer; never netted here. */
+  fee?: string;
+}
+
+/**
+ * The exact state produced by a cost-basis strategy. All values are decimal
  * strings and are never rounded.
  */
 export interface CostBasisResult {
@@ -7,6 +35,8 @@ export interface CostBasisResult {
   quantity: string;
   /** Accumulated acquisition cost, as a decimal string. */
   totalCost: string;
+  /** Realized P&L events, in chronological processing order. Empty when no SELL occurred. */
+  realizedPnl: RealizedPnlEvent[];
 }
 
 /**
@@ -20,4 +50,5 @@ export interface PortfolioCalculationResult {
   quantity: string;
   totalCost: string;
   averageCost: string;
+  realizedPnl: RealizedPnlEvent[];
 }

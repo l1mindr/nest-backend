@@ -56,7 +56,7 @@ export class PortfolioCalculationEngine {
       totalCost: input.openingCost ?? '0'
     };
 
-    const { quantity, totalCost } = this.costBasis.calculate(
+    const { quantity, totalCost, realizedPnl } = this.costBasis.calculate(
       transactions,
       opening
     );
@@ -70,7 +70,7 @@ export class PortfolioCalculationEngine {
             CALCULATION_DIVISION_MAX_FRACTION_DIGITS
           );
 
-    return { quantity, totalCost, averageCost };
+    return { quantity, totalCost, averageCost, realizedPnl };
   }
 
   /**

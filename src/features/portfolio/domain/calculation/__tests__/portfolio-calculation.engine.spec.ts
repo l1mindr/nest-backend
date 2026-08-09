@@ -73,7 +73,8 @@ describe('PortfolioCalculationEngine', () => {
       ).toEqual({
         quantity: '2',
         totalCost: '120000',
-        averageCost: '60000'
+        averageCost: '60000',
+        realizedPnl: []
       });
     });
 
@@ -85,7 +86,8 @@ describe('PortfolioCalculationEngine', () => {
       ).toEqual({
         quantity: '0.1',
         totalCost: '0.02',
-        averageCost: '0.2'
+        averageCost: '0.2',
+        realizedPnl: []
       });
     });
 
@@ -100,7 +102,8 @@ describe('PortfolioCalculationEngine', () => {
       ).toEqual({
         quantity: '0.3',
         totalCost: '0.3',
-        averageCost: '1'
+        averageCost: '1',
+        realizedPnl: []
       });
     });
 
@@ -114,7 +117,8 @@ describe('PortfolioCalculationEngine', () => {
       ).toEqual({
         quantity: '2',
         totalCost: '120000',
-        averageCost: '60000'
+        averageCost: '60000',
+        realizedPnl: []
       });
     });
 
@@ -122,7 +126,8 @@ describe('PortfolioCalculationEngine', () => {
       expect(engine.calculate({ transactions: [] })).toEqual({
         quantity: '0',
         totalCost: '0',
-        averageCost: '0'
+        averageCost: '0',
+        realizedPnl: []
       });
     });
 
@@ -137,7 +142,8 @@ describe('PortfolioCalculationEngine', () => {
       ).toEqual({
         quantity: '0',
         totalCost: '120000',
-        averageCost: '0'
+        averageCost: '0',
+        realizedPnl: []
       });
     });
 
@@ -152,7 +158,8 @@ describe('PortfolioCalculationEngine', () => {
       ).toEqual({
         quantity: '2',
         totalCost: '0',
-        averageCost: '0'
+        averageCost: '0',
+        realizedPnl: []
       });
     });
   });
@@ -169,7 +176,8 @@ describe('PortfolioCalculationEngine', () => {
       ).toEqual({
         quantity: '2',
         totalCost: '120000',
-        averageCost: '60000'
+        averageCost: '60000',
+        realizedPnl: []
       });
     });
 
@@ -184,7 +192,8 @@ describe('PortfolioCalculationEngine', () => {
       ).toEqual({
         quantity: '0',
         totalCost: '50000',
-        averageCost: '0'
+        averageCost: '0',
+        realizedPnl: []
       });
     });
 
@@ -199,7 +208,8 @@ describe('PortfolioCalculationEngine', () => {
       ).toEqual({
         quantity: '0',
         totalCost: '50000',
-        averageCost: '0'
+        averageCost: '0',
+        realizedPnl: []
       });
     });
   });
@@ -323,7 +333,11 @@ describe('PortfolioCalculationEngine', () => {
   describe('cost-basis delegation', () => {
     it('should hand the ordered transactions and opening state to the strategy', () => {
       const costBasis: CostBasisCalculator = {
-        calculate: jest.fn(() => ({ quantity: '2', totalCost: '120000' }))
+        calculate: jest.fn(() => ({
+          quantity: '2',
+          totalCost: '120000',
+          realizedPnl: []
+        }))
       };
       const engineWithStub = new PortfolioCalculationEngine(costBasis);
 
@@ -347,7 +361,8 @@ describe('PortfolioCalculationEngine', () => {
       expect(result).toEqual({
         quantity: '2',
         totalCost: '120000',
-        averageCost: '60000'
+        averageCost: '60000',
+        realizedPnl: []
       });
     });
 
@@ -360,7 +375,8 @@ describe('PortfolioCalculationEngine', () => {
       ).toEqual({
         quantity: '1',
         totalCost: '50000',
-        averageCost: '50000'
+        averageCost: '50000',
+        realizedPnl: []
       });
     });
   });
@@ -371,6 +387,11 @@ describe('PortfolioCalculationEngine', () => {
       engine.calculate({
         transactions: [transferIn('2', '2026-07-28T08:00:00.000Z')]
       })
-    ).toEqual({ quantity: '2', totalCost: '0', averageCost: '0' });
+    ).toEqual({
+      quantity: '2',
+      totalCost: '0',
+      averageCost: '0',
+      realizedPnl: []
+    });
   });
 });
