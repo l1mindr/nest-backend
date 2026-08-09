@@ -9,8 +9,8 @@ cost-basis policies that produce it:
 
   - SELL and TRANSFER_OUT now release cost basis instead of reducing quantity
     only.
-  - Every SELL produces a realized P&L event (proceeds, released basis, signed
-    gain/loss).
+  - Every SELL produces a realized P&L event (price, proceeds, released basis,
+    signed gain/loss).
   - Three cost-basis strategies are implemented behind the existing
     CostBasisCalculator interface: AVERAGE, FIFO and LIFO.
   - The engine accepts a strategy by enum or an injected calculator instance.
@@ -23,61 +23,39 @@ No migrations, no controllers, no DTOs, no Swagger, no application-layer
 wiring, and no holdings mutation. Results are computed on demand and never
 persisted.
 
-2. SCOPE DECISIONS
-==================
+2. M6.1 BASELINE
+================
 
-Scope confirmed before implementation:
-  - Strategies: AVERAGE + FIFO + LIFO, selectable through the engine.
-  - Surface: domain + engine only; no HTTP endpoint.
+M6.1 (portfolio-calculation-engine-report.txt) delivered the pure
+PortfolioCalculationEngine and the AVERAGE cost-basis calculator. At that
+point SELL only reduced `quantity`; `totalCost` was left untouched, and the
+transfer-out basis policy and realized P&L were explicitly deferred. M6.2
+resolves both. The M6.1 engine surface is preserved: `calculate(input)` still
+returns `{ quantity, totalCost, averageCost }`, now extended with
+`realizedPnl`.
 
-Design decisions (documented here so they are explicit, not accidental):
+3. COST-BASIS POLICY
+====================
 
-  - TRANSFER_OUT releases cost basis like a SELL but produces NO realized P&L
-    event. A custody move out of the portfolio is not a disposal; it removes
-    units (and their basis) from the position without realizing a gain. This
-    keeps the average cost of the remainder unchanged and lets FIFO/LIFO
-    consume the correct lots. (The M6.1 report deferred this exact decision;
-    the price being optional on transfers makes "realized P&L on transfer-out"
-    ill-defined, since proceeds cannot be computed without a sale price.)
-  - P&L is reported GROSS of fees. `proceeds` is `amount × price`, the
-    transaction fee is carried on the event (`fee`), and the application layer
-    decides how to net it. Fees are still never merged into `totalCost`.
-  - The opening position is modeled as a single lot for FIFO/LIFO whose
-    per-unit cost is `openingCost / openingQuantity` — the only division in
-    lot accounting; BUY lots carry their exact price. When the opening
-    quantity is zero no opening lot exists (an orphaned opening cost is simply
-    not attached to any lot).
-  - TRANSFER_IN creates a zero-cost lot: it adds units without creating basis
-    (a transfer price is preserved but never interpreted as acquisition cost),
-    and the units must still be tracked so they can be sold or transferred out
-    under FIFO/LIFO.
-  - The engine still returns `averageCost`, now computed as the average of the
-    remaining basis. With basis release this is invariant across sales for the
-    AVERAGE policy.
+Three strategies implement the same CostBasisCalculator interface:
 
-3. NEW / CHANGED FILES
-======================
+  - AVERAGE: all acquisition cost is pooled; a disposal releases a
+    proportional share `amount × (totalCost / quantityBefore)`.
+  - FIFO: each acquisition creates a lot; a disposal consumes the oldest
+    lots first and releases their exact cost.
+  - LIFO: lot-based; a disposal consumes the newest lots first.
 
-  src/features/portfolio/domain/calculation/
-  ├── cost-basis-validation.ts                 NEW shared validation module
-  ├── cost-basis.calculator.ts                 interface only (split out)
-  ├── average-cost.calculator.ts               moved out + basis release (M6.2)
-  ├── lot.ts                                   Lot model + consumeLots helper
-  ├── lot-cost-basis.calculator.ts             LotCostBasisCalculator base +
-  │                                            Fifo/LifoCostBasisCalculator
-  ├── portfolio-calculation.engine.ts          strategy selection + realizedPnl
-  ├── types/cost-basis.strategy.enum.ts        NEW CostBasisStrategy enum
-  ├── types/calculation-result.types.ts        RealizedPnlEvent + realizedPnl
-  └── __tests__/
-      ├── lot.spec.ts                          NEW
-      ├── fifo-cost-basis.calculator.spec.ts   NEW
-      ├── lifo-cost-basis.calculator.spec.ts   NEW
-      ├── average-cost.calculator.spec.ts      renamed + extended
-      └── portfolio-calculation.engine.spec.ts extended
+Invariants shared by all three:
 
-The original cost-basis.calculator.spec.ts was renamed to
-average-cost.calculator.spec.ts because that file now tests only the average
-strategy; the interface has no behavior of its own.
+  - A disposal can never release more cost basis than the strategy currently
+    holds (availability is checked before any release computation).
+  - Quantity can never go negative.
+  - Remaining cost basis after a disposal is `previousCostBasis − released`.
+  - TRANSFER_IN never creates acquisition cost (zero basis).
+  - Only SELL realizes P&L; TRANSFER_OUT is a custody move.
+
+Strategy selection (§4) is the only surface the engine exposes; the policies
+themselves are interchangeable and unit-tested independently.
 
 4. STRATEGY SELECTION
 =====================
@@ -94,69 +72,94 @@ strategy; the interface has no behavior of its own.
         FIFO:    released 100, gain 50,  remaining cost 200
         LIFO:    released 200, gain -50, remaining cost 100
 
-5. REALIZED P&L EVENT
-=====================
+5. AVERAGE COST IMPLEMENTATION
+==============================
 
-  { transactionId?, occurredAt, type: SELL, amount, proceeds,
-    costBasisReleased, realizedGain, fee? }
+  AverageCostCalculator implements CostBasisCalculator.
 
-  - proceeds = amount × price (exact).
-  - costBasisReleased is the acquisition cost removed from the position:
-    proportional share for AVERAGE, consumed lots for FIFO/LIFO.
-  - realizedGain = proceeds − costBasisReleased (signed decimal string).
-  - Events appear in chronological processing order; empty when no SELL.
-
-6. AVERAGE-COST POLICY (M6.2)
-=============================
-
-  SELL:         releasedBasis = amount × (totalCost / quantityBefore)
-                totalCost -= releasedBasis; event recorded.
-  TRANSFER_OUT: same release, no event.
-  TRANSFER_IN:  quantity += amount; no basis created.
+  BUY:          quantity += amount; totalCost += amount × price.
+  SELL:         releasedBasis = amount × (totalCost / quantityBefore);
+                totalCost -= releasedBasis; realized P&L event recorded.
+  TRANSFER_IN:  quantity += amount; never creates acquisition cost.
+  TRANSFER_OUT: releases basis exactly like SELL but records NO event.
 
   The average cost of the remainder is unchanged by a sale (mathematically
   exact except when the per-sale average is a non-terminating quotient, which
-  is truncated at CALCULATION_DIVISION_MAX_FRACTION_DIGITS and documented in
-  the code, mirroring M6.1's averageCost behavior).
+  is truncated at CALCULATION_DIVISION_MAX_FRACTION_DIGITS — see §10).
 
-  Example: buy 1 @ 50000, buy 1 @ 70000, sell 1 @ 90000 →
-    released 60000, gain 30000, remainder { 1, 60000 } (avg unchanged at 60000).
+6. FIFO IMPLEMENTATION
+======================
 
-7. FIFO / LIFO POLICIES
-=======================
+  FifoCostBasisCalculator extends LotCostBasisCalculator with fromBack=false.
 
-  Both are lot-based and share LotCostBasisCalculator; they differ only in the
-  queue end a disposal consumes from (front = FIFO, back = LIFO).
+  BUY          pushes a lot { amount, price } — per-unit cost is the exact
+               BUY price.
+  SELL         consumes lots from the front (oldest first); releasedBasis is
+               the exact sum of consumed × unitCost; event recorded.
+  TRANSFER_IN  pushes a zero-cost lot { amount, 0 }.
+  TRANSFER_OUT consumes lots from the front identically but records NO event.
 
-  - BUY pushes a lot { amount, price } — per-unit cost is the exact BUY price.
-  - Opening position is a single lot (see section 2).
-  - TRANSFER_IN pushes a zero-cost lot.
-  - SELL consumes lots in order and releases the exact sum of
-    consumed × unitCost; proceeds/event computed as in section 5.
-  - TRANSFER_OUT consumes lots identically but records no event.
-  - Exhausted lots are dropped; the remaining lots keep acquisition order in
-    the result regardless of which end was consumed (consumeLots builds the
-    remainder by index in original order).
+  Opening position is a single lot whose per-unit cost is
+  openingCost / openingQuantity (see §3 / §11). Exhausted lots are dropped;
+  remaining lots keep acquisition order.
 
-  consumeLots(lots, amount, fromBack) is the shared pure helper in lot.ts:
-  it never mutates the input array, returns a fresh lot list and the released
-  basis, and is unit-tested independently.
+7. LIFO IMPLEMENTATION
+======================
 
-8. ERROR / INVARIANT HANDLING
-=============================
+  LifoCostBasisCalculator extends LotCostBasisCalculator with fromBack=true.
 
-  Reuses the M6.1 validation vocabulary unchanged. No new error codes were
-  needed:
-  - All three strategies share the extracted cost-basis-validation module.
-  - Disposals exceeding the held quantity still fail deterministically with
-    INSUFFICIENT_QUANTITY before any basis is released (the availability
-    check always precedes the release computation, so division by a zero
-    quantity cannot occur).
-  - Malformed/negative amounts, prices and fees, unsupported types, and
-    invalid opening state behave exactly as in M6.1.
+  Identical to FIFO except that disposals consume lots from the back (newest
+  first). Shared behavior lives in LotCostBasisCalculator and in the pure
+  consumeLots(lots, amount, fromBack) helper in lot.ts, which never mutates
+  its input and returns a fresh remainder plus the released basis.
 
-9. PRECISION BEHAVIOR
-=====================
+8. TRANSFER_IN ZERO-BASIS POLICY
+================================
+
+  TRANSFER_IN adds units without creating acquisition cost. The strategy
+  tracks the units so they can later be sold or transferred out:
+
+    - AVERAGE: quantity += amount; totalCost unchanged (a transfer price is
+      preserved but never interpreted as acquisition cost).
+    - FIFO/LIFO: pushes a zero-cost lot { amount, unitCost: '0' }.
+
+  Consequence: selling zero-basis units realizes a gain equal to the full
+  proceeds (releasedBasis = 0). Multiple zero-cost transfer lots behave like
+  any other lots under FIFO/LIFO ordering.
+
+9. TRANSFER_OUT SEMANTICS
+=========================
+
+  TRANSFER_OUT releases cost basis exactly like SELL but produces NO realized
+  P&L event. A custody move out of the portfolio is not a disposal: it removes
+  units (and their basis) from the position without realizing a gain. This
+  keeps the remainder's basis correct and lets FIFO/LIFO consume the correct
+  lots.
+
+  A TRANSFER_OUT must never use its optional price to generate proceeds or
+  P&L. In the result, a transfer-out is therefore visible only through the
+  reduced quantity/totalCost and the absence of an event for it — an
+  equivalent representation of "proceeds = 0, realized P&L = 0".
+
+10. REALIZED P&L FORMULA
+========================
+
+  Per SELL disposal the event carries:
+
+  { transactionId?, occurredAt, type: 'SELL', amount, price, proceeds,
+    releasedCostBasis, realizedPnl, fee? }
+
+    proceeds          = amount × price            (exact)
+    releasedCostBasis = policy-specific (see above)
+    realizedPnl       = proceeds − releasedCostBasis   (signed decimal)
+
+  - Events appear in chronological processing order; empty when no SELL.
+  - P&L is reported GROSS of fees: `proceeds` is `amount × price`, the
+    transaction fee is carried on the event (`fee`), and the application
+    layer decides how to net it. Fees are still never merged into `totalCost`.
+
+11. DECIMAL PRECISION BEHAVIOR
+==============================
 
   All arithmetic remains BigInt-based and exact where a finite decimal exists.
   Two unavoidable truncation points are documented and tested:
@@ -170,45 +173,145 @@ strategy; the interface has no behavior of its own.
   BUY lots are always exact (released basis = sold × exact price), so a ledger
   with no opening position has zero approximation error under FIFO/LIFO.
 
-10. TEST COVERAGE (86 tests in the calculation domain)
+12. DOMAIN ARCHITECTURE
+=======================
+
+  All M6.2 code sits in the pure domain layer:
+
+    portfolio/domain/calculation/
+    ├── cost-basis.calculator.ts        CostBasisCalculator interface
+    ├── cost-basis-validation.ts        shared validation (split out in M6.2)
+    ├── average-cost.calculator.ts      AVERAGE policy
+    ├── lot.ts                          Lot model + consumeLots pure helper
+    ├── lot-cost-basis.calculator.ts    shared lot accounting + FIFO/LIFO
+    ├── portfolio-calculation.engine.ts chronology + strategy selection
+    └── types/
+        ├── cost-basis.strategy.enum.ts AVERAGE | FIFO | LIFO
+        ├── calculation-result.types.ts RealizedPnlEvent + realizedPnl
+        ├── calculation-input.types.ts  (M6.1)
+        └── calculation-transaction.types.ts (M6.1)
+
+  The engine sorts by occurredAt (id tie-breaker, stable fallback) and
+  delegates to the selected strategy. Strategies are stateless and return new
+  result objects; inputs are never mutated. No Nest, TypeORM, or express
+  imports anywhere in this subtree.
+
+13. ERROR HANDLING
+==================
+
+  Reuses the M6.1 validation vocabulary unchanged. No new error codes were
+  needed; all three strategies share the extracted cost-basis-validation
+  module:
+
+  - Disposals exceeding the held quantity fail deterministically with
+    INSUFFICIENT_QUANTITY before any basis is released (the availability
+    check always precedes the release computation, so division by a zero
+    quantity cannot occur).
+  - Malformed/negative amounts, prices and fees, missing price on BUY/SELL,
+    unsupported transaction types, and invalid opening state behave exactly
+    as in M6.1.
+  - Errors are thrown as CalculationError with a stable CalculationErrorCode;
+    they are not swallowed anywhere.
+
+14. INPUT / OUTPUT TYPES
+========================
+
+  Input  (M6.1, unchanged):
+    PortfolioCalculationInput {
+      assetId?: string;
+      openingQuantity?: string;   // default '0'
+      openingCost?: string;       // default '0'
+      transactions: CalculationTransaction[];
+    }
+    CalculationTransaction {
+      id?: string; occurredAt: string; type: BUY | SELL | TRANSFER_IN |
+      TRANSFER_OUT; amount: string; price?: string; fee?: string;
+    }
+
+  Output  (M6.1 surface extended):
+    PortfolioCalculationResult {
+      quantity: string;          // exact decimal
+      totalCost: string;         // exact decimal (remaining basis)
+      averageCost: string;       // '0' when quantity is zero
+      realizedPnl: RealizedPnlEvent[];
+    }
+
+  All monetary values are exact decimal strings. No JavaScript numbers are
+  involved in computation.
+
+15. TEST COVERAGE (92 tests in the calculation domain)
 ======================================================
 
   consumeLots (7): FIFO front consumption, LIFO back consumption, multi-lot
     consumption, original-order preservation for partial LIFO, exact 0.1×0.2
     released basis, empty-list zero release, input immutability.
 
-  FifoCostBasisCalculator (11): oldest-lot-first release, partial sale across
+  FifoCostBasisCalculator (12): oldest-lot-first release, partial sale across
     lots, opening lot treated as oldest, zero-cost transfer lots consumed
-    first, transfer-out releases basis without P&L, full sell-out realized
-    gain, insufficient quantity, BUY accumulation, fee preserved separately,
-    malformed amount, input immutability.
+    first, transfer-out releases basis without P&L, transfer-in consumed on
+    transfer-out without P&L, full sell-out realized gain, insufficient
+    quantity, BUY accumulation, fee preserved separately, malformed amount,
+    input immutability.
 
-  LifoCostBasisCalculator (9): newest-lot-first release, partial sale in
+  LifoCostBasisCalculator (10): newest-lot-first release, partial sale in
     reverse order, opening-only lot, latest buy consumed before a zero-cost
-    transfer lot, transfer-out without P&L, full sell-out, insufficient
-    quantity, BUY accumulation, input immutability.
+    transfer lot, transfer-out without P&L, transfer-in consumed on
+    transfer-out without P&L, full sell-out, insufficient quantity, BUY
+    accumulation, input immutability.
 
-  AverageCostCalculator (33): the M6.1 suite (BUY, transfers, validation,
-    state handling) plus new SELL coverage — proportional release with realized
-    gain, loss below average cost, zero gain at average cost, multi-sell basis
-    release, invariant remainder average, non-terminating precision truncation,
+  AverageCostCalculator (35): the M6.1 suite (BUY, transfers, validation,
+    state handling) plus SELL coverage — proportional release with realized
+    gain, loss below average cost, zero gain at average cost, multi-sell
+    basis release, invariant remainder average, SELL after TRANSFER_IN (full
+    proceeds as gain), full sell-out, non-terminating precision truncation,
     and transfer-out basis release without a P&L event.
 
-  PortfolioCalculationEngine (26): M6.1 suite (all results now include
+  PortfolioCalculationEngine (28): M6.1 suite (all results now include
     realizedPnl) plus strategy selection — AVERAGE default, explicit FIFO and
-    LIFO selection, and enum-vs-instance equivalence on a discriminating
-    ledger.
+    LIFO selection, enum-vs-instance equivalence on a discriminating ledger,
+    cross-strategy equivalence (identical quantity/proceeds, policy-specific
+    cost/P&L), and a BUY → TRANSFER_OUT → SELL edge case.
 
-11. VERIFICATION RESULTS
+16. VERIFICATION RESULTS
 ========================
 
   ESLint (lint:check):        PASS (0 errors)
   TypeScript (typecheck):     PASS (tsc --noEmit, 0 errors)
   Build (nest build):         PASS
-  Unit tests:                 1071 passed (118 suites) — was 1035/115 before M6.2
+  Unit tests:                 1077 passed (118 suites) — was 1035/115 before M6.2
   Portfolio e2e:              48 passed (test/v1/portfolio-v1.e2e-spec.ts)
 
-12. EXPLICITLY DEFERRED WORK (M6.3+)
+17. FILES ADDED
+==============
+
+  src/features/portfolio/domain/calculation/
+  ├── cost-basis-validation.ts                 shared validation
+  ├── lot.ts                                   Lot model + consumeLots
+  ├── lot-cost-basis.calculator.ts             FIFO + LIFO (shared base)
+  ├── types/cost-basis.strategy.enum.ts        AVERAGE | FIFO | LIFO
+  └── __tests__/
+      ├── lot.spec.ts
+      ├── fifo-cost-basis.calculator.spec.ts
+      └── lifo-cost-basis.calculator.spec.ts
+
+18. FILES MODIFIED
+==================
+
+  src/features/portfolio/domain/calculation/
+  ├── average-cost.calculator.ts               moved out of cost-basis.calculator
+  │                                            + basis release + realized P&L
+  ├── cost-basis.calculator.ts                 reduced to the interface
+  ├── portfolio-calculation.engine.ts          strategy selection + realizedPnl
+  ├── types/calculation-result.types.ts        RealizedPnlEvent + realizedPnl
+  └── __tests__/
+      ├── average-cost.calculator.spec.ts      renamed from cost-basis.calculator.spec.ts
+      └── portfolio-calculation.engine.spec.ts extended
+
+  The original cost-basis.calculator.spec.ts was renamed to
+  average-cost.calculator.spec.ts because that file now tests only the
+  average strategy; the interface has no behavior of its own.
+
+19. EXPLICITLY DEFERRED WORK (M6.3+)
 ====================================
 
   - Unrealized P&L and current value (M6.3): the engine input gains a
@@ -224,8 +327,8 @@ strategy; the interface has no behavior of its own.
     strategy) through Nest DI, and mapping domain inputs/outputs to repository
     data.
 
-Concerns / design decisions
-===========================
+20. ARCHITECTURAL CONSIDERATIONS
+================================
 
   - The AVERAGE strategy's disposal release reuses the same
     CALCULATION_DIVISION_MAX_FRACTION_DIGITS cap as averageCost, so per-sale
@@ -233,10 +336,54 @@ Concerns / design decisions
     product ever needs a bounded presentation scale, that remains a
     presentation decision.
   - TRANSFER_OUT releasing basis is a behavior change from M6.1 (which kept
-    totalCost untouched) and is intentional: the M6.1 report marked the
-    transfer-out policy as deferred, and releasing basis on a custody move is
-    required to keep the remainder's basis correct. The M6.1 tests that
-    asserted the old behavior were updated as part of the feature commit.
+    totalCost untouched) and is intentional: releasing basis on a custody
+    move is required to keep the remainder's basis correct. The M6.1 tests
+    that asserted the old behavior were updated as part of the feature
+    commit.
+  - The realized P&L event is SELL-only by design (transfers produce no P&L),
+    which keeps the disposal list a faithful audit trail of realized gains.
+  - No new dependencies, patterns, or abstractions were introduced; the
+    strategies compose behind the existing M6.1 interface.
+
+21. EXAMPLE CALCULATIONS
+========================
+
+  Ledger: BUY 1 @ 50000, BUY 2 @ 70000, SELL 1.5 @ 80000.
+
+  AVERAGE:
+    totalCost = 50000 + 140000 = 190000; quantity = 3; average = 63333.33...
+    released  = 1.5 × (190000 / 3) = 95000
+    proceeds  = 1.5 × 80000 = 120000
+    realizedPnl = 120000 − 95000 = 25000
+    remainder = { quantity 1.5, totalCost 95000 } (average unchanged)
+
+  FIFO:
+    lots = [1 @ 50000, 2 @ 70000]
+    consume 1 @ 50000 + 0.5 @ 70000
+    released  = 50000 + 35000 = 85000
+    proceeds  = 120000; realizedPnl = 120000 − 85000 = 35000
+    remainder = { quantity 1.5, totalCost 1.5 × 70000 = 105000 }
+
+  LIFO:
+    lots = [1 @ 50000, 2 @ 70000]
+    consume 1.5 @ 70000
+    released  = 1.5 × 70000 = 105000
+    proceeds  = 120000; realizedPnl = 120000 − 105000 = 15000
+    remainder = { quantity 1.5, totalCost 50000 + 0.5 × 70000 = 85000 }
+
+  These match the M6.2 spec's §9/§10 worked examples exactly.
+
+Concerns / design decisions
+===========================
+
+  - The AVERAGE worked example involves a non-terminating average
+    (190000 / 3), so in code the released basis is truncated to
+    94999.999999999999999999999999995 and the remainder cost to
+    95000.000000000000000000000000005 (26 fractional digits, §11); the values
+    shown above are the ideal ones, which the code approaches to < 10^-26.
+    The FIFO/LIFO examples are exact. The cross-strategy test in the engine
+    suite uses a terminating ledger (buy 1@100, buy 1@200, sell 1.5@160) so
+    the assertions are exact.
   - The M6.2 report supersedes the "SELL keeps totalCost" note in the M6.1
     report's sections 9 and 20; SELL now releases basis under all three
     policies.
