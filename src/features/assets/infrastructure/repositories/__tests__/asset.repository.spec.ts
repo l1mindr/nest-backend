@@ -10,65 +10,104 @@ describe('AssetRepository', () => {
     getMany: jest.fn()
   };
   const ormRepository = {
-    upsert: jest.fn(),
     findOneBy: jest.fn(),
     createQueryBuilder: jest.fn().mockReturnValue(queryBuilder)
   };
   const dataSource = {
-    getRepository: jest.fn().mockReturnValue(ormRepository)
+    getRepository: jest.fn().mockReturnValue(ormRepository),
+    query: jest.fn().mockResolvedValue([])
   };
 
   let repository: AssetRepository;
 
+  const makeAsset = (index: number) => ({
+    coinGeckoId: `coin-${index}`,
+    symbol: `c${index}`,
+    name: `Coin ${index}`,
+    imageUrl: null,
+    currentPrice: index === 0 ? '96785.25' : null,
+    marketCap: null,
+    marketCapRank: index,
+    totalVolume: null,
+    circulatingSupply: null,
+    totalSupply: null,
+    maxSupply: null,
+    priceChange24h: null,
+    priceChangePercentage24h: null,
+    lastSyncedAt: new Date('2026-07-28T08:00:00.000Z')
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     ormRepository.createQueryBuilder.mockReturnValue(queryBuilder);
+    dataSource.query.mockResolvedValue([]);
     repository = new AssetRepository(dataSource as unknown as DataSource);
   });
 
-  it('should upsert in bounded batches', async () => {
-    const assets = Array.from({ length: 1_001 }, (_, index) => ({
-      coinGeckoId: `coin-${index}`,
-      symbol: `c${index}`,
-      name: `Coin ${index}`,
-      imageUrl: null,
-      currentPrice: null,
-      marketCap: null,
-      marketCapRank: null,
-      totalVolume: null,
-      circulatingSupply: null,
-      totalSupply: null,
-      maxSupply: null,
-      priceChange24h: null,
-      priceChangePercentage24h: null,
-      lastSyncedAt: new Date('2026-07-28T08:00:00.000Z')
-    }));
+  it('should upsert in bounded batches via one parameterized statement per batch', async () => {
+    const assets = Array.from({ length: 1_001 }, (_, index) =>
+      makeAsset(index)
+    );
 
     await repository.upsertMany(assets);
 
-    expect(ormRepository.upsert).toHaveBeenCalledTimes(2);
-    expect(ormRepository.upsert.mock.calls[0][0]).toHaveLength(1_000);
-    expect(ormRepository.upsert.mock.calls[1][0]).toHaveLength(1);
-    expect(ormRepository.upsert).toHaveBeenCalledWith(expect.any(Array), {
-      conflictPaths: ['coinGeckoId'],
-      skipUpdateIfNoValuesChanged: true
-    });
+    expect(dataSource.query).toHaveBeenCalledTimes(2);
+
+    const [firstSql, firstParams] = dataSource.query.mock.calls[0];
+    const [, secondParams] = dataSource.query.mock.calls[1];
+
+    expect(firstSql).toContain('INSERT INTO "asset"');
+    expect(firstSql).toContain('ON CONFLICT ("coinGeckoId")');
+    expect(firstParams).toHaveLength(1_000 * 14);
+    expect(secondParams).toHaveLength(14);
   });
 
-  it('should find asset by id', async () => {
-    const asset = { id: 'asset-id' } as any;
-    ormRepository.findOneBy.mockResolvedValue(asset);
+  it('should preserve an existing currentPrice when the incoming value is null', async () => {
+    const assets = [makeAsset(0)];
 
-    await expect(repository.findById('asset-id')).resolves.toBe(asset);
-    expect(ormRepository.findOneBy).toHaveBeenCalledWith({ id: 'asset-id' });
+    await repository.upsertMany(assets);
+
+    const sql = dataSource.query.mock.calls[0][0] as string;
+    expect(sql).toContain(
+      'COALESCE(EXCLUDED."currentPrice", "asset"."currentPrice")'
+    );
   });
 
-  it('should build list query with search, cursor, status', async () => {
-    queryBuilder.getMany.mockResolvedValue([]);
+  it('should skip no-op rows so updatedAt is not churned pointlessly', async () => {
+    const assets = [makeAsset(1)];
 
-    await repository.list({
+    await repository.upsertMany(assets);
+
+    const sql = dataSource.query.mock.calls[0][0] as string;
+    expect(sql).toContain('WHERE (');
+    expect(sql).toContain('IS DISTINCT FROM');
+    expect(sql).toContain('"updatedAt" = now()');
+  });
+
+  it('should omit the conflict key from the update clause', async () => {
+    const assets = [makeAsset(0)];
+
+    await repository.upsertMany(assets);
+
+    const sql = dataSource.query.mock.calls[0][0] as string;
+    expect(sql).not.toContain('"coinGeckoId" = EXCLUDED."coinGeckoId"');
+  });
+
+  it('should find an asset by id', async () => {
+    ormRepository.findOneBy.mockResolvedValue({ id: 'asset-1' });
+
+    const asset = await repository.findById('asset-1');
+
+    expect(ormRepository.findOneBy).toHaveBeenCalledWith({ id: 'asset-1' });
+    expect(asset).toEqual({ id: 'asset-1' });
+  });
+
+  it('should list assets with search, cursor and limit', async () => {
+    queryBuilder.getMany.mockResolvedValue([{ id: 'asset-1' }]);
+
+    const result = await repository.list({
       search: 'bit',
-      cursorId: '00000000-0000-4000-8000-000000000001',
+      cursorId: 'cursor-1',
       limit: 21
     });
 
@@ -77,9 +116,10 @@ describe('AssetRepository', () => {
       { q: '%bit%' }
     );
     expect(queryBuilder.andWhere).toHaveBeenCalledWith('asset.id > :cursorId', {
-      cursorId: '00000000-0000-4000-8000-000000000001'
+      cursorId: 'cursor-1'
     });
     expect(queryBuilder.orderBy).toHaveBeenCalledWith('asset.id', 'ASC');
     expect(queryBuilder.take).toHaveBeenCalledWith(21);
+    expect(result).toEqual([{ id: 'asset-1' }]);
   });
 });
