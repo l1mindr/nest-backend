@@ -137,6 +137,12 @@ describe('FifoCostBasisCalculator', () => {
     ).toEqual({ quantity: '1', totalCost: '200', realizedPnl: [] });
   });
 
+  it('should consume a transfer-in lot on transfer-out without realized P&L', () => {
+    expect(
+      calculator.calculate([transferIn('1'), transferOut('0.5')], opening())
+    ).toEqual({ quantity: '0.5', totalCost: '0', realizedPnl: [] });
+  });
+
   it('should realize the complete gain on a full sell-out', () => {
     expect(
       calculator.calculate([buy('2', '60000'), sell('2', '70000')], opening())
