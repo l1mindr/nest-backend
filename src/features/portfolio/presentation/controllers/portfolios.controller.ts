@@ -14,11 +14,14 @@ import { ApiTags } from '@nestjs/swagger';
 import { ApiTagName } from '@presentation/swagger/openapi.constants';
 import { IdDto } from '@presentation/dto/id.dto';
 import { PortfolioMapper } from '../../application/mappers/portfolio.mapper';
+import { PortfolioValuationMapper } from '../../application/mappers/portfolio-valuation.mapper';
 import {
   CREATE_PORTFOLIO_USE_CASE,
   GET_PORTFOLIO_USE_CASE,
+  GET_PORTFOLIO_VALUATION_USE_CASE,
   ICreatePortfolioUseCase,
   IGetPortfolioUseCase,
+  IGetPortfolioValuationUseCase,
   IListPortfoliosUseCase,
   LIST_PORTFOLIOS_USE_CASE
 } from '../../application/interfaces/portfolio.interface';
@@ -26,6 +29,7 @@ import { CreatePortfolioRequestDto } from '../dto/request/create-portfolio.reque
 import {
   ApiCreatePortfolio,
   ApiGetPortfolio,
+  ApiGetPortfolioValuation,
   ApiListPortfolios
 } from '../swagger/portfolio.swagger';
 
@@ -42,7 +46,10 @@ export class PortfoliosController {
     private readonly listPortfoliosUseCase: IListPortfoliosUseCase,
     @Inject(GET_PORTFOLIO_USE_CASE)
     private readonly getPortfolioUseCase: IGetPortfolioUseCase,
-    private readonly portfolioMapper: PortfolioMapper
+    @Inject(GET_PORTFOLIO_VALUATION_USE_CASE)
+    private readonly getPortfolioValuationUseCase: IGetPortfolioValuationUseCase,
+    private readonly portfolioMapper: PortfolioMapper,
+    private readonly portfolioValuationMapper: PortfolioValuationMapper
   ) {}
 
   @Post()
@@ -76,5 +83,20 @@ export class PortfoliosController {
     );
 
     return this.portfolioMapper.toResponse(portfolio);
+  }
+
+  @Get(':id/valuation')
+  @HttpCode(HttpStatus.OK)
+  @ApiGetPortfolioValuation()
+  async getPortfolioValuation(
+    @User() user: UserEntity,
+    @Param() params: IdDto
+  ) {
+    const valuation = await this.getPortfolioValuationUseCase.execute(
+      user.id,
+      params.id
+    );
+
+    return this.portfolioValuationMapper.toResponse(valuation);
   }
 }

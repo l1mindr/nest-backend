@@ -8,12 +8,14 @@ import { PortfolioRepository } from './infrastructure/repositories/portfolio.rep
 import { HoldingRepository } from './infrastructure/repositories/holding.repository';
 import { CreatePortfolioUseCase } from './application/use-cases/create-portfolio.use-case';
 import { GetPortfolioUseCase } from './application/use-cases/get-portfolio.use-case';
+import { GetPortfolioValuationUseCase } from './application/use-cases/get-portfolio-valuation.use-case';
 import { ListPortfoliosUseCase } from './application/use-cases/list-portfolios.use-case';
 import { CreateHoldingUseCase } from './application/use-cases/create-holding.use-case';
 import { UpdateHoldingUseCase } from './application/use-cases/update-holding.use-case';
 import { DeleteHoldingUseCase } from './application/use-cases/delete-holding.use-case';
 import { ListHoldingsUseCase } from './application/use-cases/list-holdings.use-case';
 import { PortfolioMapper } from './application/mappers/portfolio.mapper';
+import { PortfolioValuationMapper } from './application/mappers/portfolio-valuation.mapper';
 import { HoldingMapper } from './application/mappers/holding.mapper';
 import { PortfoliosController } from './presentation/controllers/portfolios.controller';
 import { HoldingsController } from './presentation/controllers/holdings.controller';
@@ -22,6 +24,7 @@ import {
   CREATE_PORTFOLIO_USE_CASE,
   DELETE_HOLDING_USE_CASE,
   GET_PORTFOLIO_USE_CASE,
+  GET_PORTFOLIO_VALUATION_USE_CASE,
   HOLDING_REPOSITORY,
   LIST_HOLDINGS_USE_CASE,
   LIST_PORTFOLIOS_USE_CASE,
@@ -44,6 +47,11 @@ import {
     { provide: CREATE_PORTFOLIO_USE_CASE, useExisting: CreatePortfolioUseCase },
     GetPortfolioUseCase,
     { provide: GET_PORTFOLIO_USE_CASE, useExisting: GetPortfolioUseCase },
+    GetPortfolioValuationUseCase,
+    {
+      provide: GET_PORTFOLIO_VALUATION_USE_CASE,
+      useExisting: GetPortfolioValuationUseCase
+    },
     ListPortfoliosUseCase,
     { provide: LIST_PORTFOLIOS_USE_CASE, useExisting: ListPortfoliosUseCase },
     CreateHoldingUseCase,
@@ -55,6 +63,7 @@ import {
     ListHoldingsUseCase,
     { provide: LIST_HOLDINGS_USE_CASE, useExisting: ListHoldingsUseCase },
     PortfolioMapper,
+    PortfolioValuationMapper,
     HoldingMapper
   ]
 })

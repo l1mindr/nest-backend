@@ -33,6 +33,7 @@ import { UpdateHoldingRequestDto } from '../dto/request/update-holding.request.d
 import { HoldingListResponseDto } from '../dto/response/holding-list.response.dto';
 import { HoldingResponseDto } from '../dto/response/holding.response.dto';
 import { PortfolioResponseDto } from '../dto/response/portfolio.response.dto';
+import { PortfolioValuationResponseDto } from '../dto/response/portfolio-valuation.response.dto';
 
 /**
  * Operation documentation for `PortfoliosController` and `HoldingsController`.
@@ -45,7 +46,8 @@ import { PortfolioResponseDto } from '../dto/response/portfolio.response.dto';
 const PATH = {
   PORTFOLIOS: '/v1/portfolios',
   HOLDINGS: '/v1/holdings',
-  HOLDING: `/v1/holdings/${ExampleValue.HOLDING_ID}`
+  HOLDING: `/v1/holdings/${ExampleValue.HOLDING_ID}`,
+  VALUATION: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/valuation`
 } as const;
 
 /** The `:id` route parameter of the single-holding endpoints. */
@@ -199,6 +201,41 @@ export const ApiGetPortfolio = () =>
       type: PortfolioResponseDto
     }),
     ApiErrorResponses(PATH.PORTFOLIOS, [
+      unauthorizedResponse(),
+      notFoundResponse(
+        'No portfolio source with this identifier belongs to the caller. Sources owned by another account are reported the same way, so ownership cannot be probed.',
+        portfolioNotFound()
+      ),
+      validationResponse('The `id` is not a UUID.', [
+        validationError('id', 'id must be a UUID')
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiGetPortfolioValuation = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'getPortfolioValuation',
+      summary: 'Value a portfolio source by id',
+      description: [
+        'Computes the current value of every holding in the portfolio source with the given `id`, and the portfolio total, when the source belongs to the caller.',
+        '',
+        'Each holding value is `amount × currentPrice`, where `currentPrice` is the last price the synchroniser stored for the asset. Values are computed with exact decimal arithmetic and returned as decimal strings — nothing is coerced through a JavaScript float.',
+        '',
+        'The total is the sum of every valued holding. When a holding has no usable price its `value` is `null`, it is excluded from the total, and the overall `status` becomes `PARTIAL` (some priced) or `UNAVAILABLE` (none priced). An empty portfolio is reported as `EMPTY`.',
+        '',
+        'Requires authentication.'
+      ].join('\n')
+    }),
+    ApiAuthenticated(),
+    portfolioIdParam(),
+    ApiSuccessResponse({
+      status: 200,
+      description: 'The computed valuation of the portfolio source.',
+      type: PortfolioValuationResponseDto
+    }),
+    ApiErrorResponses(PATH.VALUATION, [
       unauthorizedResponse(),
       notFoundResponse(
         'No portfolio source with this identifier belongs to the caller. Sources owned by another account are reported the same way, so ownership cannot be probed.',
