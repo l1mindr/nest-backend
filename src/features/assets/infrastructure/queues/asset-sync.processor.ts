@@ -24,6 +24,9 @@ export class AssetSyncProcessor extends WorkerHost {
   }
 
   async process(job: Job): Promise<void> {
+    const startedAt = Date.now();
+    const attempt = job.attemptsMade + 1;
+
     try {
       const result = await this.syncUseCase.execute();
 
@@ -31,14 +34,23 @@ export class AssetSyncProcessor extends WorkerHost {
         {
           event: LogEvent.ASSET_SYNC_COMPLETED,
           jobId: job.id,
+          attempt,
+          trigger: job.data?.trigger,
           receivedCount: result.receivedCount,
-          synchronizedCount: result.synchronizedCount
+          synchronizedCount: result.synchronizedCount,
+          durationMs: Date.now() - startedAt
         },
         'Asset synchronization completed'
       );
     } catch (error) {
       this.logger.error(
-        { event: LogEvent.ASSET_SYNC_FAILED, jobId: job.id, err: error },
+        {
+          event: LogEvent.ASSET_SYNC_FAILED,
+          jobId: job.id,
+          attempt,
+          durationMs: Date.now() - startedAt,
+          err: error
+        },
         'Asset synchronization failed'
       );
       throw error;

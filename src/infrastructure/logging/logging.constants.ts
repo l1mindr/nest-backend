@@ -38,6 +38,10 @@ export enum LogEvent {
   ASSET_SYNC_STARTED = 'assets.sync.started',
   ASSET_SYNC_COMPLETED = 'assets.sync.completed',
   ASSET_SYNC_FAILED = 'assets.sync.failed',
+  ASSET_SYNC_QUEUED = 'assets.sync.queued',
+  ASSET_SYNC_PROVIDER_REQUEST = 'assets.sync.provider.request',
+  ASSET_SYNC_PROVIDER_COMPLETED = 'assets.sync.provider.completed',
+  ASSET_SYNC_PROVIDER_RETRY = 'assets.sync.provider.retry',
 
   PRICE_ALERT_CREATED = 'coin_tracker.alert.created',
   PRICE_ALERT_UPDATED = 'coin_tracker.alert.updated',

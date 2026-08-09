@@ -1,7 +1,7 @@
 import {
-  COINGECKO_PORT,
-  CoinGeckoMarketData,
-  CoinGeckoPort
+  MARKET_DATA_PORT,
+  MarketDataEntry,
+  MarketDataPort
 } from '@features/assets/application/interfaces/assets.interface';
 import { Asset } from '@features/assets/domain/entities/asset.entity';
 import { Permission } from '@features/authorization/domain/enums/permission.enum';
@@ -19,34 +19,36 @@ describe('Assets (e2e) version: 1', () => {
   let app: INestApplication;
   let dataSource: DataSource;
 
-  const marketDataFixtures: CoinGeckoMarketData[] = [
+  const marketDataFixtures: MarketDataEntry[] = [
     {
-      id: 'bitcoin',
+      coinGeckoId: 'bitcoin',
       symbol: 'btc',
       name: 'Bitcoin',
-      image: 'https://example.test/bitcoin.png',
-      current_price: 96785.25,
-      market_cap: 1912345678901.23,
-      market_cap_rank: 1,
-      total_volume: 48210987654.32,
-      circulating_supply: 19758964,
-      total_supply: 21000000,
-      max_supply: 21000000,
-      price_change_24h: 1524.1,
-      price_change_percentage_24h: 1.6032
+      imageUrl: 'https://example.test/bitcoin.png',
+      currentPrice: '96785.25',
+      marketCap: '1912345678901.23',
+      marketCapRank: 1,
+      totalVolume: '48210987654.32',
+      circulatingSupply: '19758964',
+      totalSupply: '21000000',
+      maxSupply: '21000000',
+      priceChange24h: '1524.1',
+      priceChangePercentage24h: '1.6032'
     },
     {
-      id: 'ethereum',
+      coinGeckoId: 'ethereum',
       symbol: 'eth',
       name: 'Ethereum',
-      current_price: 3456.78,
-      market_cap: 416000000000,
-      market_cap_rank: 2,
-      total_volume: 15000000000,
-      circulating_supply: 120000000,
-      total_supply: 120000000,
-      price_change_24h: -45.22,
-      price_change_percentage_24h: -1.29
+      imageUrl: null,
+      currentPrice: '3456.78',
+      marketCap: '416000000000',
+      marketCapRank: 2,
+      totalVolume: '15000000000',
+      circulatingSupply: '120000000',
+      totalSupply: '120000000',
+      maxSupply: null,
+      priceChange24h: '-45.22',
+      priceChangePercentage24h: '-1.29'
     }
   ];
 
@@ -271,6 +273,41 @@ describe('Assets (e2e) version: 1', () => {
   });
 
   describe('POST /v1/assets/sync', () => {
+    async function waitForAssets(
+      expected: number,
+      timeoutMs = 8_000
+    ): Promise<Asset[]> {
+      const repository = dataSource.getRepository(Asset);
+      const deadline = Date.now() + timeoutMs;
+
+      while (Date.now() < deadline) {
+        const stored = await repository.find();
+        if (stored.length >= expected) {
+          return stored;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+
+      throw new Error(`Timed out waiting for ${expected} assets to persist`);
+    }
+
+    async function waitForCondition(
+      condition: () => boolean | Promise<boolean>,
+      message: string,
+      timeoutMs = 5_000
+    ): Promise<void> {
+      const deadline = Date.now() + timeoutMs;
+
+      while (Date.now() < deadline) {
+        if (await condition()) {
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+
+      throw new Error(message);
+    }
+
     it('should require authentication', async () => {
       const client = new ApiClient(app);
 
@@ -279,10 +316,10 @@ describe('Assets (e2e) version: 1', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should allow owner to trigger sync', async () => {
-      const coingeckoPort = app.get<CoinGeckoPort>(COINGECKO_PORT);
+    it('should allow owner to trigger sync and persist provider data', async () => {
+      const marketDataPort = app.get<MarketDataPort>(MARKET_DATA_PORT);
       const spy = jest
-        .spyOn(coingeckoPort, 'fetchMarketData')
+        .spyOn(marketDataPort, 'fetchMarketData')
         .mockResolvedValue(marketDataFixtures);
 
       const context = await AuthFactory.authenticated(
@@ -295,33 +332,75 @@ describe('Assets (e2e) version: 1', () => {
         headers: mutationHeaders(context)
       });
 
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual({
-        receivedCount: 2,
-        synchronizedCount: 2
-      });
+      expect(response.status).toBe(202);
+      expect(response.body.jobId).toEqual(expect.any(String));
 
-      const stored = await dataSource.getRepository(Asset).find();
-      expect(stored).toHaveLength(2);
+      const stored = await waitForAssets(2);
 
-      const bitcoin = stored.find((a) => a.coinGeckoId === 'bitcoin');
+      const bitcoin = stored.find((asset) => asset.coinGeckoId === 'bitcoin');
       expect(bitcoin).toMatchObject({
         symbol: 'btc',
         name: 'Bitcoin',
         imageUrl: 'https://example.test/bitcoin.png',
+        currentPrice: '96785.25000000',
         marketCapRank: 1
       });
       expect(bitcoin!.lastSyncedAt).toBeInstanceOf(Date);
 
-      const ethereum = stored.find((a) => a.coinGeckoId === 'ethereum');
+      const ethereum = stored.find((asset) => asset.coinGeckoId === 'ethereum');
       expect(ethereum).toMatchObject({
         symbol: 'eth',
         name: 'Ethereum',
         imageUrl: null,
+        currentPrice: '3456.78000000',
         marketCapRank: 2,
         maxSupply: null
       });
 
+      spy.mockRestore();
+    });
+
+    it('should deduplicate a manual sync while one is still in flight', async () => {
+      const marketDataPort = app.get<MarketDataPort>(MARKET_DATA_PORT);
+
+      let unblockProvider!: () => void;
+      const providerBlocked = new Promise<void>((resolve) => {
+        unblockProvider = resolve;
+      });
+
+      const spy = jest
+        .spyOn(marketDataPort, 'fetchMarketData')
+        .mockImplementation(async () => {
+          await providerBlocked;
+          return marketDataFixtures;
+        });
+
+      const context = await AuthFactory.authenticated(
+        app,
+        { withRole: UserRole.OWNER },
+        dataSource
+      );
+
+      const first = await context.client.post('/v1/assets/sync', {
+        headers: mutationHeaders(context)
+      });
+      expect(first.status).toBe(202);
+
+      await waitForCondition(
+        () => spy.mock.calls.length === 1,
+        'the worker never picked up the first sync job'
+      );
+
+      const second = await context.client.post('/v1/assets/sync', {
+        headers: mutationHeaders(context)
+      });
+      expect(second.status).toBe(202);
+      expect(second.body.jobId).toBe(first.body.jobId);
+
+      unblockProvider();
+      await waitForAssets(2);
+
+      expect(spy).toHaveBeenCalledTimes(1);
       spy.mockRestore();
     });
 
