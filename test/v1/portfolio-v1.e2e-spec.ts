@@ -33,15 +33,20 @@ describe('Portfolio (e2e) version: 1', () => {
     };
   }
 
-  async function seedAsset(): Promise<Asset> {
+  async function seedAsset(
+    overrides: Partial<
+      Pick<Asset, 'coinGeckoId' | 'symbol' | 'name' | 'currentPrice'>
+    > = {}
+  ): Promise<Asset> {
     const now = new Date('2026-07-28T08:00:00.000Z');
 
     return dataSource.getRepository(Asset).save({
-      coinGeckoId: 'bitcoin',
-      symbol: 'btc',
-      name: 'Bitcoin',
+      coinGeckoId: overrides.coinGeckoId ?? 'bitcoin',
+      symbol: overrides.symbol ?? 'btc',
+      name: overrides.name ?? 'Bitcoin',
       imageUrl: null,
-      currentPrice: '60000',
+      currentPrice:
+        overrides.currentPrice !== undefined ? overrides.currentPrice : '60000',
       marketCap: '1200000000000',
       marketCapRank: 1,
       totalVolume: '30000000000',
@@ -466,6 +471,182 @@ describe('Portfolio (e2e) version: 1', () => {
       );
 
       expect(holdingDetail.body).not.toHaveProperty('userId');
+    });
+  });
+
+  describe('Valuation', () => {
+    it('should require authentication', async () => {
+      const client = new ApiClient(app);
+
+      const response = await client.get(
+        '/v1/portfolios/00000000-0000-4000-8000-000000000000/valuation'
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 404 for another users portfolio', async () => {
+      const userA = await AuthFactory.authenticated(app, {
+        overrides: { email: 'ownerA@test.com', username: 'ownerA' }
+      });
+      const userB = await AuthFactory.authenticated(app, {
+        overrides: { email: 'ownerB@test.com', username: 'ownerB' }
+      });
+
+      const portfolio = await createPortfolio(userA);
+
+      const response = await userB.client.get(
+        `/v1/portfolios/${portfolio.id}/valuation`
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should return 404 for unknown portfolio', async () => {
+      const auth = await AuthFactory.authenticated(app);
+
+      const response = await auth.client.get(
+        '/v1/portfolios/00000000-0000-4000-8000-000000000000/valuation'
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should value a complete portfolio', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const bitcoin = await seedAsset();
+      const ether = await seedAsset({
+        coinGeckoId: 'ethereum',
+        symbol: 'eth',
+        name: 'Ethereum',
+        currentPrice: '3000'
+      });
+
+      await createHolding(auth, portfolio.id, bitcoin.id, '1.5');
+      await createHolding(auth, portfolio.id, ether.id, '2');
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/valuation`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        portfolioId: portfolio.id,
+        currency: 'USD',
+        totalValue: '96000',
+        status: 'COMPLETE',
+        valuedHoldings: 2,
+        unvaluedHoldings: 0
+      });
+      expect(response.body.holdings).toHaveLength(2);
+      expect(response.body.holdings[0]).toMatchObject({
+        holdingId: expect.any(String),
+        assetId: bitcoin.id,
+        symbol: 'btc',
+        name: 'Bitcoin',
+        amount: '1.500000000000000000',
+        currentPrice: '60000.00000000',
+        value: '90000'
+      });
+      expect(response.body.holdings[1]).toMatchObject({
+        assetId: ether.id,
+        symbol: 'eth',
+        currentPrice: '3000.00000000',
+        value: '6000'
+      });
+    });
+
+    it('should report PARTIAL when some assets lack a price', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const bitcoin = await seedAsset();
+      const ether = await seedAsset({
+        coinGeckoId: 'ethereum',
+        symbol: 'eth',
+        name: 'Ethereum',
+        currentPrice: null
+      });
+
+      await createHolding(auth, portfolio.id, bitcoin.id, '1.5');
+      await createHolding(auth, portfolio.id, ether.id, '2');
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/valuation`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        totalValue: '90000',
+        status: 'PARTIAL',
+        valuedHoldings: 1,
+        unvaluedHoldings: 1
+      });
+      expect(response.body.holdings[1]).toMatchObject({
+        currentPrice: null,
+        value: null
+      });
+    });
+
+    it('should report UNAVAILABLE when no asset has a price', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const bitcoin = await seedAsset({ currentPrice: null });
+      const ether = await seedAsset({
+        coinGeckoId: 'ethereum',
+        symbol: 'eth',
+        name: 'Ethereum',
+        currentPrice: null
+      });
+
+      await createHolding(auth, portfolio.id, bitcoin.id, '1.5');
+      await createHolding(auth, portfolio.id, ether.id, '2');
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/valuation`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        totalValue: null,
+        status: 'UNAVAILABLE',
+        valuedHoldings: 0,
+        unvaluedHoldings: 2
+      });
+    });
+
+    it('should report EMPTY for a portfolio without holdings', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/valuation`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        totalValue: null,
+        status: 'EMPTY',
+        valuedHoldings: 0,
+        unvaluedHoldings: 0,
+        holdings: []
+      });
+    });
+
+    it('should value with exact decimal arithmetic', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const asset = await seedAsset({ currentPrice: '0.2' });
+
+      await createHolding(auth, portfolio.id, asset.id, '0.1');
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/valuation`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.holdings[0].value).toBe('0.02');
+      expect(response.body.totalValue).toBe('0.02');
     });
   });
 });
