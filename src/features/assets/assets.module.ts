@@ -52,6 +52,7 @@ import { AssetSyncController } from './presentation/controllers/asset-sync.contr
     AssetMapper,
     AssetSyncProcessor,
     AssetSyncScheduler
-  ]
+  ],
+  exports: [ASSET_REPOSITORY]
 })
 export class AssetsModule {}
