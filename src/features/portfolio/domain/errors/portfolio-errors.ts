@@ -53,4 +53,44 @@ export class PortfolioErrors {
       'At least one holding field must be provided'
     );
   }
+
+  static transactionNotFound(transactionId?: string) {
+    return new AppError(
+      PortfolioErrorCode.TRANSACTION_NOT_FOUND,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.NOT_FOUND,
+      transactionId ? { transactionId } : undefined,
+      'Transaction not found'
+    );
+  }
+
+  static transactionTypeNotSupported() {
+    return new AppError(
+      PortfolioErrorCode.TRANSACTION_TYPE_NOT_SUPPORTED,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      { field: 'type' },
+      'DEPOSIT and WITHDRAWAL transactions are not supported yet'
+    );
+  }
+
+  static transactionPriceRequired() {
+    return new AppError(
+      PortfolioErrorCode.TRANSACTION_PRICE_REQUIRED,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      { field: 'price' },
+      'BUY and SELL transactions require a price'
+    );
+  }
+
+  static invalidCursor() {
+    return new AppError(
+      PortfolioErrorCode.INVALID_CURSOR,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.BAD_REQUEST,
+      { field: 'cursor' },
+      'Invalid cursor'
+    );
+  }
 }
