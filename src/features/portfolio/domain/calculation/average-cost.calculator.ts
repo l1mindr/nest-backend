@@ -1,4 +1,5 @@
 import {
+  divideDecimals,
   multiplyDecimals,
   subtractDecimals,
   sumDecimals
@@ -15,6 +16,7 @@ import {
   requirePrice
 } from './cost-basis-validation';
 import { CalculationErrors } from './errors/calculation-errors';
+import { CALCULATION_DIVISION_MAX_FRACTION_DIGITS } from './portfolio-calculation.constants';
 import { CostBasisOpeningState } from './types/calculation-input.types';
 import {
   CostBasisResult,
@@ -28,19 +30,22 @@ import {
 /**
  * Average-cost strategy.
  *
- * Semantics:
+ * All acquisition cost is pooled. A disposal releases a proportional share of
+ * the pool — `amount × (totalCost / quantityBefore)` — so the average cost of
+ * the remaining position is unchanged:
  * - BUY:          quantity += amount, totalCost += amount × price.
- * - SELL:         quantity -= amount; totalCost is untouched — releasing cost
- *   basis on disposal is part of the realized-P&L policy.
+ * - SELL:         releases cost basis and records a realized P&L event.
  * - TRANSFER_IN:  quantity += amount; never creates acquisition cost.
- * - TRANSFER_OUT: quantity -= amount; never creates a sale or realized P&L.
+ * - TRANSFER_OUT: releases cost basis like a SELL but is a custody move and
+ *   records no realized P&L event.
  *
  * Fees are validated and preserved separately; they are never added to
- * `totalCost` (the realized-P&L milestone decides their accounting treatment).
+ * `totalCost`, and realized P&L is reported gross of the disposal fee (the
+ * fee is carried on the event for the application layer to net).
  *
  * All arithmetic goes through the exact decimal utility — no JavaScript
  * floating-point values are involved. Unsupported types, malformed decimals,
- * negative values, and sells exceeding the available quantity fail
+ * negative values, and disposals exceeding the available quantity fail
  * deterministically with a domain error.
  */
 export class AverageCostCalculator implements CostBasisCalculator {
@@ -70,9 +75,26 @@ export class AverageCostCalculator implements CostBasisCalculator {
           break;
         }
         case CalculationTransactionType.SELL: {
-          requirePrice(transaction.price, transaction.type);
+          const price = requirePrice(transaction.price, transaction.type);
           assertAvailable(quantity, amount);
+          const releasedBasis = this.releaseProportionalBasis(
+            totalCost,
+            quantity,
+            amount
+          );
+          const proceeds = multiplyDecimals(amount, price);
           quantity = subtractDecimals(quantity, amount);
+          totalCost = subtractDecimals(totalCost, releasedBasis);
+          realizedPnl.push({
+            transactionId: transaction.id,
+            occurredAt: transaction.occurredAt,
+            type: CalculationTransactionType.SELL,
+            amount,
+            proceeds,
+            costBasisReleased: releasedBasis,
+            realizedGain: subtractDecimals(proceeds, releasedBasis),
+            fee: transaction.fee
+          });
           break;
         }
         case CalculationTransactionType.TRANSFER_IN: {
@@ -83,12 +105,31 @@ export class AverageCostCalculator implements CostBasisCalculator {
         case CalculationTransactionType.TRANSFER_OUT: {
           assertOptionalPrice(transaction.price);
           assertAvailable(quantity, amount);
+          const releasedBasis = this.releaseProportionalBasis(
+            totalCost,
+            quantity,
+            amount
+          );
           quantity = subtractDecimals(quantity, amount);
+          totalCost = subtractDecimals(totalCost, releasedBasis);
           break;
         }
       }
     }
 
     return { quantity, totalCost, realizedPnl };
+  }
+
+  private releaseProportionalBasis(
+    totalCost: string,
+    quantity: string,
+    amount: string
+  ): string {
+    const averageCost = divideDecimals(
+      totalCost,
+      quantity,
+      CALCULATION_DIVISION_MAX_FRACTION_DIGITS
+    );
+    return multiplyDecimals(amount, averageCost);
   }
 }

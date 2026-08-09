@@ -1,11 +1,13 @@
+import { AverageCostCalculator } from '../average-cost.calculator';
 import { CostBasisCalculator } from '../cost-basis.calculator';
 import { CalculationError } from '../errors/calculation-errors';
 import { CalculationErrorCode } from '../errors/calculation-error-code.enum';
+import { FifoCostBasisCalculator } from '../lot-cost-basis.calculator';
 import { PortfolioCalculationEngine } from '../portfolio-calculation.engine';
 import { PortfolioCalculationInput } from '../types/calculation-input.types';
+import { CostBasisStrategy } from '../types/cost-basis.strategy.enum';
 import { CalculationTransaction } from '../types/calculation-transaction.types';
 import { CalculationTransactionType } from '../types/calculation-transaction.types';
-import { AverageCostCalculator } from '../average-cost.calculator';
 
 const at = (time: string, id?: string) => ({ occurredAt: time, id });
 
@@ -132,19 +134,23 @@ describe('PortfolioCalculationEngine', () => {
     });
 
     it('should define a full sell-out deterministically', () => {
-      expect(
-        engine.calculate({
-          transactions: [
-            buy('2', '60000', '2026-07-28T08:00:00.000Z'),
-            sell('2', '70000', '2026-07-28T09:00:00.000Z')
-          ]
-        })
-      ).toEqual({
-        quantity: '0',
-        totalCost: '120000',
-        averageCost: '0',
-        realizedPnl: []
+      const result = engine.calculate({
+        transactions: [
+          buy('2', '60000', '2026-07-28T08:00:00.000Z'),
+          sell('2', '70000', '2026-07-28T09:00:00.000Z')
+        ]
       });
+      expect(result.quantity).toBe('0');
+      expect(result.totalCost).toBe('0');
+      expect(result.averageCost).toBe('0');
+      expect(result.realizedPnl).toEqual([
+        expect.objectContaining({
+          amount: '2',
+          proceeds: '140000',
+          costBasisReleased: '120000',
+          realizedGain: '20000'
+        })
+      ]);
     });
 
     it('should keep transfers out of the cost basis', () => {
@@ -182,35 +188,106 @@ describe('PortfolioCalculationEngine', () => {
     });
 
     it('should use the id as a tie-breaker for equal timestamps', () => {
-      expect(
-        engine.calculate({
-          transactions: [
-            sell('1', '70000', '2026-07-28T08:00:00.000Z', 'b'),
-            buy('1', '50000', '2026-07-28T08:00:00.000Z', 'a')
-          ]
-        })
-      ).toEqual({
+      const result = engine.calculate({
+        transactions: [
+          sell('1', '70000', '2026-07-28T08:00:00.000Z', 'b'),
+          buy('1', '50000', '2026-07-28T08:00:00.000Z', 'a')
+        ]
+      });
+      expect(result).toEqual({
         quantity: '0',
-        totalCost: '50000',
+        totalCost: '0',
         averageCost: '0',
-        realizedPnl: []
+        realizedPnl: [
+          expect.objectContaining({
+            costBasisReleased: '50000',
+            realizedGain: '20000'
+          })
+        ]
       });
     });
 
     it('should fall back to the stable input order when ids are absent', () => {
-      expect(
-        engine.calculate({
-          transactions: [
-            buy('1', '50000', '2026-07-28T08:00:00.000Z'),
-            sell('1', '70000', '2026-07-28T08:00:00.000Z')
-          ]
-        })
-      ).toEqual({
-        quantity: '0',
-        totalCost: '50000',
-        averageCost: '0',
-        realizedPnl: []
+      const result = engine.calculate({
+        transactions: [
+          buy('1', '50000', '2026-07-28T08:00:00.000Z'),
+          sell('1', '70000', '2026-07-28T08:00:00.000Z')
+        ]
       });
+      expect(result.totalCost).toBe('0');
+      expect(result.realizedPnl).toEqual([
+        expect.objectContaining({ realizedGain: '20000' })
+      ]);
+    });
+  });
+
+  describe('cost-basis strategy selection', () => {
+    const ledger = () => ({
+      transactions: [
+        buy('1', '100', '2026-07-28T08:00:00.000Z'),
+        buy('1', '200', '2026-07-28T09:00:00.000Z'),
+        sell('1', '150', '2026-07-28T10:00:00.000Z')
+      ]
+    });
+
+    it('should default to the average-cost strategy', () => {
+      expect(new PortfolioCalculationEngine().calculate(ledger())).toEqual({
+        quantity: '1',
+        totalCost: '150',
+        averageCost: '150',
+        realizedPnl: [
+          expect.objectContaining({
+            costBasisReleased: '150',
+            realizedGain: '0'
+          })
+        ]
+      });
+    });
+
+    it('should select the FIFO strategy explicitly', () => {
+      expect(
+        new PortfolioCalculationEngine(CostBasisStrategy.FIFO).calculate(
+          ledger()
+        )
+      ).toEqual({
+        quantity: '1',
+        totalCost: '200',
+        averageCost: '200',
+        realizedPnl: [
+          expect.objectContaining({
+            costBasisReleased: '100',
+            realizedGain: '50'
+          })
+        ]
+      });
+    });
+
+    it('should select the LIFO strategy explicitly', () => {
+      expect(
+        new PortfolioCalculationEngine(CostBasisStrategy.LIFO).calculate(
+          ledger()
+        )
+      ).toEqual({
+        quantity: '1',
+        totalCost: '100',
+        averageCost: '100',
+        realizedPnl: [
+          expect.objectContaining({
+            costBasisReleased: '200',
+            realizedGain: '-50'
+          })
+        ]
+      });
+    });
+
+    it('should accept a calculator instance and a strategy interchangeably', () => {
+      const viaEnum = new PortfolioCalculationEngine(CostBasisStrategy.FIFO);
+      const viaInstance = new PortfolioCalculationEngine(
+        new FifoCostBasisCalculator()
+      );
+      expect(viaInstance.calculate(ledger())).toEqual(
+        viaEnum.calculate(ledger())
+      );
     });
   });
 
