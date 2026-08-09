@@ -294,7 +294,7 @@ export const ApiCreateHolding = () =>
         [
           validationError(
             'amount',
-            'amount must be a positive decimal number with at most 18 fractional digits'
+            'must be a positive decimal number with at most 18 fractional digits'
           ),
           validationError('portfolioId', 'portfolioId must be a UUID'),
           validationError('assetId', 'assetId must be a UUID'),
@@ -379,7 +379,7 @@ export const ApiUpdateHolding = () =>
           emptyUpdate(),
           validationError(
             'amount',
-            'amount must be a positive decimal number with at most 18 fractional digits'
+            'must be a positive decimal number with at most 18 fractional digits'
           ),
           validationError('id', 'id must be a UUID')
         ]
