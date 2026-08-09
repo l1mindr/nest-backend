@@ -1,4 +1,11 @@
-import { multiplyDecimals, sumDecimals } from '../decimal.util';
+import {
+  compareDecimals,
+  divideDecimals,
+  isDecimalString,
+  multiplyDecimals,
+  subtractDecimals,
+  sumDecimals
+} from '../decimal.util';
 
 describe('decimal.util', () => {
   describe('multiplyDecimals', () => {
@@ -54,6 +61,94 @@ describe('decimal.util', () => {
 
     it('should reject an empty list', () => {
       expect(() => sumDecimals([])).toThrow();
+    });
+
+    it('should reject negative operands', () => {
+      expect(() => sumDecimals(['1', '-2'])).toThrow();
+    });
+  });
+
+  describe('isDecimalString', () => {
+    it('should accept integers and decimals', () => {
+      expect(isDecimalString('0')).toBe(true);
+      expect(isDecimalString('1')).toBe(true);
+      expect(isDecimalString('0.5')).toBe(true);
+    });
+
+    it('should accept negative values', () => {
+      expect(isDecimalString('-1')).toBe(true);
+      expect(isDecimalString('-0.25')).toBe(true);
+    });
+
+    it('should reject non-decimal input', () => {
+      expect(isDecimalString('')).toBe(false);
+      expect(isDecimalString('abc')).toBe(false);
+      expect(isDecimalString('1.2.3')).toBe(false);
+      expect(isDecimalString('1e3')).toBe(false);
+      expect(isDecimalString(null)).toBe(false);
+      expect(isDecimalString(1)).toBe(false);
+    });
+  });
+
+  describe('compareDecimals', () => {
+    it('should detect equality across scales', () => {
+      expect(compareDecimals('1.50', '1.5')).toBe(0);
+    });
+
+    it('should order positive values', () => {
+      expect(compareDecimals('2', '1.5')).toBe(1);
+      expect(compareDecimals('0.1', '0.2')).toBe(-1);
+    });
+
+    it('should order negative values', () => {
+      expect(compareDecimals('-1', '1')).toBe(-1);
+      expect(compareDecimals('-1', '-2')).toBe(1);
+    });
+
+    it('should reject malformed input', () => {
+      expect(() => compareDecimals('abc', '1')).toThrow();
+    });
+  });
+
+  describe('subtractDecimals', () => {
+    it('should subtract exactly', () => {
+      expect(subtractDecimals('1.5', '0.5')).toBe('1');
+    });
+
+    it('should trim trailing zeros', () => {
+      expect(subtractDecimals('1.00', '0.50')).toBe('0.5');
+    });
+
+    it('should support signed results', () => {
+      expect(subtractDecimals('1', '2')).toBe('-1');
+    });
+
+    it('should reject malformed input', () => {
+      expect(() => subtractDecimals('1', 'x')).toThrow();
+    });
+  });
+
+  describe('divideDecimals', () => {
+    it('should divide terminating quotients exactly', () => {
+      expect(divideDecimals('120000', '2', 26)).toBe('60000');
+      expect(divideDecimals('0.02', '0.2', 26)).toBe('0.1');
+      expect(divideDecimals('1', '4', 26)).toBe('0.25');
+    });
+
+    it('should divide zero', () => {
+      expect(divideDecimals('0', '5', 26)).toBe('0');
+    });
+
+    it('should support signed quotients', () => {
+      expect(divideDecimals('-1', '2', 26)).toBe('-0.5');
+    });
+
+    it('should truncate non-terminating quotients at the requested scale', () => {
+      expect(divideDecimals('1', '3', 6)).toBe('0.333333');
+    });
+
+    it('should reject division by zero', () => {
+      expect(() => divideDecimals('1', '0', 26)).toThrow();
     });
   });
 });
