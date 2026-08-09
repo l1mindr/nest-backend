@@ -64,8 +64,8 @@ describe('LifoCostBasisCalculator', () => {
         expect.objectContaining({
           amount: '1',
           proceeds: '150',
-          costBasisReleased: '200',
-          realizedGain: '-50'
+          releasedCostBasis: '200',
+          realizedPnl: '-50'
         })
       ]
     });
@@ -84,8 +84,8 @@ describe('LifoCostBasisCalculator', () => {
         expect.objectContaining({
           amount: '1.5',
           proceeds: '270',
-          costBasisReleased: '250',
-          realizedGain: '20'
+          releasedCostBasis: '250',
+          realizedPnl: '20'
         })
       ]
     });
@@ -97,7 +97,7 @@ describe('LifoCostBasisCalculator', () => {
       totalCost: '100'
     });
     expect(result.realizedPnl).toEqual([
-      expect.objectContaining({ costBasisReleased: '100', realizedGain: '20' })
+      expect.objectContaining({ releasedCostBasis: '100', realizedPnl: '20' })
     ]);
   });
 
@@ -120,8 +120,8 @@ describe('LifoCostBasisCalculator', () => {
       totalCost: '0',
       realizedPnl: [
         expect.objectContaining({
-          costBasisReleased: '100',
-          realizedGain: '50'
+          releasedCostBasis: '100',
+          realizedPnl: '50'
         })
       ]
     });
@@ -146,8 +146,8 @@ describe('LifoCostBasisCalculator', () => {
         expect.objectContaining({
           amount: '2',
           proceeds: '140000',
-          costBasisReleased: '120000',
-          realizedGain: '20000'
+          releasedCostBasis: '120000',
+          realizedPnl: '20000'
         })
       ]
     });

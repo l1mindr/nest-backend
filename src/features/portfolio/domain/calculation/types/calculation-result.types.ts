@@ -16,12 +16,14 @@ export interface RealizedPnlEvent {
   type: CalculationTransactionType.SELL;
   /** Quantity disposed, as a decimal string. */
   amount: string;
+  /** Unit price of the disposal, as a decimal string. */
+  price: string;
   /** Gross proceeds (`amount × price`), as a decimal string. */
   proceeds: string;
   /** Acquisition cost released from the position, as a decimal string. */
-  costBasisReleased: string;
-  /** Signed realized gain (`proceeds − costBasisReleased`). */
-  realizedGain: string;
+  releasedCostBasis: string;
+  /** Signed realized gain (`proceeds − releasedCostBasis`). */
+  realizedPnl: string;
   /** Fee carried through for the application layer; never netted here. */
   fee?: string;
 }

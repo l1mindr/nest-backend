@@ -130,8 +130,8 @@ describe('AverageCostCalculator', () => {
           expect.objectContaining({
             amount: '1',
             proceeds: '70000',
-            costBasisReleased: '60000',
-            realizedGain: '10000'
+            releasedCostBasis: '60000',
+            realizedPnl: '10000'
           })
         ]
       });
@@ -143,8 +143,8 @@ describe('AverageCostCalculator', () => {
       expect(result.realizedPnl).toEqual([
         expect.objectContaining({
           proceeds: '50000',
-          costBasisReleased: '60000',
-          realizedGain: '-10000'
+          releasedCostBasis: '60000',
+          realizedPnl: '-10000'
         })
       ]);
     });
@@ -155,8 +155,8 @@ describe('AverageCostCalculator', () => {
       expect(result.realizedPnl).toEqual([
         expect.objectContaining({
           proceeds: '60000',
-          costBasisReleased: '60000',
-          realizedGain: '0'
+          releasedCostBasis: '60000',
+          realizedPnl: '0'
         })
       ]);
     });
@@ -212,8 +212,8 @@ describe('AverageCostCalculator', () => {
       );
       expect(result.realizedPnl).toEqual([
         expect.objectContaining({
-          costBasisReleased: '0.66666666666666666666666666',
-          realizedGain: '0.33333333333333333333333334'
+          releasedCostBasis: '0.66666666666666666666666666',
+          realizedPnl: '0.33333333333333333333333334'
         })
       ]);
       expect(result.quantity).toBe('2');

@@ -90,9 +90,10 @@ export class AverageCostCalculator implements CostBasisCalculator {
             occurredAt: transaction.occurredAt,
             type: CalculationTransactionType.SELL,
             amount,
+            price,
             proceeds,
-            costBasisReleased: releasedBasis,
-            realizedGain: subtractDecimals(proceeds, releasedBasis),
+            releasedCostBasis: releasedBasis,
+            realizedPnl: subtractDecimals(proceeds, releasedBasis),
             fee: transaction.fee
           });
           break;
