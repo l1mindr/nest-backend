@@ -54,6 +54,15 @@ export class HoldingRepository implements IHoldingRepository {
     return qb.orderBy('holding.createdAt', 'ASC').getMany();
   }
 
+  async listForValuation(portfolioId: string): Promise<Holding[]> {
+    return this.holdingRepo
+      .createQueryBuilder('holding')
+      .leftJoinAndSelect('holding.asset', 'asset')
+      .where('holding.portfolioId = :portfolioId', { portfolioId })
+      .orderBy('holding.createdAt', 'ASC')
+      .getMany();
+  }
+
   async update(
     id: string,
     userId: string,

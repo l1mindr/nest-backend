@@ -1,6 +1,7 @@
 import { Holding } from '../../domain/entities/holding.entity';
 import { Portfolio } from '../../domain/entities/portfolio.entity';
 import { PortfolioSourceType } from '../../domain/enums/portfolio-source-type.enum';
+import { PortfolioValuationStatus } from '../../domain/enums/portfolio-valuation-status.enum';
 import { CreateHoldingRequestDto } from '../../presentation/dto/request/create-holding.request.dto';
 import { CreatePortfolioRequestDto } from '../../presentation/dto/request/create-portfolio.request.dto';
 import { UpdateHoldingRequestDto } from '../../presentation/dto/request/update-holding.request.dto';
@@ -46,6 +47,7 @@ export interface IHoldingRepository {
     userId: string,
     options: { portfolioId?: string }
   ): Promise<Holding[]>;
+  listForValuation(portfolioId: string): Promise<Holding[]>;
   update(
     id: string,
     userId: string,
@@ -102,3 +104,31 @@ export interface IListHoldingsUseCase {
 }
 
 export const LIST_HOLDINGS_USE_CASE = Symbol('IListHoldingsUseCase');
+
+export interface PortfolioHoldingValuation {
+  holdingId: string;
+  assetId: string;
+  symbol: string;
+  name: string;
+  amount: string;
+  currentPrice: string | null;
+  value: string | null;
+}
+
+export interface PortfolioValuation {
+  portfolioId: string;
+  currency: string;
+  totalValue: string | null;
+  status: PortfolioValuationStatus;
+  valuedHoldings: number;
+  unvaluedHoldings: number;
+  holdings: PortfolioHoldingValuation[];
+}
+
+export interface IGetPortfolioValuationUseCase {
+  execute(userId: string, portfolioId: string): Promise<PortfolioValuation>;
+}
+
+export const GET_PORTFOLIO_VALUATION_USE_CASE = Symbol(
+  'IGetPortfolioValuationUseCase'
+);
