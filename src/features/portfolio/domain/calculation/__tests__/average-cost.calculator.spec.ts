@@ -121,13 +121,63 @@ describe('AverageCostCalculator', () => {
   });
 
   describe('SELL', () => {
-    it('should reduce the quantity without touching cost', () => {
+    it('should release the proportional cost basis and record realized P&L', () => {
       const state = { quantity: '2', totalCost: '120000' };
       expect(calculator.calculate([sell('1', '70000')], state)).toEqual({
         quantity: '1',
-        totalCost: '120000',
-        realizedPnl: []
+        totalCost: '60000',
+        realizedPnl: [
+          expect.objectContaining({
+            amount: '1',
+            proceeds: '70000',
+            costBasisReleased: '60000',
+            realizedGain: '10000'
+          })
+        ]
       });
+    });
+
+    it('should realize a loss when the sale price is below the average cost', () => {
+      const state = { quantity: '2', totalCost: '120000' };
+      const result = calculator.calculate([sell('1', '50000')], state);
+      expect(result.realizedPnl).toEqual([
+        expect.objectContaining({
+          proceeds: '50000',
+          costBasisReleased: '60000',
+          realizedGain: '-10000'
+        })
+      ]);
+    });
+
+    it('should realize no gain when selling at the average cost', () => {
+      const state = { quantity: '2', totalCost: '120000' };
+      const result = calculator.calculate([sell('1', '60000')], state);
+      expect(result.realizedPnl).toEqual([
+        expect.objectContaining({
+          proceeds: '60000',
+          costBasisReleased: '60000',
+          realizedGain: '0'
+        })
+      ]);
+    });
+
+    it('should release basis across multiple sells', () => {
+      const result = calculator.calculate(
+        [sell('1', '70000'), sell('0.5', '50000')],
+        { quantity: '2', totalCost: '120000' }
+      );
+      expect(result.quantity).toBe('0.5');
+      expect(result.totalCost).toBe('30000');
+      expect(result.realizedPnl).toHaveLength(2);
+    });
+
+    it('should keep the average cost of the remainder unchanged after a sale', () => {
+      const result = calculator.calculate(
+        [buy('1', '50000'), buy('1', '70000'), sell('1', '90000')],
+        opening()
+      );
+      expect(result.quantity).toBe('1');
+      expect(result.totalCost).toBe('60000');
     });
 
     it('should reject a SELL exceeding the available quantity', () => {
@@ -154,6 +204,21 @@ describe('AverageCostCalculator', () => {
         CalculationErrorCode.MISSING_PRICE
       );
     });
+
+    it('should truncate a non-terminating average cost at the domain precision', () => {
+      const result = calculator.calculate(
+        [buy('1', '1'), buy('2', '0.5'), sell('1', '1')],
+        opening()
+      );
+      expect(result.realizedPnl).toEqual([
+        expect.objectContaining({
+          costBasisReleased: '0.66666666666666666666666666',
+          realizedGain: '0.33333333333333333333333334'
+        })
+      ]);
+      expect(result.quantity).toBe('2');
+      expect(result.totalCost).toBe('1.33333333333333333333333334');
+    });
   });
 
   describe('TRANSFER_IN', () => {
@@ -177,11 +242,11 @@ describe('AverageCostCalculator', () => {
   });
 
   describe('TRANSFER_OUT', () => {
-    it('should decrease quantity without creating a sale', () => {
+    it('should release cost basis without creating a sale', () => {
       const state = { quantity: '2', totalCost: '120000' };
       expect(calculator.calculate([transferOut('1')], state)).toEqual({
         quantity: '1',
-        totalCost: '120000',
+        totalCost: '60000',
         realizedPnl: []
       });
     });

@@ -2,20 +2,46 @@ import { compareDecimals, divideDecimals } from '@core/decimal/decimal.util';
 import { AverageCostCalculator } from './average-cost.calculator';
 import { CostBasisCalculator } from './cost-basis.calculator';
 import { CalculationErrors } from './errors/calculation-errors';
+import {
+  FifoCostBasisCalculator,
+  LifoCostBasisCalculator
+} from './lot-cost-basis.calculator';
 import { CALCULATION_DIVISION_MAX_FRACTION_DIGITS } from './portfolio-calculation.constants';
 import {
   CostBasisOpeningState,
   PortfolioCalculationInput
 } from './types/calculation-input.types';
 import { PortfolioCalculationResult } from './types/calculation-result.types';
+import { CostBasisStrategy } from './types/cost-basis.strategy.enum';
 import { CalculationTransaction } from './types/calculation-transaction.types';
+
+const COST_BASIS_STRATEGY_CALCULATORS: Record<
+  CostBasisStrategy,
+  CostBasisCalculator
+> = {
+  [CostBasisStrategy.AVERAGE]: new AverageCostCalculator(),
+  [CostBasisStrategy.FIFO]: new FifoCostBasisCalculator(),
+  [CostBasisStrategy.LIFO]: new LifoCostBasisCalculator()
+};
+
+function isCostBasisStrategy(value: unknown): value is CostBasisStrategy {
+  return (
+    value === CostBasisStrategy.AVERAGE ||
+    value === CostBasisStrategy.FIFO ||
+    value === CostBasisStrategy.LIFO
+  );
+}
 
 /**
  * Pure, deterministic, framework-independent portfolio calculation engine.
  *
  * The engine validates and normalizes its input, orders the ledger
- * chronologically, delegates the cost-basis accumulation to a strategy, and
- * derives `averageCost` from the exact `totalCost`/`quantity` pair.
+ * chronologically, delegates the cost-basis accumulation and realized P&L to a
+ * strategy, and derives `averageCost` from the exact `totalCost`/`quantity`
+ * pair.
+ *
+ * The strategy can be selected by the `CostBasisStrategy` enum or injected as
+ * a concrete `CostBasisCalculator`, defaulting to average cost.
  *
  * It performs no I/O, no logging, no database or HTTP calls, and holds no
  * state between calls, so it can be reused unchanged from the REST API,
@@ -24,9 +50,16 @@ import { CalculationTransaction } from './types/calculation-transaction.types';
  * The input arrays and transaction objects are never mutated.
  */
 export class PortfolioCalculationEngine {
+  private readonly costBasis: CostBasisCalculator;
+
   constructor(
-    private readonly costBasis: CostBasisCalculator = new AverageCostCalculator()
-  ) {}
+    costBasis:
+      CostBasisCalculator | CostBasisStrategy = CostBasisStrategy.AVERAGE
+  ) {
+    this.costBasis = isCostBasisStrategy(costBasis)
+      ? COST_BASIS_STRATEGY_CALCULATORS[costBasis]
+      : costBasis;
+  }
 
   calculate(input: PortfolioCalculationInput): PortfolioCalculationResult {
     if (
