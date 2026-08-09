@@ -1,4 +1,4 @@
-import { AverageCostCalculator } from '../cost-basis.calculator';
+import { AverageCostCalculator } from '../average-cost.calculator';
 import { CalculationError } from '../errors/calculation-errors';
 import { CalculationErrorCode } from '../errors/calculation-error-code.enum';
 import { CostBasisOpeningState } from '../types/calculation-input.types';

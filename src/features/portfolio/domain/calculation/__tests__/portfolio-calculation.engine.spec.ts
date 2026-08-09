@@ -1,13 +1,11 @@
-import {
-  AverageCostCalculator,
-  CostBasisCalculator
-} from '../cost-basis.calculator';
+import { CostBasisCalculator } from '../cost-basis.calculator';
 import { CalculationError } from '../errors/calculation-errors';
 import { CalculationErrorCode } from '../errors/calculation-error-code.enum';
 import { PortfolioCalculationEngine } from '../portfolio-calculation.engine';
 import { PortfolioCalculationInput } from '../types/calculation-input.types';
 import { CalculationTransaction } from '../types/calculation-transaction.types';
 import { CalculationTransactionType } from '../types/calculation-transaction.types';
+import { AverageCostCalculator } from '../average-cost.calculator';
 
 const at = (time: string, id?: string) => ({ occurredAt: time, id });
 
