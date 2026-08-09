@@ -168,6 +168,34 @@ describe('PortfolioCalculationEngine', () => {
         realizedPnl: []
       });
     });
+
+    it('should release basis on transfer-out and realize P&L only on the later sale', () => {
+      const result = engine.calculate({
+        transactions: [
+          buy('1', '50000', '2026-07-28T08:00:00.000Z'),
+          {
+            type: CalculationTransactionType.TRANSFER_OUT,
+            amount: '0.5',
+            occurredAt: '2026-07-28T09:00:00.000Z'
+          },
+          sell('0.5', '70000', '2026-07-28T10:00:00.000Z')
+        ]
+      });
+      expect(result).toEqual({
+        quantity: '0',
+        totalCost: '0',
+        averageCost: '0',
+        realizedPnl: [
+          expect.objectContaining({
+            amount: '0.5',
+            price: '70000',
+            proceeds: '35000',
+            releasedCostBasis: '25000',
+            realizedPnl: '10000'
+          })
+        ]
+      });
+    });
   });
 
   describe('ordering', () => {
@@ -288,6 +316,42 @@ describe('PortfolioCalculationEngine', () => {
       expect(viaInstance.calculate(ledger())).toEqual(
         viaEnum.calculate(ledger())
       );
+    });
+
+    it('should keep quantity and proceeds identical across strategies while cost and P&L differ per policy', () => {
+      const scenario = () => ({
+        transactions: [
+          buy('1', '100', '2026-07-28T08:00:00.000Z'),
+          buy('1', '200', '2026-07-28T09:00:00.000Z'),
+          sell('1.5', '160', '2026-07-28T10:00:00.000Z')
+        ]
+      });
+
+      const average = new PortfolioCalculationEngine(
+        CostBasisStrategy.AVERAGE
+      ).calculate(scenario());
+      const fifo = new PortfolioCalculationEngine(
+        CostBasisStrategy.FIFO
+      ).calculate(scenario());
+      const lifo = new PortfolioCalculationEngine(
+        CostBasisStrategy.LIFO
+      ).calculate(scenario());
+
+      expect(average.quantity).toBe('0.5');
+      expect(fifo.quantity).toBe('0.5');
+      expect(lifo.quantity).toBe('0.5');
+      expect(average.realizedPnl[0].proceeds).toBe('240');
+      expect(fifo.realizedPnl[0].proceeds).toBe('240');
+      expect(lifo.realizedPnl[0].proceeds).toBe('240');
+      expect(average.realizedPnl[0].releasedCostBasis).toBe('225');
+      expect(fifo.realizedPnl[0].releasedCostBasis).toBe('200');
+      expect(lifo.realizedPnl[0].releasedCostBasis).toBe('250');
+      expect(average.realizedPnl[0].realizedPnl).toBe('15');
+      expect(fifo.realizedPnl[0].realizedPnl).toBe('40');
+      expect(lifo.realizedPnl[0].realizedPnl).toBe('-10');
+      expect(average.totalCost).toBe('75');
+      expect(fifo.totalCost).toBe('100');
+      expect(lifo.totalCost).toBe('50');
     });
   });
 

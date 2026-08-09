@@ -180,6 +180,43 @@ describe('AverageCostCalculator', () => {
       expect(result.totalCost).toBe('60000');
     });
 
+    it('should realize the full proceeds as gain when selling zero-cost transfer units', () => {
+      const result = calculator.calculate(
+        [transferIn('1'), sell('1', '60000')],
+        opening()
+      );
+      expect(result).toEqual({
+        quantity: '0',
+        totalCost: '0',
+        realizedPnl: [
+          expect.objectContaining({
+            amount: '1',
+            price: '60000',
+            proceeds: '60000',
+            releasedCostBasis: '0',
+            realizedPnl: '60000'
+          })
+        ]
+      });
+    });
+
+    it('should release the entire basis on a full sell-out', () => {
+      const state = { quantity: '2', totalCost: '120000' };
+      expect(calculator.calculate([sell('2', '70000')], state)).toEqual({
+        quantity: '0',
+        totalCost: '0',
+        realizedPnl: [
+          expect.objectContaining({
+            amount: '2',
+            price: '70000',
+            proceeds: '140000',
+            releasedCostBasis: '120000',
+            realizedPnl: '20000'
+          })
+        ]
+      });
+    });
+
     it('should reject a SELL exceeding the available quantity', () => {
       const state = { quantity: '1', totalCost: '50000' };
       expectCalculationError(

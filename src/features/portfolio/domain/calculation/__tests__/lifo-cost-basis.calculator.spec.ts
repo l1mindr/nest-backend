@@ -34,6 +34,12 @@ const transferOut = (amount: string): CalculationTransaction => ({
   occurredAt: '2026-07-28T09:00:00.000Z'
 });
 
+const transferIn = (amount: string): CalculationTransaction => ({
+  type: CalculationTransactionType.TRANSFER_IN,
+  amount,
+  occurredAt: '2026-07-28T08:00:00.000Z'
+});
+
 function expectCalculationError(
   fn: () => unknown,
   code: CalculationErrorCode
@@ -134,6 +140,12 @@ describe('LifoCostBasisCalculator', () => {
         opening()
       )
     ).toEqual({ quantity: '1', totalCost: '100', realizedPnl: [] });
+  });
+
+  it('should consume a transfer-in lot on transfer-out without realized P&L', () => {
+    expect(
+      calculator.calculate([transferIn('1'), transferOut('0.5')], opening())
+    ).toEqual({ quantity: '0.5', totalCost: '0', realizedPnl: [] });
   });
 
   it('should realize the complete gain on a full sell-out', () => {
