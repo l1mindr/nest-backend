@@ -1,3 +1,6 @@
+import { PortfolioCalculationEngine } from '../../domain/calculation/portfolio-calculation.engine';
+import { RealizedPnlEvent } from '../../domain/calculation/types/calculation-result.types';
+import { CostBasisStrategy } from '../../domain/calculation/types/cost-basis.strategy.enum';
 import { Holding } from '../../domain/entities/holding.entity';
 import { Portfolio } from '../../domain/entities/portfolio.entity';
 import { PortfolioTransaction } from '../../domain/entities/portfolio-transaction.entity';
@@ -137,6 +140,22 @@ export const GET_PORTFOLIO_VALUATION_USE_CASE = Symbol(
   'IGetPortfolioValuationUseCase'
 );
 
+/**
+ * Builds a portfolio calculation engine configured with a cost-basis strategy.
+ *
+ * The engine fixes its strategy at construction time, so the strategy must be
+ * chosen per request. The use case depends on this abstraction instead of
+ * constructing engines itself; the provider is the single place that decides
+ * how an engine is built.
+ */
+export const PORTFOLIO_CALCULATION_ENGINE = Symbol(
+  'IPortfolioCalculationEngineFactory'
+);
+
+export interface IPortfolioCalculationEngineFactory {
+  create(strategy: CostBasisStrategy): PortfolioCalculationEngine;
+}
+
 export const PORTFOLIO_TRANSACTION_REPOSITORY = Symbol(
   'IPortfolioTransactionRepository'
 );
@@ -182,6 +201,15 @@ export interface IPortfolioTransactionRepository {
   ): Promise<PortfolioTransaction | null>;
   listByPortfolioAndUser(
     filter: ListPortfolioTransactionsFilter
+  ): Promise<PortfolioTransaction[]>;
+  /**
+   * Loads the complete transaction ledger of one portfolio with the asset
+   * resolved inline, for P&L calculation. Never paginated: the calculation
+   * engine requires the full chronological stream.
+   */
+  listForPnl(
+    portfolioId: string,
+    userId: string
   ): Promise<PortfolioTransaction[]>;
   deleteByIdAndPortfolioAndUser(
     id: string,
@@ -242,3 +270,55 @@ export interface IDeletePortfolioTransactionUseCase {
 export const DELETE_PORTFOLIO_TRANSACTION_USE_CASE = Symbol(
   'IDeletePortfolioTransactionUseCase'
 );
+
+/**
+ * One asset position in a portfolio P&L calculation.
+ *
+ * All monetary and quantity values are exact decimal strings; `null` marks a
+ * value that cannot be computed because the asset has no current price.
+ */
+export interface PortfolioPnlPosition {
+  assetId: string;
+  symbol: string;
+  name: string;
+  quantity: string;
+  totalCost: string;
+  averageCost: string;
+  currentPrice: string | null;
+  currentValue: string | null;
+  realizedPnl: string;
+  unrealizedPnl: string | null;
+  totalPnl: string | null;
+  realizedPnlEvents: RealizedPnlEvent[];
+}
+
+/**
+ * The application-facing result of a portfolio P&L calculation.
+ *
+ * When any position is unpriced, `totalCurrentValue`, `totalUnrealizedPnl`
+ * and `totalPnl` are `null`; `totalRealizedPnl` never needs a market price
+ * and is always present.
+ */
+export interface PortfolioPnlResult {
+  portfolioId: string;
+  currency: string;
+  costBasisStrategy: CostBasisStrategy;
+  pricedPositions: number;
+  unpricedPositions: number;
+  totalCurrentValue: string | null;
+  totalCostBasis: string;
+  totalRealizedPnl: string;
+  totalUnrealizedPnl: string | null;
+  totalPnl: string | null;
+  positions: PortfolioPnlPosition[];
+}
+
+export interface IGetPortfolioPnlUseCase {
+  execute(
+    userId: string,
+    portfolioId: string,
+    strategy?: CostBasisStrategy
+  ): Promise<PortfolioPnlResult>;
+}
+
+export const GET_PORTFOLIO_PNL_USE_CASE = Symbol('IGetPortfolioPnlUseCase');

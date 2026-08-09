@@ -80,6 +80,20 @@ export class PortfolioTransactionRepository implements IPortfolioTransactionRepo
       .getMany();
   }
 
+  async listForPnl(
+    portfolioId: string,
+    userId: string
+  ): Promise<PortfolioTransaction[]> {
+    return this.transactionRepo
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.asset', 'asset')
+      .where('transaction.userId = :userId', { userId })
+      .andWhere('transaction.portfolioId = :portfolioId', { portfolioId })
+      .orderBy('transaction.occurredAt', 'ASC')
+      .addOrderBy('transaction.id', 'ASC')
+      .getMany();
+  }
+
   async deleteByIdAndPortfolioAndUser(
     id: string,
     portfolioId: string,
