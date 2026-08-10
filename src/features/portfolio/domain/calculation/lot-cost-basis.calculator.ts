@@ -17,7 +17,7 @@ import {
   requirePrice
 } from './cost-basis-validation';
 import { CalculationErrors } from './errors/calculation-errors';
-import { consumeLots, Lot } from './lot';
+import { LotStore } from './lot';
 import { CALCULATION_DIVISION_MAX_FRACTION_DIGITS } from './portfolio-calculation.constants';
 import { CostBasisOpeningState } from './types/calculation-input.types';
 import {
@@ -56,7 +56,7 @@ export abstract class LotCostBasisCalculator implements CostBasisCalculator {
     const openingQuantity = assertOpeningQuantity(opening.quantity);
     const openingCost = assertOpeningCost(opening.totalCost);
 
-    let lots: Lot[] = [];
+    const lots = new LotStore(this.fromBack);
     if (compareDecimals(openingQuantity, '0') > 0) {
       lots.push({
         quantity: openingQuantity,
@@ -93,12 +93,7 @@ export abstract class LotCostBasisCalculator implements CostBasisCalculator {
         case CalculationTransactionType.SELL: {
           const price = requirePrice(transaction.price, transaction.type);
           assertAvailable(quantity, amount);
-          const { remainingLots, releasedBasis } = consumeLots(
-            lots,
-            amount,
-            this.fromBack
-          );
-          lots = remainingLots;
+          const releasedBasis = lots.consume(amount);
           const proceeds = multiplyDecimals(amount, price);
           quantity = subtractDecimals(quantity, amount);
           totalCost = subtractDecimals(totalCost, releasedBasis);
@@ -124,12 +119,7 @@ export abstract class LotCostBasisCalculator implements CostBasisCalculator {
         case CalculationTransactionType.TRANSFER_OUT: {
           assertOptionalPrice(transaction.price);
           assertAvailable(quantity, amount);
-          const { remainingLots, releasedBasis } = consumeLots(
-            lots,
-            amount,
-            this.fromBack
-          );
-          lots = remainingLots;
+          const releasedBasis = lots.consume(amount);
           quantity = subtractDecimals(quantity, amount);
           totalCost = subtractDecimals(totalCost, releasedBasis);
           break;
