@@ -2,6 +2,7 @@ import { PortfolioCalculationEngine } from '../../../domain/calculation/portfoli
 import { CalculationTransactionType } from '../../../domain/calculation/types/calculation-transaction.types';
 import { CostBasisStrategy } from '../../../domain/calculation/types/cost-basis.strategy.enum';
 import { Portfolio } from '../../../domain/entities/portfolio.entity';
+import { PortfolioOpeningBalance } from '../../../domain/entities/portfolio-opening-balance.entity';
 import { PortfolioTransaction } from '../../../domain/entities/portfolio-transaction.entity';
 import { PortfolioTransactionType } from '../../../domain/enums/portfolio-transaction-type.enum';
 import { PortfolioErrorCode } from '../../../domain/errors/portfolio-error-code.enum';
@@ -52,6 +53,33 @@ function makeTransaction(
   } as PortfolioTransaction;
 }
 
+function makeOpeningBalance(
+  overrides: Partial<PortfolioOpeningBalance> & {
+    assetCurrentPrice?: string | null;
+  } = {}
+): PortfolioOpeningBalance {
+  const assetId = overrides.assetId ?? 'asset-1';
+  const meta = ASSET_META[assetId] ?? { symbol: 'btc', name: 'Bitcoin' };
+
+  return {
+    id: overrides.id ?? 'opening-balance-1',
+    userId: 'user-id',
+    portfolioId: 'portfolio-id',
+    assetId,
+    openingQuantity: overrides.openingQuantity ?? '1',
+    openingCost: overrides.openingCost ?? '100',
+    asset: {
+      id: assetId,
+      symbol: meta.symbol,
+      name: meta.name,
+      currentPrice:
+        overrides.assetCurrentPrice !== undefined
+          ? overrides.assetCurrentPrice
+          : '100'
+    }
+  } as PortfolioOpeningBalance;
+}
+
 function deepFreeze<T>(value: T): T {
   if (value && typeof value === 'object') {
     Object.values(value).forEach((nested) => deepFreeze(nested));
@@ -69,6 +97,7 @@ describe('GetPortfolioPnlUseCase', () => {
 
   let portfolioRepository: { findByIdAndUser: jest.Mock };
   let transactionRepository: { listForPnl: jest.Mock };
+  let openingBalanceRepository: { listForPnl: jest.Mock };
   let engineFactory: { create: jest.Mock };
   let logger: { setContext: jest.Mock; info: jest.Mock };
   let useCase: GetPortfolioPnlUseCase;
@@ -78,6 +107,9 @@ describe('GetPortfolioPnlUseCase', () => {
       findByIdAndUser: jest.fn().mockResolvedValue(portfolio)
     };
     transactionRepository = {
+      listForPnl: jest.fn().mockResolvedValue([])
+    };
+    openingBalanceRepository = {
       listForPnl: jest.fn().mockResolvedValue([])
     };
     engineFactory = {
@@ -94,6 +126,7 @@ describe('GetPortfolioPnlUseCase', () => {
     useCase = new GetPortfolioPnlUseCase(
       portfolioRepository as any,
       transactionRepository as any,
+      openingBalanceRepository as any,
       engineFactory as any,
       logger as any
     );
@@ -145,6 +178,7 @@ describe('GetPortfolioPnlUseCase', () => {
       ).rejects.toBeDefined();
 
       expect(transactionRepository.listForPnl).not.toHaveBeenCalled();
+      expect(openingBalanceRepository.listForPnl).not.toHaveBeenCalled();
     });
   });
 
@@ -157,6 +191,10 @@ describe('GetPortfolioPnlUseCase', () => {
         'user-id'
       );
       expect(transactionRepository.listForPnl).toHaveBeenCalledWith(
+        'portfolio-id',
+        'user-id'
+      );
+      expect(openingBalanceRepository.listForPnl).toHaveBeenCalledWith(
         'portfolio-id',
         'user-id'
       );
@@ -174,6 +212,98 @@ describe('GetPortfolioPnlUseCase', () => {
         positions: []
       });
     });
+  });
+
+  describe('opening balances', () => {
+    it('should create a position from an opening balance without transactions', async () => {
+      useRealEngine();
+      openingBalanceRepository.listForPnl.mockResolvedValue([
+        makeOpeningBalance({
+          openingQuantity: '0.1',
+          openingCost: '0.02',
+          assetCurrentPrice: '0.3'
+        })
+      ]);
+
+      const result = await useCase.execute('user-id', 'portfolio-id');
+
+      expect(result.positions).toEqual([
+        expect.objectContaining({
+          assetId: 'asset-1',
+          quantity: '0.1',
+          totalCost: '0.02',
+          averageCost: '0.2',
+          currentValue: '0.03',
+          unrealizedPnl: '0.01'
+        })
+      ]);
+      expect(result.totalCostBasis).toBe('0.02');
+      expect(result.totalPnl).toBe('0.01');
+    });
+
+    it.each([
+      {
+        strategy: CostBasisStrategy.AVERAGE,
+        releasedCostBasis: '150',
+        remainingCost: '150',
+        realizedPnl: '0'
+      },
+      {
+        strategy: CostBasisStrategy.FIFO,
+        releasedCostBasis: '100',
+        remainingCost: '200',
+        realizedPnl: '50'
+      },
+      {
+        strategy: CostBasisStrategy.LIFO,
+        releasedCostBasis: '200',
+        remainingCost: '100',
+        realizedPnl: '-50'
+      }
+    ])(
+      'should apply the opening state with $strategy cost basis',
+      async ({ strategy, releasedCostBasis, remainingCost, realizedPnl }) => {
+        useRealEngine();
+        openingBalanceRepository.listForPnl.mockResolvedValue([
+          makeOpeningBalance({
+            openingQuantity: '1',
+            openingCost: '100',
+            assetCurrentPrice: '150'
+          })
+        ]);
+        transactionRepository.listForPnl.mockResolvedValue([
+          makeTransaction({
+            id: 'buy',
+            amount: '1',
+            price: '200',
+            occurredAt: new Date('2026-01-01T00:00:00.000Z'),
+            assetCurrentPrice: '150'
+          }),
+          makeTransaction({
+            id: 'sell',
+            type: PortfolioTransactionType.SELL,
+            amount: '1',
+            price: '150',
+            occurredAt: new Date('2026-01-02T00:00:00.000Z'),
+            assetCurrentPrice: '150'
+          })
+        ]);
+
+        const result = await useCase.execute(
+          'user-id',
+          'portfolio-id',
+          strategy
+        );
+        const position = result.positions[0];
+
+        expect(position.quantity).toBe('1');
+        expect(position.totalCost).toBe(remainingCost);
+        expect(position.realizedPnl).toBe(realizedPnl);
+        expect(position.realizedPnlEvents[0].releasedCostBasis).toBe(
+          releasedCostBasis
+        );
+      }
+    );
   });
 
   describe('cost-basis strategy', () => {
@@ -745,6 +875,8 @@ describe('GetPortfolioPnlUseCase', () => {
 
       expect(calculate).toHaveBeenCalledWith({
         assetId: 'asset-1',
+        openingQuantity: '0',
+        openingCost: '0',
         transactions: [
           expect.objectContaining({
             id: 'tx-1',
