@@ -577,6 +577,43 @@ describe('Portfolio repositories (e2e)', () => {
       expect(foreign[0].id).toBe(uuid(3));
     });
 
+    it('should return only the P&L input columns from listForPnl', async () => {
+      const owner = await seedUser('owner-a@test.com', 'ownera');
+      const asset = await seedAsset({ currentPrice: '63000' });
+      const portfolio = await seedPortfolio(owner.id);
+      await seedTransaction(owner, portfolio, asset, {
+        id: uuid(1),
+        type: PortfolioTransactionType.BUY,
+        amount: '0.5',
+        price: '60000.50',
+        fee: '0.75',
+        notes: 'Must not be loaded for P&L',
+        occurredAt: new Date('2026-07-01T08:00:00.000Z')
+      });
+
+      const result = await transactionRepository.listForPnl(
+        portfolio.id,
+        owner.id
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        id: uuid(1),
+        assetId: asset.id,
+        type: PortfolioTransactionType.BUY,
+        amount: '0.500000000000000000',
+        price: '60000.50000000',
+        fee: '0.75000000',
+        occurredAt: expect.any(Date),
+        asset: {
+          symbol: 'btc',
+          name: 'Bitcoin',
+          currentPrice: '63000.00000000'
+        }
+      });
+      expect(result[0].notes).toBeUndefined();
+    });
+
     it('should update a transaction only when it belongs to the user and portfolio', async () => {
       const owner = await seedUser('owner-a@test.com', 'ownera');
       const other = await seedUser('owner-b@test.com', 'ownerb');

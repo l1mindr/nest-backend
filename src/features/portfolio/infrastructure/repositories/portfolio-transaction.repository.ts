@@ -87,7 +87,19 @@ export class PortfolioTransactionRepository implements IPortfolioTransactionRepo
   ): Promise<PortfolioTransaction[]> {
     return this.transactionRepo
       .createQueryBuilder('transaction')
-      .leftJoinAndSelect('transaction.asset', 'asset')
+      .leftJoin('transaction.asset', 'asset')
+      .select([
+        'transaction.id',
+        'transaction.assetId',
+        'transaction.type',
+        'transaction.amount',
+        'transaction.price',
+        'transaction.fee',
+        'transaction.occurredAt',
+        'asset.symbol',
+        'asset.name',
+        'asset.currentPrice'
+      ])
       .where('transaction.userId = :userId', { userId })
       .andWhere('transaction.portfolioId = :portfolioId', { portfolioId })
       .orderBy('transaction.occurredAt', 'ASC')
