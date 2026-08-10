@@ -2314,5 +2314,473 @@ describe('Portfolio (e2e) version: 1', () => {
         totalPnl: '0.01'
       });
     });
+
+    it('should aggregate multiple BUY transactions followed by multiple SELL transactions', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const asset = await seedAsset({ currentPrice: '60000' });
+
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'BUY',
+        amount: '2',
+        price: '50000',
+        occurredAt: '2026-07-01T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'BUY',
+        amount: '3',
+        price: '60000',
+        occurredAt: '2026-07-02T08:00:00.000Z'
+      });
+      const firstSell = await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'SELL',
+        amount: '1',
+        price: '55000',
+        occurredAt: '2026-07-03T08:00:00.000Z'
+      });
+      const secondSell = await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'SELL',
+        amount: '2',
+        price: '70000',
+        occurredAt: '2026-07-04T08:00:00.000Z'
+      });
+      expect(firstSell.status).toBe(201);
+      expect(secondSell.status).toBe(201);
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/pnl`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        pricedPositions: 1,
+        unpricedPositions: 0,
+        totalCurrentValue: '120000',
+        totalCostBasis: '112000',
+        totalRealizedPnl: '27000',
+        totalUnrealizedPnl: '8000',
+        totalPnl: '35000',
+        positions: [
+          {
+            quantity: '2',
+            totalCost: '112000',
+            averageCost: '56000',
+            currentValue: '120000',
+            realizedPnl: '27000',
+            unrealizedPnl: '8000',
+            totalPnl: '35000',
+            realizedPnlEvents: [
+              {
+                transactionId: firstSell.body.id,
+                type: 'SELL',
+                amount: '1.000000000000000000',
+                price: '55000.00000000',
+                proceeds: '55000',
+                releasedCostBasis: '56000',
+                realizedPnl: '-1000'
+              },
+              {
+                transactionId: secondSell.body.id,
+                type: 'SELL',
+                amount: '2.000000000000000000',
+                price: '70000.00000000',
+                proceeds: '140000',
+                releasedCostBasis: '112000',
+                realizedPnl: '28000'
+              }
+            ]
+          }
+        ]
+      });
+    });
+
+    it('should recompute the position for interleaved BUY and SELL transactions', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const asset = await seedAsset({ currentPrice: '100' });
+
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'BUY',
+        amount: '10',
+        price: '100',
+        occurredAt: '2026-07-01T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'SELL',
+        amount: '4',
+        price: '120',
+        occurredAt: '2026-07-02T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'BUY',
+        amount: '2',
+        price: '150',
+        occurredAt: '2026-07-03T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'SELL',
+        amount: '6',
+        price: '110',
+        occurredAt: '2026-07-04T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'BUY',
+        amount: '3',
+        price: '200',
+        occurredAt: '2026-07-05T08:00:00.000Z'
+      });
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/pnl`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        totalCurrentValue: '500',
+        totalCostBasis: '825',
+        totalRealizedPnl: '65',
+        totalUnrealizedPnl: '-325',
+        totalPnl: '-260',
+        positions: [
+          {
+            quantity: '5',
+            totalCost: '825',
+            averageCost: '165',
+            currentValue: '500',
+            realizedPnl: '65',
+            unrealizedPnl: '-325',
+            totalPnl: '-260',
+            realizedPnlEvents: [
+              {
+                type: 'SELL',
+                amount: '4.000000000000000000',
+                price: '120.00000000',
+                proceeds: '480',
+                releasedCostBasis: '400',
+                realizedPnl: '80'
+              },
+              {
+                type: 'SELL',
+                amount: '6.000000000000000000',
+                price: '110.00000000',
+                proceeds: '660',
+                releasedCostBasis: '675',
+                realizedPnl: '-15'
+              }
+            ]
+          }
+        ]
+      });
+    });
+
+    it('should apply the selected cost-basis strategy to each asset independently', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const bitcoin = await seedAsset({ currentPrice: '60000' });
+      const ether = await seedAsset({
+        coinGeckoId: 'ethereum',
+        symbol: 'eth',
+        name: 'Ethereum',
+        currentPrice: '2500'
+      });
+
+      // bitcoin: BUY 1 @ 100, BUY 1 @ 200, SELL 1 @ 150
+      await createTransaction(auth, portfolio.id, bitcoin.id, {
+        type: 'BUY',
+        amount: '1',
+        price: '100',
+        occurredAt: '2026-07-01T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, bitcoin.id, {
+        type: 'BUY',
+        amount: '1',
+        price: '200',
+        occurredAt: '2026-07-02T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, bitcoin.id, {
+        type: 'SELL',
+        amount: '1',
+        price: '150',
+        occurredAt: '2026-07-03T08:00:00.000Z'
+      });
+
+      // ether: BUY 1 @ 300, BUY 1 @ 500, SELL 1 @ 400
+      await createTransaction(auth, portfolio.id, ether.id, {
+        type: 'BUY',
+        amount: '1',
+        price: '300',
+        occurredAt: '2026-07-04T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, ether.id, {
+        type: 'BUY',
+        amount: '1',
+        price: '500',
+        occurredAt: '2026-07-05T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, ether.id, {
+        type: 'SELL',
+        amount: '1',
+        price: '400',
+        occurredAt: '2026-07-06T08:00:00.000Z'
+      });
+
+      const fifo = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/pnl?costBasis=FIFO`
+      );
+      expect(fifo.status).toBe(200);
+      expect(fifo.body.costBasis).toBe('FIFO');
+      expect(fifo.body).toMatchObject({
+        totalCostBasis: '700',
+        totalRealizedPnl: '150'
+      });
+      expect(fifo.body.positions[0]).toMatchObject({
+        symbol: 'btc',
+        totalCost: '200',
+        averageCost: '200',
+        realizedPnl: '50'
+      });
+      expect(fifo.body.positions[0].realizedPnlEvents[0]).toMatchObject({
+        releasedCostBasis: '100',
+        realizedPnl: '50'
+      });
+      expect(fifo.body.positions[1]).toMatchObject({
+        symbol: 'eth',
+        totalCost: '500',
+        averageCost: '500',
+        realizedPnl: '100'
+      });
+      expect(fifo.body.positions[1].realizedPnlEvents[0]).toMatchObject({
+        releasedCostBasis: '300',
+        realizedPnl: '100'
+      });
+
+      const lifo = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/pnl?costBasis=LIFO`
+      );
+      expect(lifo.status).toBe(200);
+      expect(lifo.body.costBasis).toBe('LIFO');
+      expect(lifo.body).toMatchObject({
+        totalCostBasis: '400',
+        totalRealizedPnl: '-150'
+      });
+      expect(lifo.body.positions[0]).toMatchObject({
+        symbol: 'btc',
+        totalCost: '100',
+        averageCost: '100',
+        realizedPnl: '-50'
+      });
+      expect(lifo.body.positions[0].realizedPnlEvents[0]).toMatchObject({
+        releasedCostBasis: '200',
+        realizedPnl: '-50'
+      });
+      expect(lifo.body.positions[1]).toMatchObject({
+        symbol: 'eth',
+        totalCost: '300',
+        averageCost: '300',
+        realizedPnl: '-100'
+      });
+      expect(lifo.body.positions[1].realizedPnlEvents[0]).toMatchObject({
+        releasedCostBasis: '500',
+        realizedPnl: '-100'
+      });
+    });
+
+    it('should combine priced and unpriced assets in one report', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const bitcoin = await seedAsset({ currentPrice: '60000' });
+      const ether = await seedAsset({
+        coinGeckoId: 'ethereum',
+        symbol: 'eth',
+        name: 'Ethereum',
+        currentPrice: null
+      });
+
+      await createTransaction(auth, portfolio.id, bitcoin.id, {
+        type: 'BUY',
+        amount: '2',
+        price: '50000',
+        occurredAt: '2026-07-01T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, ether.id, {
+        type: 'BUY',
+        amount: '3',
+        price: '2000',
+        occurredAt: '2026-07-02T08:00:00.000Z'
+      });
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/pnl`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        pricedPositions: 1,
+        unpricedPositions: 1,
+        totalCurrentValue: null,
+        totalCostBasis: '106000',
+        totalRealizedPnl: '0',
+        totalUnrealizedPnl: null,
+        totalPnl: null,
+        positions: [
+          {
+            symbol: 'btc',
+            quantity: '2',
+            totalCost: '100000',
+            currentPrice: '60000.00000000',
+            currentValue: '120000',
+            realizedPnl: '0',
+            unrealizedPnl: '20000',
+            totalPnl: '20000'
+          },
+          {
+            symbol: 'eth',
+            quantity: '3',
+            totalCost: '6000',
+            currentPrice: null,
+            currentValue: null,
+            realizedPnl: '0',
+            unrealizedPnl: null,
+            totalPnl: null
+          }
+        ]
+      });
+    });
+
+    it('should keep exact arithmetic for very large decimal values', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const asset = await seedAsset({ currentPrice: '88888888.88' });
+
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'BUY',
+        amount: '999999999999999999.99',
+        price: '99999999.99',
+        occurredAt: '2026-07-01T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'SELL',
+        amount: '500000000000000000',
+        price: '100000000',
+        occurredAt: '2026-07-02T08:00:00.000Z'
+      });
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/pnl`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.positions[0]).toMatchObject({
+        quantity: '499999999999999999.99',
+        totalCost: '49999999994999999999000000.0001',
+        averageCost: '99999999.99',
+        currentPrice: '88888888.88000000',
+        currentValue: '44444444439999999999111111.1112',
+        realizedPnl: '5000000000000000',
+        unrealizedPnl: '-5555555554999999999888888.8889',
+        totalPnl: '-5555555549999999999888888.8889'
+      });
+      expect(response.body.positions[0].realizedPnlEvents[0]).toMatchObject({
+        amount: '500000000000000000.000000000000000000',
+        price: '100000000.00000000',
+        proceeds: '50000000000000000000000000',
+        releasedCostBasis: '49999999995000000000000000',
+        realizedPnl: '5000000000000000'
+      });
+    });
+
+    it('should keep exact arithmetic for very small decimal values', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const asset = await seedAsset({ currentPrice: '0.00000001' });
+
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'BUY',
+        amount: '0.000000000000000002',
+        price: '0.00000001',
+        occurredAt: '2026-07-01T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'SELL',
+        amount: '0.000000000000000001',
+        price: '0.00000002',
+        occurredAt: '2026-07-02T08:00:00.000Z'
+      });
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/pnl`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.positions[0]).toMatchObject({
+        quantity: '0.000000000000000001',
+        totalCost: '0.00000000000000000000000001',
+        averageCost: '0.00000001',
+        currentPrice: '0.00000001',
+        currentValue: '0.00000000000000000000000001',
+        realizedPnl: '0.00000000000000000000000001',
+        unrealizedPnl: '0',
+        totalPnl: '0.00000000000000000000000001'
+      });
+      expect(response.body.positions[0].realizedPnlEvents[0]).toMatchObject({
+        amount: '0.000000000000000001',
+        price: '0.00000002',
+        proceeds: '0.00000000000000000000000002',
+        releasedCostBasis: '0.00000000000000000000000001',
+        realizedPnl: '0.00000000000000000000000001'
+      });
+    });
+
+    it('should release cost basis for TRANSFER_OUT while only SELL realizes P&L', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const asset = await seedAsset({ currentPrice: '100' });
+
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'BUY',
+        amount: '5',
+        price: '100',
+        occurredAt: '2026-07-01T08:00:00.000Z'
+      });
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'TRANSFER_OUT',
+        amount: '2',
+        occurredAt: '2026-07-02T08:00:00.000Z'
+      });
+      const sell = await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'SELL',
+        amount: '1',
+        price: '150',
+        occurredAt: '2026-07-03T08:00:00.000Z'
+      });
+      expect(sell.status).toBe(201);
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/pnl`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.positions[0]).toMatchObject({
+        quantity: '2',
+        totalCost: '200',
+        averageCost: '100',
+        currentValue: '200',
+        realizedPnl: '50',
+        unrealizedPnl: '0',
+        totalPnl: '50',
+        realizedPnlEvents: [
+          {
+            transactionId: sell.body.id,
+            type: 'SELL',
+            amount: '1.000000000000000000',
+            price: '150.00000000',
+            proceeds: '150',
+            releasedCostBasis: '100',
+            realizedPnl: '50'
+          }
+        ]
+      });
+      expect(response.body.positions[0].realizedPnlEvents).toHaveLength(1);
+    });
   });
 });
