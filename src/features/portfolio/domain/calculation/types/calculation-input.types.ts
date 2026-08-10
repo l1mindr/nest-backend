@@ -37,9 +37,35 @@ export interface PortfolioCalculationInput {
    */
   openingCost?: string;
   /**
-   * The ledger to process. Chronological ordering is NOT required: the engine
-   * sorts deterministically by `occurredAt` and, for equal timestamps, by
-   * `id`. The input array and its transactions are never mutated.
+   * The ledger to process. Chronological ordering is NOT required by default:
+   * the engine sorts deterministically by `occurredAt` and, for equal
+   * timestamps, by `id`. Callers that already guarantee that ordering can opt
+   * out via `PortfolioCalculationOptions`. The input array and its
+   * transactions are never mutated.
    */
   transactions: CalculationTransaction[];
+}
+
+/**
+ * Optional processing directives for the calculation engine.
+ *
+ * Every flag is explicitly opt-in and off by default, so untrusted callers
+ * keep the full validate-and-sort behavior. The trusted P&L path opts in
+ * because its repository returns transactions ordered by `occurredAt` then
+ * `id`, and its mapper emits normalized ISO timestamps.
+ */
+export interface PortfolioCalculationOptions {
+  /**
+   * When true, the engine assumes `transactions` is already ordered by
+   * `occurredAt` (ascending) with `id` as the deterministic tie-breaker for
+   * identical timestamps, and skips its internal chronological sort. The
+   * `id` tie-breaker remains part of the assumed ordering contract.
+   */
+  alreadyOrdered?: boolean;
+  /**
+   * When true, the engine assumes every `occurredAt` is a valid normalized ISO
+   * timestamp and skips `Date.parse` validation. The default path still
+   * validates every date.
+   */
+  trustedIsoDates?: boolean;
 }

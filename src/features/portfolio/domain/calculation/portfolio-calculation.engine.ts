@@ -9,7 +9,8 @@ import {
 import { CALCULATION_DIVISION_MAX_FRACTION_DIGITS } from './portfolio-calculation.constants';
 import {
   CostBasisOpeningState,
-  PortfolioCalculationInput
+  PortfolioCalculationInput,
+  PortfolioCalculationOptions
 } from './types/calculation-input.types';
 import { PortfolioCalculationResult } from './types/calculation-result.types';
 import { CostBasisStrategy } from './types/cost-basis.strategy.enum';
@@ -43,6 +44,12 @@ function isCostBasisStrategy(value: unknown): value is CostBasisStrategy {
  * The strategy can be selected by the `CostBasisStrategy` enum or injected as
  * a concrete `CostBasisCalculator`, defaulting to average cost.
  *
+ * By default the engine validates every `occurredAt` and orders the ledger
+ * chronologically. Callers that can already guarantee a chronological
+ * `occurredAt ASC, id ASC` stream of normalized ISO timestamps may opt out of
+ * that redundant work through `PortfolioCalculationOptions`; every other
+ * caller keeps the unchanged validate-and-sort behavior.
+ *
  * It performs no I/O, no logging, no database or HTTP calls, and holds no
  * state between calls, so it can be reused unchanged from the REST API,
  * background jobs, a CLI, or scheduled analytics.
@@ -61,7 +68,10 @@ export class PortfolioCalculationEngine {
       : costBasis;
   }
 
-  calculate(input: PortfolioCalculationInput): PortfolioCalculationResult {
+  calculate(
+    input: PortfolioCalculationInput,
+    options: PortfolioCalculationOptions = {}
+  ): PortfolioCalculationResult {
     if (
       !input ||
       typeof input !== 'object' ||
@@ -75,14 +85,17 @@ export class PortfolioCalculationEngine {
         throw CalculationErrors.invalidInput();
       }
       if (
-        typeof transaction.occurredAt !== 'string' ||
-        Number.isNaN(Date.parse(transaction.occurredAt))
+        !options.trustedIsoDates &&
+        (typeof transaction.occurredAt !== 'string' ||
+          Number.isNaN(Date.parse(transaction.occurredAt)))
       ) {
         throw CalculationErrors.invalidDate();
       }
     }
 
-    const transactions = this.orderChronologically(input.transactions);
+    const transactions = options.alreadyOrdered
+      ? input.transactions
+      : this.orderChronologically(input.transactions);
 
     const opening: CostBasisOpeningState = {
       quantity: input.openingQuantity ?? '0',

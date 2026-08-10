@@ -152,12 +152,18 @@ export class GetPortfolioPnlUseCase implements IGetPortfolioPnlUseCase {
     engine: PortfolioCalculationEngine,
     group: AssetTransactionGroup
   ): PortfolioPnlPosition {
-    const result = engine.calculate({
-      assetId: group.assetId,
-      openingQuantity: group.openingQuantity,
-      openingCost: group.openingCost,
-      transactions: group.transactions
-    });
+    // `listForPnl` returns transactions ordered by occurredAt ASC, id ASC, and
+    // grouping preserves that order per asset, so the engine can trust the
+    // stream as already ordered with normalized ISO timestamps.
+    const result = engine.calculate(
+      {
+        assetId: group.assetId,
+        openingQuantity: group.openingQuantity,
+        openingCost: group.openingCost,
+        transactions: group.transactions
+      },
+      { alreadyOrdered: true, trustedIsoDates: true }
+    );
 
     const realizedPnl = this.sumSigned(
       result.realizedPnl.map((event) => event.realizedPnl)

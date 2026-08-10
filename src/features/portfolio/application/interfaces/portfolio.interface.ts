@@ -296,7 +296,8 @@ export interface IPortfolioTransactionRepository {
   /**
    * Loads the complete transaction ledger of one portfolio with the asset
    * resolved inline, for P&L calculation. Never paginated: the calculation
-   * engine requires the full chronological stream.
+   * engine requires the full chronological stream. Ordered by `occurredAt`
+   * ASC then `id` ASC; the trusted P&L path consumes this ordering unchanged.
    */
   listForPnl(
     portfolioId: string,
