@@ -24,7 +24,8 @@ import { PortfolioTransactionType } from '../enums/portfolio-transaction-type.en
 @Index('IDX_portfolio_transaction_portfolio_asset', [
   'portfolioId',
   'assetId',
-  'occurredAt'
+  'occurredAt',
+  'id'
 ])
 @Check('CHK_portfolio_transaction_amount_positive', '"amount" > 0')
 @Check('CHK_portfolio_transaction_price_positive', '"price" > 0')
