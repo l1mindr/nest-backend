@@ -251,4 +251,99 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       code: PortfolioErrorCode.TRANSACTION_NOT_FOUND
     });
   });
+
+  it('should allow changing type from SELL to TRANSFER_OUT when no new price is supplied', async () => {
+    transactionRepository.findByIdAndPortfolioAndUser.mockResolvedValue({
+      ...transaction,
+      type: PortfolioTransactionType.SELL,
+      price: '60000'
+    });
+    transactionRepository.update.mockResolvedValue({
+      ...transaction,
+      type: PortfolioTransactionType.TRANSFER_OUT,
+      price: '60000'
+    });
+
+    const result = await useCase.execute(
+      'user-id',
+      'portfolio-id',
+      'transaction-id',
+      { type: PortfolioTransactionType.TRANSFER_OUT }
+    );
+
+    expect(transactionRepository.update).toHaveBeenCalledWith(
+      'transaction-id',
+      'portfolio-id',
+      'user-id',
+      { type: PortfolioTransactionType.TRANSFER_OUT }
+    );
+    expect(result.type).toBe(PortfolioTransactionType.TRANSFER_OUT);
+  });
+
+  it('should allow changing type from BUY to SELL when the existing price satisfies the requirement', async () => {
+    // existing: BUY with price '60000'; dto only changes type → updatedPrice = existing.price = '60000' (not null) → valid
+    transactionRepository.update.mockResolvedValue({
+      ...transaction,
+      type: PortfolioTransactionType.SELL
+    });
+
+    const result = await useCase.execute(
+      'user-id',
+      'portfolio-id',
+      'transaction-id',
+      { type: PortfolioTransactionType.SELL }
+    );
+
+    expect(transactionRepository.update).toHaveBeenCalledWith(
+      'transaction-id',
+      'portfolio-id',
+      'user-id',
+      { type: PortfolioTransactionType.SELL }
+    );
+    expect(result.type).toBe(PortfolioTransactionType.SELL);
+  });
+
+  it('should allow changing type from TRANSFER_IN to TRANSFER_OUT', async () => {
+    transactionRepository.findByIdAndPortfolioAndUser.mockResolvedValue({
+      ...transaction,
+      type: PortfolioTransactionType.TRANSFER_IN,
+      price: null
+    });
+    transactionRepository.update.mockResolvedValue({
+      ...transaction,
+      type: PortfolioTransactionType.TRANSFER_OUT,
+      price: null
+    });
+
+    const result = await useCase.execute(
+      'user-id',
+      'portfolio-id',
+      'transaction-id',
+      { type: PortfolioTransactionType.TRANSFER_OUT }
+    );
+
+    expect(result.type).toBe(PortfolioTransactionType.TRANSFER_OUT);
+  });
+
+  it('should allow changing type from TRANSFER_OUT to TRANSFER_IN', async () => {
+    transactionRepository.findByIdAndPortfolioAndUser.mockResolvedValue({
+      ...transaction,
+      type: PortfolioTransactionType.TRANSFER_OUT,
+      price: null
+    });
+    transactionRepository.update.mockResolvedValue({
+      ...transaction,
+      type: PortfolioTransactionType.TRANSFER_IN,
+      price: null
+    });
+
+    const result = await useCase.execute(
+      'user-id',
+      'portfolio-id',
+      'transaction-id',
+      { type: PortfolioTransactionType.TRANSFER_IN }
+    );
+
+    expect(result.type).toBe(PortfolioTransactionType.TRANSFER_IN);
+  });
 });
