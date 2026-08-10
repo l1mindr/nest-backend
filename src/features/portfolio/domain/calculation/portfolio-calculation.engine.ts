@@ -107,49 +107,31 @@ export class PortfolioCalculationEngine {
   }
 
   /**
-   * Orders the ledger chronologically. Equal `occurredAt` values are resolved
-   * by `id` (ascending), and exact ties fall back to the input order, which
-   * `Array.prototype.sort` keeps stable. The source array is copied first.
+   * Orders the ledger chronologically. Timestamps are parsed exactly once per
+   * transaction before the sort so the comparator never re-parses dates.
+   * Equal `occurredAt` values are resolved by `id` (ascending), and exact ties
+   * fall back to the input order, which `Array.prototype.sort` keeps stable.
+   * The source array is copied first.
    */
   private orderChronologically(
     transactions: CalculationTransaction[]
   ): CalculationTransaction[] {
-    return [...transactions].sort((a, b) => {
-      const timeDelta = this.compareOccurredAt(a, b);
-      if (timeDelta !== 0) {
-        return timeDelta;
+    const keyed = transactions.map((transaction) => ({
+      transaction,
+      time: Date.parse(transaction.occurredAt),
+      id: transaction.id ?? ''
+    }));
+
+    keyed.sort((a, b) => {
+      if (a.time !== b.time) {
+        return a.time < b.time ? -1 : 1;
       }
-      return this.compareById(a, b);
+      if (a.id !== b.id) {
+        return a.id < b.id ? -1 : 1;
+      }
+      return 0;
     });
-  }
 
-  private compareOccurredAt(
-    a: CalculationTransaction,
-    b: CalculationTransaction
-  ): number {
-    const aTime = Date.parse(a.occurredAt);
-    const bTime = Date.parse(b.occurredAt);
-    if (aTime < bTime) {
-      return -1;
-    }
-    if (aTime > bTime) {
-      return 1;
-    }
-    return 0;
-  }
-
-  private compareById(
-    a: CalculationTransaction,
-    b: CalculationTransaction
-  ): number {
-    const aId = a.id ?? '';
-    const bId = b.id ?? '';
-    if (aId < bId) {
-      return -1;
-    }
-    if (aId > bId) {
-      return 1;
-    }
-    return 0;
+    return keyed.map((entry) => entry.transaction);
   }
 }

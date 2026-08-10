@@ -247,6 +247,32 @@ describe('PortfolioCalculationEngine', () => {
         expect.objectContaining({ realizedPnl: '20000' })
       ]);
     });
+
+    it('should order by time, then id, then the stable input order', () => {
+      const costBasis: CostBasisCalculator = {
+        calculate: jest.fn(() => ({
+          quantity: '0',
+          totalCost: '0',
+          realizedPnl: []
+        }))
+      };
+      const engineWithStub = new PortfolioCalculationEngine(costBasis);
+
+      engineWithStub.calculate({
+        transactions: [
+          buy('1', '1', '2026-07-28T08:00:00.000Z', 'a'),
+          buy('2', '1', '2026-07-28T08:00:00.000Z', 'a'),
+          buy('3', '1', '2026-07-28T08:00:00.000Z'),
+          buy('4', '1', '2026-07-28T09:00:00.000Z', 'b')
+        ]
+      });
+
+      expect(costBasis.calculate).toHaveBeenCalledTimes(1);
+      const ordered = (costBasis.calculate as jest.Mock).mock.calls[0][0];
+      expect(
+        ordered.map((transaction: CalculationTransaction) => transaction.amount)
+      ).toEqual(['3', '1', '2', '4']);
+    });
   });
 
   describe('cost-basis strategy selection', () => {
