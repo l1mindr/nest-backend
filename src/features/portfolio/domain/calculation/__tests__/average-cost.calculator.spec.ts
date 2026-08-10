@@ -1,3 +1,4 @@
+import * as decimalUtil from '@core/decimal/decimal.util';
 import { AverageCostCalculator } from '../average-cost.calculator';
 import { CalculationError } from '../errors/calculation-errors';
 import { CalculationErrorCode } from '../errors/calculation-error-code.enum';
@@ -449,6 +450,123 @@ describe('AverageCostCalculator', () => {
       const snapshot = JSON.parse(JSON.stringify(transactions));
       calculator.calculate(transactions, opening());
       expect(transactions).toEqual(snapshot);
+    });
+  });
+
+  describe('disposal cost-basis release', () => {
+    it('should release consecutive SELLs from the recomputed average, never a stale value', () => {
+      const result = calculator.calculate(
+        [sell('6.5', '10'), sell('0.4', '10')],
+        { quantity: '7', totalCost: '1' }
+      );
+
+      expect(result.quantity).toBe('0.1');
+      expect(result.totalCost).toBe('0.014285714285714285714285718');
+      expect(result.realizedPnl).toEqual([
+        expect.objectContaining({
+          proceeds: '65',
+          releasedCostBasis: '0.92857142857142857142857141',
+          realizedPnl: '64.07142857142857142857142859'
+        }),
+        expect.objectContaining({
+          proceeds: '4',
+          releasedCostBasis: '0.057142857142857142857142872',
+          realizedPnl: '3.942857142857142857142857128'
+        })
+      ]);
+    });
+
+    it('should recompute the average after a BUY', () => {
+      const result = calculator.calculate(
+        [buy('2', '1'), sell('1', '2')],
+        opening()
+      );
+
+      expect(result).toEqual({
+        quantity: '1',
+        totalCost: '1',
+        realizedPnl: [
+          expect.objectContaining({
+            releasedCostBasis: '1',
+            realizedPnl: '1'
+          })
+        ]
+      });
+    });
+
+    it('should recompute the average after a TRANSFER_IN on a zero-cost position', () => {
+      const result = calculator.calculate(
+        [transferIn('2'), sell('1', '5')],
+        opening()
+      );
+
+      expect(result).toEqual({
+        quantity: '1',
+        totalCost: '0',
+        realizedPnl: [
+          expect.objectContaining({
+            releasedCostBasis: '0',
+            realizedPnl: '5'
+          })
+        ]
+      });
+    });
+
+    it('should release zero basis for a TRANSFER_OUT on a zero-cost position', () => {
+      const result = calculator.calculate(
+        [transferIn('3'), transferOut('2')],
+        opening()
+      );
+
+      expect(result).toEqual({
+        quantity: '1',
+        totalCost: '0',
+        realizedPnl: []
+      });
+    });
+
+    it('should skip the redundant zero-cost division', () => {
+      const divideSpy = jest.spyOn(decimalUtil, 'divideDecimals');
+      try {
+        const result = calculator.calculate(
+          [transferIn('3'), sell('1', '5'), transferOut('1')],
+          opening()
+        );
+
+        expect(divideSpy).not.toHaveBeenCalled();
+        expect(result).toEqual({
+          quantity: '1',
+          totalCost: '0',
+          realizedPnl: [
+            expect.objectContaining({
+              releasedCostBasis: '0',
+              realizedPnl: '5'
+            })
+          ]
+        });
+      } finally {
+        divideSpy.mockRestore();
+      }
+    });
+
+    it('should keep exact decimal precision for a large disposal history', () => {
+      const result = calculator.calculate(
+        [
+          buy('999999999999999999.99', '99999999.99'),
+          sell('500000000000000000', '100000000')
+        ],
+        opening()
+      );
+
+      expect(result.quantity).toBe('499999999999999999.99');
+      expect(result.totalCost).toBe('49999999994999999999000000.0001');
+      expect(result.realizedPnl).toEqual([
+        expect.objectContaining({
+          proceeds: '50000000000000000000000000',
+          releasedCostBasis: '49999999995000000000000000',
+          realizedPnl: '5000000000000000'
+        })
+      ]);
     });
   });
 });

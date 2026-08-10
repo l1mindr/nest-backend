@@ -1,4 +1,5 @@
 import {
+  compareDecimals,
   divideDecimals,
   multiplyDecimals,
   subtractDecimals,
@@ -47,6 +48,14 @@ import {
  * floating-point values are involved. Unsupported types, malformed decimals,
  * negative values, and disposals exceeding the available quantity fail
  * deterministically with a domain error.
+ *
+ * Disposal release recomputes `averageCost = totalCost / quantity` on every
+ * disposal; the previous result cannot be reused. The released basis is
+ * `amount × trunc26(totalCost / quantity)`, so after the disposal the exact
+ * `totalCost` and `quantity` no longer scale in exact proportion and the next
+ * average can drift by one unit in the last place. The single provable
+ * exception is a zero-cost position, where the average is `0` regardless of
+ * quantity; `releaseProportionalBasis` skips that redundant division.
  */
 export class AverageCostCalculator implements CostBasisCalculator {
   calculate(
@@ -121,11 +130,25 @@ export class AverageCostCalculator implements CostBasisCalculator {
     return { quantity, totalCost, realizedPnl };
   }
 
+  /**
+   * Releases the proportional share of the pooled cost for a disposal.
+   *
+   * The average is recomputed from the current `totalCost`/`quantity` pair.
+   * Memoizing the previous disposal's average is unsafe: the released basis is
+   * `amount × trunc26(totalCost / quantity)`, so the remaining `totalCost` and
+   * `quantity` do not scale exactly and the next average can differ. The one
+   * exact shortcut is a zero-cost position — the average `0 / quantity` is
+   * provably `0` — where the division is skipped entirely.
+   */
   private releaseProportionalBasis(
     totalCost: string,
     quantity: string,
     amount: string
   ): string {
+    if (compareDecimals(totalCost, '0') === 0) {
+      return '0';
+    }
+
     const averageCost = divideDecimals(
       totalCost,
       quantity,
