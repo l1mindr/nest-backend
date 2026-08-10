@@ -218,4 +218,24 @@ describe('FifoCostBasisCalculator', () => {
     calculator.calculate(transactions, opening());
     expect(transactions).toEqual(snapshot);
   });
+
+  it('should process a large alternating ledger without quadratic behavior', () => {
+    const transactions: CalculationTransaction[] = [];
+    for (let i = 0; i < 25000; i++) {
+      transactions.push(buy('1', '100'));
+    }
+    for (let i = 0; i < 25000; i++) {
+      transactions.push(sell('1', '150'));
+    }
+    const result = calculator.calculate(transactions, opening());
+    expect(result.quantity).toBe('0');
+    expect(result.totalCost).toBe('0');
+    expect(result.realizedPnl).toHaveLength(25000);
+    expect(result.realizedPnl[0]).toEqual(
+      expect.objectContaining({ releasedCostBasis: '100', realizedPnl: '50' })
+    );
+    expect(result.realizedPnl[24999]).toEqual(
+      expect.objectContaining({ releasedCostBasis: '100', realizedPnl: '50' })
+    );
+  });
 });
