@@ -63,14 +63,19 @@ export class LotStore {
    * Consumes `amount` from the configured end and returns the exact cost basis
    * released. The caller guarantees that `amount` does not exceed the held
    * quantity.
+   *
+   * Per-lot release products are deferred into a list and summed once at the
+   * end, so the accumulated released basis is not re-parsed and re-formatted
+   * on every lot. The `=== '0'` exhaustion checks are exact: `subtractDecimals`
+   * always returns a canonical decimal string, whose only zero form is `'0'`.
    */
   consume(amount: string): string {
     if (compareDecimals(amount, '0') <= 0) {
       return '0';
     }
 
+    const released: string[] = [];
     let remaining = amount;
-    let releasedBasis = '0';
 
     while (this.lots.length > this.head) {
       const index = this.fromBack ? this.lots.length - 1 : this.head;
@@ -79,20 +84,17 @@ export class LotStore {
         compareDecimals(lot.quantity, remaining) <= 0
           ? lot.quantity
           : remaining;
-      releasedBasis = sumDecimals([
-        releasedBasis,
-        multiplyDecimals(consumed, lot.unitCost)
-      ]);
+      released.push(multiplyDecimals(consumed, lot.unitCost));
       remaining = subtractDecimals(remaining, consumed);
       lot.quantity = subtractDecimals(lot.quantity, consumed);
-      if (compareDecimals(lot.quantity, '0') === 0) {
+      if (lot.quantity === '0') {
         if (this.fromBack) {
           this.lots.pop();
         } else {
           this.head += 1;
         }
       }
-      if (compareDecimals(remaining, '0') === 0) {
+      if (remaining === '0') {
         break;
       }
     }
@@ -100,7 +102,7 @@ export class LotStore {
     if (!this.fromBack) {
       this.compact();
     }
-    return releasedBasis;
+    return released.length === 0 ? '0' : sumDecimals(released);
   }
 
   /**

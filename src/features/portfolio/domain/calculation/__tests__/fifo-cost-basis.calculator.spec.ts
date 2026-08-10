@@ -99,6 +99,27 @@ describe('FifoCostBasisCalculator', () => {
     });
   });
 
+  it('should consume one lot across multiple SELLs', () => {
+    const result = calculator.calculate(
+      [buy('1.5', '100'), sell('0.5', '120'), sell('0.5', '130')],
+      opening()
+    );
+    expect(result.quantity).toBe('0.5');
+    expect(result.totalCost).toBe('50');
+    expect(result.realizedPnl).toEqual([
+      expect.objectContaining({
+        proceeds: '60',
+        releasedCostBasis: '50',
+        realizedPnl: '10'
+      }),
+      expect.objectContaining({
+        proceeds: '65',
+        releasedCostBasis: '50',
+        realizedPnl: '15'
+      })
+    ]);
+  });
+
   it('should treat the opening position as the oldest lot', () => {
     const result = calculator.calculate([sell('1', '120')], {
       quantity: '1',

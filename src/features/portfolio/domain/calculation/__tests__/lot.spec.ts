@@ -155,3 +155,62 @@ describe('LotStore', () => {
     );
   });
 });
+
+describe('LotStore released-basis accumulation', () => {
+  it('should sum multiple lots consumed by one FIFO disposal exactly', () => {
+    const result = consumeLots(
+      [lot('1', '100'), lot('2', '200'), lot('0.5', '400')],
+      '3.2',
+      false
+    );
+    expect(result.releasedBasis).toBe('580');
+    expect(result.remainingLots).toEqual([lot('0.3', '400')]);
+  });
+
+  it('should sum multiple lots consumed by one LIFO disposal exactly', () => {
+    const result = consumeLots(
+      [lot('1', '100'), lot('2', '200'), lot('0.5', '400')],
+      '3.2',
+      true
+    );
+    expect(result.releasedBasis).toBe('670');
+    expect(result.remainingLots).toEqual([lot('0.3', '100')]);
+  });
+
+  it('should split one lot across multiple FIFO disposals exactly', () => {
+    const store = new LotStore(false);
+    store.push(lot('1.5', '100'));
+    expect(store.consume('0.5')).toBe('50');
+    expect(store.consume('0.7')).toBe('70');
+    expect(store.consume('0.3')).toBe('30');
+    expect(store.toLots()).toEqual([]);
+  });
+
+  it('should split one lot across multiple LIFO disposals exactly', () => {
+    const store = new LotStore(true);
+    store.push(lot('1.5', '100'));
+    expect(store.consume('0.5')).toBe('50');
+    expect(store.consume('0.7')).toBe('70');
+    expect(store.consume('0.3')).toBe('30');
+    expect(store.toLots()).toEqual([]);
+  });
+
+  it('should keep exact decimal values across many fractional digits', () => {
+    const result = consumeLots(
+      [lot('0.00000001', '0.00000002'), lot('0.00000003', '0.00000004')],
+      '0.000000025',
+      false
+    );
+    expect(result.releasedBasis).toBe('0.0000000000000008');
+    expect(result.remainingLots).toEqual([lot('0.000000015', '0.00000004')]);
+  });
+
+  it('should release the exact sum when one disposal consumes a large lot list', () => {
+    const lots: Lot[] = Array.from({ length: 5000 }, (_, i) =>
+      lot('1', String((i % 9) + 1) + '.25')
+    );
+    const result = consumeLots(lots, '5000', false);
+    expect(result.releasedBasis).toBe('26240');
+    expect(result.remainingLots).toEqual([]);
+  });
+});
