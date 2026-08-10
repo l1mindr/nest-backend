@@ -13,6 +13,8 @@ import { GetPortfolioUseCase } from './application/use-cases/get-portfolio.use-c
 import { GetPortfolioValuationUseCase } from './application/use-cases/get-portfolio-valuation.use-case';
 import { GetPortfolioPnlUseCase } from './application/use-cases/get-portfolio-pnl.use-case';
 import { ListPortfoliosUseCase } from './application/use-cases/list-portfolios.use-case';
+import { UpdatePortfolioUseCase } from './application/use-cases/update-portfolio.use-case';
+import { DeletePortfolioUseCase } from './application/use-cases/delete-portfolio.use-case';
 import { CreateHoldingUseCase } from './application/use-cases/create-holding.use-case';
 import { UpdateHoldingUseCase } from './application/use-cases/update-holding.use-case';
 import { DeleteHoldingUseCase } from './application/use-cases/delete-holding.use-case';
@@ -38,6 +40,7 @@ import {
   CREATE_PORTFOLIO_USE_CASE,
   DELETE_HOLDING_USE_CASE,
   DELETE_PORTFOLIO_TRANSACTION_USE_CASE,
+  DELETE_PORTFOLIO_USE_CASE,
   GET_PORTFOLIO_USE_CASE,
   GET_PORTFOLIO_VALUATION_USE_CASE,
   GET_PORTFOLIO_PNL_USE_CASE,
@@ -50,7 +53,8 @@ import {
   PORTFOLIO_CALCULATION_ENGINE,
   PORTFOLIO_REPOSITORY,
   PORTFOLIO_TRANSACTION_REPOSITORY,
-  UPDATE_HOLDING_USE_CASE
+  UPDATE_HOLDING_USE_CASE,
+  UPDATE_PORTFOLIO_USE_CASE
 } from './application/interfaces/portfolio.interface';
 
 @Module({
@@ -97,6 +101,10 @@ import {
     },
     ListPortfoliosUseCase,
     { provide: LIST_PORTFOLIOS_USE_CASE, useExisting: ListPortfoliosUseCase },
+    UpdatePortfolioUseCase,
+    { provide: UPDATE_PORTFOLIO_USE_CASE, useExisting: UpdatePortfolioUseCase },
+    DeletePortfolioUseCase,
+    { provide: DELETE_PORTFOLIO_USE_CASE, useExisting: DeletePortfolioUseCase },
     CreateHoldingUseCase,
     { provide: CREATE_HOLDING_USE_CASE, useExisting: CreateHoldingUseCase },
     UpdateHoldingUseCase,

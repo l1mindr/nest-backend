@@ -54,6 +54,16 @@ export class PortfolioErrors {
     );
   }
 
+  static portfolioEmptyUpdate() {
+    return new AppError(
+      PortfolioErrorCode.PORTFOLIO_EMPTY_UPDATE,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      undefined,
+      'At least one portfolio field must be provided'
+    );
+  }
+
   static transactionNotFound(transactionId?: string) {
     return new AppError(
       PortfolioErrorCode.TRANSACTION_NOT_FOUND,
