@@ -3,6 +3,7 @@ import { RealizedPnlEvent } from '../../domain/calculation/types/calculation-res
 import { CostBasisStrategy } from '../../domain/calculation/types/cost-basis.strategy.enum';
 import { Holding } from '../../domain/entities/holding.entity';
 import { Portfolio } from '../../domain/entities/portfolio.entity';
+import { PortfolioOpeningBalance } from '../../domain/entities/portfolio-opening-balance.entity';
 import { PortfolioTransaction } from '../../domain/entities/portfolio-transaction.entity';
 import { PortfolioSourceType } from '../../domain/enums/portfolio-source-type.enum';
 import { PortfolioTransactionType } from '../../domain/enums/portfolio-transaction-type.enum';
@@ -14,6 +15,7 @@ import { PortfolioTransactionListRequestDto } from '../../presentation/dto/reque
 import { UpdateHoldingRequestDto } from '../../presentation/dto/request/update-holding.request.dto';
 import { UpdatePortfolioRequestDto } from '../../presentation/dto/request/update-portfolio.request.dto';
 import { UpdatePortfolioTransactionRequestDto } from '../../presentation/dto/request/update-portfolio-transaction.request.dto';
+import { SetPortfolioOpeningBalanceRequestDto } from '../../presentation/dto/request/set-portfolio-opening-balance.request.dto';
 
 export const PORTFOLIO_REPOSITORY = Symbol('IPortfolioRepository');
 
@@ -110,6 +112,56 @@ export interface IDeletePortfolioUseCase {
 }
 
 export const DELETE_PORTFOLIO_USE_CASE = Symbol('IDeletePortfolioUseCase');
+
+export const PORTFOLIO_OPENING_BALANCE_REPOSITORY = Symbol(
+  'IPortfolioOpeningBalanceRepository'
+);
+
+export interface SetPortfolioOpeningBalanceData {
+  userId: string;
+  portfolioId: string;
+  assetId: string;
+  openingQuantity: string;
+  openingCost: string;
+}
+
+export interface IPortfolioOpeningBalanceRepository {
+  upsert(
+    data: SetPortfolioOpeningBalanceData
+  ): Promise<PortfolioOpeningBalance>;
+  listByPortfolioAndUser(
+    portfolioId: string,
+    userId: string
+  ): Promise<PortfolioOpeningBalance[]>;
+  listForPnl(
+    portfolioId: string,
+    userId: string
+  ): Promise<PortfolioOpeningBalance[]>;
+}
+
+export interface ISetPortfolioOpeningBalanceUseCase {
+  execute(
+    userId: string,
+    portfolioId: string,
+    assetId: string,
+    dto: SetPortfolioOpeningBalanceRequestDto
+  ): Promise<PortfolioOpeningBalance>;
+}
+
+export const SET_PORTFOLIO_OPENING_BALANCE_USE_CASE = Symbol(
+  'ISetPortfolioOpeningBalanceUseCase'
+);
+
+export interface IListPortfolioOpeningBalancesUseCase {
+  execute(
+    userId: string,
+    portfolioId: string
+  ): Promise<PortfolioOpeningBalance[]>;
+}
+
+export const LIST_PORTFOLIO_OPENING_BALANCES_USE_CASE = Symbol(
+  'IListPortfolioOpeningBalancesUseCase'
+);
 
 export interface ICreateHoldingUseCase {
   execute(userId: string, dto: CreateHoldingRequestDto): Promise<Holding>;

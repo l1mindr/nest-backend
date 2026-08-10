@@ -31,6 +31,7 @@ import { PortfolioErrors } from '../../domain/errors/portfolio-errors';
 import { CreateHoldingRequestDto } from '../dto/request/create-holding.request.dto';
 import { CreatePortfolioRequestDto } from '../dto/request/create-portfolio.request.dto';
 import { CreatePortfolioTransactionRequestDto } from '../dto/request/create-portfolio-transaction.request.dto';
+import { SetPortfolioOpeningBalanceRequestDto } from '../dto/request/set-portfolio-opening-balance.request.dto';
 import { UpdateHoldingRequestDto } from '../dto/request/update-holding.request.dto';
 import { UpdatePortfolioRequestDto } from '../dto/request/update-portfolio.request.dto';
 import { UpdatePortfolioTransactionRequestDto } from '../dto/request/update-portfolio-transaction.request.dto';
@@ -42,6 +43,8 @@ import { PortfolioTransactionResponseDto } from '../dto/response/portfolio-trans
 import { PortfolioValuationResponseDto } from '../dto/response/portfolio-valuation.response.dto';
 import { PortfolioPnlResponseDto } from '../dto/response/portfolio-pnl.response.dto';
 import { PortfolioPnlPositionResponseDto } from '../dto/response/portfolio-pnl-position.response.dto';
+import { PortfolioOpeningBalanceListResponseDto } from '../dto/response/portfolio-opening-balance-list.response.dto';
+import { PortfolioOpeningBalanceResponseDto } from '../dto/response/portfolio-opening-balance.response.dto';
 import { RealizedPnlEventResponseDto } from '../dto/response/realized-pnl-event.response.dto';
 
 /**
@@ -58,6 +61,8 @@ const PATH = {
   HOLDING: `/v1/holdings/${ExampleValue.HOLDING_ID}`,
   VALUATION: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/valuation`,
   PNL: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/pnl`,
+  OPENING_BALANCES: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/opening-balances`,
+  OPENING_BALANCE: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/opening-balances/${ExampleValue.ASSET_ID}`,
   TRANSACTIONS: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/transactions`,
   TRANSACTION: `/v1/portfolios/${ExampleValue.PORTFOLIO_ID}/transactions/${ExampleValue.HOLDING_ID}`
 } as const;
@@ -158,6 +163,15 @@ const transactionPortfolioIdParam = () =>
       'Identifier of the portfolio source, as returned in `id` by `GET /v1/portfolios`.',
     format: 'uuid',
     example: ExampleValue.PORTFOLIO_ID,
+    required: true
+  });
+
+const openingBalanceAssetIdParam = () =>
+  ApiParam({
+    name: 'assetId',
+    description: 'Identifier of the asset whose opening balance is being set.',
+    format: 'uuid',
+    example: ExampleValue.ASSET_ID,
     required: true
   });
 
@@ -413,7 +427,7 @@ export const ApiGetPortfolioPnl = () =>
       description: [
         'Computes the current P&L of every asset traded in the portfolio source with the given `id`, and the portfolio totals, when the source belongs to the caller.',
         '',
-        'The calculation replays the recorded transaction ledger through the portfolio calculation engine, once per asset, using the `costBasis` strategy to release acquisition cost on disposal (`AVERAGE` by default). Everything is computed on demand with exact decimal arithmetic and returned as decimal strings — nothing is coerced through a JavaScript float, and nothing is persisted or cached.',
+        'The calculation starts each asset from its persisted opening quantity and acquisition cost, then replays the recorded transaction ledger through the portfolio calculation engine once per asset. The `costBasis` strategy releases acquisition cost on disposal (`AVERAGE` by default). Everything is computed on demand with exact decimal arithmetic and returned as decimal strings — nothing is coerced through a JavaScript float, and calculated P&L is not persisted or cached.',
         '',
         'The only market-price input is `asset.currentPrice`, the last price the synchroniser stored. The endpoint never calls a price provider. When an asset has no price, its `currentPrice`, `currentValue`, `unrealizedPnl` and `totalPnl` are `null` (never `0`), and `totalCurrentValue`, `totalUnrealizedPnl` and `totalPnl` become `null` while `totalRealizedPnl` stays available. `pricedPositions`/`unpricedPositions` explain the totals.',
         '',
@@ -451,6 +465,94 @@ export const ApiGetPortfolioPnl = () =>
           )
         ]
       ),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiSetPortfolioOpeningBalance = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'setPortfolioOpeningBalance',
+      summary: 'Set the opening balance for one portfolio asset',
+      description: [
+        'Creates or replaces the opening state used before the recorded transaction ledger for one asset in a portfolio source.',
+        '',
+        '`openingQuantity` and `openingCost` are persisted as exact non-negative decimal strings and passed directly to the portfolio calculation engine. This endpoint does not fetch market prices or create a synthetic transaction.',
+        '',
+        'One opening balance is stored per `(portfolioId, assetId)`. Repeating the request updates the same record.',
+        '',
+        'Requires authentication and a valid `x-csrf-token` header.'
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    transactionPortfolioIdParam(),
+    openingBalanceAssetIdParam(),
+    ApiRequestBody(SetPortfolioOpeningBalanceRequestDto, [
+      {
+        summary: 'Set a Bitcoin opening position',
+        value: {
+          openingQuantity: '1.5',
+          openingCost: '90000'
+        }
+      }
+    ]),
+    ApiSuccessResponse({
+      status: 200,
+      description:
+        'The opening balance was stored and is returned with its asset resolved.',
+      type: PortfolioOpeningBalanceResponseDto
+    }),
+    ApiErrorResponses(PATH.OPENING_BALANCE, [
+      unauthorizedResponse(),
+      csrfForbiddenResponse(),
+      notFoundResponse(
+        'The portfolio source or asset does not exist. A source owned by another account is reported the same way, so ownership cannot be probed.',
+        portfolioNotFound(),
+        assetNotFound()
+      ),
+      validationResponse('A path parameter or decimal field is invalid.', [
+        validationError('portfolioId', 'portfolioId must be a UUID'),
+        validationError('assetId', 'assetId must be a UUID'),
+        validationError(
+          'openingQuantity',
+          'must be a non-negative decimal number with at most 18 fractional digits'
+        ),
+        validationError(
+          'openingCost',
+          'must be a non-negative decimal number with at most 26 fractional digits'
+        )
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiListPortfolioOpeningBalances = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'listPortfolioOpeningBalances',
+      summary: 'List the opening balances of a portfolio source',
+      description: [
+        'Returns the persisted per-asset opening states that are applied before the portfolio transaction ledger.',
+        '',
+        'Requires authentication.'
+      ].join('\n')
+    }),
+    ApiAuthenticated(),
+    transactionPortfolioIdParam(),
+    ApiSuccessResponse({
+      status: 200,
+      description: 'Every opening balance stored for the portfolio source.',
+      type: PortfolioOpeningBalanceListResponseDto
+    }),
+    ApiErrorResponses(PATH.OPENING_BALANCES, [
+      unauthorizedResponse(),
+      notFoundResponse(
+        'No portfolio source with this identifier belongs to the caller. Sources owned by another account are reported the same way, so ownership cannot be probed.',
+        portfolioNotFound()
+      ),
+      validationResponse('The `portfolioId` is not a UUID.', [
+        validationError('portfolioId', 'portfolioId must be a UUID')
+      ]),
       internalServerErrorResponse()
     ])
   );

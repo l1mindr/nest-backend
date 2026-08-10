@@ -5,9 +5,11 @@ import { AssetsModule } from '@features/assets/assets.module';
 import { Portfolio } from './domain/entities/portfolio.entity';
 import { Holding } from './domain/entities/holding.entity';
 import { PortfolioTransaction } from './domain/entities/portfolio-transaction.entity';
+import { PortfolioOpeningBalance } from './domain/entities/portfolio-opening-balance.entity';
 import { PortfolioRepository } from './infrastructure/repositories/portfolio.repository';
 import { HoldingRepository } from './infrastructure/repositories/holding.repository';
 import { PortfolioTransactionRepository } from './infrastructure/repositories/portfolio-transaction.repository';
+import { PortfolioOpeningBalanceRepository } from './infrastructure/repositories/portfolio-opening-balance.repository';
 import { CreatePortfolioUseCase } from './application/use-cases/create-portfolio.use-case';
 import { GetPortfolioUseCase } from './application/use-cases/get-portfolio.use-case';
 import { GetPortfolioValuationUseCase } from './application/use-cases/get-portfolio-valuation.use-case';
@@ -24,15 +26,19 @@ import { ListPortfolioTransactionsUseCase } from './application/use-cases/list-p
 import { GetPortfolioTransactionUseCase } from './application/use-cases/get-portfolio-transaction.use-case';
 import { UpdatePortfolioTransactionUseCase } from './application/use-cases/update-portfolio-transaction.use-case';
 import { DeletePortfolioTransactionUseCase } from './application/use-cases/delete-portfolio-transaction.use-case';
+import { SetPortfolioOpeningBalanceUseCase } from './application/use-cases/set-portfolio-opening-balance.use-case';
+import { ListPortfolioOpeningBalancesUseCase } from './application/use-cases/list-portfolio-opening-balances.use-case';
 import { PortfolioMapper } from './application/mappers/portfolio.mapper';
 import { PortfolioValuationMapper } from './application/mappers/portfolio-valuation.mapper';
 import { PortfolioPnlMapper } from './application/mappers/portfolio-pnl.mapper';
 import { HoldingMapper } from './application/mappers/holding.mapper';
 import { PortfolioTransactionMapper } from './application/mappers/portfolio-transaction.mapper';
+import { PortfolioOpeningBalanceMapper } from './application/mappers/portfolio-opening-balance.mapper';
 import { PortfoliosController } from './presentation/controllers/portfolios.controller';
 import { HoldingsController } from './presentation/controllers/holdings.controller';
 import { PortfolioTransactionsController } from './presentation/controllers/portfolio-transactions.controller';
 import { PortfolioPnlController } from './presentation/controllers/portfolio-pnl.controller';
+import { PortfolioOpeningBalancesController } from './presentation/controllers/portfolio-opening-balances.controller';
 import { PortfolioCalculationEngine } from './domain/calculation/portfolio-calculation.engine';
 import { CostBasisStrategy } from './domain/calculation/types/cost-basis.strategy.enum';
 import {
@@ -49,11 +55,14 @@ import {
   HOLDING_REPOSITORY,
   IPortfolioCalculationEngineFactory,
   LIST_HOLDINGS_USE_CASE,
+  LIST_PORTFOLIO_OPENING_BALANCES_USE_CASE,
   LIST_PORTFOLIO_TRANSACTIONS_USE_CASE,
   LIST_PORTFOLIOS_USE_CASE,
   PORTFOLIO_CALCULATION_ENGINE,
+  PORTFOLIO_OPENING_BALANCE_REPOSITORY,
   PORTFOLIO_REPOSITORY,
   PORTFOLIO_TRANSACTION_REPOSITORY,
+  SET_PORTFOLIO_OPENING_BALANCE_USE_CASE,
   UPDATE_HOLDING_USE_CASE,
   UPDATE_PORTFOLIO_USE_CASE,
   UPDATE_PORTFOLIO_TRANSACTION_USE_CASE
@@ -62,13 +71,20 @@ import {
 @Module({
   imports: [
     AssetsModule,
-    TypeOrmModule.forFeature([Portfolio, Holding, PortfolioTransaction, Asset])
+    TypeOrmModule.forFeature([
+      Portfolio,
+      Holding,
+      PortfolioTransaction,
+      PortfolioOpeningBalance,
+      Asset
+    ])
   ],
   controllers: [
     PortfoliosController,
     HoldingsController,
     PortfolioTransactionsController,
-    PortfolioPnlController
+    PortfolioPnlController,
+    PortfolioOpeningBalancesController
   ],
   providers: [
     PortfolioRepository,
@@ -79,6 +95,11 @@ import {
     {
       provide: PORTFOLIO_TRANSACTION_REPOSITORY,
       useExisting: PortfolioTransactionRepository
+    },
+    PortfolioOpeningBalanceRepository,
+    {
+      provide: PORTFOLIO_OPENING_BALANCE_REPOSITORY,
+      useExisting: PortfolioOpeningBalanceRepository
     },
     CreatePortfolioUseCase,
     { provide: CREATE_PORTFOLIO_USE_CASE, useExisting: CreatePortfolioUseCase },
@@ -140,11 +161,22 @@ import {
       provide: DELETE_PORTFOLIO_TRANSACTION_USE_CASE,
       useExisting: DeletePortfolioTransactionUseCase
     },
+    SetPortfolioOpeningBalanceUseCase,
+    {
+      provide: SET_PORTFOLIO_OPENING_BALANCE_USE_CASE,
+      useExisting: SetPortfolioOpeningBalanceUseCase
+    },
+    ListPortfolioOpeningBalancesUseCase,
+    {
+      provide: LIST_PORTFOLIO_OPENING_BALANCES_USE_CASE,
+      useExisting: ListPortfolioOpeningBalancesUseCase
+    },
     PortfolioMapper,
     PortfolioValuationMapper,
     PortfolioPnlMapper,
     HoldingMapper,
-    PortfolioTransactionMapper
+    PortfolioTransactionMapper,
+    PortfolioOpeningBalanceMapper
   ]
 })
 export class PortfolioModule {}

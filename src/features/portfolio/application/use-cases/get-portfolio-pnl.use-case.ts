@@ -8,6 +8,7 @@ import {
   CalculationTransactionType
 } from '../../domain/calculation/types/calculation-transaction.types';
 import { CostBasisStrategy } from '../../domain/calculation/types/cost-basis.strategy.enum';
+import { PortfolioOpeningBalance } from '../../domain/entities/portfolio-opening-balance.entity';
 import { PortfolioTransaction } from '../../domain/entities/portfolio-transaction.entity';
 import { PortfolioTransactionType } from '../../domain/enums/portfolio-transaction-type.enum';
 import { PortfolioErrors } from '../../domain/errors/portfolio-errors';
@@ -15,9 +16,11 @@ import { PORTFOLIO_VALUATION_CURRENCY } from '../../domain/portfolio-valuation.c
 import {
   IGetPortfolioPnlUseCase,
   IPortfolioCalculationEngineFactory,
+  IPortfolioOpeningBalanceRepository,
   IPortfolioRepository,
   IPortfolioTransactionRepository,
   PORTFOLIO_CALCULATION_ENGINE,
+  PORTFOLIO_OPENING_BALANCE_REPOSITORY,
   PORTFOLIO_REPOSITORY,
   PORTFOLIO_TRANSACTION_REPOSITORY,
   PortfolioPnlPosition,
@@ -30,6 +33,8 @@ interface AssetTransactionGroup {
   symbol: string;
   name: string;
   currentPrice: string | null;
+  openingQuantity: string;
+  openingCost: string;
   transactions: CalculationTransaction[];
 }
 
@@ -52,6 +57,8 @@ export class GetPortfolioPnlUseCase implements IGetPortfolioPnlUseCase {
     private readonly portfolioRepository: IPortfolioRepository,
     @Inject(PORTFOLIO_TRANSACTION_REPOSITORY)
     private readonly transactionRepository: IPortfolioTransactionRepository,
+    @Inject(PORTFOLIO_OPENING_BALANCE_REPOSITORY)
+    private readonly openingBalanceRepository: IPortfolioOpeningBalanceRepository,
     @Inject(PORTFOLIO_CALCULATION_ENGINE)
     private readonly engineFactory: IPortfolioCalculationEngineFactory,
     private readonly logger: PinoLogger
@@ -75,14 +82,14 @@ export class GetPortfolioPnlUseCase implements IGetPortfolioPnlUseCase {
       throw PortfolioErrors.portfolioNotFound(portfolioId);
     }
 
-    const transactions = await this.transactionRepository.listForPnl(
-      portfolioId,
-      userId
-    );
+    const [transactions, openingBalances] = await Promise.all([
+      this.transactionRepository.listForPnl(portfolioId, userId),
+      this.openingBalanceRepository.listForPnl(portfolioId, userId)
+    ]);
 
     const engine = this.engineFactory.create(costBasisStrategy);
-    const positions = this.groupByAsset(transactions).map((group) =>
-      this.calculatePosition(engine, group)
+    const positions = this.groupByAsset(transactions, openingBalances).map(
+      (group) => this.calculatePosition(engine, group)
     );
 
     const pricedPositions = positions.filter(
@@ -147,6 +154,8 @@ export class GetPortfolioPnlUseCase implements IGetPortfolioPnlUseCase {
   ): PortfolioPnlPosition {
     const result = engine.calculate({
       assetId: group.assetId,
+      openingQuantity: group.openingQuantity,
+      openingCost: group.openingCost,
       transactions: group.transactions
     });
 
@@ -181,9 +190,23 @@ export class GetPortfolioPnlUseCase implements IGetPortfolioPnlUseCase {
   }
 
   private groupByAsset(
-    transactions: PortfolioTransaction[]
+    transactions: PortfolioTransaction[],
+    openingBalances: PortfolioOpeningBalance[]
   ): AssetTransactionGroup[] {
     const groups = new Map<string, AssetTransactionGroup>();
+
+    for (const openingBalance of openingBalances) {
+      const asset = openingBalance.asset;
+      groups.set(openingBalance.assetId, {
+        assetId: openingBalance.assetId,
+        symbol: asset.symbol,
+        name: asset.name,
+        currentPrice: asset.currentPrice,
+        openingQuantity: openingBalance.openingQuantity,
+        openingCost: openingBalance.openingCost,
+        transactions: []
+      });
+    }
 
     for (const transaction of transactions) {
       let group = groups.get(transaction.assetId);
@@ -195,6 +218,8 @@ export class GetPortfolioPnlUseCase implements IGetPortfolioPnlUseCase {
           symbol: asset.symbol,
           name: asset.name,
           currentPrice: asset.currentPrice,
+          openingQuantity: '0',
+          openingCost: '0',
           transactions: []
         };
         groups.set(transaction.assetId, group);

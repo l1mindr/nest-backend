@@ -64,6 +64,7 @@ export enum LogEvent {
   HOLDING_DELETED = 'portfolio.holding.deleted',
   PORTFOLIO_VALUATION_COMPUTED = 'portfolio.valuation.computed',
   PORTFOLIO_PNL_COMPUTED = 'portfolio.pnl.computed',
+  PORTFOLIO_OPENING_BALANCE_SET = 'portfolio.opening_balance.set',
   PORTFOLIO_TRANSACTION_CREATED = 'portfolio.transaction.created',
   PORTFOLIO_TRANSACTION_UPDATED = 'portfolio.transaction.updated',
   PORTFOLIO_TRANSACTION_DELETED = 'portfolio.transaction.deleted',
