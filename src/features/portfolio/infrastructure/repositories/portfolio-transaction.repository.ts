@@ -4,7 +4,8 @@ import { PortfolioTransaction } from '../../domain/entities/portfolio-transactio
 import {
   CreatePortfolioTransactionData,
   IPortfolioTransactionRepository,
-  ListPortfolioTransactionsFilter
+  ListPortfolioTransactionsFilter,
+  UpdatePortfolioTransactionData
 } from '../../application/interfaces/portfolio.interface';
 
 @Injectable()
@@ -106,5 +107,16 @@ export class PortfolioTransactionRepository implements IPortfolioTransactionRepo
     });
 
     return (result.affected ?? 0) === 1;
+  }
+
+  async update(
+    id: string,
+    portfolioId: string,
+    userId: string,
+    data: UpdatePortfolioTransactionData
+  ): Promise<PortfolioTransaction | null> {
+    await this.transactionRepo.update({ id, portfolioId, userId }, data);
+
+    return this.findByIdAndPortfolioAndUser(id, portfolioId, userId);
   }
 }

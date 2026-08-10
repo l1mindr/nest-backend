@@ -22,6 +22,7 @@ import { ListHoldingsUseCase } from './application/use-cases/list-holdings.use-c
 import { CreatePortfolioTransactionUseCase } from './application/use-cases/create-portfolio-transaction.use-case';
 import { ListPortfolioTransactionsUseCase } from './application/use-cases/list-portfolio-transactions.use-case';
 import { GetPortfolioTransactionUseCase } from './application/use-cases/get-portfolio-transaction.use-case';
+import { UpdatePortfolioTransactionUseCase } from './application/use-cases/update-portfolio-transaction.use-case';
 import { DeletePortfolioTransactionUseCase } from './application/use-cases/delete-portfolio-transaction.use-case';
 import { PortfolioMapper } from './application/mappers/portfolio.mapper';
 import { PortfolioValuationMapper } from './application/mappers/portfolio-valuation.mapper';
@@ -54,7 +55,8 @@ import {
   PORTFOLIO_REPOSITORY,
   PORTFOLIO_TRANSACTION_REPOSITORY,
   UPDATE_HOLDING_USE_CASE,
-  UPDATE_PORTFOLIO_USE_CASE
+  UPDATE_PORTFOLIO_USE_CASE,
+  UPDATE_PORTFOLIO_TRANSACTION_USE_CASE
 } from './application/interfaces/portfolio.interface';
 
 @Module({
@@ -127,6 +129,11 @@ import {
     {
       provide: GET_PORTFOLIO_TRANSACTION_USE_CASE,
       useExisting: GetPortfolioTransactionUseCase
+    },
+    UpdatePortfolioTransactionUseCase,
+    {
+      provide: UPDATE_PORTFOLIO_TRANSACTION_USE_CASE,
+      useExisting: UpdatePortfolioTransactionUseCase
     },
     DeletePortfolioTransactionUseCase,
     {
