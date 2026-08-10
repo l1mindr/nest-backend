@@ -12,6 +12,7 @@ import { CreatePortfolioRequestDto } from '../../presentation/dto/request/create
 import { CreatePortfolioTransactionRequestDto } from '../../presentation/dto/request/create-portfolio-transaction.request.dto';
 import { PortfolioTransactionListRequestDto } from '../../presentation/dto/request/portfolio-transaction-list.request.dto';
 import { UpdateHoldingRequestDto } from '../../presentation/dto/request/update-holding.request.dto';
+import { UpdatePortfolioRequestDto } from '../../presentation/dto/request/update-portfolio.request.dto';
 
 export const PORTFOLIO_REPOSITORY = Symbol('IPortfolioRepository');
 
@@ -22,10 +23,22 @@ export interface CreatePortfolioData {
   walletAddress: string | null;
 }
 
+export interface UpdatePortfolioData {
+  name?: string;
+  sourceType?: PortfolioSourceType;
+  walletAddress?: string | null;
+}
+
 export interface IPortfolioRepository {
   create(data: CreatePortfolioData): Promise<Portfolio>;
   findByIdAndUser(id: string, userId: string): Promise<Portfolio | null>;
   findByUserId(userId: string): Promise<Portfolio[]>;
+  update(
+    id: string,
+    userId: string,
+    data: UpdatePortfolioData
+  ): Promise<Portfolio | null>;
+  delete(id: string, userId: string): Promise<boolean>;
 }
 
 export const HOLDING_REPOSITORY = Symbol('IHoldingRepository');
@@ -80,6 +93,22 @@ export interface IGetPortfolioUseCase {
 }
 
 export const GET_PORTFOLIO_USE_CASE = Symbol('IGetPortfolioUseCase');
+
+export interface IUpdatePortfolioUseCase {
+  execute(
+    portfolioId: string,
+    userId: string,
+    dto: UpdatePortfolioRequestDto
+  ): Promise<Portfolio>;
+}
+
+export const UPDATE_PORTFOLIO_USE_CASE = Symbol('IUpdatePortfolioUseCase');
+
+export interface IDeletePortfolioUseCase {
+  execute(portfolioId: string, userId: string): Promise<void>;
+}
+
+export const DELETE_PORTFOLIO_USE_CASE = Symbol('IDeletePortfolioUseCase');
 
 export interface ICreateHoldingUseCase {
   execute(userId: string, dto: CreateHoldingRequestDto): Promise<Holding>;

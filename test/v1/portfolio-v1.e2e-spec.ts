@@ -216,6 +216,153 @@ describe('Portfolio (e2e) version: 1', () => {
 
       expect(response.status).toBe(404);
     });
+
+    it('should update a portfolio name', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+
+      const response = await auth.client.patch(
+        `/v1/portfolios/${portfolio.id}`,
+        {
+          body: { name: 'Updated Ledger' },
+          headers: mutationHeaders(auth)
+        }
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        id: portfolio.id,
+        name: 'Updated Ledger',
+        sourceType: 'WALLET'
+      });
+    });
+
+    it('should update portfolio sourceType and clear walletAddress', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth, {
+        name: 'My Wallet',
+        sourceType: 'WALLET',
+        walletAddress: '0x1234...'
+      });
+
+      const response = await auth.client.patch(
+        `/v1/portfolios/${portfolio.id}`,
+        {
+          body: { sourceType: 'EXCHANGE', walletAddress: null },
+          headers: mutationHeaders(auth)
+        }
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        id: portfolio.id,
+        name: 'My Wallet',
+        sourceType: 'EXCHANGE',
+        walletAddress: null
+      });
+    });
+
+    it('should reject empty portfolio update', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+
+      const response = await auth.client.patch(
+        `/v1/portfolios/${portfolio.id}`,
+        {
+          body: {},
+          headers: mutationHeaders(auth)
+        }
+      );
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe('PORTFOLIO_EMPTY_UPDATE');
+    });
+
+    it('should return 404 when updating another users portfolio', async () => {
+      const userA = await AuthFactory.authenticated(app, {
+        overrides: { email: 'ownerA@test.com', username: 'ownerA' }
+      });
+      const userB = await AuthFactory.authenticated(app, {
+        overrides: { email: 'ownerB@test.com', username: 'ownerB' }
+      });
+
+      const portfolio = await createPortfolio(userA);
+
+      const response = await userB.client.patch(
+        `/v1/portfolios/${portfolio.id}`,
+        {
+          body: { name: 'Hacked' },
+          headers: mutationHeaders(userB)
+        }
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should return 404 when updating nonexistent portfolio', async () => {
+      const auth = await AuthFactory.authenticated(app);
+
+      const response = await auth.client.patch(
+        '/v1/portfolios/00000000-0000-4000-8000-000000000000',
+        {
+          body: { name: 'Updated' },
+          headers: mutationHeaders(auth)
+        }
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should delete a portfolio', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+
+      const response = await auth.client.delete(
+        `/v1/portfolios/${portfolio.id}`,
+        { headers: mutationHeaders(auth) }
+      );
+
+      expect(response.status).toBe(204);
+
+      const getResponse = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}`
+      );
+      expect(getResponse.status).toBe(404);
+    });
+
+    it('should return 404 when deleting another users portfolio', async () => {
+      const userA = await AuthFactory.authenticated(app, {
+        overrides: { email: 'ownerA@test.com', username: 'ownerA' }
+      });
+      const userB = await AuthFactory.authenticated(app, {
+        overrides: { email: 'ownerB@test.com', username: 'ownerB' }
+      });
+
+      const portfolio = await createPortfolio(userA);
+
+      const response = await userB.client.delete(
+        `/v1/portfolios/${portfolio.id}`,
+        { headers: mutationHeaders(userB) }
+      );
+
+      expect(response.status).toBe(404);
+
+      const getResponse = await userA.client.get(
+        `/v1/portfolios/${portfolio.id}`
+      );
+      expect(getResponse.status).toBe(200);
+    });
+
+    it('should return 404 when deleting nonexistent portfolio', async () => {
+      const auth = await AuthFactory.authenticated(app);
+
+      const response = await auth.client.delete(
+        '/v1/portfolios/00000000-0000-4000-8000-000000000000',
+        { headers: mutationHeaders(auth) }
+      );
+
+      expect(response.status).toBe(404);
+    });
   });
 
   describe('Holdings', () => {

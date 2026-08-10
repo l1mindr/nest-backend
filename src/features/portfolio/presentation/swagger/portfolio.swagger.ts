@@ -32,6 +32,7 @@ import { CreateHoldingRequestDto } from '../dto/request/create-holding.request.d
 import { CreatePortfolioRequestDto } from '../dto/request/create-portfolio.request.dto';
 import { CreatePortfolioTransactionRequestDto } from '../dto/request/create-portfolio-transaction.request.dto';
 import { UpdateHoldingRequestDto } from '../dto/request/update-holding.request.dto';
+import { UpdatePortfolioRequestDto } from '../dto/request/update-portfolio.request.dto';
 import { HoldingListResponseDto } from '../dto/response/holding-list.response.dto';
 import { HoldingResponseDto } from '../dto/response/holding.response.dto';
 import { PortfolioResponseDto } from '../dto/response/portfolio.response.dto';
@@ -109,6 +110,12 @@ const holdingConflict = () =>
 const emptyUpdate = () =>
   errorExample(
     PortfolioErrors.holdingEmptyUpdate(),
+    'The body contained no updatable field'
+  );
+
+const portfolioEmptyUpdate = () =>
+  errorExample(
+    PortfolioErrors.portfolioEmptyUpdate(),
     'The body contained no updatable field'
   );
 
@@ -234,6 +241,93 @@ export const ApiListPortfolios = () =>
     }),
     ApiErrorResponses(PATH.PORTFOLIOS, [
       unauthorizedResponse(),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiUpdatePortfolio = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'updatePortfolio',
+      summary: 'Update a portfolio source by id',
+      description: [
+        'Updates the portfolio source with the given `id` when it belongs to the caller. At least one field (`name`, `sourceType`, or `walletAddress`) must be provided.',
+        '',
+        'Pass `null` for `walletAddress` to clear it.',
+        '',
+        'Requires authentication and a valid `x-csrf-token` header.'
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    portfolioIdParam(),
+    ApiRequestBody(UpdatePortfolioRequestDto, [
+      {
+        summary: 'Update the name',
+        value: { name: 'My Updated Ledger' }
+      },
+      {
+        summary: 'Change source type and clear wallet address',
+        value: { sourceType: 'EXCHANGE', walletAddress: null }
+      }
+    ]),
+    ApiSuccessResponse({
+      status: 200,
+      description: 'The portfolio source was updated and is returned in full.',
+      type: PortfolioResponseDto
+    }),
+    ApiErrorResponses(PATH.PORTFOLIOS, [
+      unauthorizedResponse(),
+      csrfForbiddenResponse(),
+      notFoundResponse(
+        'No portfolio source with this identifier belongs to the caller. Sources owned by another account are reported the same way, so ownership cannot be probed.',
+        portfolioNotFound()
+      ),
+      {
+        status: 422,
+        description: 'The body contained no updatable field.',
+        examples: [portfolioEmptyUpdate()]
+      },
+      validationResponse('The body failed validation.', [
+        validationError('id', 'id must be a UUID'),
+        validationError(
+          'name',
+          'name must be longer than or equal to 1 characters'
+        ),
+        validationError(
+          'sourceType',
+          'sourceType must be one of the following values: LEDGER, EXCHANGE, WALLET, OTHER'
+        )
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiDeletePortfolio = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'deletePortfolio',
+      summary: 'Delete a portfolio source by id',
+      description: [
+        'Deletes the portfolio source with the given `id` when it belongs to the caller.',
+        '',
+        'Requires authentication and a valid `x-csrf-token` header.'
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    portfolioIdParam(),
+    ApiNoContent({
+      description: 'The portfolio source was deleted.'
+    }),
+    ApiErrorResponses(PATH.PORTFOLIOS, [
+      unauthorizedResponse(),
+      csrfForbiddenResponse(),
+      notFoundResponse(
+        'No portfolio source with this identifier belongs to the caller. Sources owned by another account are reported the same way, so ownership cannot be probed.',
+        portfolioNotFound()
+      ),
+      validationResponse('The `id` is not a UUID.', [
+        validationError('id', 'id must be a UUID')
+      ]),
       internalServerErrorResponse()
     ])
   );

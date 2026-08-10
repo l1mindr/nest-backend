@@ -3,7 +3,8 @@ import { DataSource, Repository } from 'typeorm';
 import { Portfolio } from '../../domain/entities/portfolio.entity';
 import {
   CreatePortfolioData,
-  IPortfolioRepository
+  IPortfolioRepository,
+  UpdatePortfolioData
 } from '../../application/interfaces/portfolio.interface';
 
 @Injectable()
@@ -29,5 +30,21 @@ export class PortfolioRepository implements IPortfolioRepository {
       where: { userId },
       order: { createdAt: 'DESC' }
     });
+  }
+
+  async update(
+    id: string,
+    userId: string,
+    data: UpdatePortfolioData
+  ): Promise<Portfolio | null> {
+    await this.portfolioRepo.update({ id, userId }, data);
+
+    return this.findByIdAndUser(id, userId);
+  }
+
+  async delete(id: string, userId: string): Promise<boolean> {
+    const result = await this.portfolioRepo.delete({ id, userId });
+
+    return (result.affected ?? 0) === 1;
   }
 }
