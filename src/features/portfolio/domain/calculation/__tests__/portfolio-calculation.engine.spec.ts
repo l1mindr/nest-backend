@@ -561,4 +561,127 @@ describe('PortfolioCalculationEngine', () => {
       realizedPnl: []
     });
   });
+
+  describe('trusted input options', () => {
+    function stubCostBasis(): CostBasisCalculator {
+      return {
+        calculate: jest.fn(() => ({
+          quantity: '0',
+          totalCost: '0',
+          realizedPnl: []
+        }))
+      };
+    }
+
+    function receivedOrderedIds(costBasis: CostBasisCalculator): string[] {
+      const mock = costBasis.calculate as jest.Mock;
+      return mock.mock.calls[0][0].map(
+        (transaction: CalculationTransaction) => transaction.id ?? ''
+      );
+    }
+
+    it('should keep sorting by default when no options are provided', () => {
+      const costBasis = stubCostBasis();
+      const engineWithStub = new PortfolioCalculationEngine(costBasis);
+
+      engineWithStub.calculate({
+        transactions: [
+          buy('1', '60000', '2026-07-28T09:00:00.000Z', 'b'),
+          buy('1', '50000', '2026-07-28T08:00:00.000Z', 'a')
+        ]
+      });
+
+      expect(receivedOrderedIds(costBasis)).toEqual(['a', 'b']);
+    });
+
+    it('should pass the input order through unchanged when alreadyOrdered is set', () => {
+      const costBasis = stubCostBasis();
+      const engineWithStub = new PortfolioCalculationEngine(costBasis);
+
+      engineWithStub.calculate(
+        {
+          transactions: [
+            buy('1', '50000', '2026-07-28T09:00:00.000Z', 'z'),
+            buy('1', '60000', '2026-07-28T08:00:00.000Z', 'a')
+          ]
+        },
+        { alreadyOrdered: true, trustedIsoDates: true }
+      );
+
+      expect(receivedOrderedIds(costBasis)).toEqual(['z', 'a']);
+    });
+
+    it('should preserve the id tie-break for identical timestamps when alreadyOrdered is set', () => {
+      const costBasis = stubCostBasis();
+      const engineWithStub = new PortfolioCalculationEngine(costBasis);
+
+      engineWithStub.calculate(
+        {
+          transactions: [
+            buy('1', '50000', '2026-07-28T08:00:00.000Z', 'a'),
+            buy('1', '60000', '2026-07-28T08:00:00.000Z', 'b')
+          ]
+        },
+        { alreadyOrdered: true, trustedIsoDates: true }
+      );
+
+      expect(receivedOrderedIds(costBasis)).toEqual(['a', 'b']);
+    });
+
+    it('should compute the same result as the default path for an ordered ledger', () => {
+      const ledger: PortfolioCalculationInput = {
+        transactions: [
+          buy('1', '50000', '2026-07-28T08:00:00.000Z', 'a'),
+          buy('1', '70000', '2026-07-28T09:00:00.000Z', 'b'),
+          sell('1', '60000', '2026-07-28T10:00:00.000Z', 'c')
+        ]
+      };
+
+      const defaultResult = engine.calculate(ledger);
+      const trustedResult = engine.calculate(ledger, {
+        alreadyOrdered: true,
+        trustedIsoDates: true
+      });
+
+      expect(trustedResult).toEqual(defaultResult);
+    });
+
+    it('should still reject invalid dates on the default path', () => {
+      expectCalculationError(
+        () =>
+          engine.calculate({
+            transactions: [
+              {
+                type: CalculationTransactionType.BUY,
+                amount: '1',
+                price: '1',
+                occurredAt: 'not-a-date'
+              }
+            ]
+          }),
+        CalculationErrorCode.INVALID_DATE
+      );
+    });
+
+    it('should skip date validation when trustedIsoDates is set', () => {
+      const costBasis = stubCostBasis();
+      const engineWithStub = new PortfolioCalculationEngine(costBasis);
+
+      expect(() =>
+        engineWithStub.calculate(
+          {
+            transactions: [
+              {
+                type: CalculationTransactionType.BUY,
+                amount: '1',
+                price: '1',
+                occurredAt: 'not-a-date'
+              }
+            ]
+          },
+          { alreadyOrdered: true, trustedIsoDates: true }
+        )
+      ).not.toThrow();
+    });
+  });
 });

@@ -873,20 +873,23 @@ describe('GetPortfolioPnlUseCase', () => {
 
       const result = await useCase.execute('user-id', 'portfolio-id');
 
-      expect(calculate).toHaveBeenCalledWith({
-        assetId: 'asset-1',
-        openingQuantity: '0',
-        openingCost: '0',
-        transactions: [
-          expect.objectContaining({
-            id: 'tx-1',
-            type: CalculationTransactionType.BUY,
-            amount: '1',
-            price: '100',
-            occurredAt: '2026-01-01T00:00:00.000Z'
-          })
-        ]
-      });
+      expect(calculate).toHaveBeenCalledWith(
+        {
+          assetId: 'asset-1',
+          openingQuantity: '0',
+          openingCost: '0',
+          transactions: [
+            expect.objectContaining({
+              id: 'tx-1',
+              type: CalculationTransactionType.BUY,
+              amount: '1',
+              price: '100',
+              occurredAt: '2026-01-01T00:00:00.000Z'
+            })
+          ]
+        },
+        { alreadyOrdered: true, trustedIsoDates: true }
+      );
       expect(result.positions[0]).toMatchObject({
         quantity: '1',
         totalCost: '100',
