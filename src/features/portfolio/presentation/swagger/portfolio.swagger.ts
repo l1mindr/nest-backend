@@ -33,6 +33,7 @@ import { CreatePortfolioRequestDto } from '../dto/request/create-portfolio.reque
 import { CreatePortfolioTransactionRequestDto } from '../dto/request/create-portfolio-transaction.request.dto';
 import { UpdateHoldingRequestDto } from '../dto/request/update-holding.request.dto';
 import { UpdatePortfolioRequestDto } from '../dto/request/update-portfolio.request.dto';
+import { UpdatePortfolioTransactionRequestDto } from '../dto/request/update-portfolio-transaction.request.dto';
 import { HoldingListResponseDto } from '../dto/response/holding-list.response.dto';
 import { HoldingResponseDto } from '../dto/response/holding.response.dto';
 import { PortfolioResponseDto } from '../dto/response/portfolio.response.dto';
@@ -135,6 +136,12 @@ const transactionPriceRequired = () =>
   errorExample(
     PortfolioErrors.transactionPriceRequired(),
     'BUY and SELL transactions must record the price at the time of the trade'
+  );
+
+const transactionEmptyUpdate = () =>
+  errorExample(
+    PortfolioErrors.transactionEmptyUpdate(),
+    'The body contained no updatable field'
   );
 
 const invalidTransactionCursor = () =>
@@ -779,6 +786,83 @@ export const ApiGetPortfolioTransaction = () =>
       validationResponse('The `id` or `portfolioId` is not a UUID.', [
         validationError('portfolioId', 'portfolioId must be a UUID'),
         validationError('id', 'id must be a UUID')
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiUpdatePortfolioTransaction = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'updatePortfolioTransaction',
+      summary: 'Update a transaction by id',
+      description: [
+        'Updates the transaction with the given `id` in the portfolio source with the given `portfolioId`, when both belong to the caller. At least one field must be provided.',
+        '',
+        'The transaction type, amount, price, fee, instant, and notes can all be updated. Pass `null` for optional fields to clear them.',
+        '',
+        'When changing `type` or `price`, the business rules are re-checked: `BUY` and `SELL` require a `price`, and `DEPOSIT`/`WITHDRAWAL` are rejected. After the update, on-demand P&L calculations will naturally reflect the updated transaction.',
+        '',
+        'Requires authentication and a valid `x-csrf-token` header.'
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    transactionPortfolioIdParam(),
+    transactionIdParam(),
+    ApiRequestBody(UpdatePortfolioTransactionRequestDto, [
+      {
+        summary: 'Update the amount and price',
+        value: { amount: '1.0', price: '65000' }
+      },
+      {
+        summary: 'Change type from BUY to TRANSFER_IN and clear price',
+        value: { type: 'TRANSFER_IN', price: null }
+      }
+    ]),
+    ApiSuccessResponse({
+      status: 200,
+      description:
+        'The transaction was updated and is returned with its asset resolved.',
+      type: PortfolioTransactionResponseDto
+    }),
+    ApiErrorResponses(PATH.TRANSACTION, [
+      unauthorizedResponse(),
+      csrfForbiddenResponse(),
+      notFoundResponse(
+        'The portfolio source or transaction does not exist, or either belongs to another account.',
+        portfolioNotFound(),
+        transactionNotFound()
+      ),
+      {
+        status: 422,
+        description:
+          'The body contained no updatable field, or the updated combination violates a business rule.',
+        examples: [
+          transactionEmptyUpdate(),
+          transactionTypeNotSupported(),
+          transactionPriceRequired()
+        ]
+      },
+      validationResponse('The body failed validation.', [
+        validationError('portfolioId', 'portfolioId must be a UUID'),
+        validationError('id', 'id must be a UUID'),
+        validationError(
+          'type',
+          'type must be one of the following values: BUY, SELL, TRANSFER_IN, TRANSFER_OUT, DEPOSIT, WITHDRAWAL'
+        ),
+        validationError('amount', 'amount must be a valid decimal string'),
+        validationError(
+          'price',
+          'price must be a decimal string with at most 8 fractional digits'
+        ),
+        validationError(
+          'fee',
+          'fee must be a non-negative decimal string with at most 8 fractional digits'
+        ),
+        validationError(
+          'occurredAt',
+          'occurredAt must be a valid ISO 8601 date string'
+        )
       ]),
       internalServerErrorResponse()
     ])

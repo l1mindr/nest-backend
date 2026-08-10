@@ -9,6 +9,7 @@ import {
   HttpStatus,
   Inject,
   Param,
+  Patch,
   Post,
   Query
 } from '@nestjs/common';
@@ -23,9 +24,12 @@ import {
   IDeletePortfolioTransactionUseCase,
   IGetPortfolioTransactionUseCase,
   IListPortfolioTransactionsUseCase,
-  LIST_PORTFOLIO_TRANSACTIONS_USE_CASE
+  IUpdatePortfolioTransactionUseCase,
+  LIST_PORTFOLIO_TRANSACTIONS_USE_CASE,
+  UPDATE_PORTFOLIO_TRANSACTION_USE_CASE
 } from '../../application/interfaces/portfolio.interface';
 import { CreatePortfolioTransactionRequestDto } from '../dto/request/create-portfolio-transaction.request.dto';
+import { UpdatePortfolioTransactionRequestDto } from '../dto/request/update-portfolio-transaction.request.dto';
 import {
   PortfolioTransactionIdParamsDto,
   PortfolioTransactionParamsDto
@@ -35,7 +39,8 @@ import {
   ApiCreatePortfolioTransaction,
   ApiDeletePortfolioTransaction,
   ApiGetPortfolioTransaction,
-  ApiListPortfolioTransactions
+  ApiListPortfolioTransactions,
+  ApiUpdatePortfolioTransaction
 } from '../swagger/portfolio.swagger';
 
 @Controller({
@@ -51,6 +56,8 @@ export class PortfolioTransactionsController {
     private readonly listTransactionsUseCase: IListPortfolioTransactionsUseCase,
     @Inject(GET_PORTFOLIO_TRANSACTION_USE_CASE)
     private readonly getTransactionUseCase: IGetPortfolioTransactionUseCase,
+    @Inject(UPDATE_PORTFOLIO_TRANSACTION_USE_CASE)
+    private readonly updateTransactionUseCase: IUpdatePortfolioTransactionUseCase,
     @Inject(DELETE_PORTFOLIO_TRANSACTION_USE_CASE)
     private readonly deleteTransactionUseCase: IDeletePortfolioTransactionUseCase,
     private readonly transactionMapper: PortfolioTransactionMapper
@@ -104,6 +111,24 @@ export class PortfolioTransactionsController {
       user.id,
       params.portfolioId,
       params.id
+    );
+
+    return this.transactionMapper.toResponse(transaction);
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiUpdatePortfolioTransaction()
+  async updateTransaction(
+    @User() user: UserEntity,
+    @Param() params: PortfolioTransactionIdParamsDto,
+    @Body() dto: UpdatePortfolioTransactionRequestDto
+  ) {
+    const transaction = await this.updateTransactionUseCase.execute(
+      user.id,
+      params.portfolioId,
+      params.id,
+      dto
     );
 
     return this.transactionMapper.toResponse(transaction);

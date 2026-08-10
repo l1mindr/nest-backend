@@ -74,6 +74,16 @@ export class PortfolioErrors {
     );
   }
 
+  static transactionEmptyUpdate() {
+    return new AppError(
+      PortfolioErrorCode.TRANSACTION_EMPTY_UPDATE,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      undefined,
+      'At least one transaction field must be provided'
+    );
+  }
+
   static transactionTypeNotSupported() {
     return new AppError(
       PortfolioErrorCode.TRANSACTION_TYPE_NOT_SUPPORTED,

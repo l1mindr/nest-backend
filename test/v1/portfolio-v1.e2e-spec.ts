@@ -1095,6 +1095,268 @@ describe('Portfolio (e2e) version: 1', () => {
       expect(response.status).toBe(404);
     });
 
+    it('should update a transaction', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+
+      const createResponse = await createTransaction(
+        auth,
+        portfolio.id,
+        asset.id,
+        {
+          type: 'BUY',
+          amount: '1.5',
+          price: '60000',
+          fee: '0.75',
+          occurredAt: '2026-07-28T08:00:00.000Z',
+          notes: 'Original'
+        }
+      );
+      expect(createResponse.status).toBe(201);
+
+      const updateResponse = await auth.client.patch(
+        `/v1/portfolios/${portfolio.id}/transactions/${createResponse.body.id}`,
+        {
+          body: { amount: '2.0', price: '65000', notes: 'Updated' },
+          headers: mutationHeaders(auth)
+        }
+      );
+
+      expect(updateResponse.status).toBe(200);
+      expect(updateResponse.body).toMatchObject({
+        id: createResponse.body.id,
+        amount: '2.000000000000000000',
+        price: '65000.00000000',
+        notes: 'Updated',
+        type: 'BUY'
+      });
+    });
+
+    it('should change transaction type from BUY to TRANSFER_IN and clear price', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+
+      const createResponse = await createTransaction(
+        auth,
+        portfolio.id,
+        asset.id,
+        {
+          type: 'BUY',
+          amount: '1.0',
+          price: '60000',
+          occurredAt: '2026-07-28T08:00:00.000Z'
+        }
+      );
+
+      const updateResponse = await auth.client.patch(
+        `/v1/portfolios/${portfolio.id}/transactions/${createResponse.body.id}`,
+        {
+          body: { type: 'TRANSFER_IN', price: null },
+          headers: mutationHeaders(auth)
+        }
+      );
+
+      expect(updateResponse.status).toBe(200);
+      expect(updateResponse.body).toMatchObject({
+        type: 'TRANSFER_IN',
+        price: null
+      });
+    });
+
+    it('should clear fee and notes with null', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+
+      const createResponse = await createTransaction(
+        auth,
+        portfolio.id,
+        asset.id,
+        {
+          type: 'BUY',
+          amount: '1.0',
+          price: '60000',
+          fee: '0.5',
+          occurredAt: '2026-07-28T08:00:00.000Z',
+          notes: 'Will be cleared'
+        }
+      );
+
+      const updateResponse = await auth.client.patch(
+        `/v1/portfolios/${portfolio.id}/transactions/${createResponse.body.id}`,
+        {
+          body: { fee: null, notes: null },
+          headers: mutationHeaders(auth)
+        }
+      );
+
+      expect(updateResponse.status).toBe(200);
+      expect(updateResponse.body.fee).toBeNull();
+      expect(updateResponse.body.notes).toBeNull();
+    });
+
+    it('should reject empty transaction update', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+
+      const createResponse = await createTransaction(
+        auth,
+        portfolio.id,
+        asset.id,
+        {
+          type: 'BUY',
+          amount: '1.0',
+          price: '60000',
+          occurredAt: '2026-07-28T08:00:00.000Z'
+        }
+      );
+
+      const updateResponse = await auth.client.patch(
+        `/v1/portfolios/${portfolio.id}/transactions/${createResponse.body.id}`,
+        {
+          body: {},
+          headers: mutationHeaders(auth)
+        }
+      );
+
+      expect(updateResponse.status).toBe(422);
+      expect(updateResponse.body.error.code).toBe('TRANSACTION_EMPTY_UPDATE');
+    });
+
+    it('should reject updating transaction in another users portfolio', async () => {
+      const userA = await AuthFactory.authenticated(app, {
+        overrides: { email: 'ownerA@test.com', username: 'ownerA' }
+      });
+      const userB = await AuthFactory.authenticated(app, {
+        overrides: { email: 'ownerB@test.com', username: 'ownerB' }
+      });
+
+      const portfolio = await createPortfolio(userA);
+
+      const createResponse = await createTransaction(
+        userA,
+        portfolio.id,
+        asset.id,
+        {
+          type: 'BUY',
+          amount: '1.0',
+          price: '60000',
+          occurredAt: '2026-07-28T08:00:00.000Z'
+        }
+      );
+
+      const updateResponse = await userB.client.patch(
+        `/v1/portfolios/${portfolio.id}/transactions/${createResponse.body.id}`,
+        {
+          body: { amount: '10.0' },
+          headers: mutationHeaders(userB)
+        }
+      );
+
+      expect(updateResponse.status).toBe(404);
+    });
+
+    it('should reject updating nonexistent transaction', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+
+      const updateResponse = await auth.client.patch(
+        `/v1/portfolios/${portfolio.id}/transactions/00000000-0000-4000-8000-000000000000`,
+        {
+          body: { amount: '10.0' },
+          headers: mutationHeaders(auth)
+        }
+      );
+
+      expect(updateResponse.status).toBe(404);
+    });
+
+    it('should reject clearing price on BUY transaction', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+
+      const createResponse = await createTransaction(
+        auth,
+        portfolio.id,
+        asset.id,
+        {
+          type: 'BUY',
+          amount: '1.0',
+          price: '60000',
+          occurredAt: '2026-07-28T08:00:00.000Z'
+        }
+      );
+
+      const updateResponse = await auth.client.patch(
+        `/v1/portfolios/${portfolio.id}/transactions/${createResponse.body.id}`,
+        {
+          body: { price: null },
+          headers: mutationHeaders(auth)
+        }
+      );
+
+      expect(updateResponse.status).toBe(422);
+      expect(updateResponse.body.error.code).toBe('TRANSACTION_PRICE_REQUIRED');
+    });
+
+    it('should reject updating to unsupported DEPOSIT type', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+
+      const createResponse = await createTransaction(
+        auth,
+        portfolio.id,
+        asset.id,
+        {
+          type: 'BUY',
+          amount: '1.0',
+          price: '60000',
+          occurredAt: '2026-07-28T08:00:00.000Z'
+        }
+      );
+
+      const updateResponse = await auth.client.patch(
+        `/v1/portfolios/${portfolio.id}/transactions/${createResponse.body.id}`,
+        {
+          body: { type: 'DEPOSIT' },
+          headers: mutationHeaders(auth)
+        }
+      );
+
+      expect(updateResponse.status).toBe(422);
+      expect(updateResponse.body.error.code).toBe(
+        'TRANSACTION_TYPE_NOT_SUPPORTED'
+      );
+    });
+
+    it('should preserve decimal precision when updating amounts', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+
+      const createResponse = await createTransaction(
+        auth,
+        portfolio.id,
+        asset.id,
+        {
+          type: 'BUY',
+          amount: '1.000000000000000001',
+          price: '60000.12345678',
+          occurredAt: '2026-07-28T08:00:00.000Z'
+        }
+      );
+
+      const updateResponse = await auth.client.patch(
+        `/v1/portfolios/${portfolio.id}/transactions/${createResponse.body.id}`,
+        {
+          body: { amount: '2.000000000000000002', price: '65000.87654321' },
+          headers: mutationHeaders(auth)
+        }
+      );
+
+      expect(updateResponse.status).toBe(200);
+      expect(updateResponse.body.amount).toBe('2.000000000000000002');
+      expect(updateResponse.body.price).toBe('65000.87654321');
+    });
+
     it('should keep the recorded price when the live price changes', async () => {
       const auth = await AuthFactory.authenticated(app);
       const portfolio = await createPortfolio(auth);

@@ -13,6 +13,7 @@ import { CreatePortfolioTransactionRequestDto } from '../../presentation/dto/req
 import { PortfolioTransactionListRequestDto } from '../../presentation/dto/request/portfolio-transaction-list.request.dto';
 import { UpdateHoldingRequestDto } from '../../presentation/dto/request/update-holding.request.dto';
 import { UpdatePortfolioRequestDto } from '../../presentation/dto/request/update-portfolio.request.dto';
+import { UpdatePortfolioTransactionRequestDto } from '../../presentation/dto/request/update-portfolio-transaction.request.dto';
 
 export const PORTFOLIO_REPOSITORY = Symbol('IPortfolioRepository');
 
@@ -201,6 +202,15 @@ export interface CreatePortfolioTransactionData {
   notes: string | null;
 }
 
+export interface UpdatePortfolioTransactionData {
+  type?: PortfolioTransactionType;
+  amount?: string;
+  price?: string | null;
+  fee?: string | null;
+  occurredAt?: Date;
+  notes?: string | null;
+}
+
 /**
  * A decoded transaction cursor: the keyset boundary the next page must start
  * strictly after, when sorting by `occurredAt` then `id`, both descending.
@@ -240,6 +250,12 @@ export interface IPortfolioTransactionRepository {
     portfolioId: string,
     userId: string
   ): Promise<PortfolioTransaction[]>;
+  update(
+    id: string,
+    portfolioId: string,
+    userId: string,
+    data: UpdatePortfolioTransactionData
+  ): Promise<PortfolioTransaction | null>;
   deleteByIdAndPortfolioAndUser(
     id: string,
     portfolioId: string,
@@ -298,6 +314,19 @@ export interface IDeletePortfolioTransactionUseCase {
 
 export const DELETE_PORTFOLIO_TRANSACTION_USE_CASE = Symbol(
   'IDeletePortfolioTransactionUseCase'
+);
+
+export interface IUpdatePortfolioTransactionUseCase {
+  execute(
+    userId: string,
+    portfolioId: string,
+    transactionId: string,
+    dto: UpdatePortfolioTransactionRequestDto
+  ): Promise<PortfolioTransaction>;
+}
+
+export const UPDATE_PORTFOLIO_TRANSACTION_USE_CASE = Symbol(
+  'IUpdatePortfolioTransactionUseCase'
 );
 
 /**
