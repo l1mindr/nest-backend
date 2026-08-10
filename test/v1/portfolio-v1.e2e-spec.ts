@@ -1379,6 +1379,294 @@ describe('Portfolio (e2e) version: 1', () => {
       expect(response.status).toBe(200);
       expect(response.body.price).toBe('50000.00000000');
     });
+
+    describe('P&L recalculation after update', () => {
+      // Each test uses the `asset` seeded by the outer beforeEach (bitcoin,
+      // currentPrice: '60000') to avoid a unique-constraint collision on
+      // coinGeckoId. Tests that assert on unrealizedPnl are written against
+      // that fixed current price.
+
+      it('should reflect an updated BUY price in cost basis and unrealized P&L', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        const tx = await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'BUY',
+          amount: '1',
+          price: '50000',
+          occurredAt: '2026-07-01T08:00:00.000Z'
+        });
+        expect(tx.status).toBe(201);
+
+        const patch = await auth.client.patch(
+          `/v1/portfolios/${portfolio.id}/transactions/${tx.body.id}`,
+          { body: { price: '55000' }, headers: mutationHeaders(auth) }
+        );
+        expect(patch.status).toBe(200);
+
+        const pnl = await auth.client.get(`/v1/portfolios/${portfolio.id}/pnl`);
+        expect(pnl.status).toBe(200);
+        // currentPrice = 60000, cost = 55000 → unrealizedPnl = 5000
+        expect(pnl.body.positions[0]).toMatchObject({
+          quantity: '1',
+          totalCost: '55000',
+          averageCost: '55000',
+          unrealizedPnl: '5000'
+        });
+      });
+
+      it('should reflect an updated BUY amount in quantity and cost', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        const tx = await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'BUY',
+          amount: '1',
+          price: '50000',
+          occurredAt: '2026-07-01T08:00:00.000Z'
+        });
+
+        const patch = await auth.client.patch(
+          `/v1/portfolios/${portfolio.id}/transactions/${tx.body.id}`,
+          { body: { amount: '2' }, headers: mutationHeaders(auth) }
+        );
+        expect(patch.status).toBe(200);
+
+        const pnl = await auth.client.get(`/v1/portfolios/${portfolio.id}/pnl`);
+        expect(pnl.status).toBe(200);
+        // currentPrice = 60000; 2 × 60000 = 120000; cost = 100000 → unrealizedPnl = 20000
+        expect(pnl.body.positions[0]).toMatchObject({
+          quantity: '2',
+          totalCost: '100000',
+          averageCost: '50000',
+          currentValue: '120000',
+          unrealizedPnl: '20000'
+        });
+      });
+
+      it('should reflect an updated SELL price in realized P&L', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'BUY',
+          amount: '1',
+          price: '50000',
+          occurredAt: '2026-07-01T08:00:00.000Z'
+        });
+        const sell = await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'SELL',
+          amount: '1',
+          price: '60000',
+          occurredAt: '2026-07-02T08:00:00.000Z'
+        });
+        expect(sell.status).toBe(201);
+
+        const patch = await auth.client.patch(
+          `/v1/portfolios/${portfolio.id}/transactions/${sell.body.id}`,
+          { body: { price: '65000' }, headers: mutationHeaders(auth) }
+        );
+        expect(patch.status).toBe(200);
+
+        const pnl = await auth.client.get(`/v1/portfolios/${portfolio.id}/pnl`);
+        expect(pnl.status).toBe(200);
+        expect(pnl.body.positions[0]).toMatchObject({
+          quantity: '0',
+          totalCost: '0',
+          realizedPnl: '15000'
+        });
+        expect(pnl.body.positions[0].realizedPnlEvents[0]).toMatchObject({
+          proceeds: '65000',
+          releasedCostBasis: '50000',
+          realizedPnl: '15000'
+        });
+      });
+
+      it('should reflect an updated SELL amount in realized P&L and remaining quantity', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'BUY',
+          amount: '2',
+          price: '50000',
+          occurredAt: '2026-07-01T08:00:00.000Z'
+        });
+        const sell = await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'SELL',
+          amount: '1',
+          price: '60000',
+          occurredAt: '2026-07-02T08:00:00.000Z'
+        });
+        expect(sell.status).toBe(201);
+
+        // Increase disposed amount from 1 to 2 — full sell-out
+        const patch = await auth.client.patch(
+          `/v1/portfolios/${portfolio.id}/transactions/${sell.body.id}`,
+          { body: { amount: '2' }, headers: mutationHeaders(auth) }
+        );
+        expect(patch.status).toBe(200);
+
+        const pnl = await auth.client.get(`/v1/portfolios/${portfolio.id}/pnl`);
+        expect(pnl.status).toBe(200);
+        expect(pnl.body.positions[0]).toMatchObject({
+          quantity: '0',
+          totalCost: '0',
+          realizedPnl: '20000'
+        });
+        expect(pnl.body.positions[0].realizedPnlEvents[0]).toMatchObject({
+          proceeds: '120000',
+          releasedCostBasis: '100000',
+          realizedPnl: '20000'
+        });
+      });
+
+      it('should drop cost basis to zero when BUY type changes to TRANSFER_IN', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        const tx = await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'BUY',
+          amount: '1',
+          price: '50000',
+          occurredAt: '2026-07-01T08:00:00.000Z'
+        });
+
+        const patch = await auth.client.patch(
+          `/v1/portfolios/${portfolio.id}/transactions/${tx.body.id}`,
+          {
+            body: { type: 'TRANSFER_IN', price: null },
+            headers: mutationHeaders(auth)
+          }
+        );
+        expect(patch.status).toBe(200);
+
+        const pnl = await auth.client.get(`/v1/portfolios/${portfolio.id}/pnl`);
+        expect(pnl.status).toBe(200);
+        // cost basis gone; currentValue = 1 × 60000, unrealizedPnl = 60000 − 0
+        expect(pnl.body.positions[0]).toMatchObject({
+          quantity: '1',
+          totalCost: '0',
+          averageCost: '0',
+          currentValue: '60000',
+          unrealizedPnl: '60000'
+        });
+      });
+
+      it('should introduce cost basis when TRANSFER_IN type changes to BUY', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        const tx = await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'TRANSFER_IN',
+          amount: '1',
+          occurredAt: '2026-07-01T08:00:00.000Z'
+        });
+
+        const patch = await auth.client.patch(
+          `/v1/portfolios/${portfolio.id}/transactions/${tx.body.id}`,
+          {
+            body: { type: 'BUY', price: '50000' },
+            headers: mutationHeaders(auth)
+          }
+        );
+        expect(patch.status).toBe(200);
+
+        const pnl = await auth.client.get(`/v1/portfolios/${portfolio.id}/pnl`);
+        expect(pnl.status).toBe(200);
+        // currentPrice = 60000, cost = 50000 → unrealizedPnl = 10000
+        expect(pnl.body.positions[0]).toMatchObject({
+          quantity: '1',
+          totalCost: '50000',
+          averageCost: '50000',
+          unrealizedPnl: '10000'
+        });
+      });
+
+      it('should reflect updated TRANSFER_OUT amount in remaining P&L quantity', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'TRANSFER_IN',
+          amount: '3',
+          occurredAt: '2026-07-01T08:00:00.000Z'
+        });
+        const transferOut = await createTransaction(
+          auth,
+          portfolio.id,
+          asset.id,
+          {
+            type: 'TRANSFER_OUT',
+            amount: '1',
+            occurredAt: '2026-07-02T08:00:00.000Z'
+          }
+        );
+        expect(transferOut.status).toBe(201);
+
+        // Increase transferred-out amount from 1 to 2
+        const patch = await auth.client.patch(
+          `/v1/portfolios/${portfolio.id}/transactions/${transferOut.body.id}`,
+          { body: { amount: '2' }, headers: mutationHeaders(auth) }
+        );
+        expect(patch.status).toBe(200);
+
+        const pnl = await auth.client.get(`/v1/portfolios/${portfolio.id}/pnl`);
+        expect(pnl.status).toBe(200);
+        // 3 transferred in, 2 transferred out → 1 remaining, zero cost basis
+        expect(pnl.body.positions[0]).toMatchObject({
+          quantity: '1',
+          totalCost: '0',
+          realizedPnl: '0',
+          realizedPnlEvents: []
+        });
+      });
+
+      it('should use the updated occurredAt for chronological ordering in P&L', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'BUY',
+          amount: '1',
+          price: '50000',
+          occurredAt: '2026-07-01T08:00:00.000Z'
+        });
+        const sell = await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'SELL',
+          amount: '1',
+          price: '60000',
+          occurredAt: '2026-07-02T08:00:00.000Z'
+        });
+        expect(sell.status).toBe(201);
+
+        // Move the SELL to a later date and update the price; both changes
+        // must be reflected in the engine input on the next P&L call.
+        const patch = await auth.client.patch(
+          `/v1/portfolios/${portfolio.id}/transactions/${sell.body.id}`,
+          {
+            body: {
+              price: '65000',
+              occurredAt: '2026-07-03T12:00:00.000Z'
+            },
+            headers: mutationHeaders(auth)
+          }
+        );
+        expect(patch.status).toBe(200);
+
+        const pnl = await auth.client.get(`/v1/portfolios/${portfolio.id}/pnl`);
+        expect(pnl.status).toBe(200);
+        expect(pnl.body.positions[0]).toMatchObject({
+          quantity: '0',
+          realizedPnl: '15000'
+        });
+        expect(pnl.body.positions[0].realizedPnlEvents[0]).toMatchObject({
+          occurredAt: '2026-07-03T12:00:00.000Z',
+          proceeds: '65000',
+          realizedPnl: '15000'
+        });
+      });
+    });
   });
 
   describe('Valuation', () => {
