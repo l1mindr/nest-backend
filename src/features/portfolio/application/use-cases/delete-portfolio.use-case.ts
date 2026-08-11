@@ -4,7 +4,9 @@ import { PinoLogger } from 'nestjs-pino';
 import { PortfolioErrors } from '../../domain/errors/portfolio-errors';
 import {
   IDeletePortfolioUseCase,
+  IPortfolioCalculationCheckpointRepository,
   IPortfolioRepository,
+  PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY,
   PORTFOLIO_REPOSITORY
 } from '../interfaces/portfolio.interface';
 
@@ -13,6 +15,8 @@ export class DeletePortfolioUseCase implements IDeletePortfolioUseCase {
   constructor(
     @Inject(PORTFOLIO_REPOSITORY)
     private readonly portfolioRepository: IPortfolioRepository,
+    @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
+    private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(DeletePortfolioUseCase.name);
@@ -24,6 +28,11 @@ export class DeletePortfolioUseCase implements IDeletePortfolioUseCase {
     if (!deleted) {
       throw PortfolioErrors.portfolioNotFound(portfolioId);
     }
+
+    // Remove the portfolio's calculation checkpoints. Orphans would be inert —
+    // the P&L guarded save skips portfolios with no ledger — but they are
+    // cleaned up here so they never accumulate.
+    await this.checkpointRepository.deleteByPortfolio(portfolioId);
 
     this.logger.info(
       {

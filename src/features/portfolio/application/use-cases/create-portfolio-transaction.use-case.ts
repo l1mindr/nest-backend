@@ -10,8 +10,10 @@ import { CreatePortfolioTransactionRequestDto } from '../../presentation/dto/req
 import {
   CreatePortfolioTransactionData,
   ICreatePortfolioTransactionUseCase,
+  IPortfolioCalculationCheckpointRepository,
   IPortfolioRepository,
   IPortfolioTransactionRepository,
+  PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY,
   PORTFOLIO_REPOSITORY,
   PORTFOLIO_TRANSACTION_REPOSITORY
 } from '../interfaces/portfolio.interface';
@@ -25,6 +27,8 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
     private readonly portfolioRepository: IPortfolioRepository,
     @Inject(ASSET_REPOSITORY)
     private readonly assetRepository: IAssetRepository,
+    @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
+    private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(CreatePortfolioTransactionUseCase.name);
@@ -77,7 +81,22 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
       notes: dto.notes ?? null
     };
 
-    const transaction = await this.transactionRepository.create(data);
+    // Persist and invalidate the asset's calculation checkpoints atomically
+    // under the (portfolioId, assetId) advisory lock, so a concurrent P&L can
+    // never save a checkpoint from a ledger that omits this transaction.
+    const transaction = await this.checkpointRepository.withAssetLock(
+      portfolioId,
+      dto.assetId,
+      async (manager) => {
+        const created = await this.transactionRepository.create(data, manager);
+        await this.checkpointRepository.deleteByPortfolioAndAsset(
+          portfolioId,
+          dto.assetId,
+          manager
+        );
+        return created;
+      }
+    );
 
     transaction.portfolio = portfolio;
     transaction.asset = asset;

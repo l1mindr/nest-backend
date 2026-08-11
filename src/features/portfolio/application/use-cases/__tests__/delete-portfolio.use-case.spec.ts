@@ -5,6 +5,9 @@ describe('DeletePortfolioUseCase', () => {
   const portfolioRepository = {
     delete: jest.fn()
   };
+  const checkpointRepository = {
+    deleteByPortfolio: jest.fn()
+  };
   const logger = {
     setContext: jest.fn(),
     info: jest.fn()
@@ -18,6 +21,7 @@ describe('DeletePortfolioUseCase', () => {
 
     useCase = new DeletePortfolioUseCase(
       portfolioRepository as any,
+      checkpointRepository as any,
       logger as any
     );
   });

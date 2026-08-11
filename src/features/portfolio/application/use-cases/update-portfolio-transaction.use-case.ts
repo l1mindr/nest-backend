@@ -6,9 +6,11 @@ import { PortfolioErrors } from '../../domain/errors/portfolio-errors';
 import { PortfolioTransactionType } from '../../domain/enums/portfolio-transaction-type.enum';
 import { UpdatePortfolioTransactionRequestDto } from '../../presentation/dto/request/update-portfolio-transaction.request.dto';
 import {
+  IPortfolioCalculationCheckpointRepository,
   IPortfolioRepository,
   IPortfolioTransactionRepository,
   IUpdatePortfolioTransactionUseCase,
+  PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY,
   PORTFOLIO_REPOSITORY,
   PORTFOLIO_TRANSACTION_REPOSITORY,
   UpdatePortfolioTransactionData
@@ -21,6 +23,8 @@ export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransa
     private readonly transactionRepository: IPortfolioTransactionRepository,
     @Inject(PORTFOLIO_REPOSITORY)
     private readonly portfolioRepository: IPortfolioRepository,
+    @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
+    private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(UpdatePortfolioTransactionUseCase.name);
@@ -92,11 +96,26 @@ export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransa
       data.occurredAt = new Date(dto.occurredAt);
     if (dto.notes !== undefined) data.notes = dto.notes;
 
-    const updated = await this.transactionRepository.update(
-      transactionId,
+    // Update and invalidate the asset's calculation checkpoints atomically
+    // under the (portfolioId, assetId) advisory lock.
+    const updated = await this.checkpointRepository.withAssetLock(
       portfolioId,
-      userId,
-      data
+      existing.assetId,
+      async (manager) => {
+        const result = await this.transactionRepository.update(
+          transactionId,
+          portfolioId,
+          userId,
+          data,
+          manager
+        );
+        await this.checkpointRepository.deleteByPortfolioAndAsset(
+          portfolioId,
+          existing.assetId,
+          manager
+        );
+        return result;
+      }
     );
 
     if (!updated) {
