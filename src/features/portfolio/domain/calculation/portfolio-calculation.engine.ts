@@ -99,10 +99,11 @@ export class PortfolioCalculationEngine {
 
     const opening: CostBasisOpeningState = {
       quantity: input.openingQuantity ?? '0',
-      totalCost: input.openingCost ?? '0'
+      totalCost: input.openingCost ?? '0',
+      lots: (input as any).openingLots
     };
 
-    const { quantity, totalCost, realizedPnl } = this.costBasis.calculate(
+    const { quantity, totalCost, realizedPnl, lots } = this.costBasis.calculate(
       transactions,
       opening
     );
@@ -116,7 +117,7 @@ export class PortfolioCalculationEngine {
             CALCULATION_DIVISION_MAX_FRACTION_DIGITS
           );
 
-    return { quantity, totalCost, averageCost, realizedPnl };
+    return { quantity, totalCost, averageCost, realizedPnl, lots };
   }
 
   /**

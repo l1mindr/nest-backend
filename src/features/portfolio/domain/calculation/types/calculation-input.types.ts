@@ -1,14 +1,26 @@
+import { Lot } from '../lot';
 import { CalculationTransaction } from './calculation-transaction.types';
 
 /**
  * The opening cost-basis state a cost-basis strategy starts from, typically
  * carried in from a period before the supplied transaction window.
+ *
+ * `lots` is only meaningful for lot-based strategies (FIFO/LIFO). When present
+ * it restores the exact lot queue so the strategy can resume from an arbitrary
+ * mid-stream point without collapsing prior acquisitions into a single averaged
+ * lot. For AVERAGE or a fresh calculation this field is omitted.
  */
 export interface CostBasisOpeningState {
   /** Quantity already held before the window, as a non-negative decimal string. */
   quantity: string;
   /** Acquisition cost already accumulated before the window, as a non-negative decimal string. */
   totalCost: string;
+  /**
+   * Identified lots surviving from before the window, in acquisition order.
+   * When supplied to a lot-based calculator the lots are pushed directly
+   * instead of being collapsed into a single averaged opening lot.
+   */
+  lots?: Lot[];
 }
 
 /**

@@ -6,10 +6,12 @@ import { Portfolio } from './domain/entities/portfolio.entity';
 import { Holding } from './domain/entities/holding.entity';
 import { PortfolioTransaction } from './domain/entities/portfolio-transaction.entity';
 import { PortfolioOpeningBalance } from './domain/entities/portfolio-opening-balance.entity';
+import { PortfolioCalculationCheckpoint } from './domain/entities/portfolio-calculation-checkpoint.entity';
 import { PortfolioRepository } from './infrastructure/repositories/portfolio.repository';
 import { HoldingRepository } from './infrastructure/repositories/holding.repository';
 import { PortfolioTransactionRepository } from './infrastructure/repositories/portfolio-transaction.repository';
 import { PortfolioOpeningBalanceRepository } from './infrastructure/repositories/portfolio-opening-balance.repository';
+import { PortfolioCalculationCheckpointRepository } from './infrastructure/repositories/portfolio-calculation-checkpoint.repository';
 import { CreatePortfolioUseCase } from './application/use-cases/create-portfolio.use-case';
 import { GetPortfolioUseCase } from './application/use-cases/get-portfolio.use-case';
 import { GetPortfolioValuationUseCase } from './application/use-cases/get-portfolio-valuation.use-case';
@@ -59,6 +61,7 @@ import {
   LIST_PORTFOLIO_TRANSACTIONS_USE_CASE,
   LIST_PORTFOLIOS_USE_CASE,
   PORTFOLIO_CALCULATION_ENGINE,
+  PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY,
   PORTFOLIO_OPENING_BALANCE_REPOSITORY,
   PORTFOLIO_REPOSITORY,
   PORTFOLIO_TRANSACTION_REPOSITORY,
@@ -76,6 +79,7 @@ import {
       Holding,
       PortfolioTransaction,
       PortfolioOpeningBalance,
+      PortfolioCalculationCheckpoint,
       Asset
     ])
   ],
@@ -100,6 +104,11 @@ import {
     {
       provide: PORTFOLIO_OPENING_BALANCE_REPOSITORY,
       useExisting: PortfolioOpeningBalanceRepository
+    },
+    PortfolioCalculationCheckpointRepository,
+    {
+      provide: PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY,
+      useExisting: PortfolioCalculationCheckpointRepository
     },
     CreatePortfolioUseCase,
     { provide: CREATE_PORTFOLIO_USE_CASE, useExisting: CreatePortfolioUseCase },

@@ -1,3 +1,4 @@
+import { Lot } from '../lot';
 import { CalculationTransactionType } from './calculation-transaction.types';
 
 /**
@@ -31,6 +32,11 @@ export interface RealizedPnlEvent {
 /**
  * The exact state produced by a cost-basis strategy. All values are decimal
  * strings and are never rounded.
+ *
+ * `lots` is only populated by lot-based strategies (FIFO/LIFO). It carries the
+ * surviving identified lots in acquisition order so that a checkpoint can
+ * restore the exact lot queue for a future incremental calculation. Average-cost
+ * calculations leave this field absent.
  */
 export interface CostBasisResult {
   /** Quantity held after processing the transactions, as a decimal string. */
@@ -39,6 +45,11 @@ export interface CostBasisResult {
   totalCost: string;
   /** Realized P&L events, in chronological processing order. Empty when no SELL occurred. */
   realizedPnl: RealizedPnlEvent[];
+  /**
+   * Surviving identified lots in acquisition order. Present only for FIFO/LIFO;
+   * absent for AVERAGE. Used to checkpoint and resume lot-based strategies.
+   */
+  lots?: Lot[];
 }
 
 /**
@@ -53,4 +64,12 @@ export interface PortfolioCalculationResult {
   totalCost: string;
   averageCost: string;
   realizedPnl: RealizedPnlEvent[];
+  /**
+   * Surviving identified lots in acquisition order. Present only for FIFO/LIFO;
+   * absent for AVERAGE. Used to checkpoint and resume lot-based strategies.
+   * This field is populated by the internal calculator but not exposed through
+   * the standard engine API — the use case accesses it directly for checkpoint
+   * persistence.
+   */
+  lots?: Lot[];
 }
