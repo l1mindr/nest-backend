@@ -28,6 +28,10 @@ describe('SetPortfolioOpeningBalanceUseCase', () => {
   const assetRepository = {
     findById: jest.fn()
   };
+  const checkpointRepository = {
+    deleteByPortfolioAndAsset: jest.fn(),
+    withAssetLock: jest.fn()
+  };
   const logger = {
     setContext: jest.fn(),
     info: jest.fn()
@@ -40,11 +44,19 @@ describe('SetPortfolioOpeningBalanceUseCase', () => {
     portfolioRepository.findByIdAndUser.mockResolvedValue(portfolio);
     assetRepository.findById.mockResolvedValue(asset);
     openingBalanceRepository.upsert.mockResolvedValue(openingBalance);
+    checkpointRepository.withAssetLock.mockImplementation(
+      async (
+        _portfolioId: string,
+        _assetId: string,
+        work: (manager: unknown) => Promise<unknown>
+      ) => work({})
+    );
 
     useCase = new SetPortfolioOpeningBalanceUseCase(
       openingBalanceRepository as any,
       portfolioRepository as any,
       assetRepository as any,
+      checkpointRepository as any,
       logger as any
     );
   });
@@ -65,13 +77,16 @@ describe('SetPortfolioOpeningBalanceUseCase', () => {
       'user-id'
     );
     expect(assetRepository.findById).toHaveBeenCalledWith('asset-id');
-    expect(openingBalanceRepository.upsert).toHaveBeenCalledWith({
-      userId: 'user-id',
-      portfolioId: 'portfolio-id',
-      assetId: 'asset-id',
-      openingQuantity: '1.5',
-      openingCost: '90000.12345678901234567890123456'
-    });
+    expect(openingBalanceRepository.upsert).toHaveBeenCalledWith(
+      {
+        userId: 'user-id',
+        portfolioId: 'portfolio-id',
+        assetId: 'asset-id',
+        openingQuantity: '1.5',
+        openingCost: '90000.12345678901234567890123456'
+      },
+      expect.any(Object)
+    );
     expect(result.portfolio).toBe(portfolio);
     expect(result.asset).toBe(asset);
   });

@@ -7,9 +7,11 @@ import { PortfolioOpeningBalance } from '../../domain/entities/portfolio-opening
 import { PortfolioErrors } from '../../domain/errors/portfolio-errors';
 import { SetPortfolioOpeningBalanceRequestDto } from '../../presentation/dto/request/set-portfolio-opening-balance.request.dto';
 import {
+  IPortfolioCalculationCheckpointRepository,
   IPortfolioOpeningBalanceRepository,
   IPortfolioRepository,
   ISetPortfolioOpeningBalanceUseCase,
+  PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY,
   PORTFOLIO_OPENING_BALANCE_REPOSITORY,
   PORTFOLIO_REPOSITORY,
   SetPortfolioOpeningBalanceData
@@ -24,6 +26,8 @@ export class SetPortfolioOpeningBalanceUseCase implements ISetPortfolioOpeningBa
     private readonly portfolioRepository: IPortfolioRepository,
     @Inject(ASSET_REPOSITORY)
     private readonly assetRepository: IAssetRepository,
+    @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
+    private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(SetPortfolioOpeningBalanceUseCase.name);
@@ -57,7 +61,24 @@ export class SetPortfolioOpeningBalanceUseCase implements ISetPortfolioOpeningBa
       openingQuantity: dto.openingQuantity,
       openingCost: dto.openingCost
     };
-    const openingBalance = await this.openingBalanceRepository.upsert(data);
+    // Upsert and invalidate the asset's calculation checkpoints atomically
+    // under the (portfolioId, assetId) advisory lock.
+    const openingBalance = await this.checkpointRepository.withAssetLock(
+      portfolioId,
+      assetId,
+      async (manager) => {
+        const upserted = await this.openingBalanceRepository.upsert(
+          data,
+          manager
+        );
+        await this.checkpointRepository.deleteByPortfolioAndAsset(
+          portfolioId,
+          assetId,
+          manager
+        );
+        return upserted;
+      }
+    );
 
     openingBalance.portfolio = portfolio;
     openingBalance.asset = asset;
