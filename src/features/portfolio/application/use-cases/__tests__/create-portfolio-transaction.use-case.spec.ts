@@ -32,6 +32,16 @@ describe('CreatePortfolioTransactionUseCase', () => {
   const assetRepository = {
     findById: jest.fn()
   };
+  const checkpointRepository = {
+    withAssetLock: jest.fn(
+      async (
+        _portfolioId: string,
+        _assetId: string,
+        work: (manager: unknown) => Promise<unknown>
+      ) => work({})
+    ),
+    deleteByPortfolioAndAsset: jest.fn()
+  };
   const logger = {
     setContext: jest.fn(),
     info: jest.fn()
@@ -49,6 +59,7 @@ describe('CreatePortfolioTransactionUseCase', () => {
       transactionRepository as any,
       portfolioRepository as any,
       assetRepository as any,
+      checkpointRepository as any,
       logger as any
     );
   });
@@ -69,17 +80,30 @@ describe('CreatePortfolioTransactionUseCase', () => {
       'user-id'
     );
     expect(assetRepository.findById).toHaveBeenCalledWith('asset-id');
-    expect(transactionRepository.create).toHaveBeenCalledWith({
-      userId: 'user-id',
-      portfolioId: 'portfolio-id',
-      assetId: 'asset-id',
-      type: PortfolioTransactionType.BUY,
-      amount: '1.5',
-      price: '60000.5',
-      fee: '0.75',
-      occurredAt: new Date('2026-07-28T08:00:00.000Z'),
-      notes: 'Cold storage'
-    });
+    expect(transactionRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-id',
+        portfolioId: 'portfolio-id',
+        assetId: 'asset-id',
+        type: PortfolioTransactionType.BUY,
+        amount: '1.5',
+        price: '60000.5',
+        fee: '0.75',
+        occurredAt: new Date('2026-07-28T08:00:00.000Z'),
+        notes: 'Cold storage'
+      }),
+      expect.any(Object)
+    );
+    expect(checkpointRepository.withAssetLock).toHaveBeenCalledWith(
+      'portfolio-id',
+      'asset-id',
+      expect.any(Function as any)
+    );
+    expect(checkpointRepository.deleteByPortfolioAndAsset).toHaveBeenCalledWith(
+      'portfolio-id',
+      'asset-id',
+      expect.any(Object)
+    );
     expect(result.asset).toBe(asset);
     expect(result.portfolio).toBe(portfolio);
   });
@@ -98,7 +122,8 @@ describe('CreatePortfolioTransactionUseCase', () => {
         price: null,
         fee: null,
         notes: null
-      })
+      }),
+      expect.any(Object)
     );
   });
 

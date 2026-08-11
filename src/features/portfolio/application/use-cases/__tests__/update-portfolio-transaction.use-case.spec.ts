@@ -29,6 +29,10 @@ describe('UpdatePortfolioTransactionUseCase', () => {
   const portfolioRepository = {
     findByIdAndUser: jest.fn()
   };
+  const checkpointRepository = {
+    deleteByPortfolioAndAsset: jest.fn(),
+    withAssetLock: jest.fn()
+  };
   const logger = {
     setContext: jest.fn(),
     info: jest.fn()
@@ -46,10 +50,18 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       ...transaction,
       amount: '2.0'
     });
+    checkpointRepository.withAssetLock.mockImplementation(
+      async (
+        _portfolioId: string,
+        _assetId: string,
+        work: (manager: unknown) => Promise<unknown>
+      ) => work({})
+    );
 
     useCase = new UpdatePortfolioTransactionUseCase(
       transactionRepository as any,
       portfolioRepository as any,
+      checkpointRepository as any,
       logger as any
     );
   });
@@ -79,7 +91,18 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       'transaction-id',
       'portfolio-id',
       'user-id',
-      { amount: '2.0', price: '65000' }
+      { amount: '2.0', price: '65000' },
+      expect.any(Object)
+    );
+    expect(checkpointRepository.withAssetLock).toHaveBeenCalledWith(
+      'portfolio-id',
+      'asset-id',
+      expect.any(Function as any)
+    );
+    expect(checkpointRepository.deleteByPortfolioAndAsset).toHaveBeenCalledWith(
+      'portfolio-id',
+      'asset-id',
+      expect.any(Object)
     );
     expect(result.amount).toBe('2.0');
     expect(result.price).toBe('65000');
@@ -103,7 +126,8 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       'transaction-id',
       'portfolio-id',
       'user-id',
-      { type: PortfolioTransactionType.TRANSFER_IN, price: null }
+      { type: PortfolioTransactionType.TRANSFER_IN, price: null },
+      expect.any(Object)
     );
     expect(result.type).toBe(PortfolioTransactionType.TRANSFER_IN);
     expect(result.price).toBeNull();
@@ -128,7 +152,8 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       {
         occurredAt: new Date('2026-08-01T10:00:00.000Z'),
         notes: 'Updated note'
-      }
+      },
+      expect.any(Object)
     );
   });
 
@@ -150,7 +175,8 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       'transaction-id',
       'portfolio-id',
       'user-id',
-      { fee: null, notes: null }
+      { fee: null, notes: null },
+      expect.any(Object)
     );
     expect(result.fee).toBeNull();
     expect(result.notes).toBeNull();
@@ -275,7 +301,8 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       'transaction-id',
       'portfolio-id',
       'user-id',
-      { type: PortfolioTransactionType.TRANSFER_OUT }
+      { type: PortfolioTransactionType.TRANSFER_OUT },
+      expect.any(Object)
     );
     expect(result.type).toBe(PortfolioTransactionType.TRANSFER_OUT);
   });
@@ -298,7 +325,8 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       'transaction-id',
       'portfolio-id',
       'user-id',
-      { type: PortfolioTransactionType.SELL }
+      { type: PortfolioTransactionType.SELL },
+      expect.any(Object)
     );
     expect(result.type).toBe(PortfolioTransactionType.SELL);
   });
