@@ -57,7 +57,15 @@ export abstract class LotCostBasisCalculator implements CostBasisCalculator {
     const openingCost = assertOpeningCost(opening.totalCost);
 
     const lots = new LotStore(this.fromBack);
-    if (compareDecimals(openingQuantity, '0') > 0) {
+
+    if (opening.lots && opening.lots.length > 0) {
+      // Resume from a checkpointed lot queue — push the exact surviving lots
+      // without averaging, so FIFO/LIFO disposal order is preserved exactly.
+      for (const lot of opening.lots) {
+        lots.push(lot);
+      }
+    } else if (compareDecimals(openingQuantity, '0') > 0) {
+      // Fresh start from an averaged opening position (opening balance only).
       lots.push({
         quantity: openingQuantity,
         unitCost: divideDecimals(
@@ -127,7 +135,7 @@ export abstract class LotCostBasisCalculator implements CostBasisCalculator {
       }
     }
 
-    return { quantity, totalCost, realizedPnl };
+    return { quantity, totalCost, realizedPnl, lots: lots.toLots() };
   }
 }
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { PortfolioOpeningBalance } from '../../domain/entities/portfolio-opening-balance.entity';
 import {
   IPortfolioOpeningBalanceRepository,
@@ -14,12 +14,22 @@ export class PortfolioOpeningBalanceRepository implements IPortfolioOpeningBalan
 
   constructor(private readonly dataSource: DataSource) {}
 
-  async upsert(
-    data: SetPortfolioOpeningBalanceData
-  ): Promise<PortfolioOpeningBalance> {
-    await this.openingBalanceRepo.upsert(data, ['portfolioId', 'assetId']);
+  private repoFor(
+    manager?: EntityManager
+  ): Repository<PortfolioOpeningBalance> {
+    return manager
+      ? manager.getRepository(PortfolioOpeningBalance)
+      : this.openingBalanceRepo;
+  }
 
-    return this.openingBalanceRepo.findOneOrFail({
+  async upsert(
+    data: SetPortfolioOpeningBalanceData,
+    manager?: EntityManager
+  ): Promise<PortfolioOpeningBalance> {
+    const repo = this.repoFor(manager);
+    await repo.upsert(data, ['portfolioId', 'assetId']);
+
+    return repo.findOneOrFail({
       where: {
         portfolioId: data.portfolioId,
         assetId: data.assetId,
@@ -49,5 +59,18 @@ export class PortfolioOpeningBalanceRepository implements IPortfolioOpeningBalan
       relations: { asset: true },
       order: { assetId: 'ASC' }
     });
+  }
+
+  async findUpdatedAtForCheckpoint(
+    portfolioId: string,
+    assetId: string,
+    manager: EntityManager
+  ): Promise<Date | null> {
+    const row = await manager.getRepository(PortfolioOpeningBalance).findOne({
+      where: { portfolioId, assetId },
+      select: { updatedAt: true }
+    });
+
+    return row?.updatedAt ?? null;
   }
 }

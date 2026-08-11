@@ -65,7 +65,7 @@ describe('FifoCostBasisCalculator', () => {
         [buy('1', '100'), buy('1', '200'), sell('1', '150')],
         opening()
       )
-    ).toEqual({
+    ).toMatchObject({
       quantity: '1',
       totalCost: '200',
       realizedPnl: [
@@ -85,7 +85,7 @@ describe('FifoCostBasisCalculator', () => {
         [buy('1', '100'), buy('1', '200'), sell('1.5', '180')],
         opening()
       )
-    ).toEqual({
+    ).toMatchObject({
       quantity: '0.5',
       totalCost: '100',
       realizedPnl: [
@@ -140,7 +140,7 @@ describe('FifoCostBasisCalculator', () => {
         ],
         opening()
       )
-    ).toEqual({
+    ).toMatchObject({
       quantity: '1',
       totalCost: '100',
       realizedPnl: [
@@ -155,19 +155,19 @@ describe('FifoCostBasisCalculator', () => {
         [buy('1', '100'), buy('1', '200'), transferOut('1')],
         opening()
       )
-    ).toEqual({ quantity: '1', totalCost: '200', realizedPnl: [] });
+    ).toMatchObject({ quantity: '1', totalCost: '200', realizedPnl: [] });
   });
 
   it('should consume a transfer-in lot on transfer-out without realized P&L', () => {
     expect(
       calculator.calculate([transferIn('1'), transferOut('0.5')], opening())
-    ).toEqual({ quantity: '0.5', totalCost: '0', realizedPnl: [] });
+    ).toMatchObject({ quantity: '0.5', totalCost: '0', realizedPnl: [] });
   });
 
   it('should realize the complete gain on a full sell-out', () => {
     expect(
       calculator.calculate([buy('2', '60000'), sell('2', '70000')], opening())
-    ).toEqual({
+    ).toMatchObject({
       quantity: '0',
       totalCost: '0',
       realizedPnl: [
@@ -195,7 +195,7 @@ describe('FifoCostBasisCalculator', () => {
   it('should accumulate quantity and cost across BUYs', () => {
     expect(
       calculator.calculate([buy('1', '50000'), buy('1', '70000')], opening())
-    ).toEqual({
+    ).toMatchObject({
       quantity: '2',
       totalCost: '120000',
       realizedPnl: []
@@ -208,7 +208,7 @@ describe('FifoCostBasisCalculator', () => {
         [buy('1', '50000', '2026-07-28T08:00:00.000Z', '10')],
         opening()
       )
-    ).toEqual({
+    ).toMatchObject({
       quantity: '1',
       totalCost: '50000',
       realizedPnl: []

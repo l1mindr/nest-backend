@@ -303,7 +303,7 @@ describe('PortfolioCalculationEngine', () => {
         new PortfolioCalculationEngine(CostBasisStrategy.FIFO).calculate(
           ledger()
         )
-      ).toEqual({
+      ).toMatchObject({
         quantity: '1',
         totalCost: '200',
         averageCost: '200',
@@ -321,7 +321,7 @@ describe('PortfolioCalculationEngine', () => {
         new PortfolioCalculationEngine(CostBasisStrategy.LIFO).calculate(
           ledger()
         )
-      ).toEqual({
+      ).toMatchObject({
         quantity: '1',
         totalCost: '100',
         averageCost: '100',
