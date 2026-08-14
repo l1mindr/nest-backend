@@ -40,16 +40,28 @@ function gracefulShutdown(error: Error, message: string) {
     .catch(() => process.exit(1));
 }
 
+function forceExitOnShutdownTimeout(signal: NodeJS.Signals) {
+  const forceExit = setTimeout(() => {
+    logFatal(
+      new Error(`Graceful shutdown exceeded ${SHUTDOWN_TIMEOUT_MS}ms`),
+      `${signal} received, forcing process exit`
+    );
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  forceExit.unref();
+}
+
 async function bootstrap() {
   app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    bufferLogs: true
+    bufferLogs: true,
+    forceCloseConnections: true
   });
 
   logger = app.get(Logger);
   app.useLogger(logger);
 
   setupApp(app);
-  app.enableShutdownHooks();
+  app.enableShutdownHooks([], { useProcessExit: true });
   await app.listen(8080);
 
   logger.log(
@@ -76,6 +88,9 @@ process.on('uncaughtException', (error) => {
     'Uncaught exception detected, initiating graceful shutdown'
   );
 });
+
+process.on('SIGTERM', forceExitOnShutdownTimeout);
+process.on('SIGINT', forceExitOnShutdownTimeout);
 
 bootstrap().catch((error) => {
   logFatal(error as Error, 'Application failed to start');
