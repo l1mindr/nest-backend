@@ -126,6 +126,44 @@ describe('Environment validation', () => {
     expect(value.EMAIL_SECURE).toBe(false);
   });
 
+  describe('CORS_ORIGIN', () => {
+    it('should accept a valid origin in development', () => {
+      const { error } = ENV_VALIDATION_SCHEMA.validate({
+        ...VALID_ENV,
+        CORS_ORIGIN: 'http://localhost:4321'
+      });
+
+      expect(error).toBeUndefined();
+    });
+
+    it('should be optional in development', () => {
+      const { error } = ENV_VALIDATION_SCHEMA.validate({
+        ...VALID_ENV,
+        CORS_ORIGIN: undefined
+      });
+
+      expect(error).toBeUndefined();
+    });
+
+    it('should reject a non-URI value', () => {
+      const { error } = ENV_VALIDATION_SCHEMA.validate({
+        ...VALID_ENV,
+        CORS_ORIGIN: 'not-a-url'
+      });
+
+      expect(error?.message).toContain('CORS_ORIGIN');
+    });
+
+    it('should reject a wildcard origin', () => {
+      const { error } = ENV_VALIDATION_SCHEMA.validate({
+        ...VALID_ENV,
+        CORS_ORIGIN: '*'
+      });
+
+      expect(error?.message).toContain('CORS_ORIGIN');
+    });
+  });
+
   describe('SECURITY_HASH_SECRET', () => {
     // Production-shaped values: the schema demands 64 chars for the token
     // secrets and 32 with real entropy for the hash secret.
@@ -139,7 +177,8 @@ describe('Environment validation', () => {
       REFRESH_TOKEN_SECRET:
         'vP4nTq9Xc2Lr7Zu5Ss6Ka8Yd1Bj3Hf0Rm4Wg6Ve1qW3eR5tY7uI9oP1aS3dF5gHj',
       CSRF_TOKEN_SECRET: 'sA6kL4oP8rM9xD1zB7eQ3nV2cF5jH0yTg6uW8pR2',
-      SECURITY_HASH_SECRET: 'hJ3nQ8wE5rT2yU7iO1pA4sD9fG6hK0lZ3xC5vB8n'
+      SECURITY_HASH_SECRET: 'hJ3nQ8wE5rT2yU7iO1pA4sD9fG6hK0lZ3xC5vB8n',
+      CORS_ORIGIN: 'https://app.example.com'
     };
 
     it('should default outside production so existing setups need no new value', () => {
@@ -170,6 +209,15 @@ describe('Environment validation', () => {
       });
 
       expect(error?.message).toContain('SECURITY_HASH_SECRET');
+    });
+
+    it('should require CORS_ORIGIN in production', () => {
+      const { error } = ENV_VALIDATION_SCHEMA.validate({
+        ...PRODUCTION_ENV,
+        CORS_ORIGIN: undefined
+      });
+
+      expect(error?.message).toContain('CORS_ORIGIN');
     });
 
     it('should accept a strong secret in production', () => {
