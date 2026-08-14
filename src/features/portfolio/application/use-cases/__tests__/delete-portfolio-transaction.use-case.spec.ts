@@ -10,10 +10,15 @@ describe('DeletePortfolioTransactionUseCase', () => {
     name: 'Ledger'
   } as Portfolio;
   const transactionRepository = {
-    deleteByIdAndPortfolioAndUser: jest.fn()
+    deleteByIdAndPortfolioAndUser: jest.fn(),
+    findByIdAndPortfolioAndUser: jest.fn()
   };
   const portfolioRepository = {
     findByIdAndUser: jest.fn()
+  };
+  const checkpointRepository = {
+    deleteByPortfolioAndAsset: jest.fn(),
+    withAssetLock: jest.fn()
   };
   const logger = {
     setContext: jest.fn(),
@@ -26,10 +31,22 @@ describe('DeletePortfolioTransactionUseCase', () => {
     jest.clearAllMocks();
     portfolioRepository.findByIdAndUser.mockResolvedValue(portfolio);
     transactionRepository.deleteByIdAndPortfolioAndUser.mockResolvedValue(true);
+    transactionRepository.findByIdAndPortfolioAndUser.mockResolvedValue({
+      id: 'transaction-id',
+      assetId: 'asset-id'
+    });
+    checkpointRepository.withAssetLock.mockImplementation(
+      async (
+        _portfolioId: string,
+        _assetId: string,
+        work: (manager: unknown) => Promise<unknown>
+      ) => work({})
+    );
 
     useCase = new DeletePortfolioTransactionUseCase(
       transactionRepository as any,
       portfolioRepository as any,
+      checkpointRepository as any,
       logger as any
     );
   });
@@ -43,7 +60,12 @@ describe('DeletePortfolioTransactionUseCase', () => {
     );
     expect(
       transactionRepository.deleteByIdAndPortfolioAndUser
-    ).toHaveBeenCalledWith('transaction-id', 'portfolio-id', 'user-id');
+    ).toHaveBeenCalledWith(
+      'transaction-id',
+      'portfolio-id',
+      'user-id',
+      expect.any(Object)
+    );
     expect(logger.info).toHaveBeenCalledWith(
       expect.objectContaining({
         event: LogEvent.PORTFOLIO_TRANSACTION_DELETED,

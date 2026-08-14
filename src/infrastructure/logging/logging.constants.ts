@@ -57,12 +57,16 @@ export enum LogEvent {
   NOTIFICATION_SENT = 'coin_tracker.notification.sent',
 
   PORTFOLIO_CREATED = 'portfolio.created',
+  PORTFOLIO_UPDATED = 'portfolio.updated',
+  PORTFOLIO_DELETED = 'portfolio.deleted',
   HOLDING_CREATED = 'portfolio.holding.created',
   HOLDING_UPDATED = 'portfolio.holding.updated',
   HOLDING_DELETED = 'portfolio.holding.deleted',
   PORTFOLIO_VALUATION_COMPUTED = 'portfolio.valuation.computed',
   PORTFOLIO_PNL_COMPUTED = 'portfolio.pnl.computed',
+  PORTFOLIO_OPENING_BALANCE_SET = 'portfolio.opening_balance.set',
   PORTFOLIO_TRANSACTION_CREATED = 'portfolio.transaction.created',
+  PORTFOLIO_TRANSACTION_UPDATED = 'portfolio.transaction.updated',
   PORTFOLIO_TRANSACTION_DELETED = 'portfolio.transaction.deleted',
 
   RATE_LIMIT_EXCEEDED = 'security.rate_limit.exceeded',

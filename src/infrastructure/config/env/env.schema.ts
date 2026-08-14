@@ -110,6 +110,27 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
       'string.uri': 'PUBLIC_API_URL must be an absolute http(s) URL.'
     }),
 
+  // Allowed CORS origin for cross-origin browser requests. Required in
+  // production to prevent accidental wildcard-less CORS denial; optional
+  // in development/test where the bootstrap falls back to localhost:4321.
+  // Use a single absolute URL (e.g. https://app.your-domain.com).
+  CORS_ORIGIN: Joi.when('NODE_ENV', {
+    is: 'production',
+    then: Joi.string()
+      .uri({ scheme: ['http', 'https'] })
+      .required()
+      .messages({
+        'string.uri': 'CORS_ORIGIN must be an absolute http(s) URL.',
+        'any.required': 'CORS_ORIGIN is required in production.'
+      }),
+    otherwise: Joi.string()
+      .uri({ scheme: ['http', 'https'] })
+      .optional()
+      .messages({
+        'string.uri': 'CORS_ORIGIN must be an absolute http(s) URL.'
+      })
+  }),
+
   EMAIL_HOST: Joi.alternatives()
     .try(Joi.string().hostname(), Joi.string().ip())
     .required(),

@@ -4,8 +4,10 @@ import { PinoLogger } from 'nestjs-pino';
 import { PortfolioErrors } from '../../domain/errors/portfolio-errors';
 import {
   IDeletePortfolioTransactionUseCase,
+  IPortfolioCalculationCheckpointRepository,
   IPortfolioRepository,
   IPortfolioTransactionRepository,
+  PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY,
   PORTFOLIO_REPOSITORY,
   PORTFOLIO_TRANSACTION_REPOSITORY
 } from '../interfaces/portfolio.interface';
@@ -17,6 +19,8 @@ export class DeletePortfolioTransactionUseCase implements IDeletePortfolioTransa
     private readonly transactionRepository: IPortfolioTransactionRepository,
     @Inject(PORTFOLIO_REPOSITORY)
     private readonly portfolioRepository: IPortfolioRepository,
+    @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
+    private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(DeletePortfolioTransactionUseCase.name);
@@ -36,12 +40,39 @@ export class DeletePortfolioTransactionUseCase implements IDeletePortfolioTransa
       throw PortfolioErrors.portfolioNotFound(portfolioId);
     }
 
-    const deleted =
-      await this.transactionRepository.deleteByIdAndPortfolioAndUser(
+    // Resolve the transaction so its asset scopes the invalidation below.
+    const existing =
+      await this.transactionRepository.findByIdAndPortfolioAndUser(
         transactionId,
         portfolioId,
         userId
       );
+
+    if (!existing) {
+      throw PortfolioErrors.transactionNotFound(transactionId);
+    }
+
+    // Delete and invalidate the asset's calculation checkpoints atomically
+    // under the (portfolioId, assetId) advisory lock.
+    const deleted = await this.checkpointRepository.withAssetLock(
+      portfolioId,
+      existing.assetId,
+      async (manager) => {
+        const removed =
+          await this.transactionRepository.deleteByIdAndPortfolioAndUser(
+            transactionId,
+            portfolioId,
+            userId,
+            manager
+          );
+        await this.checkpointRepository.deleteByPortfolioAndAsset(
+          portfolioId,
+          existing.assetId,
+          manager
+        );
+        return removed;
+      }
+    );
 
     if (!deleted) {
       throw PortfolioErrors.transactionNotFound(transactionId);

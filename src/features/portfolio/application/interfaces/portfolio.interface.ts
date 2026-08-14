@@ -1,8 +1,11 @@
 import { PortfolioCalculationEngine } from '../../domain/calculation/portfolio-calculation.engine';
+import { Lot } from '../../domain/calculation/lot';
 import { RealizedPnlEvent } from '../../domain/calculation/types/calculation-result.types';
 import { CostBasisStrategy } from '../../domain/calculation/types/cost-basis.strategy.enum';
 import { Holding } from '../../domain/entities/holding.entity';
 import { Portfolio } from '../../domain/entities/portfolio.entity';
+import { PortfolioCalculationCheckpoint } from '../../domain/entities/portfolio-calculation-checkpoint.entity';
+import { PortfolioOpeningBalance } from '../../domain/entities/portfolio-opening-balance.entity';
 import { PortfolioTransaction } from '../../domain/entities/portfolio-transaction.entity';
 import { PortfolioSourceType } from '../../domain/enums/portfolio-source-type.enum';
 import { PortfolioTransactionType } from '../../domain/enums/portfolio-transaction-type.enum';
@@ -12,6 +15,10 @@ import { CreatePortfolioRequestDto } from '../../presentation/dto/request/create
 import { CreatePortfolioTransactionRequestDto } from '../../presentation/dto/request/create-portfolio-transaction.request.dto';
 import { PortfolioTransactionListRequestDto } from '../../presentation/dto/request/portfolio-transaction-list.request.dto';
 import { UpdateHoldingRequestDto } from '../../presentation/dto/request/update-holding.request.dto';
+import { UpdatePortfolioRequestDto } from '../../presentation/dto/request/update-portfolio.request.dto';
+import { UpdatePortfolioTransactionRequestDto } from '../../presentation/dto/request/update-portfolio-transaction.request.dto';
+import { SetPortfolioOpeningBalanceRequestDto } from '../../presentation/dto/request/set-portfolio-opening-balance.request.dto';
+import type { EntityManager } from 'typeorm';
 
 export const PORTFOLIO_REPOSITORY = Symbol('IPortfolioRepository');
 
@@ -22,10 +29,22 @@ export interface CreatePortfolioData {
   walletAddress: string | null;
 }
 
+export interface UpdatePortfolioData {
+  name?: string;
+  sourceType?: PortfolioSourceType;
+  walletAddress?: string | null;
+}
+
 export interface IPortfolioRepository {
   create(data: CreatePortfolioData): Promise<Portfolio>;
   findByIdAndUser(id: string, userId: string): Promise<Portfolio | null>;
   findByUserId(userId: string): Promise<Portfolio[]>;
+  update(
+    id: string,
+    userId: string,
+    data: UpdatePortfolioData
+  ): Promise<Portfolio | null>;
+  delete(id: string, userId: string): Promise<boolean>;
 }
 
 export const HOLDING_REPOSITORY = Symbol('IHoldingRepository');
@@ -80,6 +99,83 @@ export interface IGetPortfolioUseCase {
 }
 
 export const GET_PORTFOLIO_USE_CASE = Symbol('IGetPortfolioUseCase');
+
+export interface IUpdatePortfolioUseCase {
+  execute(
+    portfolioId: string,
+    userId: string,
+    dto: UpdatePortfolioRequestDto
+  ): Promise<Portfolio>;
+}
+
+export const UPDATE_PORTFOLIO_USE_CASE = Symbol('IUpdatePortfolioUseCase');
+
+export interface IDeletePortfolioUseCase {
+  execute(portfolioId: string, userId: string): Promise<void>;
+}
+
+export const DELETE_PORTFOLIO_USE_CASE = Symbol('IDeletePortfolioUseCase');
+
+export const PORTFOLIO_OPENING_BALANCE_REPOSITORY = Symbol(
+  'IPortfolioOpeningBalanceRepository'
+);
+
+export interface SetPortfolioOpeningBalanceData {
+  userId: string;
+  portfolioId: string;
+  assetId: string;
+  openingQuantity: string;
+  openingCost: string;
+}
+
+export interface IPortfolioOpeningBalanceRepository {
+  upsert(
+    data: SetPortfolioOpeningBalanceData,
+    manager?: EntityManager
+  ): Promise<PortfolioOpeningBalance>;
+  listByPortfolioAndUser(
+    portfolioId: string,
+    userId: string
+  ): Promise<PortfolioOpeningBalance[]>;
+  listForPnl(
+    portfolioId: string,
+    userId: string
+  ): Promise<PortfolioOpeningBalance[]>;
+  /**
+   * Re-reads the opening-balance row for one asset inside an asset lock so the
+   * P&L use case can verify a checkpoint's opening-balance anchor is current.
+   * Returns null when no opening balance exists for the scope.
+   */
+  findUpdatedAtForCheckpoint(
+    portfolioId: string,
+    assetId: string,
+    manager: EntityManager
+  ): Promise<Date | null>;
+}
+
+export interface ISetPortfolioOpeningBalanceUseCase {
+  execute(
+    userId: string,
+    portfolioId: string,
+    assetId: string,
+    dto: SetPortfolioOpeningBalanceRequestDto
+  ): Promise<PortfolioOpeningBalance>;
+}
+
+export const SET_PORTFOLIO_OPENING_BALANCE_USE_CASE = Symbol(
+  'ISetPortfolioOpeningBalanceUseCase'
+);
+
+export interface IListPortfolioOpeningBalancesUseCase {
+  execute(
+    userId: string,
+    portfolioId: string
+  ): Promise<PortfolioOpeningBalance[]>;
+}
+
+export const LIST_PORTFOLIO_OPENING_BALANCES_USE_CASE = Symbol(
+  'IListPortfolioOpeningBalancesUseCase'
+);
 
 export interface ICreateHoldingUseCase {
   execute(userId: string, dto: CreateHoldingRequestDto): Promise<Holding>;
@@ -172,6 +268,15 @@ export interface CreatePortfolioTransactionData {
   notes: string | null;
 }
 
+export interface UpdatePortfolioTransactionData {
+  type?: PortfolioTransactionType;
+  amount?: string;
+  price?: string | null;
+  fee?: string | null;
+  occurredAt?: Date;
+  notes?: string | null;
+}
+
 /**
  * A decoded transaction cursor: the keyset boundary the next page must start
  * strictly after, when sorting by `occurredAt` then `id`, both descending.
@@ -193,7 +298,10 @@ export interface ListPortfolioTransactionsFilter {
 }
 
 export interface IPortfolioTransactionRepository {
-  create(data: CreatePortfolioTransactionData): Promise<PortfolioTransaction>;
+  create(
+    data: CreatePortfolioTransactionData,
+    manager?: EntityManager
+  ): Promise<PortfolioTransaction>;
   findByIdAndPortfolioAndUser(
     id: string,
     portfolioId: string,
@@ -205,16 +313,36 @@ export interface IPortfolioTransactionRepository {
   /**
    * Loads the complete transaction ledger of one portfolio with the asset
    * resolved inline, for P&L calculation. Never paginated: the calculation
-   * engine requires the full chronological stream.
+   * engine requires the full chronological stream. Ordered by `occurredAt`
+   * ASC then `id` ASC; the trusted P&L path consumes this ordering unchanged.
    */
   listForPnl(
     portfolioId: string,
     userId: string
   ): Promise<PortfolioTransaction[]>;
+  /**
+   * Re-reads one asset's full ledger inside an asset lock so the P&L use case
+   * can verify a checkpoint still reflects the current ledger before saving.
+   * Ordered exactly like `listForPnl` (occurredAt ASC, id ASC) so the result
+   * can be compared element-wise with the already-grouped calculation stream.
+   */
+  listForCheckpoint(
+    portfolioId: string,
+    assetId: string,
+    manager: EntityManager
+  ): Promise<PortfolioTransaction[]>;
+  update(
+    id: string,
+    portfolioId: string,
+    userId: string,
+    data: UpdatePortfolioTransactionData,
+    manager?: EntityManager
+  ): Promise<PortfolioTransaction | null>;
   deleteByIdAndPortfolioAndUser(
     id: string,
     portfolioId: string,
-    userId: string
+    userId: string,
+    manager?: EntityManager
   ): Promise<boolean>;
 }
 
@@ -271,6 +399,19 @@ export const DELETE_PORTFOLIO_TRANSACTION_USE_CASE = Symbol(
   'IDeletePortfolioTransactionUseCase'
 );
 
+export interface IUpdatePortfolioTransactionUseCase {
+  execute(
+    userId: string,
+    portfolioId: string,
+    transactionId: string,
+    dto: UpdatePortfolioTransactionRequestDto
+  ): Promise<PortfolioTransaction>;
+}
+
+export const UPDATE_PORTFOLIO_TRANSACTION_USE_CASE = Symbol(
+  'IUpdatePortfolioTransactionUseCase'
+);
+
 /**
  * One asset position in a portfolio P&L calculation.
  *
@@ -322,3 +463,74 @@ export interface IGetPortfolioPnlUseCase {
 }
 
 export const GET_PORTFOLIO_PNL_USE_CASE = Symbol('IGetPortfolioPnlUseCase');
+
+export const PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY = Symbol(
+  'IPortfolioCalculationCheckpointRepository'
+);
+
+/**
+ * The data needed to save or replace a checkpoint.
+ */
+export interface SaveCheckpointData {
+  portfolioId: string;
+  assetId: string;
+  costBasisStrategy: CostBasisStrategy;
+  lastTransactionId: string;
+  lastTransactionOccurredAt: string;
+  quantity: string;
+  totalCost: string;
+  lots: Lot[] | null;
+  realizedPnlEvents: RealizedPnlEvent[];
+  openingBalanceUpdatedAt: Date | null;
+}
+
+export interface IPortfolioCalculationCheckpointRepository {
+  /**
+   * Runs `work` inside a transaction that holds a PostgreSQL advisory lock
+   * scoped to (portfolioId, assetId). Every mutation of that asset's ledger
+   * (transaction create/update/delete, opening-balance change) runs its
+   * persist-and-invalidate inside this lock, and the P&L use case saves a
+   * checkpoint only after re-verifying the ledger under the same lock. This
+   * serializes ledger writes against checkpoint writes so a checkpoint can
+   * never be persisted from a ledger snapshot that a concurrent mutation has
+   * already made stale.
+   */
+  withAssetLock<T>(
+    portfolioId: string,
+    assetId: string,
+    work: (manager: EntityManager) => Promise<T>
+  ): Promise<T>;
+
+  /**
+   * Returns the checkpoint for the given scope, or null if none exists.
+   */
+  findByScope(
+    portfolioId: string,
+    assetId: string,
+    strategy: CostBasisStrategy
+  ): Promise<PortfolioCalculationCheckpoint | null>;
+
+  /**
+   * Upserts the checkpoint for the given scope (insert or replace on
+   * the unique (portfolioId, assetId, costBasisStrategy) key).
+   */
+  save(data: SaveCheckpointData, manager?: EntityManager): Promise<void>;
+
+  /**
+   * Deletes all checkpoints for the given (portfolioId, assetId) pair across
+   * all strategies. Called on any transaction or opening-balance mutation.
+   */
+  deleteByPortfolioAndAsset(
+    portfolioId: string,
+    assetId: string,
+    manager?: EntityManager
+  ): Promise<void>;
+
+  /**
+   * Deletes all checkpoints for a portfolio (e.g. on portfolio deletion).
+   */
+  deleteByPortfolio(
+    portfolioId: string,
+    manager?: EntityManager
+  ): Promise<void>;
+}

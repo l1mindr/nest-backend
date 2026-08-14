@@ -9,7 +9,8 @@ import {
 import { CALCULATION_DIVISION_MAX_FRACTION_DIGITS } from './portfolio-calculation.constants';
 import {
   CostBasisOpeningState,
-  PortfolioCalculationInput
+  PortfolioCalculationInput,
+  PortfolioCalculationOptions
 } from './types/calculation-input.types';
 import { PortfolioCalculationResult } from './types/calculation-result.types';
 import { CostBasisStrategy } from './types/cost-basis.strategy.enum';
@@ -43,6 +44,12 @@ function isCostBasisStrategy(value: unknown): value is CostBasisStrategy {
  * The strategy can be selected by the `CostBasisStrategy` enum or injected as
  * a concrete `CostBasisCalculator`, defaulting to average cost.
  *
+ * By default the engine validates every `occurredAt` and orders the ledger
+ * chronologically. Callers that can already guarantee a chronological
+ * `occurredAt ASC, id ASC` stream of normalized ISO timestamps may opt out of
+ * that redundant work through `PortfolioCalculationOptions`; every other
+ * caller keeps the unchanged validate-and-sort behavior.
+ *
  * It performs no I/O, no logging, no database or HTTP calls, and holds no
  * state between calls, so it can be reused unchanged from the REST API,
  * background jobs, a CLI, or scheduled analytics.
@@ -61,7 +68,10 @@ export class PortfolioCalculationEngine {
       : costBasis;
   }
 
-  calculate(input: PortfolioCalculationInput): PortfolioCalculationResult {
+  calculate(
+    input: PortfolioCalculationInput,
+    options: PortfolioCalculationOptions = {}
+  ): PortfolioCalculationResult {
     if (
       !input ||
       typeof input !== 'object' ||
@@ -75,21 +85,25 @@ export class PortfolioCalculationEngine {
         throw CalculationErrors.invalidInput();
       }
       if (
-        typeof transaction.occurredAt !== 'string' ||
-        Number.isNaN(Date.parse(transaction.occurredAt))
+        !options.trustedIsoDates &&
+        (typeof transaction.occurredAt !== 'string' ||
+          Number.isNaN(Date.parse(transaction.occurredAt)))
       ) {
         throw CalculationErrors.invalidDate();
       }
     }
 
-    const transactions = this.orderChronologically(input.transactions);
+    const transactions = options.alreadyOrdered
+      ? input.transactions
+      : this.orderChronologically(input.transactions);
 
     const opening: CostBasisOpeningState = {
       quantity: input.openingQuantity ?? '0',
-      totalCost: input.openingCost ?? '0'
+      totalCost: input.openingCost ?? '0',
+      lots: (input as any).openingLots
     };
 
-    const { quantity, totalCost, realizedPnl } = this.costBasis.calculate(
+    const { quantity, totalCost, realizedPnl, lots } = this.costBasis.calculate(
       transactions,
       opening
     );
@@ -103,53 +117,35 @@ export class PortfolioCalculationEngine {
             CALCULATION_DIVISION_MAX_FRACTION_DIGITS
           );
 
-    return { quantity, totalCost, averageCost, realizedPnl };
+    return { quantity, totalCost, averageCost, realizedPnl, lots };
   }
 
   /**
-   * Orders the ledger chronologically. Equal `occurredAt` values are resolved
-   * by `id` (ascending), and exact ties fall back to the input order, which
-   * `Array.prototype.sort` keeps stable. The source array is copied first.
+   * Orders the ledger chronologically. Timestamps are parsed exactly once per
+   * transaction before the sort so the comparator never re-parses dates.
+   * Equal `occurredAt` values are resolved by `id` (ascending), and exact ties
+   * fall back to the input order, which `Array.prototype.sort` keeps stable.
+   * The source array is copied first.
    */
   private orderChronologically(
     transactions: CalculationTransaction[]
   ): CalculationTransaction[] {
-    return [...transactions].sort((a, b) => {
-      const timeDelta = this.compareOccurredAt(a, b);
-      if (timeDelta !== 0) {
-        return timeDelta;
+    const keyed = transactions.map((transaction) => ({
+      transaction,
+      time: Date.parse(transaction.occurredAt),
+      id: transaction.id ?? ''
+    }));
+
+    keyed.sort((a, b) => {
+      if (a.time !== b.time) {
+        return a.time < b.time ? -1 : 1;
       }
-      return this.compareById(a, b);
+      if (a.id !== b.id) {
+        return a.id < b.id ? -1 : 1;
+      }
+      return 0;
     });
-  }
 
-  private compareOccurredAt(
-    a: CalculationTransaction,
-    b: CalculationTransaction
-  ): number {
-    const aTime = Date.parse(a.occurredAt);
-    const bTime = Date.parse(b.occurredAt);
-    if (aTime < bTime) {
-      return -1;
-    }
-    if (aTime > bTime) {
-      return 1;
-    }
-    return 0;
-  }
-
-  private compareById(
-    a: CalculationTransaction,
-    b: CalculationTransaction
-  ): number {
-    const aId = a.id ?? '';
-    const bId = b.id ?? '';
-    if (aId < bId) {
-      return -1;
-    }
-    if (aId > bId) {
-      return 1;
-    }
-    return 0;
+    return keyed.map((entry) => entry.transaction);
   }
 }

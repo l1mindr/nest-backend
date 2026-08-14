@@ -2,6 +2,8 @@ import { PortfolioCalculationEngine } from '../../../domain/calculation/portfoli
 import { CalculationTransactionType } from '../../../domain/calculation/types/calculation-transaction.types';
 import { CostBasisStrategy } from '../../../domain/calculation/types/cost-basis.strategy.enum';
 import { Portfolio } from '../../../domain/entities/portfolio.entity';
+import { PortfolioCalculationCheckpoint } from '../../../domain/entities/portfolio-calculation-checkpoint.entity';
+import { PortfolioOpeningBalance } from '../../../domain/entities/portfolio-opening-balance.entity';
 import { PortfolioTransaction } from '../../../domain/entities/portfolio-transaction.entity';
 import { PortfolioTransactionType } from '../../../domain/enums/portfolio-transaction-type.enum';
 import { PortfolioErrorCode } from '../../../domain/errors/portfolio-error-code.enum';
@@ -52,6 +54,55 @@ function makeTransaction(
   } as PortfolioTransaction;
 }
 
+function makeOpeningBalance(
+  overrides: Partial<PortfolioOpeningBalance> & {
+    assetCurrentPrice?: string | null;
+  } = {}
+): PortfolioOpeningBalance {
+  const assetId = overrides.assetId ?? 'asset-1';
+  const meta = ASSET_META[assetId] ?? { symbol: 'btc', name: 'Bitcoin' };
+
+  return {
+    id: overrides.id ?? 'opening-balance-1',
+    userId: 'user-id',
+    portfolioId: 'portfolio-id',
+    assetId,
+    openingQuantity: overrides.openingQuantity ?? '1',
+    openingCost: overrides.openingCost ?? '100',
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    asset: {
+      id: assetId,
+      symbol: meta.symbol,
+      name: meta.name,
+      currentPrice:
+        overrides.assetCurrentPrice !== undefined
+          ? overrides.assetCurrentPrice
+          : '100'
+    }
+  } as PortfolioOpeningBalance;
+}
+
+function makeCheckpoint(
+  overrides: Partial<PortfolioCalculationCheckpoint> = {}
+): PortfolioCalculationCheckpoint {
+  return {
+    id: 'checkpoint-1',
+    portfolioId: 'portfolio-id',
+    assetId: 'asset-1',
+    costBasisStrategy: CostBasisStrategy.AVERAGE,
+    lastTransactionId: 't1',
+    lastTransactionOccurredAt: '2026-01-01T00:00:00.000Z',
+    quantity: '1',
+    totalCost: '100',
+    lots: null,
+    realizedPnlEvents: [],
+    openingBalanceUpdatedAt: null,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    ...overrides
+  } as PortfolioCalculationCheckpoint;
+}
+
 function deepFreeze<T>(value: T): T {
   if (value && typeof value === 'object') {
     Object.values(value).forEach((nested) => deepFreeze(nested));
@@ -68,9 +119,21 @@ describe('GetPortfolioPnlUseCase', () => {
   } as Portfolio;
 
   let portfolioRepository: { findByIdAndUser: jest.Mock };
-  let transactionRepository: { listForPnl: jest.Mock };
+  let transactionRepository: {
+    listForPnl: jest.Mock;
+    listForCheckpoint: jest.Mock;
+  };
+  let openingBalanceRepository: {
+    listForPnl: jest.Mock;
+    findUpdatedAtForCheckpoint: jest.Mock;
+  };
   let engineFactory: { create: jest.Mock };
-  let logger: { setContext: jest.Mock; info: jest.Mock };
+  let checkpointRepository: {
+    findByScope: jest.Mock;
+    save: jest.Mock;
+    withAssetLock: jest.Mock;
+  };
+  let logger: { setContext: jest.Mock; info: jest.Mock; error: jest.Mock };
   let useCase: GetPortfolioPnlUseCase;
 
   beforeEach(() => {
@@ -78,7 +141,33 @@ describe('GetPortfolioPnlUseCase', () => {
       findByIdAndUser: jest.fn().mockResolvedValue(portfolio)
     };
     transactionRepository = {
-      listForPnl: jest.fn().mockResolvedValue([])
+      listForPnl: jest.fn().mockResolvedValue([]),
+      listForCheckpoint: jest.fn(
+        async (portfolioId: string, assetId: string) => {
+          const all = await transactionRepository.listForPnl(
+            portfolioId,
+            'user-id'
+          );
+          return all.filter(
+            (tx: PortfolioTransaction) => tx.assetId === assetId
+          );
+        }
+      )
+    };
+    openingBalanceRepository = {
+      listForPnl: jest.fn().mockResolvedValue([]),
+      findUpdatedAtForCheckpoint: jest.fn(
+        async (portfolioId: string, assetId: string) => {
+          const all = await openingBalanceRepository.listForPnl(
+            portfolioId,
+            'user-id'
+          );
+          const row = all.find(
+            (ob: PortfolioOpeningBalance) => ob.assetId === assetId
+          );
+          return row?.updatedAt ?? null;
+        }
+      )
     };
     engineFactory = {
       create: jest.fn(
@@ -86,15 +175,29 @@ describe('GetPortfolioPnlUseCase', () => {
           new PortfolioCalculationEngine(strategy)
       )
     };
+    checkpointRepository = {
+      findByScope: jest.fn().mockResolvedValue(null),
+      save: jest.fn().mockResolvedValue(undefined),
+      withAssetLock: jest.fn(
+        async (
+          portfolioId: string,
+          assetId: string,
+          work: (manager: unknown) => Promise<unknown>
+        ) => work({})
+      )
+    };
     logger = {
       setContext: jest.fn(),
-      info: jest.fn()
+      info: jest.fn(),
+      error: jest.fn()
     };
 
     useCase = new GetPortfolioPnlUseCase(
       portfolioRepository as any,
       transactionRepository as any,
+      openingBalanceRepository as any,
       engineFactory as any,
+      checkpointRepository as any,
       logger as any
     );
   });
@@ -145,6 +248,7 @@ describe('GetPortfolioPnlUseCase', () => {
       ).rejects.toBeDefined();
 
       expect(transactionRepository.listForPnl).not.toHaveBeenCalled();
+      expect(openingBalanceRepository.listForPnl).not.toHaveBeenCalled();
     });
   });
 
@@ -157,6 +261,10 @@ describe('GetPortfolioPnlUseCase', () => {
         'user-id'
       );
       expect(transactionRepository.listForPnl).toHaveBeenCalledWith(
+        'portfolio-id',
+        'user-id'
+      );
+      expect(openingBalanceRepository.listForPnl).toHaveBeenCalledWith(
         'portfolio-id',
         'user-id'
       );
@@ -174,6 +282,98 @@ describe('GetPortfolioPnlUseCase', () => {
         positions: []
       });
     });
+  });
+
+  describe('opening balances', () => {
+    it('should create a position from an opening balance without transactions', async () => {
+      useRealEngine();
+      openingBalanceRepository.listForPnl.mockResolvedValue([
+        makeOpeningBalance({
+          openingQuantity: '0.1',
+          openingCost: '0.02',
+          assetCurrentPrice: '0.3'
+        })
+      ]);
+
+      const result = await useCase.execute('user-id', 'portfolio-id');
+
+      expect(result.positions).toEqual([
+        expect.objectContaining({
+          assetId: 'asset-1',
+          quantity: '0.1',
+          totalCost: '0.02',
+          averageCost: '0.2',
+          currentValue: '0.03',
+          unrealizedPnl: '0.01'
+        })
+      ]);
+      expect(result.totalCostBasis).toBe('0.02');
+      expect(result.totalPnl).toBe('0.01');
+    });
+
+    it.each([
+      {
+        strategy: CostBasisStrategy.AVERAGE,
+        releasedCostBasis: '150',
+        remainingCost: '150',
+        realizedPnl: '0'
+      },
+      {
+        strategy: CostBasisStrategy.FIFO,
+        releasedCostBasis: '100',
+        remainingCost: '200',
+        realizedPnl: '50'
+      },
+      {
+        strategy: CostBasisStrategy.LIFO,
+        releasedCostBasis: '200',
+        remainingCost: '100',
+        realizedPnl: '-50'
+      }
+    ])(
+      'should apply the opening state with $strategy cost basis',
+      async ({ strategy, releasedCostBasis, remainingCost, realizedPnl }) => {
+        useRealEngine();
+        openingBalanceRepository.listForPnl.mockResolvedValue([
+          makeOpeningBalance({
+            openingQuantity: '1',
+            openingCost: '100',
+            assetCurrentPrice: '150'
+          })
+        ]);
+        transactionRepository.listForPnl.mockResolvedValue([
+          makeTransaction({
+            id: 'buy',
+            amount: '1',
+            price: '200',
+            occurredAt: new Date('2026-01-01T00:00:00.000Z'),
+            assetCurrentPrice: '150'
+          }),
+          makeTransaction({
+            id: 'sell',
+            type: PortfolioTransactionType.SELL,
+            amount: '1',
+            price: '150',
+            occurredAt: new Date('2026-01-02T00:00:00.000Z'),
+            assetCurrentPrice: '150'
+          })
+        ]);
+
+        const result = await useCase.execute(
+          'user-id',
+          'portfolio-id',
+          strategy
+        );
+        const position = result.positions[0];
+
+        expect(position.quantity).toBe('1');
+        expect(position.totalCost).toBe(remainingCost);
+        expect(position.realizedPnl).toBe(realizedPnl);
+        expect(position.realizedPnlEvents[0].releasedCostBasis).toBe(
+          releasedCostBasis
+        );
+      }
+    );
   });
 
   describe('cost-basis strategy', () => {
@@ -743,24 +943,218 @@ describe('GetPortfolioPnlUseCase', () => {
 
       const result = await useCase.execute('user-id', 'portfolio-id');
 
-      expect(calculate).toHaveBeenCalledWith({
-        assetId: 'asset-1',
-        transactions: [
-          expect.objectContaining({
-            id: 'tx-1',
-            type: CalculationTransactionType.BUY,
-            amount: '1',
-            price: '100',
-            occurredAt: '2026-01-01T00:00:00.000Z'
-          })
-        ]
-      });
+      expect(calculate).toHaveBeenCalledWith(
+        {
+          assetId: 'asset-1',
+          openingQuantity: '0',
+          openingCost: '0',
+          transactions: [
+            expect.objectContaining({
+              id: 'tx-1',
+              type: CalculationTransactionType.BUY,
+              amount: '1',
+              price: '100',
+              occurredAt: '2026-01-01T00:00:00.000Z'
+            })
+          ]
+        },
+        { alreadyOrdered: true, trustedIsoDates: true }
+      );
       expect(result.positions[0]).toMatchObject({
         quantity: '1',
         totalCost: '100',
         currentValue: '200',
         unrealizedPnl: '100'
       });
+    });
+  });
+
+  describe('checkpoint persistence', () => {
+    it('should persist the checkpoint under the asset lock when the ledger is unchanged', async () => {
+      useRealEngine();
+      transactionRepository.listForPnl.mockResolvedValue([
+        makeTransaction({
+          id: 't1',
+          amount: '1',
+          price: '100',
+          occurredAt: new Date('2026-01-01T00:00:00.000Z')
+        })
+      ]);
+
+      await useCase.execute('user-id', 'portfolio-id');
+
+      expect(checkpointRepository.withAssetLock).toHaveBeenCalledWith(
+        'portfolio-id',
+        'asset-1',
+        expect.any(Function as any)
+      );
+      expect(checkpointRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          portfolioId: 'portfolio-id',
+          assetId: 'asset-1',
+          costBasisStrategy: CostBasisStrategy.AVERAGE,
+          lastTransactionId: 't1'
+        }),
+        expect.any(Object)
+      );
+    });
+
+    it('should skip the checkpoint save when the ledger changed after the snapshot', async () => {
+      useRealEngine();
+      transactionRepository.listForPnl.mockResolvedValue([
+        makeTransaction({
+          id: 't1',
+          amount: '1',
+          price: '100',
+          occurredAt: new Date('2026-01-01T00:00:00.000Z')
+        })
+      ]);
+      transactionRepository.listForCheckpoint.mockResolvedValue([
+        makeTransaction({
+          id: 't1',
+          amount: '1',
+          price: '100',
+          occurredAt: new Date('2026-01-01T00:00:00.000Z')
+        }),
+        makeTransaction({
+          id: 't2',
+          amount: '1',
+          price: '100',
+          occurredAt: new Date('2026-01-02T00:00:00.000Z')
+        })
+      ]);
+
+      await useCase.execute('user-id', 'portfolio-id');
+
+      expect(checkpointRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should skip the checkpoint save when the opening balance changed', async () => {
+      useRealEngine();
+      openingBalanceRepository.listForPnl.mockResolvedValue([
+        makeOpeningBalance({
+          openingQuantity: '5',
+          openingCost: '500'
+        })
+      ]);
+      transactionRepository.listForPnl.mockResolvedValue([
+        makeTransaction({
+          id: 't1',
+          amount: '1',
+          price: '100',
+          occurredAt: new Date('2026-01-01T00:00:00.000Z')
+        })
+      ]);
+      openingBalanceRepository.findUpdatedAtForCheckpoint.mockResolvedValue(
+        new Date('2026-01-02T00:00:00.000Z')
+      );
+
+      await useCase.execute('user-id', 'portfolio-id');
+
+      expect(checkpointRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should persist surviving FIFO lots in the checkpoint', async () => {
+      useRealEngine();
+      transactionRepository.listForPnl.mockResolvedValue([
+        makeTransaction({
+          id: 't1',
+          amount: '2',
+          price: '100',
+          occurredAt: new Date('2026-01-01T00:00:00.000Z')
+        })
+      ]);
+
+      await useCase.execute('user-id', 'portfolio-id', CostBasisStrategy.FIFO);
+
+      expect(checkpointRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          costBasisStrategy: CostBasisStrategy.FIFO,
+          lots: [expect.objectContaining({ quantity: '2', unitCost: '100' })]
+        }),
+        expect.any(Object)
+      );
+    });
+
+    it('should reuse a valid checkpoint and process only the new transactions', async () => {
+      const calculate = engineReturns({
+        quantity: '2',
+        totalCost: '200',
+        averageCost: '100',
+        realizedPnl: []
+      });
+      checkpointRepository.findByScope.mockResolvedValue(
+        makeCheckpoint({ lastTransactionId: 't1' })
+      );
+      transactionRepository.listForPnl.mockResolvedValue([
+        makeTransaction({
+          id: 't1',
+          amount: '1',
+          price: '100',
+          occurredAt: new Date('2026-01-01T00:00:00.000Z')
+        }),
+        makeTransaction({
+          id: 't2',
+          amount: '1',
+          price: '100',
+          occurredAt: new Date('2026-01-02T00:00:00.000Z')
+        })
+      ]);
+
+      await useCase.execute('user-id', 'portfolio-id');
+
+      expect(calculate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          openingQuantity: '1',
+          openingCost: '100',
+          transactions: [expect.objectContaining({ id: 't2' })]
+        }),
+        { alreadyOrdered: true, trustedIsoDates: true }
+      );
+      expect(checkpointRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ lastTransactionId: 't2' }),
+        expect.any(Object)
+      );
+    });
+
+    it('should replay the full ledger when the opening balance changed since the checkpoint', async () => {
+      const calculate = engineReturns({
+        quantity: '6',
+        totalCost: '600',
+        averageCost: '100',
+        realizedPnl: []
+      });
+      checkpointRepository.findByScope.mockResolvedValue(
+        makeCheckpoint({
+          lastTransactionId: 't1',
+          openingBalanceUpdatedAt: new Date('2025-01-01T00:00:00.000Z')
+        })
+      );
+      openingBalanceRepository.listForPnl.mockResolvedValue([
+        makeOpeningBalance({
+          openingQuantity: '5',
+          openingCost: '500'
+        })
+      ]);
+      transactionRepository.listForPnl.mockResolvedValue([
+        makeTransaction({
+          id: 't1',
+          amount: '1',
+          price: '100',
+          occurredAt: new Date('2026-01-01T00:00:00.000Z')
+        })
+      ]);
+
+      await useCase.execute('user-id', 'portfolio-id');
+
+      expect(calculate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          openingQuantity: '5',
+          openingCost: '500',
+          transactions: [expect.objectContaining({ id: 't1' })]
+        }),
+        { alreadyOrdered: true, trustedIsoDates: true }
+      );
     });
   });
 });

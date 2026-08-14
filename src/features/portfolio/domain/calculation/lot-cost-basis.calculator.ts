@@ -17,7 +17,7 @@ import {
   requirePrice
 } from './cost-basis-validation';
 import { CalculationErrors } from './errors/calculation-errors';
-import { consumeLots, Lot } from './lot';
+import { LotStore } from './lot';
 import { CALCULATION_DIVISION_MAX_FRACTION_DIGITS } from './portfolio-calculation.constants';
 import { CostBasisOpeningState } from './types/calculation-input.types';
 import {
@@ -56,8 +56,16 @@ export abstract class LotCostBasisCalculator implements CostBasisCalculator {
     const openingQuantity = assertOpeningQuantity(opening.quantity);
     const openingCost = assertOpeningCost(opening.totalCost);
 
-    let lots: Lot[] = [];
-    if (compareDecimals(openingQuantity, '0') > 0) {
+    const lots = new LotStore(this.fromBack);
+
+    if (opening.lots && opening.lots.length > 0) {
+      // Resume from a checkpointed lot queue — push the exact surviving lots
+      // without averaging, so FIFO/LIFO disposal order is preserved exactly.
+      for (const lot of opening.lots) {
+        lots.push(lot);
+      }
+    } else if (compareDecimals(openingQuantity, '0') > 0) {
+      // Fresh start from an averaged opening position (opening balance only).
       lots.push({
         quantity: openingQuantity,
         unitCost: divideDecimals(
@@ -93,12 +101,7 @@ export abstract class LotCostBasisCalculator implements CostBasisCalculator {
         case CalculationTransactionType.SELL: {
           const price = requirePrice(transaction.price, transaction.type);
           assertAvailable(quantity, amount);
-          const { remainingLots, releasedBasis } = consumeLots(
-            lots,
-            amount,
-            this.fromBack
-          );
-          lots = remainingLots;
+          const releasedBasis = lots.consume(amount);
           const proceeds = multiplyDecimals(amount, price);
           quantity = subtractDecimals(quantity, amount);
           totalCost = subtractDecimals(totalCost, releasedBasis);
@@ -124,12 +127,7 @@ export abstract class LotCostBasisCalculator implements CostBasisCalculator {
         case CalculationTransactionType.TRANSFER_OUT: {
           assertOptionalPrice(transaction.price);
           assertAvailable(quantity, amount);
-          const { remainingLots, releasedBasis } = consumeLots(
-            lots,
-            amount,
-            this.fromBack
-          );
-          lots = remainingLots;
+          const releasedBasis = lots.consume(amount);
           quantity = subtractDecimals(quantity, amount);
           totalCost = subtractDecimals(totalCost, releasedBasis);
           break;
@@ -137,7 +135,7 @@ export abstract class LotCostBasisCalculator implements CostBasisCalculator {
       }
     }
 
-    return { quantity, totalCost, realizedPnl };
+    return { quantity, totalCost, realizedPnl, lots: lots.toLots() };
   }
 }
 
