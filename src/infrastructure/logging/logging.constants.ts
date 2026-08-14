@@ -35,6 +35,14 @@ export enum LogEvent {
   COIN_SYNC_FAILED = 'coin_tracker.sync.failed',
   COIN_SYNC_SKIPPED = 'coin_tracker.sync.skipped',
 
+  ASSET_SYNC_STARTED = 'assets.sync.started',
+  ASSET_SYNC_COMPLETED = 'assets.sync.completed',
+  ASSET_SYNC_FAILED = 'assets.sync.failed',
+  ASSET_SYNC_QUEUED = 'assets.sync.queued',
+  ASSET_SYNC_PROVIDER_REQUEST = 'assets.sync.provider.request',
+  ASSET_SYNC_PROVIDER_COMPLETED = 'assets.sync.provider.completed',
+  ASSET_SYNC_PROVIDER_RETRY = 'assets.sync.provider.retry',
+
   PRICE_ALERT_CREATED = 'coin_tracker.alert.created',
   PRICE_ALERT_UPDATED = 'coin_tracker.alert.updated',
   PRICE_ALERT_TRIGGERED = 'coin_tracker.alert.triggered',
@@ -47,6 +55,19 @@ export enum LogEvent {
   PRICE_CHECK_SKIPPED = 'coin_tracker.price_check.skipped',
 
   NOTIFICATION_SENT = 'coin_tracker.notification.sent',
+
+  PORTFOLIO_CREATED = 'portfolio.created',
+  PORTFOLIO_UPDATED = 'portfolio.updated',
+  PORTFOLIO_DELETED = 'portfolio.deleted',
+  HOLDING_CREATED = 'portfolio.holding.created',
+  HOLDING_UPDATED = 'portfolio.holding.updated',
+  HOLDING_DELETED = 'portfolio.holding.deleted',
+  PORTFOLIO_VALUATION_COMPUTED = 'portfolio.valuation.computed',
+  PORTFOLIO_PNL_COMPUTED = 'portfolio.pnl.computed',
+  PORTFOLIO_OPENING_BALANCE_SET = 'portfolio.opening_balance.set',
+  PORTFOLIO_TRANSACTION_CREATED = 'portfolio.transaction.created',
+  PORTFOLIO_TRANSACTION_UPDATED = 'portfolio.transaction.updated',
+  PORTFOLIO_TRANSACTION_DELETED = 'portfolio.transaction.deleted',
 
   RATE_LIMIT_EXCEEDED = 'security.rate_limit.exceeded',
   RATE_LIMIT_ALLOWED = 'security.rate_limit.allowed',

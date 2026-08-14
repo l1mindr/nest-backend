@@ -28,7 +28,9 @@ export const ApiTagName = {
   SESSIONS: 'Sessions',
   COINS: 'Coins',
   PRICE_ALERTS: 'Price Alerts',
+  ASSETS: 'Assets',
   ADMIN_USERS: 'Admin Users',
+  PORTFOLIOS: 'Portfolios',
   ADMIN_ACCOUNTS: 'Administrators & Permissions'
 } as const;
 
@@ -41,6 +43,9 @@ export const ExampleValue = {
   ADMIN_ID: '2f9a1c73-64d8-4f0e-b1a7-3c5e9d2b8a10',
   SESSION_ID: 'e4f8b9a2-1c7d-4d5a-8f3e-9a1b2c3d4e5f',
   PRICE_ALERT_ID: 'a1b2c3d4-e5f6-4890-abcd-ef1234567890',
+  ASSET_ID: 'c6f0a2e4-8b3d-4f9a-8e2c-5d7b1a3f6e90',
+  PORTFOLIO_ID: 'b3a7e1c2-4f5d-6789-abcd-ef1234567890',
+  HOLDING_ID: 'd4b8f2e3-5a6e-7890-bcde-f12345678901',
   EMAIL: 'mohammad.reza@example.com',
   USERNAME: 'mohammad_reza',
   NAME: 'Mohammad Reza',

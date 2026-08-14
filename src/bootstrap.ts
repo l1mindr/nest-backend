@@ -1,15 +1,15 @@
-import { helmetConfig } from '@infrastructure/http/helmet.config';
 import {
-  IS_PRODUCTION,
   IS_DEVELOPMENT,
+  IS_PRODUCTION,
   IS_TEST
 } from '@infrastructure/config/env/env.constants';
+import { helmetConfig } from '@infrastructure/http/helmet.config';
+import { VersioningType } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import {
   buildOpenApiDocument,
   setupOpenApiUi
 } from '@presentation/swagger/openapi.document';
-import { VersioningType } from '@nestjs/common';
-import { NestExpressApplication } from '@nestjs/platform-express';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 
@@ -37,6 +37,18 @@ export async function setupApp(app: NestExpressApplication) {
   if (IS_PRODUCTION || IS_TEST) {
     app.set('trust proxy', 1);
   }
+
+  // because authentication relies on HttpOnly cookies.
+  const corsOrigin: string | false =
+    process.env.CORS_ORIGIN ??
+    (IS_DEVELOPMENT ? 'http://localhost:4321' : false);
+
+  app.enableCors({
+    origin: corsOrigin,
+    credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  });
 
   if (IS_DEVELOPMENT) {
     setupOpenApiUi(

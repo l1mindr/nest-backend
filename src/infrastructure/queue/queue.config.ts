@@ -23,6 +23,13 @@ const DEFAULT_KEEP_FAILED = 1_000;
  */
 const DEFAULT_PUBLISH_TIMEOUT_MS = 2_000;
 
+const DEFAULT_ASSET_SYNC_INTERVAL_SECONDS = 3600;
+const DEFAULT_ASSET_SYNC_ATTEMPTS = 4;
+const DEFAULT_ASSET_SYNC_BACKOFF_MS = 60_000;
+const DEFAULT_ASSET_SYNC_KEEP_COMPLETED = 10;
+const DEFAULT_ASSET_SYNC_KEEP_FAILED = 50;
+const DEFAULT_ASSET_SYNC_PUBLISH_TIMEOUT_MS = 2_000;
+
 export default registerAs('queue', () => ({
   // Namespaces every BullMQ key, so several deployments can share one Redis
   // instance without consuming each other's jobs.
@@ -38,6 +45,28 @@ export default registerAs('queue', () => ({
     ),
     publishTimeoutMs: Number(
       process.env.EMAIL_QUEUE_PUBLISH_TIMEOUT_MS ?? DEFAULT_PUBLISH_TIMEOUT_MS
+    )
+  },
+  assetSync: {
+    intervalSeconds: Number(
+      process.env.ASSET_SYNC_INTERVAL ?? DEFAULT_ASSET_SYNC_INTERVAL_SECONDS
+    ),
+    attempts: Number(
+      process.env.ASSET_SYNC_QUEUE_ATTEMPTS ?? DEFAULT_ASSET_SYNC_ATTEMPTS
+    ),
+    backoffMs: Number(
+      process.env.ASSET_SYNC_QUEUE_BACKOFF_MS ?? DEFAULT_ASSET_SYNC_BACKOFF_MS
+    ),
+    keepCompleted: Number(
+      process.env.ASSET_SYNC_QUEUE_KEEP_COMPLETED ??
+        DEFAULT_ASSET_SYNC_KEEP_COMPLETED
+    ),
+    keepFailed: Number(
+      process.env.ASSET_SYNC_QUEUE_KEEP_FAILED ?? DEFAULT_ASSET_SYNC_KEEP_FAILED
+    ),
+    publishTimeoutMs: Number(
+      process.env.ASSET_SYNC_QUEUE_PUBLISH_TIMEOUT_MS ??
+        DEFAULT_ASSET_SYNC_PUBLISH_TIMEOUT_MS
     )
   }
 }));

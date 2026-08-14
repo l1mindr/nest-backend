@@ -110,6 +110,27 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
       'string.uri': 'PUBLIC_API_URL must be an absolute http(s) URL.'
     }),
 
+  // Allowed CORS origin for cross-origin browser requests. Required in
+  // production to prevent accidental wildcard-less CORS denial; optional
+  // in development/test where the bootstrap falls back to localhost:4321.
+  // Use a single absolute URL (e.g. https://app.your-domain.com).
+  CORS_ORIGIN: Joi.when('NODE_ENV', {
+    is: 'production',
+    then: Joi.string()
+      .uri({ scheme: ['http', 'https'] })
+      .required()
+      .messages({
+        'string.uri': 'CORS_ORIGIN must be an absolute http(s) URL.',
+        'any.required': 'CORS_ORIGIN is required in production.'
+      }),
+    otherwise: Joi.string()
+      .uri({ scheme: ['http', 'https'] })
+      .optional()
+      .messages({
+        'string.uri': 'CORS_ORIGIN must be an absolute http(s) URL.'
+      })
+  }),
+
   EMAIL_HOST: Joi.alternatives()
     .try(Joi.string().hostname(), Joi.string().ip())
     .required(),
@@ -191,6 +212,119 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
     .messages({
       'number.max':
         'EMAIL_QUEUE_PUBLISH_TIMEOUT_MS must not exceed 30000 milliseconds; publishing is on the request path.'
+    }),
+
+  // Asset catalogue synchronization from CoinGecko. The recurring BullMQ job
+  // fires every ASSET_SYNC_INTERVAL seconds; a failed run is retried with
+  // exponential backoff rather than never, since a temporary CoinGecko outage
+  // must not delete or corrupt the persisted catalogue.
+  ASSET_SYNC_INTERVAL: Joi.number()
+    .integer()
+    .min(300)
+    .max(604800)
+    .default(3600)
+    .optional()
+    .messages({
+      'number.min':
+        'ASSET_SYNC_INTERVAL must be at least 300 seconds (5 minutes).',
+      'number.max':
+        'ASSET_SYNC_INTERVAL must not exceed 604800 seconds (7 days).'
+    }),
+  ASSET_SYNC_QUEUE_ATTEMPTS: Joi.number()
+    .integer()
+    .min(1)
+    .max(20)
+    .default(4)
+    .optional()
+    .messages({
+      'number.min': 'ASSET_SYNC_QUEUE_ATTEMPTS must be at least 1.',
+      'number.max': 'ASSET_SYNC_QUEUE_ATTEMPTS must be between 1 and 20.'
+    }),
+  ASSET_SYNC_QUEUE_BACKOFF_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .max(1800000)
+    .default(60000)
+    .optional()
+    .messages({
+      'number.min':
+        'ASSET_SYNC_QUEUE_BACKOFF_MS must be at least 1000 milliseconds.',
+      'number.max':
+        'ASSET_SYNC_QUEUE_BACKOFF_MS must not exceed 1800000 milliseconds.'
+    }),
+  ASSET_SYNC_QUEUE_KEEP_COMPLETED: Joi.number()
+    .integer()
+    .min(0)
+    .max(100000)
+    .default(10)
+    .optional(),
+  ASSET_SYNC_QUEUE_KEEP_FAILED: Joi.number()
+    .integer()
+    .min(0)
+    .max(100000)
+    .default(50)
+    .optional(),
+  // Caps how long enqueuing a manual sync may block the request when Redis is
+  // unreachable.
+  ASSET_SYNC_QUEUE_PUBLISH_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(100)
+    .max(30000)
+    .default(2000)
+    .optional()
+    .messages({
+      'number.max':
+        'ASSET_SYNC_QUEUE_PUBLISH_TIMEOUT_MS must not exceed 30000 milliseconds; publishing is on the request path.'
+    }),
+
+  // Optional CoinGecko API key for plans that require one. Read from the
+  // environment only; it is never committed and never exposed to clients.
+  COINGECKO_API_KEY: Joi.string().min(16).max(128).optional().messages({
+    'string.min': 'COINGECKO_API_KEY must be at least 16 characters when set.'
+  }),
+
+  // The public CoinGecko API allows the free market-range endpoint without a
+  // key. The base URL is trusted server configuration only — never derived
+  // from client input — so a misconfigured deployment fails startup validation
+  // rather than enabling SSRF through a request parameter.
+  COINGECKO_BASE_URL: Joi.string()
+    .uri({ scheme: ['https'] })
+    .optional()
+    .messages({
+      'string.uri': 'COINGECKO_BASE_URL must be an absolute https URL.'
+    }),
+  COINGECKO_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .max(60000)
+    .default(10000)
+    .optional()
+    .messages({
+      'number.min':
+        'COINGECKO_TIMEOUT_MS must be between 1000 and 60000 milliseconds.',
+      'number.max':
+        'COINGECKO_TIMEOUT_MS must be between 1000 and 60000 milliseconds.'
+    }),
+  COINGECKO_RETRIES: Joi.number()
+    .integer()
+    .min(0)
+    .max(5)
+    .default(2)
+    .optional()
+    .messages({
+      'number.max': 'COINGECKO_RETRIES must not exceed 5.'
+    }),
+  COINGECKO_BACKOFF_MS: Joi.number()
+    .integer()
+    .min(100)
+    .max(60000)
+    .default(1000)
+    .optional()
+    .messages({
+      'number.min':
+        'COINGECKO_BACKOFF_MS must be between 100 and 60000 milliseconds.',
+      'number.max':
+        'COINGECKO_BACKOFF_MS must be between 100 and 60000 milliseconds.'
     }),
 
   BCRYPT_ROUNDS: Joi.number()

@@ -6,6 +6,12 @@ import { CreateVerificationCodeActiveLatestIndex1700000004000 } from '../../src/
 import { CreateAuthorizationTables1700000005000 } from '../../src/infrastructure/databases/postgres/migrations/1700000005000-CreateAuthorizationTables';
 import { CreateAdminInvitationTable1700000006000 } from '../../src/infrastructure/databases/postgres/migrations/1700000006000-CreateAdminInvitationTable';
 import { StandardizeDateTimeColumns1700000007000 } from '../../src/infrastructure/databases/postgres/migrations/1700000007000-StandardizeDateTimeColumns';
+import { CreateAssetsTable1700000008000 } from '../../src/infrastructure/databases/postgres/migrations/1700000008000-CreateAssetsTable';
+import { CreatePortfolioTables1700000009000 } from '../../src/infrastructure/databases/postgres/migrations/1700000009000-CreatePortfolioTables';
+import { CreatePortfolioTransactionTable1700000010000 } from '../../src/infrastructure/databases/postgres/migrations/1700000010000-CreatePortfolioTransactionTable';
+import { CreatePortfolioOpeningBalanceTable1700000011000 } from '../../src/infrastructure/databases/postgres/migrations/1700000011000-CreatePortfolioOpeningBalanceTable';
+import { OptimizePortfolioTransactionIndexes1700000012000 } from '../../src/infrastructure/databases/postgres/migrations/1700000012000-OptimizePortfolioTransactionIndexes';
+import { CreatePortfolioCalculationCheckpointTable1700000013000 } from '../../src/infrastructure/databases/postgres/migrations/1700000013000-CreatePortfolioCalculationCheckpointTable';
 
 /**
  * The runtime data source resolves migrations from a `dist/**` glob, which is
@@ -22,5 +28,11 @@ export const E2E_MIGRATIONS = [
   CreateVerificationCodeActiveLatestIndex1700000004000,
   CreateAuthorizationTables1700000005000,
   CreateAdminInvitationTable1700000006000,
-  StandardizeDateTimeColumns1700000007000
+  StandardizeDateTimeColumns1700000007000,
+  CreateAssetsTable1700000008000,
+  CreatePortfolioTables1700000009000,
+  CreatePortfolioTransactionTable1700000010000,
+  CreatePortfolioOpeningBalanceTable1700000011000,
+  OptimizePortfolioTransactionIndexes1700000012000,
+  CreatePortfolioCalculationCheckpointTable1700000013000
 ];
