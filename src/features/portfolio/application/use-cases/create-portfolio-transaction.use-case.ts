@@ -18,6 +18,13 @@ import {
   PORTFOLIO_TRANSACTION_REPOSITORY
 } from '../interfaces/portfolio.interface';
 
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+
 @Injectable()
 export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransactionUseCase {
   constructor(
@@ -29,7 +36,8 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
     private readonly assetRepository: IAssetRepository,
     @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
     private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    private readonly auditLogService: AuditLogService
   ) {
     this.logger.setContext(CreatePortfolioTransactionUseCase.name);
   }
@@ -115,6 +123,15 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
       },
       'Portfolio transaction created'
     );
+
+    this.auditLogService.record({
+      action: AuditAction.TRANSACTION_CREATED,
+      actorType: ActorType.USER,
+      userId,
+      resourceType: ResourceType.TRANSACTION,
+      resourceId: transaction.id,
+      success: true
+    });
 
     return transaction;
   }

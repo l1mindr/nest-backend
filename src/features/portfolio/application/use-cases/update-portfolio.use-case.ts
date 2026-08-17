@@ -11,12 +11,20 @@ import {
   UpdatePortfolioData
 } from '../interfaces/portfolio.interface';
 
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+
 @Injectable()
 export class UpdatePortfolioUseCase implements IUpdatePortfolioUseCase {
   constructor(
     @Inject(PORTFOLIO_REPOSITORY)
     private readonly portfolioRepository: IPortfolioRepository,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    private readonly auditLogService: AuditLogService
   ) {
     this.logger.setContext(UpdatePortfolioUseCase.name);
   }
@@ -68,6 +76,15 @@ export class UpdatePortfolioUseCase implements IUpdatePortfolioUseCase {
       },
       'Portfolio source updated'
     );
+
+    this.auditLogService.record({
+      action: AuditAction.PORTFOLIO_UPDATED,
+      actorType: ActorType.USER,
+      userId,
+      resourceType: ResourceType.PORTFOLIO,
+      resourceId: portfolioId,
+      success: true
+    });
 
     return updated;
   }

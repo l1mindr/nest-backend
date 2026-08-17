@@ -32,7 +32,8 @@ describe('UpdatePortfolioUseCase', () => {
 
     useCase = new UpdatePortfolioUseCase(
       portfolioRepository as any,
-      logger as any
+      logger as any,
+      { record: jest.fn() } as any
     );
   });
 

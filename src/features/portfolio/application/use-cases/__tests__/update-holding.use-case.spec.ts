@@ -30,7 +30,11 @@ describe('UpdateHoldingUseCase', () => {
       amount: '2.500000000000000000'
     });
 
-    useCase = new UpdateHoldingUseCase(holdingRepository as any, logger as any);
+    useCase = new UpdateHoldingUseCase(
+      holdingRepository as any,
+      logger as any,
+      { record: jest.fn() } as any
+    );
   });
 
   it('should update the amount of an owned holding', async () => {

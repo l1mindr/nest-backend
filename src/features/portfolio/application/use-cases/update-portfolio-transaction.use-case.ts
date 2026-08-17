@@ -16,6 +16,13 @@ import {
   UpdatePortfolioTransactionData
 } from '../interfaces/portfolio.interface';
 
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+
 @Injectable()
 export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransactionUseCase {
   constructor(
@@ -25,7 +32,8 @@ export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransa
     private readonly portfolioRepository: IPortfolioRepository,
     @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
     private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    private readonly auditLogService: AuditLogService
   ) {
     this.logger.setContext(UpdatePortfolioTransactionUseCase.name);
   }
@@ -134,6 +142,15 @@ export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransa
       },
       'Portfolio transaction updated'
     );
+
+    this.auditLogService.record({
+      action: AuditAction.TRANSACTION_UPDATED,
+      actorType: ActorType.USER,
+      userId,
+      resourceType: ResourceType.TRANSACTION,
+      resourceId: transactionId,
+      success: true
+    });
 
     return updated;
   }

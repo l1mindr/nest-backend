@@ -25,7 +25,8 @@ describe('CreatePortfolioUseCase', () => {
 
     useCase = new CreatePortfolioUseCase(
       portfolioRepository as any,
-      logger as any
+      logger as any,
+      { record: jest.fn() } as any
     );
   });
 

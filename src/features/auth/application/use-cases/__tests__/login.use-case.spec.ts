@@ -91,6 +91,10 @@ describe('Login', () => {
     }
   };
 
+  const mockAuditLogService = {
+    record: jest.fn()
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -122,7 +126,8 @@ describe('Login', () => {
       mockResendVerificationUseCase as any,
       mockUserRepository as any,
       mockRateLimitService as any,
-      mockLogger as any
+      mockLogger as any,
+      mockAuditLogService as any
     );
   });
 

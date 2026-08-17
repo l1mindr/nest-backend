@@ -79,7 +79,8 @@ describe('VerifyEmailUseCase', () => {
       mockRateLimitService as any,
       mockClockService as unknown as ClockService,
       mockDataSource as any,
-      mockLogger as any
+      mockLogger as any,
+      { record: jest.fn() } as any
     );
   });
 

@@ -12,6 +12,13 @@ import {
   PORTFOLIO_TRANSACTION_REPOSITORY
 } from '../interfaces/portfolio.interface';
 
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+
 @Injectable()
 export class DeletePortfolioTransactionUseCase implements IDeletePortfolioTransactionUseCase {
   constructor(
@@ -21,7 +28,8 @@ export class DeletePortfolioTransactionUseCase implements IDeletePortfolioTransa
     private readonly portfolioRepository: IPortfolioRepository,
     @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
     private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    private readonly auditLogService: AuditLogService
   ) {
     this.logger.setContext(DeletePortfolioTransactionUseCase.name);
   }
@@ -87,5 +95,14 @@ export class DeletePortfolioTransactionUseCase implements IDeletePortfolioTransa
       },
       'Portfolio transaction deleted'
     );
+
+    this.auditLogService.record({
+      action: AuditAction.TRANSACTION_DELETED,
+      actorType: ActorType.USER,
+      userId,
+      resourceType: ResourceType.TRANSACTION,
+      resourceId: transactionId,
+      success: true
+    });
   }
 }

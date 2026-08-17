@@ -14,7 +14,11 @@ describe('AssetSyncProcessor', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    processor = new AssetSyncProcessor(syncUseCase as any, logger as any);
+    processor = new AssetSyncProcessor(
+      syncUseCase as any,
+      logger as any,
+      { error: jest.fn(), warn: jest.fn(), info: jest.fn() } as any
+    );
   });
 
   it('should invoke the sync use case for a job', async () => {

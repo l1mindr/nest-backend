@@ -8,6 +8,12 @@ import {
   IRateLimitService,
   RATE_LIMIT_SERVICE
 } from '@features/security/rate-limit/services/rate-limit.service';
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { UserStatus } from '../../domain/enums/user-status.enum';
@@ -36,7 +42,8 @@ export class ResendVerificationUseCase implements IResendVerificationUseCase {
     private readonly rateLimitService: IRateLimitService,
     private readonly clockService: ClockService,
     private readonly emailPublisher: EmailPublisher,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    private readonly auditLogService: AuditLogService
   ) {
     this.logger.setContext(ResendVerificationUseCase.name);
   }
@@ -56,10 +63,7 @@ export class ResendVerificationUseCase implements IResendVerificationUseCase {
 
     if (!hourly.allowed) {
       this.logger.warn(
-        {
-          event: LogEvent.VERIFICATION_RESEND_LIMIT_EXCEEDED,
-          userId: user.id
-        },
+        { event: LogEvent.VERIFICATION_RESEND_LIMIT_EXCEEDED, userId: user.id },
         'Hourly resend limit exceeded; resend skipped'
       );
       return;
@@ -90,16 +94,11 @@ export class ResendVerificationUseCase implements IResendVerificationUseCase {
       expiresAt
     );
 
-    // Keyed on the stored code row, so the email that arrives always matches the
-    // code the database will accept.
     await this.emailPublisher.publish(
       {
         type: EmailMessageType.VERIFICATION,
         to: user.email,
-        data: {
-          code,
-          expiresInMinutes: VERIFICATION_CODE_TTL_MINUTES
-        }
+        data: { code, expiresInMinutes: VERIFICATION_CODE_TTL_MINUTES }
       },
       {
         dedupeKey: emailDedupeKey(
@@ -108,5 +107,14 @@ export class ResendVerificationUseCase implements IResendVerificationUseCase {
         )
       }
     );
+
+    this.auditLogService.record({
+      action: AuditAction.RESEND_VERIFICATION_CODE,
+      actorType: ActorType.USER,
+      userId: user.id,
+      resourceType: ResourceType.USER,
+      resourceId: user.id,
+      success: true
+    });
   }
 }

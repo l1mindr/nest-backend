@@ -60,7 +60,8 @@ describe('CreatePortfolioTransactionUseCase', () => {
       portfolioRepository as any,
       assetRepository as any,
       checkpointRepository as any,
-      logger as any
+      logger as any,
+      { record: jest.fn() } as any
     );
   });
 

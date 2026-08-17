@@ -78,7 +78,8 @@ describe('ResendVerificationUseCase', () => {
       mockRateLimitService as any,
       mockClockService as unknown as ClockService,
       mockEmailPublisher as unknown as EmailPublisher,
-      mockLogger as any
+      mockLogger as any,
+      { record: jest.fn() } as any
     );
   });
 

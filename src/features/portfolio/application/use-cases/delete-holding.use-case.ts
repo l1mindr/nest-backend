@@ -8,12 +8,20 @@ import {
   IHoldingRepository
 } from '../interfaces/portfolio.interface';
 
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+
 @Injectable()
 export class DeleteHoldingUseCase implements IDeleteHoldingUseCase {
   constructor(
     @Inject(HOLDING_REPOSITORY)
     private readonly holdingRepository: IHoldingRepository,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    private readonly auditLogService: AuditLogService
   ) {
     this.logger.setContext(DeleteHoldingUseCase.name);
   }
@@ -33,5 +41,14 @@ export class DeleteHoldingUseCase implements IDeleteHoldingUseCase {
       },
       'Portfolio holding deleted'
     );
+
+    this.auditLogService.record({
+      action: AuditAction.HOLDING_DELETED,
+      actorType: ActorType.USER,
+      userId,
+      resourceType: ResourceType.HOLDING,
+      resourceId: holdingId,
+      success: true
+    });
   }
 }

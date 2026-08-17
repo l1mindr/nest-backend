@@ -8,7 +8,9 @@ import { MONGODB_CONNECTION_NAME } from './mongodb/mongodb.constants';
 import { AuditLog, AuditLogSchema } from './audit/audit-log.schema';
 import { SystemLog, SystemLogSchema } from './system/system-log.schema';
 import { AuditLogRepository } from './audit/audit-log.repository';
+import { AuditLogService } from './audit/audit-log.service';
 import { SystemLogRepository } from './system/system-log.repository';
+import { SystemLogService } from './system/system-log.service';
 
 @Global()
 @Module({
@@ -27,9 +29,18 @@ import { SystemLogRepository } from './system/system-log.repository';
       MONGODB_CONNECTION_NAME
     )
   ],
-  providers: [AuditLogRepository, SystemLogRepository],
-  exports: [LoggerModule, AuditLogRepository, SystemLogRepository]
+  providers: [
+    AuditLogRepository,
+    SystemLogRepository,
+    AuditLogService,
+    SystemLogService
+  ],
+  exports: [
+    LoggerModule,
+    AuditLogRepository,
+    SystemLogRepository,
+    AuditLogService,
+    SystemLogService
+  ]
 })
 export class LoggingModule {}
-{
-}
