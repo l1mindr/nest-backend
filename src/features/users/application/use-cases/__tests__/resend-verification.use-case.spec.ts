@@ -102,7 +102,7 @@ describe('ResendVerificationUseCase', () => {
       );
       expect(mockRateLimitService.consume).toHaveBeenCalledWith(
         ImperativeRateLimitPolicies.ResendCooldown,
-        'user-id'
+        'test@test.com'
       );
       expect(
         mockVerificationCodeRepository.invalidatePreviousCodes
@@ -174,6 +174,23 @@ describe('ResendVerificationUseCase', () => {
         mockVerificationCodeRepository.invalidatePreviousCodes
       ).not.toHaveBeenCalled();
       expect(mockEmailPublisher.publish).not.toHaveBeenCalled();
+    });
+
+    it('should normalise the email before the cooldown check', async () => {
+      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
+        id: 'user-id',
+        email: 'test@test.com',
+        status: UserStatus.PENDING_VERIFICATION
+      });
+      mockVerificationCodeService.generate.mockReturnValue('654321');
+      mockVerificationCodeService.hash.mockResolvedValue('new-hash');
+
+      await useCase.execute('  TEST@Test.COM  ');
+
+      expect(mockRateLimitService.consume).toHaveBeenCalledWith(
+        ImperativeRateLimitPolicies.ResendCooldown,
+        'test@test.com'
+      );
     });
 
     it('should not resend once the hourly limit is reached', async () => {
@@ -253,6 +270,37 @@ describe('ResendVerificationUseCase', () => {
       await useCase.execute('test@test.com');
 
       expect(order).toEqual(['store', 'publish']);
+    });
+
+    it('should never expose the verification code in the return value', async () => {
+      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
+        id: 'user-id',
+        email: 'test@test.com',
+        status: UserStatus.PENDING_VERIFICATION
+      });
+      mockVerificationCodeService.generate.mockReturnValue('654321');
+      mockVerificationCodeService.hash.mockResolvedValue('new-hash');
+
+      const result = await useCase.execute('test@test.com');
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should key the cooldown on the normalised email', async () => {
+      mockUserRepository.findByEmailOrUsernameForAuth.mockResolvedValue({
+        id: 'user-id',
+        email: 'test@test.com',
+        status: UserStatus.PENDING_VERIFICATION
+      });
+      mockVerificationCodeService.generate.mockReturnValue('654321');
+      mockVerificationCodeService.hash.mockResolvedValue('new-hash');
+
+      await useCase.execute('Test@Test.COM');
+
+      expect(mockRateLimitService.consume).toHaveBeenCalledWith(
+        ImperativeRateLimitPolicies.ResendCooldown,
+        'test@test.com'
+      );
     });
   });
 });
