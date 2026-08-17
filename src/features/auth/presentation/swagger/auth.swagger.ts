@@ -166,11 +166,11 @@ export const ApiResendVerification = () =>
       description: [
         'Issues a new code to an account still pending verification and invalidates the previous one, so only ever one code is live per account.',
         '',
-        'The status is `204` in every case — unknown address, already-verified account, cooldown still running, or a code genuinely sent. Nothing distinguishes them, which is what stops the endpoint from being used to enumerate accounts. It follows that the status code alone does not mean an email was sent.',
+        'The status is `204` in every case — unknown address, already-verified account, or a code genuinely sent. Nothing distinguishes them, which is what stops the endpoint from being used to enumerate accounts. It follows that the status code alone does not mean an email was sent.',
         '',
-        'Silently enforced limits: a 60-second cooldown between resends and a maximum of 5 resends per hour per account. Requests hitting either limit still return `200`.',
+        'A 2-minute cooldown between resends and a maximum of 5 resends per hour per account are enforced. The cooldown is enforced at the guard level and returns `429`; the hourly cap is silently enforced and returns `204` so that it cannot be used to distinguish accounts.',
         '',
-        'Rate limited to 5 per minute per address, 10 per minute per device, and 10 per hour per email — these budgets, unlike the cooldown and hourly caps above, do surface as `429`. Public: no authentication and no CSRF token required.'
+        'Rate limited to 5 per minute per address, 10 per minute per device, and 1 per 2 minutes per email — these budgets surface as `429`. Public: no authentication and no CSRF token required.'
       ].join('\n')
     }),
     ApiRequestBody(ResendVerificationRequestDto, [
@@ -188,7 +188,7 @@ export const ApiResendVerification = () =>
         validationError('email', 'email must be an email')
       ]),
       rateLimitResponse(
-        'More than 5 resend requests were made from this IP within a minute.'
+        'More than 5 resend requests were made from this IP within a minute, or another resend was requested within the 2-minute cooldown for this email address.'
       ),
       internalServerErrorResponse()
     ])

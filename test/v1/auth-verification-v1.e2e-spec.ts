@@ -74,11 +74,16 @@ describe('Auth Verification (e2e) version: 1', () => {
   };
 
   const clearResendCooldown = async (email: string) => {
-    const user = await dataSource
-      .getRepository(User)
-      .findOneOrFail({ where: { email } });
-
-    await resetPolicy(app, ImperativeRateLimitPolicies.ResendCooldown, user.id);
+    await resetPolicy(
+      app,
+      ImperativeRateLimitPolicies.ResendCooldown,
+      email.toLowerCase()
+    );
+    await resetPolicy(
+      app,
+      RateLimitPolicies.Auth.Resend.Email,
+      email.toLowerCase()
+    );
   };
 
   it('sends a verification email with a 6-digit code that expires in 3 minutes', async () => {
@@ -187,7 +192,7 @@ describe('Auth Verification (e2e) version: 1', () => {
     expect(withNew.status).toBe(204);
   });
 
-  it('does not resend while the cooldown is active', async () => {
+  it('returns 429 when resending within the 2-minute cooldown', async () => {
     const { user, client } = await UserFactory.register(app);
 
     const first = await client.post('/v1/auth/resend-verification', {
@@ -199,8 +204,26 @@ describe('Auth Verification (e2e) version: 1', () => {
     const second = await client.post('/v1/auth/resend-verification', {
       body: { email: user.email }
     });
-    expect(second.status).toBe(204);
+    expect(second.status).toBe(429);
+    expect(second.body.error.code).toBe('RATE_LIMIT_EXCEEDED');
     expect(getVerificationEmailCount(user.email)).toBe(2);
+  });
+
+  it('allows resend after the 2-minute cooldown expires', async () => {
+    const { user, client } = await UserFactory.register(app);
+
+    const first = await client.post('/v1/auth/resend-verification', {
+      body: { email: user.email }
+    });
+    expect(first.status).toBe(204);
+
+    await clearResendCooldown(user.email);
+
+    const second = await client.post('/v1/auth/resend-verification', {
+      body: { email: user.email }
+    });
+    expect(second.status).toBe(204);
+    expect(getVerificationEmailCount(user.email)).toBe(3);
   });
 
   it('stops resending once the hourly limit is reached', async () => {
@@ -298,5 +321,67 @@ describe('Auth Verification (e2e) version: 1', () => {
     });
 
     expect(res.status).toBe(204);
+  });
+
+  it('only allows one concurrent resend request to succeed', async () => {
+    const { user } = await UserFactory.register(app);
+    const client = new ApiClient(app);
+
+    const [first, second] = await Promise.all([
+      client.post('/v1/auth/resend-verification', {
+        body: { email: user.email }
+      }),
+      client.post('/v1/auth/resend-verification', {
+        body: { email: user.email }
+      })
+    ]);
+
+    const statuses = [first.status, second.status].sort();
+    expect(statuses).toEqual([204, 429]);
+    expect(getVerificationEmailCount(user.email)).toBe(2);
+  });
+
+  it('leaves only one active verification code after concurrent resends', async () => {
+    const { user } = await UserFactory.register(app);
+    const client = new ApiClient(app);
+
+    await Promise.all([
+      client.post('/v1/auth/resend-verification', {
+        body: { email: user.email }
+      }),
+      client.post('/v1/auth/resend-verification', {
+        body: { email: user.email }
+      })
+    ]);
+
+    const activeCodes = await dataSource
+      .getRepository(UserVerificationCode)
+      .count({
+        where: {
+          userId: (
+            await dataSource
+              .getRepository(User)
+              .findOneOrFail({ where: { email: user.email } })
+          ).id,
+          verifiedAt: IsNull()
+        }
+      });
+
+    expect(activeCodes).toBe(1);
+  });
+
+  it('rate-limits by normalised email address', async () => {
+    const { user } = await UserFactory.register(app);
+    const client = new ApiClient(app);
+
+    const first = await client.post('/v1/auth/resend-verification', {
+      body: { email: user.email.toUpperCase() }
+    });
+    expect(first.status).toBe(204);
+
+    const second = await client.post('/v1/auth/resend-verification', {
+      body: { email: user.email.toLowerCase() }
+    });
+    expect(second.status).toBe(429);
   });
 });

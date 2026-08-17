@@ -42,7 +42,9 @@ export class ResendVerificationUseCase implements IResendVerificationUseCase {
   }
 
   async execute(email: string): Promise<void> {
-    const user = await this.userRepository.findByEmailOrUsernameForAuth(email);
+    const normalisedEmail = email.trim().toLowerCase();
+    const user =
+      await this.userRepository.findByEmailOrUsernameForAuth(normalisedEmail);
 
     if (!user) return;
     if (user.status !== UserStatus.PENDING_VERIFICATION) return;
@@ -65,7 +67,7 @@ export class ResendVerificationUseCase implements IResendVerificationUseCase {
 
     const cooldown = await this.rateLimitService.consume(
       ImperativeRateLimitPolicies.ResendCooldown,
-      user.id
+      normalisedEmail
     );
 
     if (!cooldown.allowed) return;

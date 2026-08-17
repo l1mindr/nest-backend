@@ -158,11 +158,11 @@ export const RateLimitPolicies = {
         name: 'auth.resend.email',
         identifier: RateLimitIdentifier.EMAIL,
         keyPrefix: 'resend',
-        limit: 10,
-        windowMs: HOURS,
+        limit: 1,
+        windowMs: 2 * MINUTES,
         blockDurationMs: 0,
         enabled: true,
-        failOpen: true
+        failOpen: false
       }
     },
 
@@ -302,17 +302,20 @@ export const ImperativeRateLimitPolicies = {
     failOpen: true
   },
   /**
-   * A one-per-minute cooldown. `limit: 1` reproduces `SET NX EX 60` exactly:
-   * the first call increments to 1 and arms the TTL, the second increments to 2
-   * without re-arming it, so the cooldown never slides forward under repeated
-   * attempts.
+   * A two-minute cooldown per email address. `limit: 1` reproduces `SET NX EX
+   * 120` exactly: the first call increments to 1 and arms the TTL, the second
+   * increments to 2 without re-arming it, so the cooldown never slides forward
+   * under repeated attempts.
+   *
+   * Keyed on the normalised email address so the cooldown cannot be bypassed
+   * by reordering the request body or authenticating as a different user.
    */
   ResendCooldown: {
     name: 'auth.resend.cooldown',
-    identifier: RateLimitIdentifier.USER,
+    identifier: RateLimitIdentifier.EMAIL,
     keyPrefix: 'resend:cooldown',
     limit: 1,
-    windowMs: 60 * SECONDS,
+    windowMs: 2 * MINUTES,
     blockDurationMs: 0,
     enabled: true,
     failOpen: true

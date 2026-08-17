@@ -161,10 +161,13 @@ describe('Rate limit configuration', () => {
       expect(ImperativeRateLimitPolicies.VerificationAttempts.limit).toBe(5);
     });
 
-    it('should keep the resend cooldown at one per minute', () => {
+    it('should keep the resend cooldown at one per two minutes, keyed on email', () => {
       expect(ImperativeRateLimitPolicies.ResendCooldown.limit).toBe(1);
       expect(ImperativeRateLimitPolicies.ResendCooldown.windowMs).toBe(
-        60 * TimeConstants.MS_PER_SECOND
+        2 * TimeConstants.MS_PER_MINUTE
+      );
+      expect(ImperativeRateLimitPolicies.ResendCooldown.identifier).toBe(
+        RateLimitIdentifier.EMAIL
       );
     });
 
