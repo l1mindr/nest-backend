@@ -431,7 +431,20 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
 
   NODE_ENV: Joi.string()
     .valid(...NODE_ENVS)
+    .required(),
+
+  // MongoDB for logging persistence
+  MONGODB_URI: Joi.string()
+    .uri({ scheme: ['mongodb', 'mongodb+srv'] })
     .required()
+    .messages({
+      'string.uri': 'MONGODB_URI must be a valid MongoDB connection string.',
+      'any.required': 'MONGODB_URI is required for logging persistence.'
+    }),
+  MONGODB_DATABASE: Joi.string().min(1).required().messages({
+    'string.empty': 'MONGODB_DATABASE is required for logging persistence.',
+    'any.required': 'MONGODB_DATABASE is required for logging persistence.'
+  })
 })
   .custom((obj, helpers) => {
     // Additional cross-field validations and production safety checks

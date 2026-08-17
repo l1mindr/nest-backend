@@ -19,7 +19,9 @@ const VALID_ENV = {
   EMAIL_SECURE: false,
   EMAIL_USER: 'test@test.com',
   EMAIL_APP_PASSWORD: 'test-app-password',
-  EMAIL_FROM: 'test@test.com'
+  EMAIL_FROM: 'test@test.com',
+  MONGODB_URI: 'mongodb://localhost:27017',
+  MONGODB_DATABASE: 'nest_logs_test'
 };
 
 describe('Environment validation', () => {
