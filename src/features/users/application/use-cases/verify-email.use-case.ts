@@ -5,6 +5,12 @@ import {
   IRateLimitService,
   RATE_LIMIT_SERVICE
 } from '@features/security/rate-limit/services/rate-limit.service';
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { DataSource } from 'typeorm';
@@ -31,7 +37,8 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
     private readonly rateLimitService: IRateLimitService,
     private readonly clockService: ClockService,
     private readonly dataSource: DataSource,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    private readonly auditLogService: AuditLogService
   ) {
     this.logger.setContext(VerifyEmailUseCase.name);
   }
@@ -92,6 +99,15 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
       { event: LogEvent.EMAIL_VERIFIED, userId: user.id },
       'User verified their email'
     );
+
+    this.auditLogService.record({
+      action: AuditAction.EMAIL_VERIFICATION,
+      actorType: ActorType.USER,
+      userId: user.id,
+      resourceType: ResourceType.USER,
+      resourceId: user.id,
+      success: true
+    });
   }
 
   private async handleFailedAttempt(userId: string): Promise<void> {
@@ -100,10 +116,6 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
       userId
     );
 
-    // Exhausted headroom is reached on the fifth failure, exactly where the
-    // previous `attempts >= MAX_VERIFICATION_ATTEMPTS` check fired. Testing for
-    // zero rather than equality also covers a count that overshot the limit
-    // under concurrency, so invalidate-and-reset stays idempotent.
     if (attempt.remaining === 0) {
       const now = this.clockService.nowDate();
 
@@ -117,10 +129,7 @@ export class VerifyEmailUseCase implements IVerifyEmailUseCase {
       );
 
       this.logger.warn(
-        {
-          event: LogEvent.VERIFICATION_ATTEMPTS_EXCEEDED,
-          userId
-        },
+        { event: LogEvent.VERIFICATION_ATTEMPTS_EXCEEDED, userId },
         'Max verification attempts exceeded; code invalidated'
       );
     }

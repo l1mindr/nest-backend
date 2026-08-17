@@ -3,6 +3,8 @@ import { ErrorMapper } from '@infrastructure/errors/error-mapper';
 import { AuthErrorCode } from '@features/auth/domain/errors/auth-error-code.enum';
 import { SessionErrorCode } from '@features/sessions/domain/errors/session-error-code.enum';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import { SystemLogEvent } from '@infrastructure/logging/mongodb/mongodb.constants';
+import { SystemLogService } from '@infrastructure/logging/system/system-log.service';
 import {
   ArgumentsHost,
   Catch,
@@ -16,7 +18,10 @@ const RETRY_AFTER_HEADER = 'Retry-After';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  constructor(private readonly logger: PinoLogger) {
+  constructor(
+    private readonly logger: PinoLogger,
+    private readonly systemLogService: SystemLogService
+  ) {
     this.logger.setContext(GlobalExceptionFilter.name);
   }
 
@@ -30,6 +35,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     this.logError(exception, error, req);
     this.applyRetryAfter(res, error);
 
+    // Persist 5xx errors to MongoDB for operational observability
+    if (error.statusCode >= 500) {
+      this.systemLogService.error(
+        SystemLogEvent.UNHANDLED_EXCEPTION,
+        error.message,
+        {
+          context: GlobalExceptionFilter.name,
+          requestId: req.id as string | undefined,
+          userId: req.user?.id,
+          error: exception instanceof Error ? exception : undefined,
+          metadata: {
+            statusCode: error.statusCode,
+            code: error.code,
+            domain: error.domain,
+            method: req.method,
+            url: req.url
+          }
+        }
+      );
+    }
+
     return res.status(error.statusCode).json({
       error: {
         code: error.code,
@@ -42,12 +68,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     });
   }
 
-  /**
-   * Advertises how long the caller should wait before retrying.
-   *
-   * Applied here rather than in the rate-limit guard so it also covers the
-   * other source of 429 in the application, the refresh-token lock.
-   */
   private applyRetryAfter(res: Response, error: AppError) {
     if (error.statusCode !== HttpStatus.TOO_MANY_REQUESTS) return;
 

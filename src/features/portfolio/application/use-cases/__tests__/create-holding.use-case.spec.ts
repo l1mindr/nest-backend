@@ -47,7 +47,8 @@ describe('CreateHoldingUseCase', () => {
       holdingRepository as any,
       portfolioRepository as any,
       assetRepository as any,
-      logger as any
+      logger as any,
+      { record: jest.fn() } as any
     );
   });
 

@@ -4,6 +4,8 @@ import {
 } from '@infrastructure/email/email.message';
 import { EmailService } from '@infrastructure/email/email.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import { SystemLogEvent } from '@infrastructure/logging/mongodb/mongodb.constants';
+import { SystemLogService } from '@infrastructure/logging/system/system-log.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job, UnrecoverableError } from 'bullmq';
 import { PinoLogger } from 'nestjs-pino';
@@ -30,7 +32,8 @@ import { EmailJob } from './email.job';
 export class EmailProcessor extends WorkerHost {
   constructor(
     private readonly emailService: EmailService,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    private readonly systemLogService: SystemLogService
   ) {
     super();
     this.logger.setContext(EmailProcessor.name);
@@ -124,6 +127,24 @@ export class EmailProcessor extends WorkerHost {
       permanent
         ? 'Email delivery was permanently rejected and will not be retried'
         : 'Email delivery failed on the final attempt'
+    );
+
+    // Persist terminal email failures to MongoDB for operational visibility
+    this.systemLogService.error(
+      SystemLogEvent.QUEUE_JOB_FAILED,
+      permanent
+        ? 'Email delivery was permanently rejected'
+        : 'Email delivery failed on the final attempt',
+      {
+        context: EmailProcessor.name,
+        error: error instanceof Error ? error : undefined,
+        metadata: {
+          jobId: job.id,
+          messageType: message.type,
+          attempt,
+          permanent
+        }
+      }
     );
 
     if (!permanent) {

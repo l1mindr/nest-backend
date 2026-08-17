@@ -22,7 +22,8 @@ describe('SessionRevocationUseCase', () => {
 
     service = new SessionRevocationUseCase(
       mockSessionRepository as any,
-      mockLogger as any
+      mockLogger as any,
+      { record: jest.fn() } as any
     );
   });
 

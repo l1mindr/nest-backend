@@ -1,4 +1,10 @@
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { EntityManager } from 'typeorm';
@@ -13,7 +19,8 @@ export class SessionRevocationUseCase implements ISessionRevocationUseCase {
   constructor(
     @Inject(SESSION_REPOSITORY)
     private readonly sessionRepository: ISessionRepository,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    private readonly auditLogService: AuditLogService
   ) {
     this.logger.setContext(SessionRevocationUseCase.name);
   }
@@ -25,6 +32,15 @@ export class SessionRevocationUseCase implements ISessionRevocationUseCase {
       { event: LogEvent.SESSION_REVOKED, userId, sessionId },
       'Session revoked'
     );
+
+    this.auditLogService.record({
+      action: AuditAction.USER_LOGOUT,
+      actorType: ActorType.USER,
+      userId,
+      resourceType: ResourceType.SESSION,
+      resourceId: sessionId,
+      success: true
+    });
   }
 
   async revokeAll(userId: string, manager?: EntityManager): Promise<void> {

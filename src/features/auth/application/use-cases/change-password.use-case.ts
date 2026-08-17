@@ -8,6 +8,12 @@ import {
   USER_REPOSITORY
 } from '@features/users/application/interfaces/users.interface';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { DataSource } from 'typeorm';
@@ -25,7 +31,8 @@ export class ChangePassword implements IChangePassword {
     @Inject(SESSION_REVOCATION_USE_CASE)
     private readonly revocationUseCase: ISessionRevocationUseCase,
     private readonly dataSource: DataSource,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    private readonly auditLogService: AuditLogService
   ) {
     this.logger.setContext(ChangePassword.name);
   }
@@ -72,5 +79,14 @@ export class ChangePassword implements IChangePassword {
       { event: LogEvent.PASSWORD_CHANGED, userId, sessionId },
       'User changed password'
     );
+
+    this.auditLogService.record({
+      action: AuditAction.PASSWORD_CHANGE,
+      actorType: ActorType.USER,
+      userId,
+      resourceType: ResourceType.USER,
+      resourceId: userId,
+      success: true
+    });
   }
 }

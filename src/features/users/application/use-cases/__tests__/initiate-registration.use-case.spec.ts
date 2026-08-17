@@ -42,6 +42,10 @@ describe('InitiateRegistrationUseCase', () => {
     email: 'test@test.com'
   };
 
+  const mockAuditLogService = {
+    record: jest.fn()
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockDataSource.transaction.mockImplementation(
@@ -63,7 +67,8 @@ describe('InitiateRegistrationUseCase', () => {
       mockVerificationCodeService as any,
       mockClockService as unknown as ClockService,
       mockEmailPublisher as unknown as EmailPublisher,
-      mockDataSource as any
+      mockDataSource as any,
+      mockAuditLogService as any
     );
   });
 

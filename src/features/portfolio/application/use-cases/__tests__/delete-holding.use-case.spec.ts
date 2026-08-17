@@ -15,7 +15,11 @@ describe('DeleteHoldingUseCase', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    useCase = new DeleteHoldingUseCase(holdingRepository as any, logger as any);
+    useCase = new DeleteHoldingUseCase(
+      holdingRepository as any,
+      logger as any,
+      { record: jest.fn() } as any
+    );
   });
 
   it('should delete a holding owned by the user', async () => {

@@ -11,12 +11,20 @@ import {
   UpdateHoldingData
 } from '../interfaces/portfolio.interface';
 
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+
 @Injectable()
 export class UpdateHoldingUseCase implements IUpdateHoldingUseCase {
   constructor(
     @Inject(HOLDING_REPOSITORY)
     private readonly holdingRepository: IHoldingRepository,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    private readonly auditLogService: AuditLogService
   ) {
     this.logger.setContext(UpdateHoldingUseCase.name);
   }
@@ -65,6 +73,15 @@ export class UpdateHoldingUseCase implements IUpdateHoldingUseCase {
       },
       'Portfolio holding updated'
     );
+
+    this.auditLogService.record({
+      action: AuditAction.HOLDING_UPDATED,
+      actorType: ActorType.USER,
+      userId,
+      resourceType: ResourceType.HOLDING,
+      resourceId: holdingId,
+      success: true
+    });
 
     return updated;
   }

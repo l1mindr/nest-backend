@@ -39,7 +39,8 @@ describe('DeleteAccountUseCase', () => {
     service = new DeleteAccountUseCase(
       mockUserRepository as any,
       mockRevocationUseCase as unknown as ISessionRevocationUseCase,
-      mockDataSource as unknown as DataSource
+      mockDataSource as unknown as DataSource,
+      { record: jest.fn() } as any
     );
   });
 

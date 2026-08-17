@@ -2,6 +2,12 @@ import { ClockService } from '@infrastructure/clock/clock.service';
 import { emailDedupeKey } from '@infrastructure/email/email-dedupe.key';
 import { EmailMessageType } from '@infrastructure/email/email.message';
 import { EmailPublisher } from '@infrastructure/email/email.publisher';
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CreateUserRequestDto } from '../../presentation/dto/request/create-user.request.dto';
@@ -31,7 +37,8 @@ export class InitiateRegistrationUseCase implements IInitiateRegistrationUseCase
     private readonly verificationCodeService: VerificationCodeService,
     private readonly clockService: ClockService,
     private readonly emailPublisher: EmailPublisher,
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    private readonly auditLogService: AuditLogService
   ) {}
 
   async execute(dto: CreateUserRequestDto): Promise<void> {
@@ -47,10 +54,7 @@ export class InitiateRegistrationUseCase implements IInitiateRegistrationUseCase
       ({ user, verificationCodeId } = await this.dataSource.transaction(
         async (manager) => {
           const created = await this.userRepository.insertUser(
-            {
-              ...dto,
-              status: UserStatus.PENDING_VERIFICATION
-            },
+            { ...dto, status: UserStatus.PENDING_VERIFICATION },
             manager
           );
 
@@ -68,20 +72,12 @@ export class InitiateRegistrationUseCase implements IInitiateRegistrationUseCase
       throwOnUniqueConstraint(error);
     }
 
-    // Published after the commit, never inside it: a rolled-back registration
-    // would otherwise leave a queued email naming an account that never
-    // existed, and the worker has no way to tell that it should not send.
-    //
-    // The stored code row identifies the occasion, so a registration retried by
-    // the client sends one email per issued code rather than one per attempt.
+    // Published after the commit; see original comment.
     await this.emailPublisher.publish(
       {
         type: EmailMessageType.VERIFICATION,
         to: user.email,
-        data: {
-          code,
-          expiresInMinutes: VERIFICATION_CODE_TTL_MINUTES
-        }
+        data: { code, expiresInMinutes: VERIFICATION_CODE_TTL_MINUTES }
       },
       {
         dedupeKey: emailDedupeKey(
@@ -90,5 +86,14 @@ export class InitiateRegistrationUseCase implements IInitiateRegistrationUseCase
         )
       }
     );
+
+    this.auditLogService.record({
+      action: AuditAction.USER_REGISTER,
+      actorType: ActorType.ANONYMOUS,
+      userId: user.id,
+      resourceType: ResourceType.USER,
+      resourceId: user.id,
+      success: true
+    });
   }
 }

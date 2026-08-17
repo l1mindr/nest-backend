@@ -16,6 +16,13 @@ import {
   PORTFOLIO_REPOSITORY
 } from '../interfaces/portfolio.interface';
 
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+
 @Injectable()
 export class CreateHoldingUseCase implements ICreateHoldingUseCase {
   constructor(
@@ -25,7 +32,8 @@ export class CreateHoldingUseCase implements ICreateHoldingUseCase {
     private readonly portfolioRepository: IPortfolioRepository,
     @Inject(ASSET_REPOSITORY)
     private readonly assetRepository: IAssetRepository,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    private readonly auditLogService: AuditLogService
   ) {
     this.logger.setContext(CreateHoldingUseCase.name);
   }
@@ -88,6 +96,15 @@ export class CreateHoldingUseCase implements ICreateHoldingUseCase {
       },
       'Portfolio holding created'
     );
+
+    this.auditLogService.record({
+      action: AuditAction.HOLDING_CREATED,
+      actorType: ActorType.USER,
+      userId,
+      resourceType: ResourceType.HOLDING,
+      resourceId: holding.id,
+      success: true
+    });
 
     return holding;
   }

@@ -3,6 +3,12 @@ import {
   ISessionRevocationUseCase,
   SESSION_REVOCATION_USE_CASE
 } from '@features/sessions/application/interfaces/sessions.interface';
+import {
+  ActorType,
+  AuditAction,
+  ResourceType
+} from '@infrastructure/logging/mongodb/mongodb.constants';
+import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
 import { User } from '../../domain/entities/user.entity';
 import { Inject, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -20,21 +26,28 @@ export class DeleteAccountUseCase implements IDeleteAccountUseCase {
     private readonly userRepository: IUserRepository,
     @Inject(SESSION_REVOCATION_USE_CASE)
     private readonly revocationUseCase: ISessionRevocationUseCase,
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    private readonly auditLogService: AuditLogService
   ) {}
 
   async execute(userId: string): Promise<void> {
     const user = await this.userRepository.findUserById(userId);
     if (!user) throw UserErrors.userNotFound(userId);
 
-    // The owner is refused even here, on their own account: the system must
-    // always have exactly one, and there is no endpoint that could appoint a
-    // replacement afterwards.
     OwnerProtectionPolicy.assertDeletable(user);
 
     await this.dataSource.transaction(async (manager) => {
       await manager.getRepository(User).softRemove(user);
       await this.revocationUseCase.revokeAll(userId, manager);
+    });
+
+    this.auditLogService.record({
+      action: AuditAction.ACCOUNT_DELETED,
+      actorType: ActorType.USER,
+      userId,
+      resourceType: ResourceType.USER,
+      resourceId: userId,
+      success: true
     });
   }
 }

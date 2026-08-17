@@ -36,9 +36,18 @@ describe('GlobalExceptionFilter', () => {
     })
   } as unknown as ArgumentsHost;
 
+  const mockSystemLogService = {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn()
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    filter = new GlobalExceptionFilter(mockLogger as unknown as PinoLogger);
+    filter = new GlobalExceptionFilter(
+      mockLogger as unknown as PinoLogger,
+      mockSystemLogService as any
+    );
   });
 
   it('keeps the existing response format for domain errors', () => {

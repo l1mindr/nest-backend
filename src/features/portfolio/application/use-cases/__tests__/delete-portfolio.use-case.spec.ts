@@ -22,7 +22,8 @@ describe('DeletePortfolioUseCase', () => {
     useCase = new DeletePortfolioUseCase(
       portfolioRepository as any,
       checkpointRepository as any,
-      logger as any
+      logger as any,
+      { record: jest.fn() } as any
     );
   });
 
