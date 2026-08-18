@@ -47,7 +47,11 @@ export async function setupApp(app: NestExpressApplication) {
     origin: corsOrigin,
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    // X-CSRF-Token is required by the double-submit CSRF guard on every unsafe
+    // request (see CsrfGuard); a cross-origin browser cannot send it unless it
+    // is listed here. Headers are matched case-insensitively by the CORS
+    // middleware, so the client may send either casing.
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
   });
 
   if (IS_DEVELOPMENT) {
