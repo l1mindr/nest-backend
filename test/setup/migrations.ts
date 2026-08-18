@@ -12,6 +12,8 @@ import { CreatePortfolioTransactionTable1700000010000 } from '../../src/infrastr
 import { CreatePortfolioOpeningBalanceTable1700000011000 } from '../../src/infrastructure/databases/postgres/migrations/1700000011000-CreatePortfolioOpeningBalanceTable';
 import { OptimizePortfolioTransactionIndexes1700000012000 } from '../../src/infrastructure/databases/postgres/migrations/1700000012000-OptimizePortfolioTransactionIndexes';
 import { CreatePortfolioCalculationCheckpointTable1700000013000 } from '../../src/infrastructure/databases/postgres/migrations/1700000013000-CreatePortfolioCalculationCheckpointTable';
+import { IncreaseAssetSupplyPrecision1700000014000 } from '../../src/infrastructure/databases/postgres/migrations/1700000014000-IncreaseAssetSupplyPrecision';
+import { IncreaseAssetPricePrecision1700000015000 } from '../../src/infrastructure/databases/postgres/migrations/1700000015000-IncreaseAssetPricePrecision';
 
 /**
  * The runtime data source resolves migrations from a `dist/**` glob, which is
@@ -34,5 +36,7 @@ export const E2E_MIGRATIONS = [
   CreatePortfolioTransactionTable1700000010000,
   CreatePortfolioOpeningBalanceTable1700000011000,
   OptimizePortfolioTransactionIndexes1700000012000,
-  CreatePortfolioCalculationCheckpointTable1700000013000
+  CreatePortfolioCalculationCheckpointTable1700000013000,
+  IncreaseAssetSupplyPrecision1700000014000,
+  IncreaseAssetPricePrecision1700000015000
 ];
