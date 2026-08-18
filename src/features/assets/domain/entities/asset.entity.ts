@@ -29,7 +29,7 @@ export class Asset {
   @Column({ type: 'varchar', nullable: true })
   imageUrl!: string | null;
 
-  @Column({ type: 'decimal', precision: 30, scale: 8, nullable: true })
+  @Column({ type: 'decimal', precision: 40, scale: 8, nullable: true })
   currentPrice!: string | null;
 
   @Column({ type: 'decimal', precision: 30, scale: 2, nullable: true })
@@ -41,16 +41,16 @@ export class Asset {
   @Column({ type: 'decimal', precision: 30, scale: 2, nullable: true })
   totalVolume!: string | null;
 
-  @Column({ type: 'decimal', precision: 30, scale: 8, nullable: true })
+  @Column({ type: 'decimal', precision: 40, scale: 8, nullable: true })
   circulatingSupply!: string | null;
 
-  @Column({ type: 'decimal', precision: 30, scale: 8, nullable: true })
+  @Column({ type: 'decimal', precision: 40, scale: 8, nullable: true })
   totalSupply!: string | null;
 
-  @Column({ type: 'decimal', precision: 30, scale: 8, nullable: true })
+  @Column({ type: 'decimal', precision: 40, scale: 8, nullable: true })
   maxSupply!: string | null;
 
-  @Column({ type: 'decimal', precision: 30, scale: 8, nullable: true })
+  @Column({ type: 'decimal', precision: 40, scale: 8, nullable: true })
   priceChange24h!: string | null;
 
   @Column({ type: 'decimal', precision: 30, scale: 4, nullable: true })

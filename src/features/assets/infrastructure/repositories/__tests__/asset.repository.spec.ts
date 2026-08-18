@@ -93,6 +93,44 @@ describe('AssetRepository', () => {
     expect(sql).not.toContain('"coinGeckoId" = EXCLUDED."coinGeckoId"');
   });
 
+  it('should pass large supply values through as plain decimal strings', async () => {
+    const assets = [
+      {
+        ...makeAsset(0),
+        circulatingSupply: '10000000000000000000000.00000000',
+        totalSupply: '21000000000000000000000.00000000',
+        maxSupply: '21000000000000000000000.00000000'
+      }
+    ];
+
+    await repository.upsertMany(assets);
+
+    const params = dataSource.query.mock.calls[0][1] as string[];
+    expect(params).toContain('10000000000000000000000.00000000');
+    expect(params).toContain('21000000000000000000000.00000000');
+  });
+
+  it('should handle values exceeding NUMERIC(30,8) capacity', async () => {
+    const assets = [
+      {
+        ...makeAsset(0),
+        currentPrice: '100000000000000000000000',
+        circulatingSupply: '420690000000000000000000',
+        totalSupply: '1000000000000000000000000',
+        maxSupply: '1000000000000000000000000',
+        priceChange24h: '50000000000000000000000'
+      }
+    ];
+
+    await repository.upsertMany(assets);
+
+    const params = dataSource.query.mock.calls[0][1] as string[];
+    expect(params).toContain('100000000000000000000000');
+    expect(params).toContain('420690000000000000000000');
+    expect(params).toContain('1000000000000000000000000');
+    expect(params).toContain('50000000000000000000000');
+  });
+
   it('should find an asset by id', async () => {
     ormRepository.findOneBy.mockResolvedValue({ id: 'asset-1' });
 

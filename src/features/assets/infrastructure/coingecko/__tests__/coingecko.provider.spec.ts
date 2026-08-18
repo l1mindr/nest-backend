@@ -322,6 +322,93 @@ describe('CoinGeckoMarketDataProvider', () => {
     expect(httpService.get).toHaveBeenCalledTimes(1);
   });
 
+  it('should round decimal values to match column scale and prevent overflow', async () => {
+    httpService.get.mockReturnValueOnce(
+      of({
+        data: [
+          {
+            id: 'overflow-test',
+            symbol: 'ovt',
+            name: 'Overflow Test',
+            current_price: 0.123456789,
+            market_cap: 1_234_567_890.123,
+            total_volume: 987_654_321.9876,
+            circulating_supply: 1_000_000,
+            total_supply: 2_000_000.123456789,
+            max_supply: 3_000_000.999999999,
+            price_change_24h: -0.000000123456,
+            price_change_percentage_24h: 2.12345678
+          }
+        ]
+      })
+    );
+
+    const result = await provider.fetchMarketData();
+
+    expect(result[0]).toMatchObject({
+      currentPrice: '0.12345679',
+      marketCap: '1234567890.12',
+      totalVolume: '987654321.99',
+      circulatingSupply: '1000000',
+      totalSupply: '2000000.12345679',
+      maxSupply: '3000001',
+      priceChange24h: '-0.00000012',
+      priceChangePercentage24h: '2.1235'
+    });
+  });
+
+  it('should emit a plain decimal string for supply values ≥1e21 to avoid numeric overflow', async () => {
+    httpService.get.mockReturnValueOnce(
+      of({
+        data: [
+          {
+            id: 'hypothetical-coin',
+            symbol: 'hypo',
+            name: 'Hypothetical Coin',
+            circulating_supply: 1e22,
+            total_supply: 2.1e22,
+            max_supply: 2.1e22,
+            market_cap: 1.5e25
+          }
+        ]
+      })
+    );
+
+    const result = await provider.fetchMarketData();
+
+    expect(result[0].circulatingSupply).toBe('10000000000000000000000');
+    expect(result[0].totalSupply).toBe('21000000000000000000000');
+    expect(result[0].maxSupply).toBe('21000000000000000000000');
+    expect(result[0].marketCap).toBe('15000000000000000000000000');
+  });
+
+  it('should handle extreme values for all numeric fields that exceed NUMERIC(30,8)', async () => {
+    httpService.get.mockReturnValueOnce(
+      of({
+        data: [
+          {
+            id: 'extreme-test',
+            symbol: 'ext',
+            name: 'Extreme Test',
+            current_price: 1e23,
+            circulating_supply: 5.896e23,
+            total_supply: 1e30,
+            max_supply: 1e25,
+            price_change_24h: 5e22
+          }
+        ]
+      })
+    );
+
+    const result = await provider.fetchMarketData();
+
+    expect(result[0].currentPrice).toBe('100000000000000000000000');
+    expect(result[0].circulatingSupply).toBe('589600000000000000000000');
+    expect(result[0].totalSupply).toBe('1000000000000000000000000000000');
+    expect(result[0].maxSupply).toBe('10000000000000000000000000');
+    expect(result[0].priceChange24h).toBe('50000000000000000000000');
+  });
+
   it('should throw an AppError when a non-axios transport error surfaces', async () => {
     config.retries = 0;
     httpService.get.mockReturnValue(throwError(() => new Error('boom')));

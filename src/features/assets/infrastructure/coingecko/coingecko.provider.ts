@@ -178,16 +178,17 @@ export class CoinGeckoMarketDataProvider implements MarketDataPort {
         symbol,
         name,
         imageUrl: this.string(record.image) || null,
-        currentPrice: this.decimal(record.current_price),
-        marketCap: this.decimal(record.market_cap),
+        currentPrice: this.decimal(record.current_price, 8),
+        marketCap: this.decimal(record.market_cap, 2),
         marketCapRank: this.integer(record.market_cap_rank),
-        totalVolume: this.decimal(record.total_volume),
-        circulatingSupply: this.decimal(record.circulating_supply),
-        totalSupply: this.decimal(record.total_supply),
-        maxSupply: this.decimal(record.max_supply),
-        priceChange24h: this.decimal(record.price_change_24h),
+        totalVolume: this.decimal(record.total_volume, 2),
+        circulatingSupply: this.decimal(record.circulating_supply, 8),
+        totalSupply: this.decimal(record.total_supply, 8),
+        maxSupply: this.decimal(record.max_supply, 8),
+        priceChange24h: this.decimal(record.price_change_24h, 8),
         priceChangePercentage24h: this.decimal(
-          record.price_change_percentage_24h
+          record.price_change_percentage_24h,
+          4
         )
       });
     }
@@ -239,10 +240,29 @@ export class CoinGeckoMarketDataProvider implements MarketDataPort {
     return typeof value === 'string' ? value.trim() : '';
   }
 
-  private decimal(value: unknown): string | null {
-    return typeof value === 'number' && Number.isFinite(value)
-      ? String(value)
-      : null;
+  private decimal(value: unknown, scale: number): string | null {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+
+    // Number.toFixed() and Number.toString() both emit scientific notation
+    // (e.g. "1e+22") for values whose magnitude is ≥1e21. PostgreSQL rejects
+    // that as a numeric literal, causing a "numeric field overflow". Use
+    // toExponential() to get a predictable mantissa/exponent pair, then expand
+    // it into a plain integer string. All practical CoinGecko supply / cap
+    // values at this magnitude are whole numbers.
+    if (Math.abs(value) >= 1e21) {
+      const [mantissaStr, expStr] = value.toExponential().split('e');
+      const exp = parseInt(expStr!, 10);
+      const sign = mantissaStr!.startsWith('-') ? '-' : '';
+      const mantissa = mantissaStr!.replace(/[-.]/g, '');
+      const trailingZeros = Math.max(0, exp + 1 - mantissa.length);
+      return `${sign}${mantissa}${'0'.repeat(trailingZeros)}`;
+    }
+
+    const fixed = value.toFixed(scale);
+    if (fixed.includes('.')) {
+      return fixed.replace(/0+$/, '').replace(/\.$/, '');
+    }
+    return fixed;
   }
 
   private integer(value: unknown): number | null {
