@@ -35,9 +35,15 @@ describe('Logs API (e2e) version: 1', () => {
     await truncateDatabase(dataSource);
     await clearRedis(app);
     // Clear MongoDB collections
-    await mongoConnection.collection('auditlogs').deleteMany({});
-    await mongoConnection.collection('systemlogs').deleteMany({});
+    await mongoConnection.collection('audit_logs').deleteMany({});
+    await mongoConnection.collection('system_logs').deleteMany({});
   });
+
+  /** Clear audit & system logs after AuthFactory writes side-effect entries. */
+  async function clearMongoLogs() {
+    await mongoConnection.collection('audit_logs').deleteMany({});
+    await mongoConnection.collection('system_logs').deleteMany({});
+  }
 
   afterAll(async () => {
     await app?.close();
@@ -78,6 +84,7 @@ describe('Logs API (e2e) version: 1', () => {
         { withRole: UserRole.OWNER },
         dataSource
       );
+      await clearMongoLogs();
 
       const response = await ownerContext.client.get('/v1/logs/audit');
       expect(response.status).toBe(200);
@@ -93,10 +100,11 @@ describe('Logs API (e2e) version: 1', () => {
         { withRole: UserRole.OWNER },
         dataSource
       );
+      await clearMongoLogs();
 
       // Insert test audit logs
       const now = new Date();
-      await mongoConnection.collection('auditlogs').insertMany([
+      await mongoConnection.collection('audit_logs').insertMany([
         {
           timestamp: new Date(now.getTime() - 3000),
           actorType: ActorType.USER,
@@ -149,8 +157,9 @@ describe('Logs API (e2e) version: 1', () => {
         { withRole: UserRole.OWNER },
         dataSource
       );
+      await clearMongoLogs();
 
-      await mongoConnection.collection('auditlogs').insertMany([
+      await mongoConnection.collection('audit_logs').insertMany([
         {
           timestamp: new Date(),
           actorType: ActorType.USER,
@@ -187,8 +196,9 @@ describe('Logs API (e2e) version: 1', () => {
         { withRole: UserRole.OWNER },
         dataSource
       );
+      await clearMongoLogs();
 
-      await mongoConnection.collection('auditlogs').insertMany([
+      await mongoConnection.collection('audit_logs').insertMany([
         {
           timestamp: new Date(),
           actorType: ActorType.USER,
@@ -229,7 +239,7 @@ describe('Logs API (e2e) version: 1', () => {
       const response = await ownerContext.client.get(
         '/v1/logs/audit?limit=abc'
       );
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(422);
     });
 
     it('should paginate with cursor', async () => {
@@ -238,6 +248,7 @@ describe('Logs API (e2e) version: 1', () => {
         { withRole: UserRole.OWNER },
         dataSource
       );
+      await clearMongoLogs();
 
       // Insert enough logs to trigger pagination
       const logs = Array.from({ length: 55 }, (_, i) => ({
@@ -250,7 +261,7 @@ describe('Logs API (e2e) version: 1', () => {
         success: true,
         createdAt: new Date(Date.now() - i * 1000)
       }));
-      await mongoConnection.collection('auditlogs').insertMany(logs);
+      await mongoConnection.collection('audit_logs').insertMany(logs);
 
       // First page
       const firstResponse = await ownerContext.client.get(
@@ -305,6 +316,7 @@ describe('Logs API (e2e) version: 1', () => {
         { withRole: UserRole.OWNER },
         dataSource
       );
+      await clearMongoLogs();
 
       const response = await ownerContext.client.get('/v1/logs/system');
       expect(response.status).toBe(200);
@@ -320,10 +332,11 @@ describe('Logs API (e2e) version: 1', () => {
         { withRole: UserRole.OWNER },
         dataSource
       );
+      await clearMongoLogs();
 
       // Insert test system logs
       const now = new Date();
-      await mongoConnection.collection('systemlogs').insertMany([
+      await mongoConnection.collection('system_logs').insertMany([
         {
           timestamp: new Date(now.getTime() - 3000),
           level: SystemLogLevel.ERROR,
@@ -371,8 +384,9 @@ describe('Logs API (e2e) version: 1', () => {
         { withRole: UserRole.OWNER },
         dataSource
       );
+      await clearMongoLogs();
 
-      await mongoConnection.collection('systemlogs').insertMany([
+      await mongoConnection.collection('system_logs').insertMany([
         {
           timestamp: new Date(),
           level: SystemLogLevel.ERROR,
@@ -405,8 +419,9 @@ describe('Logs API (e2e) version: 1', () => {
         { withRole: UserRole.OWNER },
         dataSource
       );
+      await clearMongoLogs();
 
-      await mongoConnection.collection('systemlogs').insertMany([
+      await mongoConnection.collection('system_logs').insertMany([
         {
           timestamp: new Date(),
           level: SystemLogLevel.ERROR,
@@ -443,7 +458,7 @@ describe('Logs API (e2e) version: 1', () => {
       const response = await ownerContext.client.get(
         '/v1/logs/system?limit=abc'
       );
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(422);
     });
   });
 });

@@ -1,14 +1,15 @@
 import {
   MAX_E2E_WORKERS,
   loadTestEnv,
-  workerDatabaseName
+  workerDatabaseName,
+  workerMongoDatabaseName
 } from './worker-context';
 
 /**
- * Points each Jest worker at its own Postgres database and Redis database index
- * before any application module is imported, which is what makes parallel spec
- * files safe: `truncateDatabase` and `clearRedis` then only ever reset state
- * owned by the current worker.
+ * Points each Jest worker at its own Postgres database, Redis database index,
+ * and MongoDB database before any application module is imported, which is what
+ * makes parallel spec files safe: `truncateDatabase`, `clearRedis`, and
+ * `deleteMany` then only ever reset state owned by the current worker.
  */
 loadTestEnv();
 
@@ -22,3 +23,4 @@ if (workerId > MAX_E2E_WORKERS) {
 
 process.env.DATA_SOURCE_DATABASE = workerDatabaseName(workerId);
 process.env.REDIS_DB = String(workerId);
+process.env.MONGODB_DATABASE = workerMongoDatabaseName(workerId);
