@@ -46,6 +46,26 @@ export function workerDatabaseName(workerId: number): string {
   return `${baseDatabaseName()}_w${workerId}`;
 }
 
+let mongoBase: string | undefined;
+
+export function baseMongoDatabaseName(): string {
+  if (!mongoBase) {
+    mongoBase = process.env.MONGODB_DATABASE;
+
+    if (!mongoBase) {
+      throw new Error(
+        'MONGODB_DATABASE is not set; cannot derive the E2E worker MongoDB databases.'
+      );
+    }
+  }
+
+  return mongoBase;
+}
+
+export function workerMongoDatabaseName(workerId: number): string {
+  return `${baseMongoDatabaseName()}_w${workerId}`;
+}
+
 export function postgresConnection() {
   return {
     host: process.env.DATA_SOURCE_HOST,
