@@ -135,7 +135,7 @@ jobs:
           cache-from: type=gha
 
       - name: Start Services
-        run: docker compose up -d --wait postgres redis
+        run: docker compose up -d --wait postgres redis mongo
 
       - name: Migrations (Production Image)
         run: docker compose run --rm --no-deps migration

@@ -46,6 +46,10 @@ services:
       # REDIS_PASSWORD: ''
       # REDIS_DB: 0
 
+      MONGODB_URI: mongodb://mongo:27017
+      # worker-env.ts derives one database per Jest worker from this base name.
+      MONGODB_DATABASE: test_e2e_logs
+
       ACCESS_TOKEN_SECRET: 3SGh4K6nRjy3rUiEZcwMaG4xZFyObMdJ
       REFRESH_TOKEN_SECRET: juQXiRL05Isuon4mhjdwwwd4lUCaEc4Z
       CSRF_TOKEN_SECRET: Py2RzgyepufR9xQD
@@ -66,6 +70,9 @@ services:
         condition: service_healthy
 
       redis:
+        condition: service_healthy
+
+      mongo:
         condition: service_healthy
 
     # The E2E suite is compiled on the fly by ts-jest and imports from `src`,
@@ -97,6 +104,23 @@ services:
 
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mongo:
+    # The official mongo image has no alpine variant; 7.x is jammy-based.
+    image: mongo:7-jammy
+
+    ports:
+      - '27018:27017'
+
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'mongosh --quiet --eval "db.runCommand({ ping: 1 }).ok" | grep 1'
+        ]
       interval: 5s
       timeout: 3s
       retries: 20
