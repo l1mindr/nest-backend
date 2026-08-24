@@ -52,7 +52,7 @@ jobs:
     # Pin to a specific release tag (not a moving major tag) for reproducible
     # CI — check https://github.com/google/osv-scanner-action/releases for
     # the current version and bump deliberately.
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.5.0
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.5.1
     permissions:
       contents: read
       actions: read
