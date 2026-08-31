@@ -44,6 +44,8 @@ Reads `.env.${NODE_ENV}`, then `.env` (`.env` overrides).
 | `APP_NAME` | `NestJS Backend` | Product name used as the sender display name in emails |
 | `EMAIL_PORT` | 587 | SMTP port (1–65535) |
 | `EMAIL_SECURE` | `false` | Use TLS when connecting to the SMTP server |
+| `OWNER_EMAIL` | — | Email for the initial Owner, required only when running `pnpm seed:owner` |
+| `OWNER_PASSWORD` | — | Password for the initial Owner (8–128 chars), required only when running `pnpm seed:owner` |
 
 ## Secrets Validation
 
