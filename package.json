@@ -26,6 +26,7 @@
     "test:e2e:debug": "NODE_ENV=test LOG_LEVEL=debug E2E_LOGS=true jest --config jest.e2e.config.ts --runInBand",
     "test:e2e:docker": "pnpm run build && pnpm run test:e2e",
     "generate:secrets": "pnpm exec ts-node scripts/generate-secrets.ts",
+    "seed:owner": "pnpm exec ts-node scripts/seed-owner.ts",
     "migration:create": "pnpm exec typeorm migration:create",
     "migration:generate": "pnpm run build && pnpm exec typeorm migration:generate -d dist/infrastructure/databases/postgres/data-source -p",
     "migration:run": "typeorm migration:run -d dist/infrastructure/databases/postgres/data-source",

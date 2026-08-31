@@ -398,6 +398,18 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
   E2E_LOGS: Joi.string().valid('true', 'false').optional(),
 
   // Strong secrets with entropy checks. In production require longer/more entropy.
+  // Initial Owner credentials for the one-shot `pnpm seed:owner` command. They
+  // are intentionally optional at application startup: the Owner bootstrap is
+  // an explicit, auditable operation, so the running API neither requires nor
+  // reads them. `seed:owner` enforces presence itself when invoked.
+  OWNER_EMAIL: Joi.string().email().optional().messages({
+    'string.email': 'OWNER_EMAIL must be a valid email address.'
+  }),
+  OWNER_PASSWORD: Joi.string().min(8).max(128).optional().messages({
+    'string.min': 'OWNER_PASSWORD must be at least 8 characters.',
+    'string.max': 'OWNER_PASSWORD must not exceed 128 characters.'
+  }),
+
   ACCESS_TOKEN_SECRET: Joi.when('NODE_ENV', {
     is: 'production',
     then: secretValidator(64, 3.5).required(),

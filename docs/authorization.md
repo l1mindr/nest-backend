@@ -321,15 +321,34 @@ a grant. No route, guard or use case changes.
 ## Bootstrapping the owner
 
 No migration creates an owner: it would need credentials, and a fabricated row
-with a placeholder password is a default-credential liability. Promote a real,
-verified account instead:
+with a placeholder password is a default-credential liability.
+
+The supported way is the dedicated, idempotent command:
+
+```bash
+OWNER_EMAIL=admin@example.com OWNER_PASSWORD='<strong password>' pnpm seed:owner
+```
+
+- Credentials come from the environment (`OWNER_EMAIL`, `OWNER_PASSWORD`) and are
+  never hardcoded, persisted in a migration, or logged.
+- The password is hashed with the same Argon2id mechanism normal users get
+  (`HashingProvider`/`Argon2Provider`).
+- The owner is created directly as `ACTIVATE` — the status a trusted account
+  reaches after verification — so it can log in at once through the ordinary
+  login endpoint.
+- It is idempotent: once an owner exists it prints "already exists" and makes no
+  changes. It can be run safely many times.
+
+The unique index `uq_user_single_owner` guarantees only one row ever has role
+`OWNER`, so a concurrent invocation can never create a second owner.
+
+Running it manually against a verified account (e.g. in a scratch environment)
+is still possible, but the command above is the auditable, repeatable path:
 
 ```sql
 UPDATE "user" SET role = 'OWNER'
 WHERE email = 'owner@example.com' AND status = 'ACTIVATE';
 ```
-
-The unique index guarantees this can only succeed once.
 
 ## Security notes
 
