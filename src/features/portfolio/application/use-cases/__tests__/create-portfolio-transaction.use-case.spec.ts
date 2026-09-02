@@ -54,6 +54,12 @@ describe('CreatePortfolioTransactionUseCase', () => {
   const auditLogService = {
     record: jest.fn()
   };
+  const realtimeEventPublisher = {
+    publishToUser: jest.fn(),
+    disconnectSession: jest.fn(),
+    disconnectUser: jest.fn(),
+    disconnectUserExcept: jest.fn()
+  };
 
   let useCase: CreatePortfolioTransactionUseCase;
 
@@ -73,7 +79,8 @@ describe('CreatePortfolioTransactionUseCase', () => {
       checkpointRepository as any,
       holdingsService as any,
       logger as any,
-      auditLogService as any
+      auditLogService as any,
+      realtimeEventPublisher as any
     );
   });
 
