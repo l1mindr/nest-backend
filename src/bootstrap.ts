@@ -38,10 +38,18 @@ export async function setupApp(app: NestExpressApplication) {
     app.set('trust proxy', 1);
   }
 
-  // because authentication relies on HttpOnly cookies.
+  // Cross-origin shipping relies on credentials (cookies), because authentication
+  // relies on HttpOnly cookies.
+  //
+  // The development fallback is the Next.js frontend origin (http://localhost:3000),
+  // not the legacy Astro/Vite port (4321). Cookies are host-only and cross-origin
+  // for the browser, so the refresh response's `Set-Cookie` for the new
+  // `access_token` is only honored when this origin is in the CORS allowlist with
+  // credentials enabled — otherwise the browser discards it and an expired access
+  // token can never be refreshed despite a valid refresh_token cookie.
   const corsOrigin: string | false =
     process.env.CORS_ORIGIN ??
-    (IS_DEVELOPMENT ? 'http://localhost:4321' : false);
+    (IS_DEVELOPMENT ? 'http://localhost:3000' : false);
 
   app.enableCors({
     origin: corsOrigin,

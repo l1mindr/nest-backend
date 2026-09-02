@@ -112,7 +112,7 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
 
   // Allowed CORS origin for cross-origin browser requests. Required in
   // production to prevent accidental wildcard-less CORS denial; optional
-  // in development/test where the bootstrap falls back to localhost:4321.
+  // in development/test where the bootstrap falls back to localhost:3000.
   // Use a single absolute URL (e.g. https://app.your-domain.com).
   CORS_ORIGIN: Joi.when('NODE_ENV', {
     is: 'production',
