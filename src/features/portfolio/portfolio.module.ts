@@ -36,6 +36,7 @@ import { PortfolioPnlMapper } from './application/mappers/portfolio-pnl.mapper';
 import { HoldingMapper } from './application/mappers/holding.mapper';
 import { PortfolioTransactionMapper } from './application/mappers/portfolio-transaction.mapper';
 import { PortfolioOpeningBalanceMapper } from './application/mappers/portfolio-opening-balance.mapper';
+import { HoldingsService } from './infrastructure/providers/holdings.service';
 import { PortfoliosController } from './presentation/controllers/portfolios.controller';
 import { HoldingsController } from './presentation/controllers/holdings.controller';
 import { PortfolioTransactionsController } from './presentation/controllers/portfolio-transactions.controller';
@@ -185,7 +186,8 @@ import {
     PortfolioPnlMapper,
     HoldingMapper,
     PortfolioTransactionMapper,
-    PortfolioOpeningBalanceMapper
+    PortfolioOpeningBalanceMapper,
+    HoldingsService
   ]
 })
 export class PortfolioModule {}

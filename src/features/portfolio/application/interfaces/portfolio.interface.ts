@@ -1,3 +1,4 @@
+import { Asset } from '@features/assets/domain/entities/asset.entity';
 import { PortfolioCalculationEngine } from '../../domain/calculation/portfolio-calculation.engine';
 import { Lot } from '../../domain/calculation/lot';
 import { RealizedPnlEvent } from '../../domain/calculation/types/calculation-result.types';
@@ -199,11 +200,28 @@ export interface IDeleteHoldingUseCase {
 
 export const DELETE_HOLDING_USE_CASE = Symbol('IDeleteHoldingUseCase');
 
+/**
+ * One asset position derived from the transaction ledger.
+ *
+ * Carries the same fields as a `holding` row so it maps to the unchanged
+ * holdings response, but nothing here is persisted.
+ */
+export interface DerivedHolding {
+  id: string;
+  portfolioId: string;
+  assetId: string;
+  amount: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  asset: Asset;
+}
+
 export interface IListHoldingsUseCase {
   execute(
     userId: string,
     options: { portfolioId?: string }
-  ): Promise<Holding[]>;
+  ): Promise<DerivedHolding[]>;
 }
 
 export const LIST_HOLDINGS_USE_CASE = Symbol('IListHoldingsUseCase');
@@ -330,6 +348,16 @@ export interface IPortfolioTransactionRepository {
     portfolioId: string,
     assetId: string,
     manager: EntityManager
+  ): Promise<PortfolioTransaction[]>;
+  /**
+   * Get all transactions for a specific asset in chronological order.
+   * Used for holdings calculations and validation.
+   * Ordered by occurredAt ASC, id ASC.
+   */
+  listByPortfolioAndAsset(
+    portfolioId: string,
+    assetId: string,
+    userId: string
   ): Promise<PortfolioTransaction[]>;
   update(
     id: string,

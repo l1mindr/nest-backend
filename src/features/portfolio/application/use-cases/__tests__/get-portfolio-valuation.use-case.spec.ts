@@ -1,5 +1,5 @@
-import { Holding } from '../../../domain/entities/holding.entity';
 import { Portfolio } from '../../../domain/entities/portfolio.entity';
+import { DerivedHolding } from '../../interfaces/portfolio.interface';
 import { PortfolioValuationStatus } from '../../../domain/enums/portfolio-valuation-status.enum';
 import { PortfolioErrorCode } from '../../../domain/errors/portfolio-error-code.enum';
 import { GetPortfolioValuationUseCase } from '../get-portfolio-valuation.use-case';
@@ -11,8 +11,8 @@ describe('GetPortfolioValuationUseCase', () => {
     name: 'My Ledger'
   } as Portfolio;
 
-  const holdingRepository = {
-    listForValuation: jest.fn()
+  const holdingsService = {
+    getPortfolioHoldings: jest.fn()
   };
   const portfolioRepository = {
     findByIdAndUser: jest.fn()
@@ -26,7 +26,7 @@ describe('GetPortfolioValuationUseCase', () => {
     id: string,
     amount: string,
     currentPrice: string | null
-  ): Holding {
+  ): DerivedHolding {
     return {
       id,
       assetId: `asset-${id}`,
@@ -37,7 +37,7 @@ describe('GetPortfolioValuationUseCase', () => {
         name: 'Bitcoin',
         currentPrice
       }
-    } as Holding;
+    } as DerivedHolding;
   }
 
   let useCase: GetPortfolioValuationUseCase;
@@ -45,17 +45,17 @@ describe('GetPortfolioValuationUseCase', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     portfolioRepository.findByIdAndUser.mockResolvedValue(portfolio);
-    holdingRepository.listForValuation.mockResolvedValue([]);
+    holdingsService.getPortfolioHoldings.mockResolvedValue([]);
 
     useCase = new GetPortfolioValuationUseCase(
       portfolioRepository as any,
-      holdingRepository as any,
+      holdingsService as any,
       logger as any
     );
   });
 
   it('should value every holding and report a COMPLETE portfolio', async () => {
-    holdingRepository.listForValuation.mockResolvedValue([
+    holdingsService.getPortfolioHoldings.mockResolvedValue([
       makeHolding('h1', '1.500000000000000000', '60000.00000000'),
       makeHolding('h2', '2.000000000000000000', '3000.00000000')
     ]);
@@ -66,8 +66,9 @@ describe('GetPortfolioValuationUseCase', () => {
       'portfolio-id',
       'user-id'
     );
-    expect(holdingRepository.listForValuation).toHaveBeenCalledWith(
-      'portfolio-id'
+    expect(holdingsService.getPortfolioHoldings).toHaveBeenCalledWith(
+      'portfolio-id',
+      'user-id'
     );
     expect(result).toMatchObject({
       portfolioId: 'portfolio-id',
@@ -92,7 +93,7 @@ describe('GetPortfolioValuationUseCase', () => {
   });
 
   it('should exclude unvalued holdings from the total and report PARTIAL', async () => {
-    holdingRepository.listForValuation.mockResolvedValue([
+    holdingsService.getPortfolioHoldings.mockResolvedValue([
       makeHolding('h1', '1.5', '60000'),
       makeHolding('h2', '2', null)
     ]);
@@ -112,7 +113,7 @@ describe('GetPortfolioValuationUseCase', () => {
   });
 
   it('should report UNAVAILABLE when no holding has a price', async () => {
-    holdingRepository.listForValuation.mockResolvedValue([
+    holdingsService.getPortfolioHoldings.mockResolvedValue([
       makeHolding('h1', '1.5', null)
     ]);
 
@@ -138,8 +139,27 @@ describe('GetPortfolioValuationUseCase', () => {
     });
   });
 
+  it('should ignore positions the user has fully exited', async () => {
+    // A sold-out position nets to zero in the ledger. It is worth nothing, so
+    // counting it as unvalued would wrongly downgrade the portfolio status.
+    holdingsService.getPortfolioHoldings.mockResolvedValue([
+      makeHolding('h1', '1.5', '60000'),
+      makeHolding('h2', '0', '3000')
+    ]);
+
+    const result = await useCase.execute('user-id', 'portfolio-id');
+
+    expect(result).toMatchObject({
+      status: PortfolioValuationStatus.COMPLETE,
+      totalValue: '90000',
+      valuedHoldings: 1,
+      unvaluedHoldings: 0
+    });
+    expect(result.holdings).toHaveLength(1);
+  });
+
   it('should value with exact decimal arithmetic', async () => {
-    holdingRepository.listForValuation.mockResolvedValue([
+    holdingsService.getPortfolioHoldings.mockResolvedValue([
       makeHolding('h1', '0.100000000000000000', '0.20000000')
     ]);
 
@@ -158,6 +178,6 @@ describe('GetPortfolioValuationUseCase', () => {
       code: PortfolioErrorCode.PORTFOLIO_NOT_FOUND
     });
 
-    expect(holdingRepository.listForValuation).not.toHaveBeenCalled();
+    expect(holdingsService.getPortfolioHoldings).not.toHaveBeenCalled();
   });
 });

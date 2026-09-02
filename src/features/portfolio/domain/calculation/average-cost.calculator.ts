@@ -7,7 +7,6 @@ import {
 } from '@core/decimal/decimal.util';
 import { CostBasisCalculator } from './cost-basis.calculator';
 import {
-  assertAvailable,
   assertFee,
   assertOpeningCost,
   assertOpeningQuantity,
@@ -85,20 +84,20 @@ export class AverageCostCalculator implements CostBasisCalculator {
         }
         case CalculationTransactionType.SELL: {
           const price = requirePrice(transaction.price, transaction.type);
-          assertAvailable(quantity, amount);
+          const sold = this.clampDisposal(quantity, amount);
           const releasedBasis = this.releaseProportionalBasis(
             totalCost,
             quantity,
-            amount
+            sold
           );
-          const proceeds = multiplyDecimals(amount, price);
-          quantity = subtractDecimals(quantity, amount);
+          const proceeds = multiplyDecimals(sold, price);
+          quantity = subtractDecimals(quantity, sold);
           totalCost = subtractDecimals(totalCost, releasedBasis);
           realizedPnl.push({
             transactionId: transaction.id,
             occurredAt: transaction.occurredAt,
             type: CalculationTransactionType.SELL,
-            amount,
+            amount: sold,
             price,
             proceeds,
             releasedCostBasis: releasedBasis,
@@ -114,13 +113,13 @@ export class AverageCostCalculator implements CostBasisCalculator {
         }
         case CalculationTransactionType.TRANSFER_OUT: {
           assertOptionalPrice(transaction.price);
-          assertAvailable(quantity, amount);
+          const transferred = this.clampDisposal(quantity, amount);
           const releasedBasis = this.releaseProportionalBasis(
             totalCost,
             quantity,
-            amount
+            transferred
           );
-          quantity = subtractDecimals(quantity, amount);
+          quantity = subtractDecimals(quantity, transferred);
           totalCost = subtractDecimals(totalCost, releasedBasis);
           break;
         }
@@ -145,7 +144,10 @@ export class AverageCostCalculator implements CostBasisCalculator {
     quantity: string,
     amount: string
   ): string {
-    if (compareDecimals(totalCost, '0') === 0) {
+    if (
+      compareDecimals(totalCost, '0') === 0 ||
+      compareDecimals(amount, '0') === 0
+    ) {
       return '0';
     }
 
@@ -155,5 +157,16 @@ export class AverageCostCalculator implements CostBasisCalculator {
       CALCULATION_DIVISION_MAX_FRACTION_DIGITS
     );
     return multiplyDecimals(amount, averageCost);
+  }
+
+  /**
+   * Clamps a disposal to the quantity actually held. A disposal may not exceed
+   * the available inventory, so any excess (the result of an oversell created
+   * before transaction-side validation existed) is ignored rather than
+   * rejected: realized quantity/cost/proceeds are computed on the held amount
+   * and the remaining quantity floors at zero.
+   */
+  private clampDisposal(quantity: string, amount: string): string {
+    return compareDecimals(amount, quantity) > 0 ? quantity : amount;
   }
 }
