@@ -99,7 +99,12 @@ export enum LogEvent {
 
   EMAIL_VERIFIED = 'email.verify.succeeded',
   VERIFICATION_ATTEMPTS_EXCEEDED = 'email.verify.attempts_exceeded',
-  VERIFICATION_RESEND_LIMIT_EXCEEDED = 'email.verify.resend_limit_exceeded'
+  VERIFICATION_RESEND_LIMIT_EXCEEDED = 'email.verify.resend_limit_exceeded',
+
+  REALTIME_WS_CONNECTED = 'realtime.ws.connected',
+  REALTIME_WS_DISCONNECTED = 'realtime.ws.disconnected',
+  REALTIME_WS_AUTH_REJECTED = 'realtime.ws.auth_rejected',
+  REALTIME_EVENT_PUBLISHED = 'realtime.event.published'
 }
 
 export const REDACT_PATHS = [
