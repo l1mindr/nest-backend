@@ -6,6 +6,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import {
   DerivedHolding,
+  HOLDING_REPOSITORY,
+  IHoldingRepository,
   IPortfolioOpeningBalanceRepository,
   IPortfolioTransactionRepository,
   PORTFOLIO_OPENING_BALANCE_REPOSITORY,
@@ -59,7 +61,9 @@ export class HoldingsService {
     @Inject(PORTFOLIO_OPENING_BALANCE_REPOSITORY)
     private readonly openingBalanceRepository: IPortfolioOpeningBalanceRepository,
     @Inject(ASSET_REPOSITORY)
-    private readonly assetRepository: IAssetRepository
+    private readonly assetRepository: IAssetRepository,
+    @Inject(HOLDING_REPOSITORY)
+    private readonly holdingRepository: IHoldingRepository
   ) {}
 
   /**
@@ -149,14 +153,18 @@ export class HoldingsService {
    *
    * Assets that only have an opening balance are included, so the result
    * always satisfies `opening + BUY + TRANSFER_IN - SELL - TRANSFER_OUT`.
+   * Assets with a manually-created `holding` row and no ledger activity are
+   * included as-is: the ledger is the source of truth once it has an entry
+   * for that asset, but a plain holding is still a position until then.
    */
   async getPortfolioHoldings(
     portfolioId: string,
     userId: string
   ): Promise<DerivedHolding[]> {
-    const [transactions, openingBalances] = await Promise.all([
+    const [transactions, openingBalances, manualHoldings] = await Promise.all([
       this.transactionRepository.listForPnl(portfolioId, userId),
-      this.openingBalanceRepository.listByPortfolioAndUser(portfolioId, userId)
+      this.openingBalanceRepository.listByPortfolioAndUser(portfolioId, userId),
+      this.holdingRepository.listForValuation(portfolioId)
     ]);
 
     const ledgers = new Map<string, CalculationTransaction[]>();
@@ -215,6 +223,27 @@ export class HoldingsService {
         asset
       });
     });
+
+    const derivedAssetIds = new Set(assetIds);
+
+    // A manually-created holding for an asset the ledger has no opinion on
+    // (no transactions, no opening balance) is still a position: fall back to
+    // it so `POST /v1/holdings` positions remain visible once the ledger
+    // becomes the primary source of truth for everything else.
+    for (const holding of manualHoldings) {
+      if (derivedAssetIds.has(holding.assetId)) continue;
+
+      holdings.push({
+        id: holding.id,
+        portfolioId: holding.portfolioId,
+        assetId: holding.assetId,
+        amount: holding.amount,
+        notes: holding.notes,
+        createdAt: holding.createdAt,
+        updatedAt: holding.updatedAt,
+        asset: holding.asset
+      });
+    }
 
     return holdings;
   }
