@@ -12,9 +12,6 @@ describe('HoldingsService', () => {
   const assetRepository = {
     findById: jest.fn()
   };
-  const holdingRepository = {
-    listForValuation: jest.fn()
-  };
 
   const asset = (id: string) => ({ id, symbol: 'btc', name: 'Bitcoin' });
 
@@ -39,7 +36,6 @@ describe('HoldingsService', () => {
     transactionRepository.listForPnl.mockResolvedValue([]);
     transactionRepository.listByPortfolioAndAsset.mockResolvedValue([]);
     openingBalanceRepository.listByPortfolioAndUser.mockResolvedValue([]);
-    holdingRepository.listForValuation.mockResolvedValue([]);
     assetRepository.findById.mockImplementation((id: string) =>
       Promise.resolve(asset(id))
     );
@@ -47,8 +43,7 @@ describe('HoldingsService', () => {
     service = new HoldingsService(
       transactionRepository as never,
       openingBalanceRepository as never,
-      assetRepository as never,
-      holdingRepository as never
+      assetRepository as never
     );
   });
 
@@ -202,62 +197,6 @@ describe('HoldingsService', () => {
 
       expect(result).toEqual([
         expect.objectContaining({ assetId: 'untraded', amount: '8' })
-      ]);
-    });
-
-    it('includes a manually-created holding the ledger has no entry for', async () => {
-      holdingRepository.listForValuation.mockResolvedValue([
-        {
-          id: 'holding-id',
-          portfolioId: 'portfolio-id',
-          assetId: 'manual-asset',
-          amount: '1.5',
-          notes: 'Cold storage',
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-          asset: asset('manual-asset')
-        }
-      ]);
-
-      const result = await service.getPortfolioHoldings(
-        'portfolio-id',
-        'user-id'
-      );
-
-      expect(result).toEqual([
-        expect.objectContaining({
-          id: 'holding-id',
-          assetId: 'manual-asset',
-          amount: '1.5',
-          notes: 'Cold storage'
-        })
-      ]);
-    });
-
-    it('prefers the ledger over a manual holding for the same asset', async () => {
-      transactionRepository.listForPnl.mockResolvedValue([
-        tx(PortfolioTransactionType.BUY, '2')
-      ]);
-      holdingRepository.listForValuation.mockResolvedValue([
-        {
-          id: 'holding-id',
-          portfolioId: 'portfolio-id',
-          assetId: 'asset-id',
-          amount: '999',
-          notes: 'stale',
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-          asset: asset('asset-id')
-        }
-      ]);
-
-      const result = await service.getPortfolioHoldings(
-        'portfolio-id',
-        'user-id'
-      );
-
-      expect(result).toEqual([
-        expect.objectContaining({ assetId: 'asset-id', amount: '2' })
       ]);
     });
 
