@@ -56,6 +56,12 @@ describe('PriceCheckService', () => {
     info: jest.fn(),
     error: jest.fn()
   };
+  const realtimeEventPublisher = {
+    publishToUser: jest.fn(),
+    disconnectSession: jest.fn(),
+    disconnectUser: jest.fn(),
+    disconnectUserExcept: jest.fn()
+  };
 
   let service: PriceCheckService;
 
@@ -81,7 +87,8 @@ describe('PriceCheckService', () => {
       notificationService as any,
       clockService as unknown as ClockService,
       new PriceAlertEvaluatorService(),
-      logger as any
+      logger as any,
+      realtimeEventPublisher as any
     );
   });
 

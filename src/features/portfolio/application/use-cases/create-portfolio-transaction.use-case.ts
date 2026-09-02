@@ -24,6 +24,10 @@ import {
   ResourceType
 } from '@infrastructure/logging/mongodb/mongodb.constants';
 import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+import {
+  IRealtimeEventPublisher,
+  REALTIME_EVENT_PUBLISHER
+} from '@features/realtime/application/interfaces/realtime.interface';
 import { HoldingsService } from '../../infrastructure/providers/holdings.service';
 
 @Injectable()
@@ -39,7 +43,9 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
     private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
     private readonly holdingsService: HoldingsService,
     private readonly logger: PinoLogger,
-    private readonly auditLogService: AuditLogService
+    private readonly auditLogService: AuditLogService,
+    @Inject(REALTIME_EVENT_PUBLISHER)
+    private readonly realtimeEventPublisher: IRealtimeEventPublisher
   ) {
     this.logger.setContext(CreatePortfolioTransactionUseCase.name);
   }
@@ -157,6 +163,11 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
       resourceType: ResourceType.TRANSACTION,
       resourceId: transaction.id,
       success: true
+    });
+
+    this.realtimeEventPublisher.publishToUser(userId, {
+      type: 'transaction.created',
+      payload: { portfolioId, transactionId: transaction.id }
     });
 
     return transaction;

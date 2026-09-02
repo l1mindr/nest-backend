@@ -6,12 +6,37 @@ import {
 import { helmetConfig } from '@infrastructure/http/helmet.config';
 import { VersioningType } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import {
   buildOpenApiDocument,
   setupOpenApiUi
 } from '@presentation/swagger/openapi.document';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
+import { ServerOptions } from 'socket.io';
+
+/**
+ * Applies the same CORS allowlist to the WebSocket (Socket.IO) handshake as
+ * `app.enableCors` applies to REST — computed at `setupApp` runtime rather
+ * than at `@WebSocketGateway()` decorator/module-load time, since the
+ * decorator would otherwise read `process.env.CORS_ORIGIN` before
+ * `ConfigModule` has necessarily loaded it.
+ */
+class CorsAwareSocketIoAdapter extends IoAdapter {
+  constructor(
+    app: NestExpressApplication,
+    private readonly corsOrigin: string | false
+  ) {
+    super(app);
+  }
+
+  override createIOServer(port: number, options?: ServerOptions) {
+    return super.createIOServer(port, {
+      ...options,
+      cors: { origin: this.corsOrigin, credentials: true }
+    });
+  }
+}
 
 /**
  * Servers advertised in the OpenAPI document. The public entry is only listed
@@ -61,6 +86,11 @@ export async function setupApp(app: NestExpressApplication) {
     // middleware, so the client may send either casing.
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
   });
+
+  // Socket.IO attaches to this same underlying HTTP server (no separate
+  // port/origin) but enforces its own CORS check on the handshake, so it
+  // needs the identical allowlist explicitly.
+  app.useWebSocketAdapter(new CorsAwareSocketIoAdapter(app, corsOrigin));
 
   if (IS_DEVELOPMENT) {
     setupOpenApiUi(
