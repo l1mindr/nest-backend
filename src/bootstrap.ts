@@ -31,10 +31,15 @@ class CorsAwareSocketIoAdapter extends IoAdapter {
   }
 
   override createIOServer(port: number, options?: ServerOptions) {
+    // `ServerOptions.path` is required by socket.io's own types, but Socket.IO
+    // fills in its default (`/socket.io`) at runtime regardless of whether the
+    // caller supplies it — @nestjs/platform-socket.io just narrowed this
+    // parameter from `any` (11.x) to `ServerOptions` (12.x), so the merged,
+    // still-partial object needs an assertion rather than a behavior change.
     return super.createIOServer(port, {
       ...options,
       cors: { origin: this.corsOrigin, credentials: true }
-    });
+    } as ServerOptions);
   }
 }
 
