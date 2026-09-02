@@ -107,4 +107,46 @@ export class AuthorizationErrors {
       'This invitation has expired'
     );
   }
+
+  static roleNotFound() {
+    return new AppError(
+      AuthorizationErrorCode.ROLE_NOT_FOUND,
+      ErrorDomain.AUTHORIZATION,
+      HttpStatus.NOT_FOUND,
+      undefined,
+      'Role not found'
+    );
+  }
+
+  static roleNameConflict(name: string) {
+    return new AppError(
+      AuthorizationErrorCode.ROLE_NAME_CONFLICT,
+      ErrorDomain.AUTHORIZATION,
+      HttpStatus.CONFLICT,
+      { name },
+      'A role with this name already exists'
+    );
+  }
+
+  /** Any attempt to rename, re-describe, re-permission or delete a system role. */
+  static roleProtected(action: string) {
+    return new AppError(
+      AuthorizationErrorCode.ROLE_PROTECTED,
+      ErrorDomain.AUTHORIZATION,
+      HttpStatus.FORBIDDEN,
+      { action },
+      'This role is a system role and cannot be modified or deleted'
+    );
+  }
+
+  /** A role cannot be deleted while an account is still assigned to it. */
+  static roleHasAssignments() {
+    return new AppError(
+      AuthorizationErrorCode.ROLE_HAS_ASSIGNMENTS,
+      ErrorDomain.AUTHORIZATION,
+      HttpStatus.CONFLICT,
+      undefined,
+      'This role still has accounts assigned to it'
+    );
+  }
 }
