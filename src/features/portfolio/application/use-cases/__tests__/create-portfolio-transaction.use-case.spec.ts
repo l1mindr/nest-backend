@@ -24,7 +24,8 @@ describe('CreatePortfolioTransactionUseCase', () => {
     notes: null
   } as PortfolioTransaction;
   const transactionRepository = {
-    create: jest.fn()
+    create: jest.fn(),
+    listByPortfolioAndAsset: jest.fn()
   };
   const portfolioRepository = {
     findByIdAndUser: jest.fn()
@@ -46,6 +47,13 @@ describe('CreatePortfolioTransactionUseCase', () => {
     setContext: jest.fn(),
     info: jest.fn()
   };
+  const holdingsService = {
+    getAssetQuantity: jest.fn(),
+    canSell: jest.fn()
+  };
+  const auditLogService = {
+    record: jest.fn()
+  };
 
   let useCase: CreatePortfolioTransactionUseCase;
 
@@ -54,14 +62,18 @@ describe('CreatePortfolioTransactionUseCase', () => {
     portfolioRepository.findByIdAndUser.mockResolvedValue(portfolio);
     assetRepository.findById.mockResolvedValue(asset);
     transactionRepository.create.mockResolvedValue(transaction);
+    transactionRepository.listByPortfolioAndAsset.mockResolvedValue([]);
+    holdingsService.getAssetQuantity.mockResolvedValue('10');
+    holdingsService.canSell.mockReturnValue(true);
 
     useCase = new CreatePortfolioTransactionUseCase(
       transactionRepository as any,
       portfolioRepository as any,
       assetRepository as any,
       checkpointRepository as any,
+      holdingsService as any,
       logger as any,
-      { record: jest.fn() } as any
+      auditLogService as any
     );
   });
 
@@ -223,5 +235,88 @@ describe('CreatePortfolioTransactionUseCase', () => {
     });
 
     expect(transactionRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('should prevent SELL when insufficient holdings', async () => {
+    holdingsService.canSell.mockReturnValue(false);
+
+    await expect(
+      useCase.execute('user-id', 'portfolio-id', {
+        assetId: 'asset-id',
+        type: PortfolioTransactionType.SELL,
+        amount: '25',
+        price: '60000',
+        occurredAt: '2026-07-28T08:00:00.000Z'
+      } as any)
+    ).rejects.toMatchObject({
+      code: PortfolioErrorCode.INSUFFICIENT_HOLDINGS
+    });
+
+    expect(transactionRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('should measure available quantity through the shared holdings service', async () => {
+    // Resolving through the service is what keeps oversell validation anchored
+    // on the same opening balance the holdings endpoint reports.
+    await useCase.execute('user-id', 'portfolio-id', {
+      assetId: 'asset-id',
+      type: PortfolioTransactionType.SELL,
+      amount: '5',
+      price: '60000',
+      occurredAt: '2026-07-28T08:00:00.000Z'
+    } as any);
+
+    expect(holdingsService.getAssetQuantity).toHaveBeenCalledWith(
+      'portfolio-id',
+      'asset-id',
+      'user-id'
+    );
+    expect(holdingsService.canSell).toHaveBeenCalledWith('10', '5');
+  });
+
+  it('should prevent TRANSFER_OUT when insufficient holdings', async () => {
+    holdingsService.canSell.mockReturnValue(false);
+
+    await expect(
+      useCase.execute('user-id', 'portfolio-id', {
+        assetId: 'asset-id',
+        type: PortfolioTransactionType.TRANSFER_OUT,
+        amount: '15',
+        occurredAt: '2026-07-28T08:00:00.000Z'
+      } as any)
+    ).rejects.toMatchObject({
+      code: PortfolioErrorCode.INSUFFICIENT_HOLDINGS
+    });
+
+    expect(transactionRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('should allow SELL when holdings are sufficient', async () => {
+    holdingsService.canSell.mockReturnValue(true);
+
+    const result = await useCase.execute('user-id', 'portfolio-id', {
+      assetId: 'asset-id',
+      type: PortfolioTransactionType.SELL,
+      amount: '5',
+      price: '60000',
+      occurredAt: '2026-07-28T08:00:00.000Z'
+    } as any);
+
+    expect(transactionRepository.create).toHaveBeenCalled();
+    expect(result.asset).toBe(asset);
+  });
+
+  it('should allow TRANSFER_OUT when holdings are sufficient', async () => {
+    holdingsService.canSell.mockReturnValue(true);
+
+    const result = await useCase.execute('user-id', 'portfolio-id', {
+      assetId: 'asset-id',
+      type: PortfolioTransactionType.TRANSFER_OUT,
+      amount: '5',
+      occurredAt: '2026-07-28T08:00:00.000Z'
+    } as any);
+
+    expect(transactionRepository.create).toHaveBeenCalled();
+    expect(result.asset).toBe(asset);
   });
 });

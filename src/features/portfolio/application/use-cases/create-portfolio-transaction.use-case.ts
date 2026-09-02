@@ -24,6 +24,7 @@ import {
   ResourceType
 } from '@infrastructure/logging/mongodb/mongodb.constants';
 import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+import { HoldingsService } from '../../infrastructure/providers/holdings.service';
 
 @Injectable()
 export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransactionUseCase {
@@ -36,6 +37,7 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
     private readonly assetRepository: IAssetRepository,
     @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
     private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
+    private readonly holdingsService: HoldingsService,
     private readonly logger: PinoLogger,
     private readonly auditLogService: AuditLogService
   ) {
@@ -75,6 +77,30 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
       dto.price === undefined
     ) {
       throw PortfolioErrors.transactionPriceRequired();
+    }
+
+    // A position can only leave the portfolio if the ledger says it is there.
+    // The quantity is resolved through the same service the holdings endpoint
+    // uses, so a rejection here always matches what the user sees.
+    if (
+      dto.type === PortfolioTransactionType.SELL ||
+      dto.type === PortfolioTransactionType.TRANSFER_OUT
+    ) {
+      const currentHoldings = await this.holdingsService.getAssetQuantity(
+        portfolioId,
+        dto.assetId,
+        userId
+      );
+
+      if (
+        !this.holdingsService.canSell(currentHoldings, dto.amount.toString())
+      ) {
+        throw PortfolioErrors.insufficientHoldings(
+          dto.assetId,
+          currentHoldings,
+          dto.amount.toString()
+        );
+      }
     }
 
     const data: CreatePortfolioTransactionData = {

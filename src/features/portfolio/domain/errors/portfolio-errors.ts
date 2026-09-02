@@ -113,4 +113,28 @@ export class PortfolioErrors {
       'Invalid cursor'
     );
   }
+
+  static insufficientHoldings(
+    assetId?: string,
+    currentHolding?: string,
+    requestedAmount?: string
+  ) {
+    return new AppError(
+      PortfolioErrorCode.INSUFFICIENT_HOLDINGS,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      { assetId, currentHolding, requestedAmount },
+      'Insufficient holdings for this transaction'
+    );
+  }
+
+  static assetNotFoundError(assetId?: string) {
+    return new AppError(
+      PortfolioErrorCode.ASSET_NOT_FOUND,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.NOT_FOUND,
+      assetId ? { assetId } : undefined,
+      'Asset not found'
+    );
+  }
 }
