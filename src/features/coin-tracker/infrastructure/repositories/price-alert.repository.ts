@@ -121,6 +121,13 @@ export class PriceAlertRepository implements IPriceAlertRepository {
     const qb = this.priceAlertRepo
       .createQueryBuilder('alert')
       .leftJoinAndSelect('alert.coin', 'coin')
+      // The owner comes along because notifying is the whole point of this
+      // query and a second lookup per alert would be a round trip per row.
+      // Joined column by column rather than with `leftJoinAndSelect`: the
+      // scheduler needs an address, and nothing else on a user belongs in a
+      // batch this size.
+      .leftJoin('alert.owner', 'owner')
+      .addSelect(['owner.id', 'owner.email'])
       .where('alert.status = :status', { status: AlertStatus.ACTIVE });
 
     if (options.cursorId) {

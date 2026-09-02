@@ -1,6 +1,7 @@
 import {
   EmailMessage,
-  EmailMessageType
+  EmailMessageType,
+  PriceAlertDirection
 } from '@infrastructure/email/email.message';
 import { EmailJob } from './email.job';
 
@@ -95,6 +96,41 @@ function readIsoTimestamp(
   return value;
 }
 
+/**
+ * Prices are carried as strings out of a `numeric` column, so this checks the
+ * shape the renderer expects rather than converting: a value that reached the
+ * queue as a number would format as something other than the price stored.
+ */
+function readDecimal(
+  source: Record<string, unknown>,
+  field: string,
+  path: string
+): string {
+  const value = readString(source, field, path);
+
+  if (!/^-?\d+(\.\d+)?$/.test(value)) {
+    throw new MalformedEmailJobError(
+      `${path}.${field} must be a decimal string`
+    );
+  }
+
+  return value;
+}
+
+function readDirection(
+  source: Record<string, unknown>,
+  field: string,
+  path: string
+): PriceAlertDirection {
+  const value = readString(source, field, path);
+
+  if (value !== 'BUY' && value !== 'SELL') {
+    throw new MalformedEmailJobError(`${path}.${field} must be BUY or SELL`);
+  }
+
+  return value;
+}
+
 function readData(message: Record<string, unknown>): Record<string, unknown> {
   const { data } = message;
 
@@ -165,6 +201,20 @@ function parseMessage(value: unknown): EmailMessage {
         data: {
           displayName: readNullableString(data, 'displayName', 'message.data'),
           unsuspendedAt: readIsoTimestamp(data, 'unsuspendedAt', 'message.data')
+        }
+      };
+
+    case EmailMessageType.PRICE_ALERT:
+      return {
+        type: EmailMessageType.PRICE_ALERT,
+        to,
+        data: {
+          coinName: readString(data, 'coinName', 'message.data'),
+          coinSymbol: readString(data, 'coinSymbol', 'message.data'),
+          direction: readDirection(data, 'direction', 'message.data'),
+          targetPrice: readDecimal(data, 'targetPrice', 'message.data'),
+          currentPrice: readDecimal(data, 'currentPrice', 'message.data'),
+          triggeredAt: readIsoTimestamp(data, 'triggeredAt', 'message.data')
         }
       };
 

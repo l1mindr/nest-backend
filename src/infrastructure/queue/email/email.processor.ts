@@ -25,8 +25,8 @@ import { EmailJob } from './email.job';
  * Processing is at-least-once. A worker that dies after the provider accepted a
  * message but before the job was marked complete will send that message again
  * when the job is reclaimed, so every message it handles has to be one a
- * recipient can receive twice without harm. All four are: each names a code,
- * token or account event that is already true.
+ * recipient can receive twice without harm. All five are: each names a code,
+ * token, account event or price crossing that is already true.
  */
 @Processor(EMAIL_QUEUE, { concurrency: EMAIL_WORKER_CONCURRENCY })
 export class EmailProcessor extends WorkerHost {
@@ -196,6 +196,16 @@ export class EmailProcessor extends WorkerHost {
           message.data.displayName,
           new Date(message.data.unsuspendedAt)
         );
+
+      case EmailMessageType.PRICE_ALERT:
+        return this.emailService.sendPriceAlertEmail(message.to, {
+          coinName: message.data.coinName,
+          coinSymbol: message.data.coinSymbol,
+          direction: message.data.direction,
+          targetPrice: message.data.targetPrice,
+          currentPrice: message.data.currentPrice,
+          triggeredAt: new Date(message.data.triggeredAt)
+        });
     }
   }
 }

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PriceAlertDirection } from './email.message';
 
 @Injectable()
 export abstract class EmailService {
@@ -31,4 +32,22 @@ export abstract class EmailService {
     displayName: string | null,
     unsuspendedAt: Date
   ): Promise<void>;
+
+  abstract sendPriceAlertEmail(
+    email: string,
+    alert: PriceAlertEmailContent
+  ): Promise<void>;
+}
+
+/**
+ * Grouped rather than passed as five positional arguments, which at this arity
+ * would be five interchangeable strings at the call site.
+ */
+export interface PriceAlertEmailContent {
+  coinName: string;
+  coinSymbol: string;
+  direction: PriceAlertDirection;
+  targetPrice: string;
+  currentPrice: string;
+  triggeredAt: Date;
 }

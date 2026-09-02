@@ -9,6 +9,8 @@ import { PriceAlertRepository } from '../price-alert.repository';
 describe('PriceAlertRepository', () => {
   const queryBuilder = {
     leftJoinAndSelect: jest.fn().mockReturnThis(),
+    leftJoin: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
     innerJoin: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
     distinct: jest.fn().mockReturnThis(),
@@ -171,5 +173,52 @@ describe('PriceAlertRepository', () => {
       { id: 'alert-id', userId: 'user-id' },
       { status: AlertStatus.CANCELLED }
     );
+  });
+
+  describe('findActiveAlertsForScheduler', () => {
+    it('should load the owner address the scheduler needs to notify', async () => {
+      queryBuilder.getMany.mockResolvedValue([]);
+
+      await repository.findActiveAlertsForScheduler({
+        cursorId: null,
+        limit: 500
+      });
+
+      expect(queryBuilder.leftJoin).toHaveBeenCalledWith(
+        'alert.owner',
+        'owner'
+      );
+      expect(queryBuilder.addSelect).toHaveBeenCalledWith([
+        'owner.id',
+        'owner.email'
+      ]);
+    });
+
+    it('should never return an alert that is not active', async () => {
+      queryBuilder.getMany.mockResolvedValue([]);
+
+      await repository.findActiveAlertsForScheduler({
+        cursorId: null,
+        limit: 500
+      });
+
+      expect(queryBuilder.where).toHaveBeenCalledWith(
+        'alert.status = :status',
+        { status: AlertStatus.ACTIVE }
+      );
+    });
+
+    it('should leave the password column unselected', async () => {
+      queryBuilder.getMany.mockResolvedValue([]);
+
+      await repository.findActiveAlertsForScheduler({
+        cursorId: null,
+        limit: 500
+      });
+
+      const selected = queryBuilder.addSelect.mock.calls.flat(2);
+
+      expect(selected).not.toContain('owner.password');
+    });
   });
 });

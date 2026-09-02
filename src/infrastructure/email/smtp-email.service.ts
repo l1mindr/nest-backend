@@ -1,4 +1,4 @@
-import { EmailService } from './email.service';
+import { EmailService, PriceAlertEmailContent } from './email.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { Transporter } from 'nodemailer';
@@ -6,6 +6,7 @@ import emailConfig from './email.config';
 import { EMAIL_TRANSPORT } from './email.constants';
 import {
   buildAdminInvitationEmail,
+  buildPriceAlertEmail,
   buildSuspensionEmail,
   buildUnsuspensionEmail,
   buildVerificationEmail
@@ -85,6 +86,18 @@ export class SmtpEmailService extends EmailService {
       projectName: this.projectName,
       displayName,
       unsuspendedAt
+    });
+
+    await this.send({ to: email, ...rendered });
+  }
+
+  async sendPriceAlertEmail(
+    email: string,
+    alert: PriceAlertEmailContent
+  ): Promise<void> {
+    const rendered = buildPriceAlertEmail({
+      projectName: this.projectName,
+      ...alert
     });
 
     await this.send({ to: email, ...rendered });

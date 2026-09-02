@@ -11,6 +11,7 @@ import {
   IPriceAlertRepository,
   IPriceCheckService,
   NOTIFICATION_SERVICE,
+  NotificationPayload,
   PRICE_ALERT_REPOSITORY
 } from '../interfaces/coin-tracker.interface';
 import { NotificationChannel } from '../../domain/enums/notification-channel.enum';
@@ -207,7 +208,28 @@ export class PriceCheckService implements IPriceCheckService {
       return;
     }
 
-    await this.sendNotifications(alert, currentPriceText);
+    const recipientEmail = alert.owner?.email ?? null;
+
+    if (
+      recipientEmail === null &&
+      alert.notificationChannels.includes(NotificationChannel.EMAIL)
+    ) {
+      // The owner FK is NOT NULL, so this means the account was soft-deleted
+      // out from under a live alert. Left ACTIVE rather than marked triggered:
+      // no one was told, and saying otherwise would close the alert silently.
+      await this.priceAlertRepository.updateLastCheckedPrice(
+        alert.id,
+        currentPriceText
+      );
+      counters.skipped += 1;
+      this.logSkipped(alert, 'recipient_unavailable');
+      return;
+    }
+
+    // Before `markTriggered`, so that a failure to hand the notification over
+    // leaves the alert active for the next cycle instead of recording a
+    // notification that was never sent.
+    await this.sendNotifications(alert, currentPriceText, recipientEmail, now);
 
     const status =
       alert.triggerMode === AlertTriggerMode.ONCE
@@ -243,15 +265,23 @@ export class PriceCheckService implements IPriceCheckService {
 
   private async sendNotifications(
     alert: PriceAlert,
-    currentPrice: string
+    currentPrice: string,
+    recipientEmail: string | null,
+    triggeredAt: Date
   ): Promise<void> {
-    const params = {
+    const params: NotificationPayload = {
+      alertId: alert.id,
       userId: alert.userId,
+      // Only the email channel needs an address, and the caller has already
+      // refused to proceed without one when that channel is selected.
+      recipientEmail: recipientEmail ?? '',
       coinId: alert.coinId,
       coinName: alert.coin.name,
+      coinSymbol: alert.coin.symbol,
       direction: alert.direction,
       targetPrice: alert.targetPrice,
-      currentPrice
+      currentPrice,
+      triggeredAt
     };
 
     await Promise.all(

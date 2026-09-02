@@ -54,12 +54,22 @@ export interface ExpiredPriceAlert {
 }
 
 export interface NotificationPayload {
+  alertId: string;
   userId: string;
+  /**
+   * Resolved by the caller from the alert's owner. Carried here rather than
+   * looked up again so that one query per scheduler page answers both "which
+   * alerts fired" and "who hears about it".
+   */
+  recipientEmail: string;
   coinId: string;
   coinName: string;
+  coinSymbol: string;
   direction: AlertDirection;
   targetPrice: string;
   currentPrice: string;
+  /** The instant the crossing was detected; identifies this trigger occasion. */
+  triggeredAt: Date;
 }
 
 export const COIN_REPOSITORY = Symbol('ICoinRepository');
