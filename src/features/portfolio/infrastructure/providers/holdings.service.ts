@@ -119,11 +119,17 @@ export class HoldingsService {
    * Assets that only have an opening balance are included, so the result
    * always satisfies `opening + BUY + TRANSFER_IN - SELL - TRANSFER_OUT`.
 <<<<<<< HEAD
+<<<<<<< HEAD
    * Assets with a manually-created `holding` row and no ledger activity are
    * included as-is: the ledger is the source of truth once it has an entry
    * for that asset, but a plain holding is still a position until then.
 =======
 >>>>>>> 3037e4d (refactor(portfolio): derive holdings from transaction ledger)
+=======
+   * Assets with a manually-created `holding` row and no ledger activity are
+   * included as-is: the ledger is the source of truth once it has an entry
+   * for that asset, but a plain holding is still a position until then.
+>>>>>>> cb990cf (feat(holdings): integrate holding repository for manual holdings support)
    */
   async getPortfolioHoldings(
     portfolioId: string,
