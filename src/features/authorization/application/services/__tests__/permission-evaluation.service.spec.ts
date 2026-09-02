@@ -18,6 +18,10 @@ describe('PermissionEvaluationService', () => {
     findByUserId: jest.fn()
   };
 
+  const mockUserRoleRepository = {
+    permissionsForUser: jest.fn()
+  };
+
   const owner = { id: 'owner-1', role: UserRole.OWNER };
   const admin = { id: 'admin-1', role: UserRole.ADMIN };
   const user = { id: 'user-1', role: UserRole.USER };
@@ -30,8 +34,13 @@ describe('PermissionEvaluationService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    // No role assigns anything unless a test says otherwise, so the existing
+    // direct-grant-only coverage keeps exercising exactly what it always has.
+    mockUserRoleRepository.permissionsForUser.mockResolvedValue([]);
+
     service = new PermissionEvaluationService(
-      mockAdminPermissionRepository as any
+      mockAdminPermissionRepository as any,
+      mockUserRoleRepository as any
     );
   });
 
@@ -42,6 +51,7 @@ describe('PermissionEvaluationService', () => {
       ).resolves.toBe(true);
 
       expect(mockAdminPermissionRepository.findByUserId).not.toHaveBeenCalled();
+      expect(mockUserRoleRepository.permissionsForUser).not.toHaveBeenCalled();
     });
 
     it('should allow the owner every permission at once', async () => {
@@ -54,6 +64,7 @@ describe('PermissionEvaluationService', () => {
       ]);
 
       expect(mockAdminPermissionRepository.findByUserId).not.toHaveBeenCalled();
+      expect(mockUserRoleRepository.permissionsForUser).not.toHaveBeenCalled();
     });
 
     it('should never throw for the owner', async () => {
@@ -203,6 +214,67 @@ describe('PermissionEvaluationService', () => {
       const effective = await service.effectivePermissionsOf(admin);
 
       expect(effective.filter(isOwnerOnly)).toEqual([]);
+    });
+  });
+
+  describe('role-derived permissions', () => {
+    it('should grant access from a role alone, with no direct grant', async () => {
+      mockAdminPermissionRepository.findByUserId.mockResolvedValue([]);
+      mockUserRoleRepository.permissionsForUser.mockResolvedValue(READ_ONLY);
+
+      await expect(service.can(admin, [Permission.USER_READ])).resolves.toBe(
+        true
+      );
+    });
+
+    it('should union a direct grant with a role grant', async () => {
+      mockAdminPermissionRepository.findByUserId.mockResolvedValue([
+        Permission.USER_SUSPEND
+      ]);
+      mockUserRoleRepository.permissionsForUser.mockResolvedValue([
+        Permission.USER_READ
+      ]);
+
+      await expect(
+        service.can(admin, [Permission.USER_READ, Permission.USER_SUSPEND])
+      ).resolves.toBe(true);
+    });
+
+    it('should not duplicate a permission held both directly and through a role', async () => {
+      mockAdminPermissionRepository.findByUserId.mockResolvedValue([
+        Permission.USER_READ
+      ]);
+      mockUserRoleRepository.permissionsForUser.mockResolvedValue([
+        Permission.USER_READ
+      ]);
+
+      const effective = await service.effectivePermissionsOf(admin);
+
+      expect(effective).toEqual([Permission.USER_READ]);
+    });
+
+    it('should still deny when neither source grants the permission', async () => {
+      mockAdminPermissionRepository.findByUserId.mockResolvedValue([
+        Permission.USER_READ
+      ]);
+      mockUserRoleRepository.permissionsForUser.mockResolvedValue([
+        Permission.USER_SUSPEND
+      ]);
+
+      await expect(service.can(admin, [Permission.USER_UPDATE])).resolves.toBe(
+        false
+      );
+    });
+
+    it('should refuse an owner-only permission even if a role somehow granted it', async () => {
+      mockAdminPermissionRepository.findByUserId.mockResolvedValue([]);
+      mockUserRoleRepository.permissionsForUser.mockResolvedValue([
+        Permission.ADMIN_READ
+      ]);
+
+      await expect(service.can(admin, [Permission.ADMIN_READ])).resolves.toBe(
+        false
+      );
     });
   });
 
