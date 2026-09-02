@@ -29,6 +29,12 @@ export enum LogEvent {
   ADMIN_INVITATION_REJECTED = 'authorization.invitation.rejected',
   PERMISSIONS_GRANTED = 'authorization.permissions.granted',
   PERMISSIONS_REVOKED = 'authorization.permissions.revoked',
+  ROLE_CREATED = 'authorization.role.created',
+  ROLE_UPDATED = 'authorization.role.updated',
+  ROLE_DELETED = 'authorization.role.deleted',
+  ROLE_PERMISSIONS_SET = 'authorization.role.permissions_set',
+  ROLE_ASSIGNED = 'authorization.role.assigned',
+  ROLE_UNASSIGNED = 'authorization.role.unassigned',
 
   COIN_SYNC_STARTED = 'coin_tracker.sync.started',
   COIN_SYNC_COMPLETED = 'coin_tracker.sync.completed',
