@@ -40,7 +40,8 @@ describe('TokenVerificationService', () => {
 
       expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('token', {
         secret: jwtConfiguration.accessTokenSecret,
-        audience: 'api'
+        audience: 'api',
+        algorithms: ['HS256']
       });
     });
 
@@ -75,7 +76,8 @@ describe('TokenVerificationService', () => {
 
       expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('token', {
         secret: jwtConfiguration.refreshTokenSecret,
-        audience: 'refresh'
+        audience: 'refresh',
+        algorithms: ['HS256']
       });
     });
 
