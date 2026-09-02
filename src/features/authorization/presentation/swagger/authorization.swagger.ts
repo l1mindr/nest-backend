@@ -32,15 +32,19 @@ import { AuthorizationErrors } from '../../domain/errors/authorization-errors';
 import { Permission } from '../../domain/enums/permission.enum';
 import { ProtectedAction } from '../../domain/owner-protection.policy';
 import { AcceptAdminInvitationRequestDto } from '../dto/request/accept-admin-invitation.request.dto';
+import { CreateRoleRequestDto } from '../dto/request/create-role.request.dto';
 import { InviteAdminRequestDto } from '../dto/request/invite-admin.request.dto';
 import { PermissionSetRequestDto } from '../dto/request/permission-set.request.dto';
 import { UpdateAdminRequestDto } from '../dto/request/update-admin.request.dto';
+import { UpdateRoleRequestDto } from '../dto/request/update-role.request.dto';
 import { AdminAccountResponseDto } from '../dto/response/admin-account.response.dto';
 import { AdminAccountsListResponseDto } from '../dto/response/admin-accounts-list.response.dto';
 import { AdminInvitationResponseDto } from '../dto/response/admin-invitation.response.dto';
 import { AdminInvitationsListResponseDto } from '../dto/response/admin-invitations-list.response.dto';
 import { EffectivePermissionsResponseDto } from '../dto/response/effective-permissions.response.dto';
 import { PermissionCatalogResponseDto } from '../dto/response/permission-catalog.response.dto';
+import { RoleResponseDto } from '../dto/response/role.response.dto';
+import { RolesListResponseDto } from '../dto/response/roles-list.response.dto';
 
 /**
  * Operation documentation for the administrator, invitation and permission
@@ -69,8 +73,52 @@ const PATH = {
   INVITATION_DETAIL: `${INVITATIONS}/${ExampleValue.USER_ID}`,
   INVITATION_ACCEPT: `${INVITATIONS}/accept`,
   CATALOG: '/v1/admin/permissions',
-  MINE: '/v1/admin/permissions/me'
+  MINE: '/v1/admin/permissions/me',
+  ROLES: '/v1/admin/roles',
+  ROLE_DETAIL: `/v1/admin/roles/${ExampleValue.ADMIN_ID}`,
+  ROLE_PERMISSIONS: `/v1/admin/roles/${ExampleValue.ADMIN_ID}/permissions`,
+  USER_ROLES: `/v1/admin/users/${ExampleValue.USER_ID}/roles`,
+  USER_ROLE_DETAIL: `/v1/admin/users/${ExampleValue.USER_ID}/roles/${ExampleValue.ADMIN_ID}`
 } as const;
+
+const roleIdParam = () =>
+  ApiParam({
+    name: 'id',
+    description: `Identifier of the role, as returned in \`id\` by \`GET ${PATH.ROLES}\`.`,
+    format: 'uuid',
+    example: ExampleValue.ADMIN_ID,
+    required: true
+  });
+
+const userIdParam = () =>
+  ApiParam({
+    name: 'id',
+    description: 'Identifier of the account, as a UUID.',
+    format: 'uuid',
+    example: ExampleValue.USER_ID,
+    required: true
+  });
+
+const roleRefParam = () =>
+  ApiParam({
+    name: 'roleId',
+    description: 'Identifier of the role, as a UUID.',
+    format: 'uuid',
+    example: ExampleValue.ADMIN_ID,
+    required: true
+  });
+
+const roleNotFound = () =>
+  notFoundResponse(
+    'No role exists with this identifier.',
+    errorExample(AuthorizationErrors.roleNotFound(), 'Unknown role')
+  );
+
+const roleProtected = (action: 'RENAME' | 'PERMISSION_CHANGE' | 'DELETE') =>
+  errorExample(
+    AuthorizationErrors.roleProtected(action),
+    'The role is a system role (OWNER, ADMIN or USER) and cannot be modified'
+  );
 
 const adminIdParam = () =>
   ApiParam({
@@ -829,6 +877,305 @@ export const ApiMyPermissions = () =>
     }),
     ApiErrorResponses(PATH.MINE, [
       unauthorizedResponse(),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiRoleList = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'listRoles',
+      summary: 'List every role in the catalog',
+      description: [
+        'Every role — the three system roles (`OWNER`, `ADMIN`, `USER`) and every custom role — together with the permissions each one grants.',
+        '',
+        'A role is a second, additive source of permissions layered on top of direct grants: it can only ever add reach to an account, never take any away.',
+        '',
+        ownerReserved(Permission.ROLE_READ)
+      ].join('\n')
+    }),
+    ApiAuthenticated(),
+    ApiSuccessResponse({
+      status: 200,
+      description: 'Every role, ordered by name.',
+      type: RolesListResponseDto
+    }),
+    ApiErrorResponses(PATH.ROLES, [
+      unauthorizedResponse(),
+      permissionRequired(Permission.ROLE_READ),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiRoleGet = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'getRole',
+      summary: 'Get one role and the permissions it grants'
+    }),
+    ApiAuthenticated(),
+    roleIdParam(),
+    ApiSuccessResponse({
+      status: 200,
+      description: 'The requested role.',
+      type: RoleResponseDto
+    }),
+    ApiErrorResponses(PATH.ROLE_DETAIL, [
+      unauthorizedResponse(),
+      permissionRequired(Permission.ROLE_READ),
+      roleNotFound(),
+      validationResponse('The `id` path parameter is not a UUID.', [
+        validationError('id', 'id must be a UUID')
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiRoleCreate = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'createRole',
+      summary: 'Create a role',
+      description: [
+        'Creates a role with no permissions. Add permissions afterward with `PUT /v1/admin/roles/{id}/permissions`.',
+        '',
+        ownerReserved(Permission.ROLE_CREATE)
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    ApiRequestBody(CreateRoleRequestDto, [
+      {
+        summary: 'Create a support role',
+        value: {
+          name: 'SUPPORT',
+          description: 'Read-only access to the user directory.'
+        }
+      }
+    ]),
+    ApiSuccessResponse({
+      status: 201,
+      description: 'The role as created, holding no permissions yet.',
+      type: RoleResponseDto
+    }),
+    ApiErrorResponses(PATH.ROLES, [
+      unauthorizedResponse(),
+      permissionRequired(Permission.ROLE_CREATE),
+      conflictResponse(
+        'A role with this name already exists.',
+        errorExample(
+          AuthorizationErrors.roleNameConflict('SUPPORT'),
+          'Role names are unique'
+        )
+      ),
+      validationResponse('The body failed validation.', [
+        validationError(
+          'name',
+          'name must be uppercase snake case, starting with a letter (e.g. SUPPORT, READ_ONLY)'
+        )
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiRoleUpdate = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'updateRole',
+      summary: 'Rename a role or edit its description',
+      description: [
+        'System roles (`OWNER`, `ADMIN`, `USER`) cannot be renamed or re-described.',
+        '',
+        ownerReserved(Permission.ROLE_UPDATE)
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    roleIdParam(),
+    ApiRequestBody(UpdateRoleRequestDto, [
+      { summary: 'Rename a role', value: { name: 'SUPPORT_L1' } }
+    ]),
+    ApiNoContent({ description: 'Role updated. No body is returned.' }),
+    ApiErrorResponses(PATH.ROLE_DETAIL, [
+      unauthorizedResponse(),
+      permissionRequired(Permission.ROLE_UPDATE),
+      roleNotFound(),
+      forbiddenResponse('The role is a system role.', roleProtected('RENAME')),
+      conflictResponse(
+        'A role with this name already exists.',
+        errorExample(
+          AuthorizationErrors.roleNameConflict('SUPPORT_L1'),
+          'Role names are unique'
+        )
+      ),
+      validationResponse('The body failed validation.', [
+        validationError(
+          'name',
+          'name must be uppercase snake case, starting with a letter (e.g. SUPPORT, READ_ONLY)'
+        )
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiRoleDelete = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'deleteRole',
+      summary: 'Delete a role',
+      description: [
+        'Refused while any account is still assigned to this role — remove the assignments first. System roles can never be deleted.',
+        '',
+        ownerReserved(Permission.ROLE_DELETE)
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    roleIdParam(),
+    ApiNoContent({ description: 'Role deleted. No body is returned.' }),
+    ApiErrorResponses(PATH.ROLE_DETAIL, [
+      unauthorizedResponse(),
+      permissionRequired(Permission.ROLE_DELETE),
+      roleNotFound(),
+      forbiddenResponse('The role is a system role.', roleProtected('DELETE')),
+      conflictResponse(
+        'One or more accounts are still assigned to this role.',
+        errorExample(
+          AuthorizationErrors.roleHasAssignments(),
+          'Unassign every account from the role first'
+        )
+      ),
+      validationResponse('The `id` path parameter is not a UUID.', [
+        validationError('id', 'id must be a UUID')
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiRoleSetPermissions = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'setRolePermissions',
+      summary: 'Replace the permissions a role grants',
+      description: [
+        'Replaces the full set in one transaction — whatever is not named here is removed from the role, whatever is missing is added.',
+        '',
+        'The caller must already hold every permission being placed into the role, exactly as when granting one directly. System roles cannot have their permissions changed.',
+        '',
+        ownerReserved(Permission.ROLE_UPDATE)
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    roleIdParam(),
+    ApiRequestBody(PermissionSetRequestDto, [
+      {
+        summary: 'Grant read-only access to users',
+        value: { permissions: [Permission.USER_READ] }
+      }
+    ]),
+    ApiNoContent({
+      description: 'Permission set replaced. No body is returned.'
+    }),
+    ApiErrorResponses(PATH.ROLE_PERMISSIONS, [
+      unauthorizedResponse(),
+      permissionRequired(Permission.ROLE_UPDATE),
+      roleNotFound(),
+      forbiddenResponse(
+        'The role is a system role.',
+        roleProtected('PERMISSION_CHANGE')
+      ),
+      validationResponse('The body failed validation.', [
+        validationError(
+          'permissions',
+          'permissions must contain only delegable permission codes; owner-reserved permissions cannot be granted'
+        )
+      ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiUserRolesList = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'listUserRoles',
+      summary: 'List the roles assigned to an account',
+      description: ownerReserved(Permission.ROLE_READ)
+    }),
+    ApiAuthenticated(),
+    userIdParam(),
+    ApiSuccessResponse({
+      status: 200,
+      description: 'Every role assigned to this account.',
+      type: RolesListResponseDto
+    }),
+    ApiErrorResponses(PATH.USER_ROLES, [
+      unauthorizedResponse(),
+      permissionRequired(Permission.ROLE_READ),
+      notFoundResponse(
+        'No account exists with this identifier.',
+        accountNotFound()
+      ),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiUserRoleAssign = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'assignRole',
+      summary: 'Assign a role to an account',
+      description: [
+        'Idempotent — assigning a role the account already holds is not an error.',
+        '',
+        'Not restricted to administrators: any non-owner account may receive a role. The owner cannot be a target, and the caller cannot target their own account.',
+        '',
+        'The caller must already hold every permission the role grants, exactly as when granting a permission directly.',
+        '',
+        ownerReserved(Permission.ROLE_ASSIGN)
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    userIdParam(),
+    roleRefParam(),
+    ApiNoContent({ description: 'Role assigned. No body is returned.' }),
+    ApiErrorResponses(PATH.USER_ROLE_DETAIL, [
+      unauthorizedResponse(),
+      permissionRequired(
+        Permission.ROLE_ASSIGN,
+        ...delegationErrors(ProtectedAction.ROLE_CHANGE)
+      ),
+      roleNotFound(),
+      notFoundResponse(
+        'No account exists with this identifier.',
+        accountNotFound()
+      ),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiUserRoleUnassign = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'unassignRole',
+      summary: 'Remove a role from an account',
+      description: [
+        'A no-op if the account did not hold the role, so the request is safe to replay.',
+        '',
+        ownerReserved(Permission.ROLE_ASSIGN)
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    userIdParam(),
+    roleRefParam(),
+    ApiNoContent({ description: 'Role removed. No body is returned.' }),
+    ApiErrorResponses(PATH.USER_ROLE_DETAIL, [
+      unauthorizedResponse(),
+      permissionRequired(
+        Permission.ROLE_ASSIGN,
+        ownerImmutable(ProtectedAction.ROLE_CHANGE),
+        selfManagement(ProtectedAction.ROLE_CHANGE)
+      ),
+      notFoundResponse(
+        'No account exists with this identifier.',
+        accountNotFound()
+      ),
       internalServerErrorResponse()
     ])
   );
