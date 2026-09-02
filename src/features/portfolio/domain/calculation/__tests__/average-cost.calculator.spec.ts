@@ -218,12 +218,21 @@ describe('AverageCostCalculator', () => {
       });
     });
 
-    it('should reject a SELL exceeding the available quantity', () => {
+    it('should clamp a SELL exceeding the available quantity to the held amount', () => {
       const state = { quantity: '1', totalCost: '50000' };
-      expectCalculationError(
-        () => calculator.calculate([sell('2', '70000')], state),
-        CalculationErrorCode.INSUFFICIENT_QUANTITY
-      );
+      expect(calculator.calculate([sell('2', '70000')], state)).toEqual({
+        quantity: '0',
+        totalCost: '0',
+        realizedPnl: [
+          expect.objectContaining({
+            amount: '1',
+            price: '70000',
+            proceeds: '70000',
+            releasedCostBasis: '50000',
+            realizedPnl: '20000'
+          })
+        ]
+      });
     });
 
     it('should require a price for SELL', () => {
@@ -289,12 +298,13 @@ describe('AverageCostCalculator', () => {
       });
     });
 
-    it('should reject a TRANSFER_OUT exceeding the available quantity', () => {
+    it('should clamp a TRANSFER_OUT exceeding the available quantity to the held amount', () => {
       const state = { quantity: '1', totalCost: '50000' };
-      expectCalculationError(
-        () => calculator.calculate([transferOut('1.5')], state),
-        CalculationErrorCode.INSUFFICIENT_QUANTITY
-      );
+      expect(calculator.calculate([transferOut('1.5')], state)).toEqual({
+        quantity: '0',
+        totalCost: '0',
+        realizedPnl: []
+      });
     });
   });
 

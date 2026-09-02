@@ -1,14 +1,17 @@
-import { multiplyDecimals, sumDecimals } from '@core/decimal/decimal.util';
+import {
+  compareDecimals,
+  multiplyDecimals,
+  sumDecimals
+} from '@core/decimal/decimal.util';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { PORTFOLIO_VALUATION_CURRENCY } from '../../domain/portfolio-valuation.constants';
 import { PortfolioValuationStatus } from '../../domain/enums/portfolio-valuation-status.enum';
 import { PortfolioErrors } from '../../domain/errors/portfolio-errors';
+import { HoldingsService } from '../../infrastructure/providers/holdings.service';
 import {
-  HOLDING_REPOSITORY,
   IGetPortfolioValuationUseCase,
-  IHoldingRepository,
   IPortfolioRepository,
   PORTFOLIO_REPOSITORY,
   PortfolioHoldingValuation,
@@ -20,8 +23,7 @@ export class GetPortfolioValuationUseCase implements IGetPortfolioValuationUseCa
   constructor(
     @Inject(PORTFOLIO_REPOSITORY)
     private readonly portfolioRepository: IPortfolioRepository,
-    @Inject(HOLDING_REPOSITORY)
-    private readonly holdingRepository: IHoldingRepository,
+    private readonly holdingsService: HoldingsService,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(GetPortfolioValuationUseCase.name);
@@ -40,7 +42,12 @@ export class GetPortfolioValuationUseCase implements IGetPortfolioValuationUseCa
       throw PortfolioErrors.portfolioNotFound(portfolioId);
     }
 
-    const holdings = await this.holdingRepository.listForValuation(portfolioId);
+    // Priced from ledger-derived holdings, so valuation cannot drift from what
+    // `GET /v1/holdings` reports. Fully-exited positions are worth nothing and
+    // would otherwise count as unvalued.
+    const holdings = (
+      await this.holdingsService.getPortfolioHoldings(portfolioId, userId)
+    ).filter((holding) => compareDecimals(holding.amount, '0') !== 0);
 
     const items: PortfolioHoldingValuation[] = holdings.map((holding) => {
       const currentPrice = holding.asset.currentPrice;

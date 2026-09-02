@@ -804,6 +804,45 @@ describe('GetPortfolioPnlUseCase', () => {
       expect(position.realizedPnl).toBe('50');
       expect(position.totalPnl).toBe('50');
     });
+
+    it('should clamp a SELL that exceeds the held quantity to the holding', async () => {
+      useRealEngine();
+      transactionRepository.listForPnl.mockResolvedValue([
+        makeTransaction({
+          id: 't1',
+          amount: '10',
+          price: '0.4',
+          occurredAt: new Date('2026-01-01T00:00:00.000Z')
+        }),
+        makeTransaction({
+          id: 't2',
+          type: PortfolioTransactionType.SELL,
+          amount: '50',
+          price: '1',
+          occurredAt: new Date('2026-01-02T00:00:00.000Z')
+        })
+      ]);
+
+      const result = await useCase.execute('user-id', 'portfolio-id');
+      const position = result.positions[0];
+
+      expect(position.quantity).toBe('0');
+      expect(position.totalCost).toBe('0');
+      expect(position.currentValue).toBe('0');
+      expect(position.unrealizedPnl).toBe('0');
+      expect(position.realizedPnl).toBe('6');
+      expect(position.totalPnl).toBe('6');
+      expect(position.realizedPnlEvents).toEqual([
+        expect.objectContaining({
+          transactionId: 't2',
+          amount: '10',
+          price: '1',
+          proceeds: '10',
+          releasedCostBasis: '4',
+          realizedPnl: '6'
+        })
+      ]);
+    });
   });
 
   describe('decimal aggregation', () => {

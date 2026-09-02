@@ -139,6 +139,30 @@ export class PortfolioTransactionRepository implements IPortfolioTransactionRepo
       .getMany();
   }
 
+  async listByPortfolioAndAsset(
+    portfolioId: string,
+    assetId: string,
+    userId: string
+  ): Promise<PortfolioTransaction[]> {
+    return this.transactionRepo
+      .createQueryBuilder('transaction')
+      .select([
+        'transaction.id',
+        'transaction.assetId',
+        'transaction.type',
+        'transaction.amount',
+        'transaction.price',
+        'transaction.fee',
+        'transaction.occurredAt'
+      ])
+      .where('transaction.portfolioId = :portfolioId', { portfolioId })
+      .andWhere('transaction.assetId = :assetId', { assetId })
+      .andWhere('transaction.userId = :userId', { userId })
+      .orderBy('transaction.occurredAt', 'ASC')
+      .addOrderBy('transaction.id', 'ASC')
+      .getMany();
+  }
+
   async deleteByIdAndPortfolioAndUser(
     id: string,
     portfolioId: string,

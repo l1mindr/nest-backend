@@ -454,10 +454,34 @@ describe('PortfolioCalculationEngine', () => {
       );
     });
 
-    it('should propagate insufficient quantity', () => {
+    it('should clamp an overselling AVERAGE disposal to the held quantity', () => {
+      const result = engine.calculate({
+        transactions: [sell('2', '70000', '2026-07-28T08:00:00.000Z')]
+      });
+      expect(result.quantity).toBe('0');
+      expect(result.totalCost).toBe('0');
+      expect(result.realizedPnl[0]).toMatchObject({
+        amount: '0',
+        proceeds: '0',
+        releasedCostBasis: '0',
+        realizedPnl: '0'
+      });
+    });
+
+    it('should propagate insufficient quantity for FIFO', () => {
       expectCalculationError(
         () =>
-          engine.calculate({
+          new PortfolioCalculationEngine(CostBasisStrategy.FIFO).calculate({
+            transactions: [sell('2', '70000', '2026-07-28T08:00:00.000Z')]
+          }),
+        CalculationErrorCode.INSUFFICIENT_QUANTITY
+      );
+    });
+
+    it('should propagate insufficient quantity for LIFO', () => {
+      expectCalculationError(
+        () =>
+          new PortfolioCalculationEngine(CostBasisStrategy.LIFO).calculate({
             transactions: [sell('2', '70000', '2026-07-28T08:00:00.000Z')]
           }),
         CalculationErrorCode.INSUFFICIENT_QUANTITY
