@@ -804,6 +804,13 @@ describe('Portfolio (e2e) version: 1', () => {
       const auth = await AuthFactory.authenticated(app);
       const portfolio = await createPortfolio(auth);
 
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'BUY',
+        amount: '0.5',
+        price: '60000',
+        occurredAt: '2026-07-27T08:00:00.000Z'
+      });
+
       const response = await createTransaction(auth, portfolio.id, asset.id, {
         type: 'SELL',
         amount: '0.5',
