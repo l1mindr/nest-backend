@@ -16,6 +16,21 @@ export interface EmailPublishOptions {
    * key becomes free again once its job is gone.
    */
   dedupeKey?: string;
+
+  /**
+   * Reports a failure to enqueue to the caller instead of swallowing it.
+   *
+   * The default silence is right for the flows described below, which have all
+   * committed their state before publishing and are answering an HTTP request.
+   * It is wrong for a caller that has *not* committed yet and whose record of
+   * having notified someone would otherwise be a lie — the price-alert
+   * scheduler, which leaves an alert active and retries next cycle rather than
+   * marking it triggered for an email nobody will receive.
+   *
+   * Only the failure to enqueue is raised. Delivery happens later, and its
+   * failures belong to the queue's retries.
+   */
+  throwOnQueueFailure?: boolean;
 }
 
 /**
@@ -28,10 +43,12 @@ export interface EmailPublishOptions {
  * `publish` resolves once the message is durably accepted for delivery — not
  * once it is delivered. Delivery is asynchronous and at-least-once.
  *
- * It never rejects. Every flow that sends email here has already committed the
- * database state the email describes, so a queue outage must not turn a
- * successful registration or suspension into a failed HTTP request. Failures to
- * enqueue are logged as `email.job.queue_failed` and the email is dropped.
+ * By default it never rejects. Every request-path flow that sends email here has
+ * already committed the database state the email describes, so a queue outage
+ * must not turn a successful registration or suspension into a failed HTTP
+ * request. Failures to enqueue are logged as `email.job.queue_failed` and the
+ * email is dropped — unless the caller asks for them with
+ * {@link EmailPublishOptions.throwOnQueueFailure}.
  */
 @Injectable()
 export abstract class EmailPublisher {

@@ -1,4 +1,5 @@
 import {
+  buildPriceAlertEmail,
   buildSuspensionEmail,
   buildUnsuspensionEmail,
   buildVerificationEmail
@@ -84,6 +85,63 @@ describe('email.template', () => {
       expect(rendered.html).toContain('Terms of service violation');
       expect(rendered.html).toContain('2024-01-01 12:34 UTC');
       expect(rendered.text).toContain('Terms of service violation');
+    });
+  });
+
+  describe('buildPriceAlertEmail', () => {
+    const base = {
+      projectName,
+      coinName: 'Bitcoin',
+      coinSymbol: 'btc',
+      targetPrice: '100000.00000000',
+      currentPrice: '101234.5',
+      triggeredAt: expiresAt
+    };
+
+    it('should describe a SELL crossing as a rise to the current price', () => {
+      const rendered = buildPriceAlertEmail({ ...base, direction: 'SELL' });
+
+      expect(rendered.subject).toContain('BTC');
+      expect(rendered.subject).toContain('risen to');
+      expect(rendered.html).toContain('risen to');
+      expect(rendered.html).toContain('at or above');
+      expect(rendered.text).toContain('risen to');
+    });
+
+    it('should describe a BUY crossing as a fall to the current price', () => {
+      const rendered = buildPriceAlertEmail({ ...base, direction: 'BUY' });
+
+      expect(rendered.subject).toContain('fallen to');
+      expect(rendered.html).toContain('at or below');
+      expect(rendered.text).toContain('fallen to');
+    });
+
+    it('should drop the scale a numeric column carried and group the integer part', () => {
+      const rendered = buildPriceAlertEmail({ ...base, direction: 'SELL' });
+
+      expect(rendered.text).toContain('$100,000');
+      expect(rendered.text).not.toContain('100000.00000000');
+      expect(rendered.text).toContain('$101,234.5');
+    });
+
+    it('should report both prices and the detection time', () => {
+      const rendered = buildPriceAlertEmail({ ...base, direction: 'SELL' });
+
+      expect(rendered.text).toContain('Current price: $101,234.5');
+      expect(rendered.text).toContain('Your target: $100,000');
+      expect(rendered.text).toContain('2024-01-01 12:34 UTC');
+      expect(rendered.html).toContain('2024-01-01 12:34 UTC');
+    });
+
+    it('should escape a coin name rather than render it as markup', () => {
+      const rendered = buildPriceAlertEmail({
+        ...base,
+        direction: 'SELL',
+        coinName: '<script>alert(1)</script>'
+      });
+
+      expect(rendered.html).not.toContain('<script>');
+      expect(rendered.html).toContain('&lt;script&gt;');
     });
   });
 

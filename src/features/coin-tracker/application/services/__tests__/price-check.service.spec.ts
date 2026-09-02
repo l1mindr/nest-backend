@@ -15,6 +15,7 @@ describe('PriceCheckService', () => {
     name: 'Bitcoin',
     isActive: true
   };
+  const owner = { id: 'user-id', email: 'alert-owner@example.com' };
   const baseAlert = {
     id: 'alert-id',
     userId: 'user-id',
@@ -29,7 +30,8 @@ describe('PriceCheckService', () => {
     lastCheckedPrice: '90.00000000',
     lastTriggeredAt: null,
     triggeredCount: 0,
-    coin
+    coin,
+    owner
   } as PriceAlert;
   const priceAlertRepository = {
     expireActiveAlerts: jest.fn(),
@@ -88,12 +90,16 @@ describe('PriceCheckService', () => {
 
     expect(coingeckoClient.getPrices).toHaveBeenCalledWith(['bitcoin']);
     expect(notificationService.sendEmail).toHaveBeenCalledWith({
+      alertId: 'alert-id',
       userId: 'user-id',
+      recipientEmail: 'alert-owner@example.com',
       coinId: 'bitcoin',
       coinName: 'Bitcoin',
+      coinSymbol: 'btc',
       direction: AlertDirection.SELL,
       targetPrice: '100.00000000',
-      currentPrice: '100'
+      currentPrice: '100',
+      triggeredAt: now
     });
     expect(priceAlertRepository.markTriggered).toHaveBeenCalledWith(
       'alert-id',
@@ -200,6 +206,95 @@ describe('PriceCheckService', () => {
     expect(priceAlertRepository.markTriggered).not.toHaveBeenCalled();
     expect(priceAlertRepository.updateLastCheckedPrice).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('should notify when a BUY alert falls through its target', async () => {
+    priceAlertRepository.findActiveAlertsForScheduler.mockResolvedValue([
+      {
+        ...baseAlert,
+        direction: AlertDirection.BUY,
+        targetPrice: '100.00000000',
+        lastCheckedPrice: '110.00000000'
+      }
+    ]);
+    coingeckoClient.getPrices.mockResolvedValue({ bitcoin: { usd: 95 } });
+
+    await service.check();
+
+    expect(notificationService.sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        direction: AlertDirection.BUY,
+        currentPrice: '95',
+        recipientEmail: 'alert-owner@example.com'
+      })
+    );
+    expect(priceAlertRepository.markTriggered).toHaveBeenCalledWith(
+      'alert-id',
+      expect.objectContaining({ status: AlertStatus.TRIGGERED })
+    );
+  });
+
+  it('should not notify a BUY alert while the price stays above its target', async () => {
+    priceAlertRepository.findActiveAlertsForScheduler.mockResolvedValue([
+      {
+        ...baseAlert,
+        direction: AlertDirection.BUY,
+        targetPrice: '100.00000000',
+        lastCheckedPrice: '120.00000000'
+      }
+    ]);
+    coingeckoClient.getPrices.mockResolvedValue({ bitcoin: { usd: 110 } });
+
+    await service.check();
+
+    expect(notificationService.sendEmail).not.toHaveBeenCalled();
+    expect(priceAlertRepository.markTriggered).not.toHaveBeenCalled();
+    expect(priceAlertRepository.updateLastCheckedPrice).toHaveBeenCalledWith(
+      'alert-id',
+      '110'
+    );
+  });
+
+  it('should not notify a SELL alert while the price stays below its target', async () => {
+    priceAlertRepository.findActiveAlertsForScheduler.mockResolvedValue([
+      { ...baseAlert, lastCheckedPrice: '80.00000000' }
+    ]);
+    coingeckoClient.getPrices.mockResolvedValue({ bitcoin: { usd: 90 } });
+
+    await service.check();
+
+    expect(notificationService.sendEmail).not.toHaveBeenCalled();
+    expect(priceAlertRepository.markTriggered).not.toHaveBeenCalled();
+  });
+
+  it('should leave an alert active when its owner has no resolvable address', async () => {
+    priceAlertRepository.findActiveAlertsForScheduler.mockResolvedValue([
+      { ...baseAlert, owner: null }
+    ]);
+
+    await service.check();
+
+    expect(notificationService.sendEmail).not.toHaveBeenCalled();
+    expect(priceAlertRepository.markTriggered).not.toHaveBeenCalled();
+    expect(priceAlertRepository.updateLastCheckedPrice).toHaveBeenCalledWith(
+      'alert-id',
+      '100'
+    );
+  });
+
+  it('should dispatch SMS without an address when email is not selected', async () => {
+    priceAlertRepository.findActiveAlertsForScheduler.mockResolvedValue([
+      {
+        ...baseAlert,
+        owner: null,
+        notificationChannels: [NotificationChannel.SMS]
+      }
+    ]);
+
+    await service.check();
+
+    expect(notificationService.sendSms).toHaveBeenCalledTimes(1);
+    expect(priceAlertRepository.markTriggered).toHaveBeenCalled();
   });
 
   it('should skip active alerts whose synchronized coin is inactive', async () => {

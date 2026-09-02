@@ -84,6 +84,28 @@ describe('SmtpEmailService', () => {
     });
   });
 
+  describe('sendPriceAlertEmail', () => {
+    it('should send the rendered price alert to the resolved recipient', async () => {
+      await service.sendPriceAlertEmail('user@test.com', {
+        coinName: 'Bitcoin',
+        coinSymbol: 'btc',
+        direction: 'SELL',
+        targetPrice: '100000',
+        currentPrice: '101234.5',
+        triggeredAt: new Date('2024-01-01T12:34:00Z')
+      });
+
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      const [mail] = sendMail.mock.calls[0];
+
+      expect(mail.from).toBe('NestJS Backend <sender@test.com>');
+      expect(mail.to).toBe('user@test.com');
+      expect(mail.subject).toContain('BTC');
+      expect(mail.html).toContain('$101,234.5');
+      expect(mail.text).toContain('$100,000');
+    });
+  });
+
   describe('error handling', () => {
     it('should propagate SMTP transport failures', async () => {
       const error = new Error('connection refused');

@@ -2,8 +2,11 @@ import { ConfigType } from '@nestjs/config';
 import nodemailer from 'nodemailer';
 import emailConfig from '../email.config';
 import {
+  SMTP_CONNECTION_TIMEOUT_MS,
+  SMTP_GREETING_TIMEOUT_MS,
   SMTP_POOL_MAX_CONNECTIONS,
-  SMTP_POOL_MAX_MESSAGES
+  SMTP_POOL_MAX_MESSAGES,
+  SMTP_SOCKET_TIMEOUT_MS
 } from '../email.constants';
 import { createSmtpTransport } from '../smtp-transport.provider';
 
@@ -37,6 +40,18 @@ describe('createSmtpTransport', () => {
         pool: true,
         maxConnections: SMTP_POOL_MAX_CONNECTIONS,
         maxMessages: SMTP_POOL_MAX_MESSAGES
+      })
+    );
+  });
+
+  it('should bound every stage that can hang so a dead socket frees its worker', () => {
+    createSmtpTransport(config);
+
+    expect(mockedCreateTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        connectionTimeout: SMTP_CONNECTION_TIMEOUT_MS,
+        greetingTimeout: SMTP_GREETING_TIMEOUT_MS,
+        socketTimeout: SMTP_SOCKET_TIMEOUT_MS
       })
     );
   });

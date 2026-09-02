@@ -74,6 +74,10 @@ export class BullEmailPublisher extends EmailPublisher {
         },
         'Email could not be queued and will not be delivered'
       );
+
+      // Callers that have not committed yet asked to hear about this, so that
+      // they can leave their own state alone and try again.
+      if (options.throwOnQueueFailure) throw error;
     }
   }
 

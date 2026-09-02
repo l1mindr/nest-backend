@@ -32,7 +32,7 @@ import {
 } from './application/interfaces/coin-tracker.interface';
 import { CoinRepository } from './infrastructure/repositories/coin.repository';
 import { PriceAlertRepository } from './infrastructure/repositories/price-alert.repository';
-import { LoggerNotificationService } from './infrastructure/notifications/logger-notification.service';
+import { EmailNotificationService } from './infrastructure/notifications/email-notification.service';
 import { CoinsController } from './presentation/controllers/coins.controller';
 import { PriceAlertsController } from './presentation/controllers/price-alerts.controller';
 import { CoinSyncScheduler } from './infrastructure/schedulers/coin-sync.scheduler';
@@ -57,8 +57,8 @@ import { PriceCheckScheduler } from './infrastructure/schedulers/price-check.sch
     { provide: COIN_CURSOR_SERVICE, useExisting: CoinCursorService },
     CoinGeckoApiClient,
     { provide: COINGECKO_CLIENT, useExisting: CoinGeckoApiClient },
-    LoggerNotificationService,
-    { provide: NOTIFICATION_SERVICE, useExisting: LoggerNotificationService },
+    EmailNotificationService,
+    { provide: NOTIFICATION_SERVICE, useExisting: EmailNotificationService },
     ListCoinsUseCase,
     { provide: LIST_COINS_USE_CASE, useExisting: ListCoinsUseCase },
     SyncCoinsUseCase,

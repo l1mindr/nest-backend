@@ -1,7 +1,8 @@
 import { EmailService } from '@infrastructure/email/email.service';
 import {
   EmailMessage,
-  EmailMessageType
+  EmailMessageType,
+  PriceAlertDirection
 } from '@infrastructure/email/email.message';
 import { EmailPublisher } from '@infrastructure/email/email.publisher';
 
@@ -17,12 +18,31 @@ interface SentInvitation {
   expiresInHours: number;
 }
 
+interface SentPriceAlert {
+  to: string;
+  coinName: string;
+  coinSymbol: string;
+  direction: PriceAlertDirection;
+  targetPrice: string;
+  currentPrice: string;
+}
+
 const sentVerifications: SentVerification[] = [];
 const sentInvitations: SentInvitation[] = [];
+const sentPriceAlerts: SentPriceAlert[] = [];
 
 export function resetEmailStore(): void {
   sentVerifications.length = 0;
   sentInvitations.length = 0;
+  sentPriceAlerts.length = 0;
+}
+
+export function getPriceAlertEmails(to: string): SentPriceAlert[] {
+  return sentPriceAlerts.filter((mail) => mail.to === to);
+}
+
+export function getPriceAlertEmailCount(to: string): number {
+  return getPriceAlertEmails(to).length;
 }
 
 /**
@@ -70,6 +90,16 @@ export const capturingEmailService: EmailService = {
   },
   async sendUnsuspensionEmail() {
     // no-op
+  },
+  async sendPriceAlertEmail(email, alert) {
+    sentPriceAlerts.push({
+      to: email,
+      coinName: alert.coinName,
+      coinSymbol: alert.coinSymbol,
+      direction: alert.direction,
+      targetPrice: alert.targetPrice,
+      currentPrice: alert.currentPrice
+    });
   }
 };
 
@@ -114,6 +144,17 @@ export const capturingEmailPublisher: EmailPublisher = {
           message.data.displayName,
           new Date(message.data.unsuspendedAt)
         );
+        return;
+
+      case EmailMessageType.PRICE_ALERT:
+        await capturingEmailService.sendPriceAlertEmail(message.to, {
+          coinName: message.data.coinName,
+          coinSymbol: message.data.coinSymbol,
+          direction: message.data.direction,
+          targetPrice: message.data.targetPrice,
+          currentPrice: message.data.currentPrice,
+          triggeredAt: new Date(message.data.triggeredAt)
+        });
     }
   }
 };

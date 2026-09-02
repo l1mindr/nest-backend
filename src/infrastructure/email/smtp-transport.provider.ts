@@ -4,8 +4,11 @@ import nodemailer, { Transporter } from 'nodemailer';
 import emailConfig from './email.config';
 import {
   EMAIL_TRANSPORT,
+  SMTP_CONNECTION_TIMEOUT_MS,
+  SMTP_GREETING_TIMEOUT_MS,
   SMTP_POOL_MAX_CONNECTIONS,
-  SMTP_POOL_MAX_MESSAGES
+  SMTP_POOL_MAX_MESSAGES,
+  SMTP_SOCKET_TIMEOUT_MS
 } from './email.constants';
 
 export function createSmtpTransport(
@@ -21,7 +24,10 @@ export function createSmtpTransport(
     },
     pool: true,
     maxConnections: SMTP_POOL_MAX_CONNECTIONS,
-    maxMessages: SMTP_POOL_MAX_MESSAGES
+    maxMessages: SMTP_POOL_MAX_MESSAGES,
+    connectionTimeout: SMTP_CONNECTION_TIMEOUT_MS,
+    greetingTimeout: SMTP_GREETING_TIMEOUT_MS,
+    socketTimeout: SMTP_SOCKET_TIMEOUT_MS
   });
 }
 

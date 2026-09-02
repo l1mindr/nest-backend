@@ -15,8 +15,19 @@ export enum EmailMessageType {
   VERIFICATION = 'verification',
   ADMIN_INVITATION = 'admin-invitation',
   SUSPENSION = 'suspension',
-  UNSUSPENSION = 'unsuspension'
+  UNSUSPENSION = 'unsuspension',
+  PRICE_ALERT = 'price-alert'
 }
+
+/**
+ * Which side of the target price the market crossed.
+ *
+ * Spelled out here rather than imported from the coin-tracker feature: this
+ * contract is a JSON payload the queue stores and any deployment of this
+ * codebase reads back, so it must not depend on a feature's enum identity. The
+ * values match `AlertDirection` because the two describe the same fact.
+ */
+export type PriceAlertDirection = 'BUY' | 'SELL';
 
 interface EmailMessageOf<TType extends EmailMessageType, TData> {
   type: TType;
@@ -60,8 +71,27 @@ export type UnsuspensionEmailMessage = EmailMessageOf<
   }
 >;
 
+/**
+ * Prices travel as strings because they are `numeric` columns and a CoinGecko
+ * quote both wider than a float can hold exactly; rendering them is the only
+ * thing this message does with them, so there is nothing to gain by parsing.
+ */
+export type PriceAlertEmailMessage = EmailMessageOf<
+  EmailMessageType.PRICE_ALERT,
+  {
+    coinName: string;
+    coinSymbol: string;
+    direction: PriceAlertDirection;
+    targetPrice: string;
+    currentPrice: string;
+    /** ISO 8601. */
+    triggeredAt: string;
+  }
+>;
+
 export type EmailMessage =
   | VerificationEmailMessage
   | AdminInvitationEmailMessage
   | SuspensionEmailMessage
-  | UnsuspensionEmailMessage;
+  | UnsuspensionEmailMessage
+  | PriceAlertEmailMessage;

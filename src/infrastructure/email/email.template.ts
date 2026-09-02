@@ -1,3 +1,5 @@
+import { PriceAlertDirection } from './email.message';
+
 export interface VerificationEmailData {
   projectName: string;
   code: string;
@@ -22,6 +24,16 @@ export interface AdminInvitationEmailData {
   projectName: string;
   token: string;
   expiresInHours: number;
+}
+
+export interface PriceAlertEmailData {
+  projectName: string;
+  coinName: string;
+  coinSymbol: string;
+  direction: PriceAlertDirection;
+  targetPrice: string;
+  currentPrice: string;
+  triggeredAt: Date;
 }
 
 export interface RenderedEmail {
@@ -285,6 +297,98 @@ export function buildUnsuspensionEmail(
 
   return {
     subject: `${projectName} account unsuspended`,
+    html,
+    text
+  };
+}
+
+/**
+ * Renders a `numeric` price for reading rather than for arithmetic.
+ *
+ * Postgres hands back the scale the column was written with, so a target of
+ * `2469` and a target of `2469.00000000` are the same price spelled two ways;
+ * trailing zeros go, and the integer part is grouped. Done on the string
+ * because parsing to a float is exactly the precision loss the column type
+ * exists to avoid.
+ */
+function formatPrice(value: string): string {
+  const match = /^(-?)(\d+)(?:\.(\d*))?$/.exec(value.trim());
+
+  if (!match) return value;
+
+  const [, sign, whole, fraction = ''] = match;
+  const trimmed = fraction.replace(/0+$/, '');
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+  return `${sign}$${grouped}${trimmed ? `.${trimmed}` : ''}`;
+}
+
+/**
+ * The notification that a price alert fired.
+ *
+ * Says what the market did and what the alert asked for, and nothing about the
+ * account beyond that: an alert is a standing instruction the recipient already
+ * knows they left, so there is nothing here worth protecting from a misdirected
+ * copy. Both prices are named because "crossed your target" is only meaningful
+ * next to the number it crossed.
+ */
+export function buildPriceAlertEmail(data: PriceAlertEmailData): RenderedEmail {
+  const { projectName, coinName, coinSymbol, direction, triggeredAt } = data;
+  const targetPrice = formatPrice(data.targetPrice);
+  const currentPrice = formatPrice(data.currentPrice);
+  const symbol = coinSymbol.toUpperCase();
+  const movement = direction === 'BUY' ? 'fallen to' : 'risen to';
+  const comparison = direction === 'BUY' ? 'at or below' : 'at or above';
+  const headline = `${escapeHtml(coinName)} (${escapeHtml(symbol)}) has ${movement} ${currentPrice}`;
+  const checkedOn = formatUtc(triggeredAt);
+
+  const html = wrapHtml(
+    `
+    <p style="margin:0 0 16px;font-size:16px;">${greeting(null)}</p>
+    <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">
+      ${headline}, which is ${comparison} your alert target of
+      <strong>${targetPrice}</strong>.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;border:1px solid #e5e7eb;border-radius:8px;">
+      <tr>
+        <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#6b7280;">Current price</td>
+        <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;font-size:16px;font-weight:bold;text-align:right;color:#1d4ed8;">${currentPrice}</td>
+      </tr>
+      <tr>
+        <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#6b7280;">Your target</td>
+        <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;font-size:16px;text-align:right;">${targetPrice}</td>
+      </tr>
+      <tr>
+        <td style="padding:16px 20px;font-size:14px;color:#6b7280;">Detected at</td>
+        <td style="padding:16px 20px;font-size:16px;text-align:right;">${checkedOn}</td>
+      </tr>
+    </table>
+    <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">
+      Prices are quoted in USD and move constantly, so the market may have moved
+      again since this alert was sent. Manage or cancel this alert from your
+      ${escapeHtml(projectName)} price alerts page.
+    </p>
+    `,
+    projectName
+  );
+
+  const text = [
+    `${projectName}`,
+    '',
+    `${greeting(null)}`,
+    '',
+    `${coinName} (${symbol}) has ${movement} ${currentPrice}, which is ${comparison} your alert target of ${targetPrice}.`,
+    '',
+    `Current price: ${currentPrice}`,
+    `Your target: ${targetPrice}`,
+    `Detected at: ${checkedOn}`,
+    '',
+    'Prices are quoted in USD and move constantly, so the market may have moved again since this alert was sent. Manage or cancel this alert from your price alerts page.',
+    ''
+  ].join('\n');
+
+  return {
+    subject: `${symbol} ${movement} ${currentPrice}`,
     html,
     text
   };
