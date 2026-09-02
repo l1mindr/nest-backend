@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import {
+  IRealtimeEventPublisher,
+  REALTIME_EVENT_PUBLISHER
+} from '@features/realtime/application/interfaces/realtime.interface';
 import { PinoLogger } from 'nestjs-pino';
 import { AlertStatus } from '../../domain/enums/alert-status.enum';
 import { AlertTriggerMode } from '../../domain/enums/alert-trigger-mode.enum';
@@ -39,7 +43,9 @@ export class PriceCheckService implements IPriceCheckService {
     private readonly notificationService: INotificationService,
     private readonly clockService: ClockService,
     private readonly evaluator: PriceAlertEvaluatorService,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    @Inject(REALTIME_EVENT_PUBLISHER)
+    private readonly realtimeEventPublisher: IRealtimeEventPublisher
   ) {
     this.logger.setContext(PriceCheckService.name);
   }
@@ -261,6 +267,17 @@ export class PriceCheckService implements IPriceCheckService {
       },
       'Price alert triggered'
     );
+
+    this.realtimeEventPublisher.publishToUser(alert.userId, {
+      type: 'price-alert.triggered',
+      payload: {
+        alertId: alert.id,
+        coinId: alert.coinId,
+        direction: alert.direction,
+        targetPrice: alert.targetPrice,
+        currentPrice: currentPriceText
+      }
+    });
   }
 
   private async sendNotifications(

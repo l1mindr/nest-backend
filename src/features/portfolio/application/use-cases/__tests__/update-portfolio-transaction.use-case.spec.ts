@@ -63,7 +63,8 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       portfolioRepository as any,
       checkpointRepository as any,
       logger as any,
-      { record: jest.fn() } as any
+      { record: jest.fn() } as any,
+      { publishToUser: jest.fn() } as any
     );
   });
 
