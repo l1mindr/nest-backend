@@ -132,7 +132,7 @@ describe('Environment validation', () => {
     it('should accept a valid origin in development', () => {
       const { error } = ENV_VALIDATION_SCHEMA.validate({
         ...VALID_ENV,
-        CORS_ORIGIN: 'http://localhost:4321'
+        CORS_ORIGIN: 'http://localhost:3000'
       });
 
       expect(error).toBeUndefined();
