@@ -164,18 +164,17 @@ describe('Assets (e2e) version: 1', () => {
       expect(bitcoin.updatedAt).toEqual(expect.any(String));
     });
 
-    it('should paginate and support search', async () => {
+    it('should paginate and support search, ordered by market-cap rank', async () => {
       const seeded = await seedAssets();
       const { client } = await AuthFactory.authenticated(app);
 
-      const matches = seeded
-        .filter(
-          (asset) =>
-            asset.name.toLowerCase().includes('bit') ||
-            asset.symbol.includes('bit') ||
-            asset.coinGeckoId.includes('bit')
-        )
-        .sort((a, b) => a.id.localeCompare(b.id));
+      // "bit" matches Bitcoin (rank 1) and Bitcoin Cash (unranked). Ranked
+      // assets sort first regardless of id, so Bitcoin is deterministically
+      // page one here.
+      const bitcoin = seeded.find((asset) => asset.coinGeckoId === 'bitcoin')!;
+      const bitcoinCash = seeded.find(
+        (asset) => asset.coinGeckoId === 'bitcoin-cash'
+      )!;
 
       const firstPage = await client.get('/v1/assets', {
         query: { search: 'bit', limit: 1 }
@@ -183,7 +182,7 @@ describe('Assets (e2e) version: 1', () => {
 
       expect(firstPage.status).toBe(200);
       expect(firstPage.body.items).toHaveLength(1);
-      expect(firstPage.body.items[0].id).toBe(matches[0].id);
+      expect(firstPage.body.items[0].id).toBe(bitcoin.id);
       expect(firstPage.body.nextCursor).toEqual(expect.any(String));
 
       const secondPage = await client.get('/v1/assets', {
@@ -196,9 +195,62 @@ describe('Assets (e2e) version: 1', () => {
 
       expect(secondPage.status).toBe(200);
       expect(secondPage.body.items.map((asset: Asset) => asset.id)).toEqual([
-        matches[1].id
+        bitcoinCash.id
       ]);
       expect(secondPage.body.nextCursor).toBeNull();
+    });
+
+    it('should order assets by market-cap rank, with unranked assets last', async () => {
+      const seeded = await seedAssets();
+      const { client } = await AuthFactory.authenticated(app);
+
+      const response = await client.get('/v1/assets');
+
+      expect(response.status).toBe(200);
+      const bitcoin = seeded.find((asset) => asset.coinGeckoId === 'bitcoin')!;
+      const ethereum = seeded.find(
+        (asset) => asset.coinGeckoId === 'ethereum'
+      )!;
+      const bitcoinCash = seeded.find(
+        (asset) => asset.coinGeckoId === 'bitcoin-cash'
+      )!;
+
+      // Rank 1, rank 2, then the unranked asset — not id or insertion order.
+      expect(response.body.items.map((asset: Asset) => asset.id)).toEqual([
+        bitcoin.id,
+        ethereum.id,
+        bitcoinCash.id
+      ]);
+    });
+
+    it('should walk every page of a rank-ordered list via cursor without gaps or repeats', async () => {
+      const seeded = await seedAssets();
+      const { client } = await AuthFactory.authenticated(app);
+
+      const seenIds: string[] = [];
+      let cursor: string | undefined;
+
+      for (let i = 0; i < seeded.length; i++) {
+        const page = await client.get('/v1/assets', {
+          query: { limit: 1, ...(cursor ? { cursor } : {}) }
+        });
+
+        expect(page.status).toBe(200);
+        expect(page.body.items).toHaveLength(1);
+        seenIds.push(page.body.items[0].id);
+        cursor = page.body.nextCursor ?? undefined;
+      }
+
+      expect(cursor).toBeUndefined();
+      expect(seenIds).toEqual(
+        seeded
+          .slice()
+          .sort(
+            (a, b) =>
+              (a.marketCapRank ?? Infinity) - (b.marketCapRank ?? Infinity)
+          )
+          .map((asset) => asset.id)
+      );
     });
 
     it('should return empty list when no assets exist', async () => {
