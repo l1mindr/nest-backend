@@ -114,6 +114,41 @@ export class HoldingsService {
   }
 
   /**
+   * Current quantity of one asset, as if `excludeTransactionId` did not exist.
+   *
+   * Used to validate an in-place edit of a SELL/TRANSFER_OUT transaction: the
+   * transaction being edited is still in the ledger `listByPortfolioAndAsset`
+   * returns, so it must be excluded before replaying — otherwise its own old
+   * amount would be double-counted against the new one being validated.
+   */
+  async getAssetQuantityExcluding(
+    portfolioId: string,
+    assetId: string,
+    userId: string,
+    excludeTransactionId: string
+  ): Promise<string> {
+    const [transactions, openingBalances] = await Promise.all([
+      this.transactionRepository.listByPortfolioAndAsset(
+        portfolioId,
+        assetId,
+        userId
+      ),
+      this.openingBalanceRepository.listByPortfolioAndUser(portfolioId, userId)
+    ]);
+
+    const opening = openingBalances.find(
+      (balance) => balance.assetId === assetId
+    );
+
+    return this.calculateQuantity(
+      transactions
+        .filter((transaction) => transaction.id !== excludeTransactionId)
+        .map((transaction) => this.toCalculation(transaction)),
+      opening?.openingQuantity
+    );
+  }
+
+  /**
    * Every asset position in a portfolio, derived from its ledger.
    *
    * Assets that only have an opening balance are included, so the result

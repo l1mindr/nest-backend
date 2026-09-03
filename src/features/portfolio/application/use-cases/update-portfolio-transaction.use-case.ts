@@ -26,6 +26,7 @@ import {
   IRealtimeEventPublisher,
   REALTIME_EVENT_PUBLISHER
 } from '@features/realtime/application/interfaces/realtime.interface';
+import { HoldingsService } from '../../infrastructure/providers/holdings.service';
 
 @Injectable()
 export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransactionUseCase {
@@ -36,6 +37,7 @@ export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransa
     private readonly portfolioRepository: IPortfolioRepository,
     @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
     private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
+    private readonly holdingsService: HoldingsService,
     private readonly logger: PinoLogger,
     private readonly auditLogService: AuditLogService,
     @Inject(REALTIME_EVENT_PUBLISHER)
@@ -98,6 +100,36 @@ export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransa
       updatedPrice === null
     ) {
       throw PortfolioErrors.transactionPriceRequired();
+    }
+
+    const updatedAmount =
+      dto.amount !== undefined ? dto.amount : existing.amount;
+
+    // Only re-validate when this edit could actually change what leaves the
+    // portfolio: a type change into SELL/TRANSFER_OUT, or an amount change on
+    // one that already is. The transaction's own current contribution is
+    // excluded from the replay so its old amount is not double-counted
+    // against the new one being validated.
+    if (
+      (updatedType === PortfolioTransactionType.SELL ||
+        updatedType === PortfolioTransactionType.TRANSFER_OUT) &&
+      (dto.type !== undefined || dto.amount !== undefined)
+    ) {
+      const quantityExcludingThis =
+        await this.holdingsService.getAssetQuantityExcluding(
+          portfolioId,
+          existing.assetId,
+          userId,
+          transactionId
+        );
+
+      if (!this.holdingsService.canSell(quantityExcludingThis, updatedAmount)) {
+        throw PortfolioErrors.insufficientHoldings(
+          existing.assetId,
+          quantityExcludingThis,
+          updatedAmount
+        );
+      }
     }
 
     const data: UpdatePortfolioTransactionData = {};
