@@ -1,4 +1,7 @@
 import { Asset } from '@features/assets/domain/entities/asset.entity';
+import { PortfolioTransaction } from '@features/portfolio/domain/entities/portfolio-transaction.entity';
+import { PortfolioTransactionType } from '@features/portfolio/domain/enums/portfolio-transaction-type.enum';
+import { User } from '@features/users/domain/entities/user.entity';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createMigratedTestApp } from '../bootstrap/test-app';
@@ -1849,6 +1852,135 @@ describe('Portfolio (e2e) version: 1', () => {
       expect(response.status).toBe(200);
       expect(response.body.holdings[0].value).toBe('0.02');
       expect(response.body.totalValue).toBe('0.02');
+    });
+
+    it('should reject a SELL exceeding the held quantity at creation time', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const asset = await seedAsset();
+
+      await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'BUY',
+        amount: '10',
+        price: '0.4',
+        occurredAt: '2026-01-01T00:00:00.000Z'
+      });
+
+      const response = await createTransaction(auth, portfolio.id, asset.id, {
+        type: 'SELL',
+        amount: '50',
+        price: '1',
+        occurredAt: '2026-01-02T00:00:00.000Z'
+      });
+
+      expect(response.status).toBe(422);
+    });
+
+    it('should value a portfolio whose ledger contains a legacy oversell without crashing', async () => {
+      // A SELL exceeding the held quantity is rejected by
+      // `POST /v1/portfolios/:id/transactions` (see the test above), so a
+      // ledger like this can only exist from data that predates that
+      // validation — inserted directly here to reproduce it. Valuation must
+      // not crash on it: `HoldingsCalculator` floors the derived quantity at
+      // zero per disposal, so this asset nets to a fully-exited position
+      // (excluded from `holdings`) rather than a negative amount that would
+      // fail `multiplyDecimals`'s non-negative guard.
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const asset = await seedAsset();
+      const user = await dataSource
+        .getRepository(User)
+        .findOneByOrFail({ email: auth.user.email });
+
+      await dataSource.getRepository(PortfolioTransaction).save([
+        {
+          userId: user.id,
+          portfolioId: portfolio.id,
+          assetId: asset.id,
+          type: PortfolioTransactionType.BUY,
+          amount: '10',
+          price: '0.4',
+          occurredAt: new Date('2026-01-01T00:00:00.000Z')
+        },
+        {
+          userId: user.id,
+          portfolioId: portfolio.id,
+          assetId: asset.id,
+          type: PortfolioTransactionType.SELL,
+          amount: '50',
+          price: '1',
+          occurredAt: new Date('2026-01-02T00:00:00.000Z')
+        }
+      ]);
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/valuation`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        status: 'EMPTY',
+        totalValue: null,
+        valuedHoldings: 0,
+        unvaluedHoldings: 0,
+        holdings: []
+      });
+    });
+
+    it('should value a portfolio where a legacy oversell is later followed by a new BUY', async () => {
+      const auth = await AuthFactory.authenticated(app);
+      const portfolio = await createPortfolio(auth);
+      const asset = await seedAsset();
+      const user = await dataSource
+        .getRepository(User)
+        .findOneByOrFail({ email: auth.user.email });
+
+      await dataSource.getRepository(PortfolioTransaction).save([
+        {
+          userId: user.id,
+          portfolioId: portfolio.id,
+          assetId: asset.id,
+          type: PortfolioTransactionType.BUY,
+          amount: '10',
+          price: '0.4',
+          occurredAt: new Date('2026-01-01T00:00:00.000Z')
+        },
+        {
+          userId: user.id,
+          portfolioId: portfolio.id,
+          assetId: asset.id,
+          type: PortfolioTransactionType.SELL,
+          amount: '50',
+          price: '1',
+          occurredAt: new Date('2026-01-02T00:00:00.000Z')
+        },
+        {
+          userId: user.id,
+          portfolioId: portfolio.id,
+          assetId: asset.id,
+          type: PortfolioTransactionType.BUY,
+          amount: '5',
+          price: '60000',
+          occurredAt: new Date('2026-01-03T00:00:00.000Z')
+        }
+      ]);
+
+      const response = await auth.client.get(
+        `/v1/portfolios/${portfolio.id}/valuation`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        status: 'COMPLETE',
+        valuedHoldings: 1,
+        unvaluedHoldings: 0
+      });
+      expect(response.body.holdings[0]).toMatchObject({
+        assetId: asset.id,
+        amount: '5',
+        currentPrice: '60000.00000000',
+        value: '300000'
+      });
     });
   });
   describe('P&L', () => {
