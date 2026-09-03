@@ -11,4 +11,11 @@ export class PortfolioTransactionListResponseDto {
 
   @ApiProperty(nextCursorDocs())
   nextCursor!: string | null;
+
+  @ApiProperty({
+    description:
+      'Total transactions matching the filters, independent of the current page.',
+    example: 42
+  })
+  total!: number;
 }

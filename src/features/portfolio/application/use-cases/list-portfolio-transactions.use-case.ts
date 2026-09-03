@@ -45,20 +45,25 @@ export class ListPortfolioTransactionsUseCase implements IListPortfolioTransacti
 
     const take = query.limit ?? PORTFOLIO_TRANSACTIONS_PAGE_SIZE_DEFAULT;
     const cursor = this.parseCursor(query.cursor);
+    const baseFilter = {
+      userId,
+      portfolioId,
+      assetId: query.assetId,
+      type: query.type,
+      from: query.from ? new Date(query.from) : undefined,
+      to: query.to ? new Date(query.to) : undefined
+    };
 
-    const transactions =
-      await this.transactionRepository.listByPortfolioAndUser({
-        userId,
-        portfolioId,
-        assetId: query.assetId,
-        type: query.type,
-        from: query.from ? new Date(query.from) : undefined,
-        to: query.to ? new Date(query.to) : undefined,
+    const [transactions, total] = await Promise.all([
+      this.transactionRepository.listByPortfolioAndUser({
+        ...baseFilter,
         cursor,
         limit: take + 1
-      });
+      }),
+      this.transactionRepository.countByPortfolioAndUser(baseFilter)
+    ]);
 
-    return paginate(transactions, take, (transaction) =>
+    const page = paginate(transactions, take, (transaction) =>
       encodeCursor(
         JSON.stringify({
           occurredAt: transaction.occurredAt.toISOString(),
@@ -66,6 +71,8 @@ export class ListPortfolioTransactionsUseCase implements IListPortfolioTransacti
         })
       )
     );
+
+    return { ...page, total };
   }
 
   private parseCursor(cursor?: string): PortfolioTransactionCursor | null {

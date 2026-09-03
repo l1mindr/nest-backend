@@ -12,6 +12,7 @@ import { SecurityModule } from './security/security.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { TokenModule } from './token/token.module';
 import { UsersModule } from './users/users.module';
+import { WalletsModule } from './wallets/wallets.module';
 
 @Module({
   imports: [
@@ -27,7 +28,8 @@ import { UsersModule } from './users/users.module';
     SecurityModule,
     SessionsModule,
     TokenModule,
-    UsersModule
+    UsersModule,
+    WalletsModule
   ]
 })
 export class FeaturesModule {}
