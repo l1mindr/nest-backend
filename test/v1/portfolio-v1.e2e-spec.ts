@@ -712,7 +712,9 @@ describe('Portfolio (e2e) version: 1', () => {
       const response = await createTransaction(auth, portfolio.id, asset.id, {
         type: 'TRANSFER_IN',
         amount: '0.25',
-        occurredAt: '2026-07-28T09:00:00.000Z'
+        occurredAt: '2026-07-28T09:00:00.000Z',
+        destinationType: 'EXCHANGE',
+        exchangeName: 'Kraken'
       });
 
       expect(response.status).toBe(201);
@@ -880,7 +882,9 @@ describe('Portfolio (e2e) version: 1', () => {
       await createTransaction(auth, portfolio.id, asset.id, {
         type: 'TRANSFER_IN',
         amount: '0.3',
-        occurredAt: '2026-07-03T08:00:00.000Z'
+        occurredAt: '2026-07-03T08:00:00.000Z',
+        destinationType: 'EXCHANGE',
+        exchangeName: 'Kraken'
       });
 
       const response = await auth.client.get(
@@ -1570,7 +1574,9 @@ describe('Portfolio (e2e) version: 1', () => {
         const tx = await createTransaction(auth, portfolio.id, asset.id, {
           type: 'TRANSFER_IN',
           amount: '1',
-          occurredAt: '2026-07-01T08:00:00.000Z'
+          occurredAt: '2026-07-01T08:00:00.000Z',
+          destinationType: 'EXCHANGE',
+          exchangeName: 'Kraken'
         });
 
         const patch = await auth.client.patch(
@@ -1600,7 +1606,9 @@ describe('Portfolio (e2e) version: 1', () => {
         await createTransaction(auth, portfolio.id, asset.id, {
           type: 'TRANSFER_IN',
           amount: '3',
-          occurredAt: '2026-07-01T08:00:00.000Z'
+          occurredAt: '2026-07-01T08:00:00.000Z',
+          destinationType: 'EXCHANGE',
+          exchangeName: 'Kraken'
         });
         const transferOut = await createTransaction(
           auth,
@@ -1609,7 +1617,9 @@ describe('Portfolio (e2e) version: 1', () => {
           {
             type: 'TRANSFER_OUT',
             amount: '1',
-            occurredAt: '2026-07-02T08:00:00.000Z'
+            occurredAt: '2026-07-02T08:00:00.000Z',
+            destinationType: 'EXCHANGE',
+            exchangeName: 'Kraken'
           }
         );
         expect(transferOut.status).toBe(201);
@@ -1674,6 +1684,176 @@ describe('Portfolio (e2e) version: 1', () => {
           occurredAt: '2026-07-03T12:00:00.000Z',
           proceeds: '65000',
           realizedPnl: '15000'
+        });
+      });
+    });
+
+    describe('Transfer destination', () => {
+      it('rejects a transfer with no destinationType', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        const response = await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'TRANSFER_IN',
+          amount: '1',
+          occurredAt: '2026-07-28T08:00:00.000Z'
+        });
+
+        expect(response.status).toBe(422);
+        expect(response.body.error.code).toBe('TRANSFER_DESTINATION_REQUIRED');
+      });
+
+      it('rejects an EXCHANGE transfer with no exchangeName', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        const response = await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'TRANSFER_IN',
+          amount: '1',
+          occurredAt: '2026-07-28T08:00:00.000Z',
+          destinationType: 'EXCHANGE'
+        });
+
+        expect(response.status).toBe(422);
+        expect(response.body.error.code).toBe(
+          'TRANSFER_EXCHANGE_NAME_REQUIRED'
+        );
+      });
+
+      it('accepts an EXCHANGE transfer with an optional txid', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        const withoutTxid = await createTransaction(
+          auth,
+          portfolio.id,
+          asset.id,
+          {
+            type: 'TRANSFER_IN',
+            amount: '1',
+            occurredAt: '2026-07-28T08:00:00.000Z',
+            destinationType: 'EXCHANGE',
+            exchangeName: 'Binance'
+          }
+        );
+        expect(withoutTxid.status).toBe(201);
+        expect(withoutTxid.body).toMatchObject({
+          destinationType: 'EXCHANGE',
+          exchangeName: 'Binance',
+          txid: null,
+          walletId: null
+        });
+
+        const withTxid = await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'TRANSFER_IN',
+          amount: '1',
+          occurredAt: '2026-07-28T08:00:00.000Z',
+          destinationType: 'EXCHANGE',
+          exchangeName: 'Binance',
+          txid: '0x9f2c...'
+        });
+        expect(withTxid.status).toBe(201);
+        expect(withTxid.body.txid).toBe('0x9f2c...');
+      });
+
+      it('rejects a WALLET transfer with no walletId', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        const response = await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'TRANSFER_IN',
+          amount: '1',
+          occurredAt: '2026-07-28T08:00:00.000Z',
+          destinationType: 'WALLET'
+        });
+
+        expect(response.status).toBe(404);
+        expect(response.body.error.code).toBe('TRANSFER_WALLET_NOT_FOUND');
+      });
+
+      it('rejects a walletId owned by another user (no IDOR)', async () => {
+        const owner = await AuthFactory.authenticated(app, {
+          overrides: { email: 'walletOwner@test.com', username: 'walletowner' }
+        });
+        const other = await AuthFactory.authenticated(app, {
+          overrides: { email: 'walletOther@test.com', username: 'walletother' }
+        });
+        const portfolio = await createPortfolio(other);
+
+        const wallet = await owner.client.post('/v1/wallets', {
+          body: { name: 'MetaMask' },
+          headers: mutationHeaders(owner)
+        });
+        expect(wallet.status).toBe(201);
+
+        const response = await createTransaction(
+          other,
+          portfolio.id,
+          asset.id,
+          {
+            type: 'TRANSFER_IN',
+            amount: '1',
+            occurredAt: '2026-07-28T08:00:00.000Z',
+            destinationType: 'WALLET',
+            walletId: wallet.body.id
+          }
+        );
+
+        expect(response.status).toBe(404);
+        expect(response.body.error.code).toBe('TRANSFER_WALLET_NOT_FOUND');
+      });
+
+      it('accepts a WALLET transfer with an owned wallet', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        const wallet = await auth.client.post('/v1/wallets', {
+          body: { name: 'Ledger' },
+          headers: mutationHeaders(auth)
+        });
+        expect(wallet.status).toBe(201);
+
+        const transferIn = await createTransaction(
+          auth,
+          portfolio.id,
+          asset.id,
+          {
+            type: 'TRANSFER_IN',
+            amount: '1',
+            occurredAt: '2026-07-28T08:00:00.000Z',
+            destinationType: 'WALLET',
+            walletId: wallet.body.id
+          }
+        );
+
+        expect(transferIn.status).toBe(201);
+        expect(transferIn.body).toMatchObject({
+          destinationType: 'WALLET',
+          walletId: wallet.body.id,
+          exchangeName: null,
+          txid: null
+        });
+      });
+
+      it('ignores destination fields on BUY/SELL transactions', async () => {
+        const auth = await AuthFactory.authenticated(app);
+        const portfolio = await createPortfolio(auth);
+
+        const buy = await createTransaction(auth, portfolio.id, asset.id, {
+          type: 'BUY',
+          amount: '1',
+          price: '10',
+          occurredAt: '2026-07-28T08:00:00.000Z',
+          destinationType: 'EXCHANGE',
+          exchangeName: 'Should be ignored'
+        });
+
+        expect(buy.status).toBe(201);
+        expect(buy.body).toMatchObject({
+          destinationType: null,
+          exchangeName: null,
+          txid: null,
+          walletId: null
         });
       });
     });
@@ -2271,7 +2451,9 @@ describe('Portfolio (e2e) version: 1', () => {
       await createTransaction(auth, portfolio.id, asset.id, {
         type: 'TRANSFER_IN',
         amount: '1',
-        occurredAt: '2026-07-01T08:00:00.000Z'
+        occurredAt: '2026-07-01T08:00:00.000Z',
+        destinationType: 'EXCHANGE',
+        exchangeName: 'Kraken'
       });
       await createTransaction(auth, portfolio.id, asset.id, {
         type: 'SELL',
@@ -2308,12 +2490,16 @@ describe('Portfolio (e2e) version: 1', () => {
       await createTransaction(auth, portfolio.id, asset.id, {
         type: 'TRANSFER_IN',
         amount: '1',
-        occurredAt: '2026-07-01T08:00:00.000Z'
+        occurredAt: '2026-07-01T08:00:00.000Z',
+        destinationType: 'EXCHANGE',
+        exchangeName: 'Kraken'
       });
       await createTransaction(auth, portfolio.id, asset.id, {
         type: 'TRANSFER_OUT',
         amount: '1',
-        occurredAt: '2026-07-02T08:00:00.000Z'
+        occurredAt: '2026-07-02T08:00:00.000Z',
+        destinationType: 'EXCHANGE',
+        exchangeName: 'Kraken'
       });
 
       const response = await auth.client.get(
@@ -2884,7 +3070,9 @@ describe('Portfolio (e2e) version: 1', () => {
       await createTransaction(auth, portfolio.id, asset.id, {
         type: 'TRANSFER_OUT',
         amount: '2',
-        occurredAt: '2026-07-02T08:00:00.000Z'
+        occurredAt: '2026-07-02T08:00:00.000Z',
+        destinationType: 'EXCHANGE',
+        exchangeName: 'Kraken'
       });
       const sell = await createTransaction(auth, portfolio.id, asset.id, {
         type: 'SELL',

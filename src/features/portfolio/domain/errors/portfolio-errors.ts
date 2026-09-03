@@ -137,4 +137,34 @@ export class PortfolioErrors {
       'Asset not found'
     );
   }
+
+  static transferDestinationRequired() {
+    return new AppError(
+      PortfolioErrorCode.TRANSFER_DESTINATION_REQUIRED,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      { field: 'destinationType' },
+      'TRANSFER_IN and TRANSFER_OUT transactions require a destinationType'
+    );
+  }
+
+  static transferExchangeNameRequired() {
+    return new AppError(
+      PortfolioErrorCode.TRANSFER_EXCHANGE_NAME_REQUIRED,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      { field: 'exchangeName' },
+      'An EXCHANGE transfer requires an exchangeName'
+    );
+  }
+
+  static transferWalletNotFound(walletId?: string) {
+    return new AppError(
+      PortfolioErrorCode.TRANSFER_WALLET_NOT_FOUND,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.NOT_FOUND,
+      walletId ? { walletId } : undefined,
+      'Wallet not found'
+    );
+  }
 }
