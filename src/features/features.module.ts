@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { AuthorizationModule } from './authorization/authorization.module';
 import { CoinTrackerModule } from './coin-tracker/coin-tracker.module';
 import { LogsModule } from './logs/logs.module';
+import { MarketOverviewModule } from './market-overview/market-overview.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SecurityModule } from './security/security.module';
@@ -18,6 +19,7 @@ import { UsersModule } from './users/users.module';
     AuthorizationModule,
     CoinTrackerModule,
     LogsModule,
+    MarketOverviewModule,
     PortfolioModule,
     RealtimeModule,
     SecurityModule,

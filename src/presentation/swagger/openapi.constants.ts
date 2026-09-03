@@ -29,6 +29,7 @@ export const ApiTagName = {
   COINS: 'Coins',
   PRICE_ALERTS: 'Price Alerts',
   ASSETS: 'Assets',
+  MARKET: 'Market',
   ADMIN_USERS: 'Admin Users',
   PORTFOLIOS: 'Portfolios',
   ADMIN_ACCOUNTS: 'Administrators & Permissions',

@@ -190,6 +190,26 @@ export const validationResponse = (
   examples
 });
 
+/** `502` for an endpoint whose upstream provider rejected the request or returned a malformed body. */
+export const badGatewayResponse = (
+  description: string,
+  ...examples: ApiErrorExample[]
+): ApiErrorResponseOptions => ({
+  status: HttpStatus.BAD_GATEWAY,
+  description,
+  examples
+});
+
+/** `504` for an endpoint whose upstream provider did not respond in time. */
+export const gatewayTimeoutResponse = (
+  description: string,
+  ...examples: ApiErrorExample[]
+): ApiErrorResponseOptions => ({
+  status: HttpStatus.GATEWAY_TIMEOUT,
+  description,
+  examples
+});
+
 /** `429` for endpoints carrying a `@RateLimit` budget. */
 export const rateLimitResponse = (
   description: string,
