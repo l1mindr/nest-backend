@@ -116,6 +116,98 @@ describe('HoldingsCalculator', () => {
       expect(result).toBe('25'); // 20 + 5 = 25
     });
 
+    it('should floor at zero instead of going negative when a SELL exceeds the held quantity', () => {
+      // Mirrors a ledger that predates transaction-side oversell validation:
+      // BUY 10, then a SELL of 50 that never should have been allowed.
+      const transactions = [
+        {
+          type: CalculationTransactionType.BUY,
+          amount: '10',
+          occurredAt: '2026-01-01T00:00:00Z'
+        },
+        {
+          type: CalculationTransactionType.SELL,
+          amount: '50',
+          occurredAt: '2026-01-02T00:00:00Z'
+        }
+      ];
+      const result = calculator.calculateQuantity(transactions);
+      expect(result).toBe('0');
+    });
+
+    it('should floor at zero instead of going negative when a TRANSFER_OUT exceeds the held quantity', () => {
+      const transactions = [
+        {
+          type: CalculationTransactionType.BUY,
+          amount: '10',
+          occurredAt: '2026-01-01T00:00:00Z'
+        },
+        {
+          type: CalculationTransactionType.TRANSFER_OUT,
+          amount: '50',
+          occurredAt: '2026-01-02T00:00:00Z'
+        }
+      ];
+      const result = calculator.calculateQuantity(transactions);
+      expect(result).toBe('0');
+    });
+
+    it('should resume accumulating after an oversold disposal floors the quantity at zero', () => {
+      // BUY 10 -> SELL 50 (clamped to 10, floors at 0) -> BUY 5 -> net 5.
+      // A bulk "total additions - total subtractions" would instead compute
+      // 15 - 50 = -35, so this specifically exercises the chronological,
+      // per-disposal clamping rather than a final aggregate subtraction.
+      const transactions = [
+        {
+          type: CalculationTransactionType.BUY,
+          amount: '10',
+          occurredAt: '2026-01-01T00:00:00Z'
+        },
+        {
+          type: CalculationTransactionType.SELL,
+          amount: '50',
+          occurredAt: '2026-01-02T00:00:00Z'
+        },
+        {
+          type: CalculationTransactionType.BUY,
+          amount: '5',
+          occurredAt: '2026-01-03T00:00:00Z'
+        }
+      ];
+      const result = calculator.calculateQuantity(transactions);
+      expect(result).toBe('5');
+    });
+
+    it('should clamp an oversell against the opening quantity too', () => {
+      const transactions = [
+        {
+          type: CalculationTransactionType.SELL,
+          amount: '100',
+          occurredAt: '2026-01-01T00:00:00Z'
+        }
+      ];
+      const result = calculator.calculateQuantity(transactions, '20');
+      expect(result).toBe('0');
+    });
+
+    it('should handle large decimal amounts without scientific notation', () => {
+      const transactions = [
+        {
+          type: CalculationTransactionType.BUY,
+          amount: '123456789012345.123456789012345678',
+          occurredAt: '2026-01-01T00:00:00Z'
+        },
+        {
+          type: CalculationTransactionType.SELL,
+          amount: '23456789012345.123456789012345678',
+          occurredAt: '2026-01-02T00:00:00Z'
+        }
+      ];
+      const result = calculator.calculateQuantity(transactions);
+      expect(result).toBe('100000000000000');
+      expect(result).not.toMatch(/e/i);
+    });
+
     it('should handle decimal amounts correctly', () => {
       const transactions = [
         {
