@@ -123,6 +123,42 @@ describe('HoldingsService', () => {
     });
   });
 
+  describe('getAssetQuantityExcluding', () => {
+    it('replays the ledger as if the excluded transaction never existed', async () => {
+      transactionRepository.listByPortfolioAndAsset.mockResolvedValue([
+        tx(PortfolioTransactionType.BUY, '10'),
+        { ...tx(PortfolioTransactionType.SELL, '4'), id: 'tx-being-edited' }
+      ]);
+
+      await expect(
+        service.getAssetQuantityExcluding(
+          'portfolio-id',
+          'asset-id',
+          'user-id',
+          'tx-being-edited'
+        )
+      ).resolves.toBe('10');
+    });
+
+    it('anchors on the opening balance like getAssetQuantity does', async () => {
+      openingBalanceRepository.listByPortfolioAndUser.mockResolvedValue([
+        { assetId: 'asset-id', openingQuantity: '7' }
+      ]);
+      transactionRepository.listByPortfolioAndAsset.mockResolvedValue([
+        { ...tx(PortfolioTransactionType.SELL, '2'), id: 'tx-being-edited' }
+      ]);
+
+      await expect(
+        service.getAssetQuantityExcluding(
+          'portfolio-id',
+          'asset-id',
+          'user-id',
+          'tx-being-edited'
+        )
+      ).resolves.toBe('7');
+    });
+  });
+
   describe('canSell', () => {
     it.each([
       ['10', '10', true],
