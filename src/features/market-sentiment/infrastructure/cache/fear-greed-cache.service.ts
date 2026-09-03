@@ -5,7 +5,14 @@ import fearGreedConfig from '../alternativeme/fear-greed.config';
 
 interface CacheEntry {
   value: FearGreedEntry;
+  fetchedAt: Date;
   expiresAt: number;
+}
+
+/** The cached value together with when this backend fetched it. */
+export interface CachedEntry {
+  value: FearGreedEntry;
+  fetchedAt: Date;
 }
 
 /**
@@ -24,16 +31,21 @@ export class FearGreedCacheService {
     private readonly config: ConfigType<typeof fearGreedConfig>
   ) {}
 
-  get(): FearGreedEntry | null {
+  get(): CachedEntry | null {
     if (!this.entry || this.entry.expiresAt <= Date.now()) return null;
-    return this.entry.value;
+    return { value: this.entry.value, fetchedAt: this.entry.fetchedAt };
   }
 
-  getStale(): FearGreedEntry | null {
-    return this.entry?.value ?? null;
+  getStale(): CachedEntry | null {
+    if (!this.entry) return null;
+    return { value: this.entry.value, fetchedAt: this.entry.fetchedAt };
   }
 
   set(value: FearGreedEntry): void {
-    this.entry = { value, expiresAt: Date.now() + this.config.cacheTtlMs };
+    this.entry = {
+      value,
+      fetchedAt: new Date(),
+      expiresAt: Date.now() + this.config.cacheTtlMs
+    };
   }
 }
