@@ -16,7 +16,8 @@ describe('ListPortfolioTransactionsUseCase', () => {
     name: 'Ledger'
   } as Portfolio;
   const transactionRepository = {
-    listByPortfolioAndUser: jest.fn()
+    listByPortfolioAndUser: jest.fn(),
+    countByPortfolioAndUser: jest.fn()
   };
   const portfolioRepository = {
     findByIdAndUser: jest.fn()
@@ -47,6 +48,7 @@ describe('ListPortfolioTransactionsUseCase', () => {
       makeTransaction(1),
       makeTransaction(0)
     ]);
+    transactionRepository.countByPortfolioAndUser.mockResolvedValue(3);
 
     useCase = new ListPortfolioTransactionsUseCase(
       transactionRepository as any,
@@ -71,6 +73,30 @@ describe('ListPortfolioTransactionsUseCase', () => {
     );
     expect(result.items).toHaveLength(3);
     expect(result.nextCursor).toBeNull();
+    expect(result.total).toBe(3);
+  });
+
+  it('reports a total independent of the page size, using the same filters minus cursor/limit', async () => {
+    const items = Array.from({ length: 21 }, (_, i) => makeTransaction(i));
+    transactionRepository.listByPortfolioAndUser.mockResolvedValue(items);
+    transactionRepository.countByPortfolioAndUser.mockResolvedValue(57);
+
+    const result = await useCase.execute('user-id', 'portfolio-id', {
+      limit: 20,
+      assetId: 'asset-id',
+      type: PortfolioTransactionType.SELL
+    } as any);
+
+    expect(result.items).toHaveLength(20);
+    expect(result.total).toBe(57);
+    expect(transactionRepository.countByPortfolioAndUser).toHaveBeenCalledWith({
+      userId: 'user-id',
+      portfolioId: 'portfolio-id',
+      assetId: 'asset-id',
+      type: PortfolioTransactionType.SELL,
+      from: undefined,
+      to: undefined
+    });
   });
 
   it('should paginate when more items than the page size come back', async () => {
