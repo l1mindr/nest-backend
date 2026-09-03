@@ -1,8 +1,8 @@
-import { GetMarketOverviewUseCase } from '../get-market-overview.use-case';
+import { GetBitcoinMarketUseCase } from '../get-bitcoin-market.use-case';
 
-describe('GetMarketOverviewUseCase', () => {
+describe('GetBitcoinMarketUseCase', () => {
   const provider = {
-    fetchGlobalMarketData: jest.fn()
+    fetchBitcoinMarketData: jest.fn()
   };
   const cache = {
     get: jest.fn(),
@@ -15,18 +15,17 @@ describe('GetMarketOverviewUseCase', () => {
   };
 
   const entry = {
-    totalMarketCapUsd: '2412345678901.23',
-    marketCapChangePercentage24h: '1.24',
-    btcDominancePercentage: '51.32',
+    priceUsd: '112345.67',
+    priceChangePercentage24h: '1.24',
     updatedAt: new Date('2026-08-02T14:35:00.000Z')
   };
-  const fetchedAt = new Date('2026-08-02T14:36:12.000Z');
+  const fetchedAt = new Date('2026-08-02T14:35:20.000Z');
 
-  let useCase: GetMarketOverviewUseCase;
+  let useCase: GetBitcoinMarketUseCase;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useCase = new GetMarketOverviewUseCase(
+    useCase = new GetBitcoinMarketUseCase(
       provider as any,
       cache as any,
       logger as any
@@ -39,12 +38,12 @@ describe('GetMarketOverviewUseCase', () => {
     const result = await useCase.execute();
 
     expect(result).toEqual({ ...entry, fetchedAt, isStale: false });
-    expect(provider.fetchGlobalMarketData).not.toHaveBeenCalled();
+    expect(provider.fetchBitcoinMarketData).not.toHaveBeenCalled();
   });
 
   it('should fetch from the provider on a cache miss, populate the cache, and mark fresh', async () => {
     cache.get.mockReturnValue(null);
-    provider.fetchGlobalMarketData.mockResolvedValue(entry);
+    provider.fetchBitcoinMarketData.mockResolvedValue(entry);
 
     const result = await useCase.execute();
 
@@ -56,7 +55,7 @@ describe('GetMarketOverviewUseCase', () => {
   it('should serve a stale cached value when the provider fails, marked stale', async () => {
     cache.get.mockReturnValue(null);
     cache.getStale.mockReturnValue({ value: entry, fetchedAt });
-    provider.fetchGlobalMarketData.mockRejectedValue(new Error('boom'));
+    provider.fetchBitcoinMarketData.mockRejectedValue(new Error('boom'));
 
     const result = await useCase.execute();
 
@@ -68,7 +67,7 @@ describe('GetMarketOverviewUseCase', () => {
     cache.get.mockReturnValue(null);
     cache.getStale.mockReturnValue(null);
     const error = new Error('boom');
-    provider.fetchGlobalMarketData.mockRejectedValue(error);
+    provider.fetchBitcoinMarketData.mockRejectedValue(error);
 
     await expect(useCase.execute()).rejects.toBe(error);
   });

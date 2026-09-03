@@ -1,38 +1,38 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import {
-  FEAR_GREED_PORT,
-  FearGreedPort,
-  FearGreedSnapshot,
-  IGetFearGreedUseCase
-} from '../interfaces/market-sentiment.interface';
-import { FearGreedCacheService } from '../../infrastructure/cache/fear-greed-cache.service';
+  BITCOIN_MARKET_PORT,
+  BitcoinMarketPort,
+  BitcoinMarketSnapshot,
+  IGetBitcoinMarketUseCase
+} from '../interfaces/bitcoin-market.interface';
+import { BitcoinCacheService } from '../../infrastructure/cache/bitcoin-cache.service';
 
 @Injectable()
-export class GetFearGreedUseCase implements IGetFearGreedUseCase {
+export class GetBitcoinMarketUseCase implements IGetBitcoinMarketUseCase {
   constructor(
-    @Inject(FEAR_GREED_PORT)
-    private readonly provider: FearGreedPort,
-    private readonly cache: FearGreedCacheService,
+    @Inject(BITCOIN_MARKET_PORT)
+    private readonly provider: BitcoinMarketPort,
+    private readonly cache: BitcoinCacheService,
     private readonly logger: PinoLogger
   ) {
-    this.logger.setContext(GetFearGreedUseCase.name);
+    this.logger.setContext(GetBitcoinMarketUseCase.name);
   }
 
   /**
-   * Serves the cached index while fresh; on a cache miss, fetches from the
+   * Serves the cached ticker while fresh; on a cache miss, fetches from the
    * provider and repopulates the cache. If the provider fails, a still-cached
    * (even if expired) value is served rather than failing the request. Only
    * rethrows when there is no cached value at all.
    */
-  async execute(): Promise<FearGreedSnapshot> {
+  async execute(): Promise<BitcoinMarketSnapshot> {
     const cached = this.cache.get();
     if (cached) {
       return { ...cached.value, fetchedAt: cached.fetchedAt, isStale: false };
     }
 
     try {
-      const fresh = await this.provider.fetchFearGreedIndex();
+      const fresh = await this.provider.fetchBitcoinMarketData();
       this.cache.set(fresh);
       return { ...fresh, fetchedAt: new Date(), isStale: false };
     } catch (error) {
@@ -41,7 +41,7 @@ export class GetFearGreedUseCase implements IGetFearGreedUseCase {
       if (stale) {
         this.logger.warn(
           { err: error },
-          'Fear & Greed provider failed; serving stale cached value'
+          'Bitcoin market data provider failed; serving stale cached value'
         );
         return { ...stale.value, fetchedAt: stale.fetchedAt, isStale: true };
       }

@@ -20,6 +20,7 @@ describe('GetFearGreedUseCase', () => {
     updatedAt: new Date('2026-08-02T14:35:00.000Z'),
     nextUpdateAt: new Date('2026-08-03T00:00:00.000Z')
   };
+  const fetchedAt = new Date('2026-08-02T14:36:12.000Z');
 
   let useCase: GetFearGreedUseCase;
 
@@ -32,33 +33,34 @@ describe('GetFearGreedUseCase', () => {
     );
   });
 
-  it('should return the cached value without calling the provider', async () => {
-    cache.get.mockReturnValue(entry);
+  it('should return the cached value without calling the provider, marked fresh', async () => {
+    cache.get.mockReturnValue({ value: entry, fetchedAt });
 
     const result = await useCase.execute();
 
-    expect(result).toBe(entry);
+    expect(result).toEqual({ ...entry, fetchedAt, isStale: false });
     expect(provider.fetchFearGreedIndex).not.toHaveBeenCalled();
   });
 
-  it('should fetch from the provider on a cache miss and populate the cache', async () => {
+  it('should fetch from the provider on a cache miss, populate the cache, and mark fresh', async () => {
     cache.get.mockReturnValue(null);
     provider.fetchFearGreedIndex.mockResolvedValue(entry);
 
     const result = await useCase.execute();
 
-    expect(result).toBe(entry);
+    expect(result).toMatchObject({ ...entry, isStale: false });
+    expect(result.fetchedAt).toBeInstanceOf(Date);
     expect(cache.set).toHaveBeenCalledWith(entry);
   });
 
-  it('should serve a stale cached value when the provider fails', async () => {
+  it('should serve a stale cached value when the provider fails, marked stale', async () => {
     cache.get.mockReturnValue(null);
-    cache.getStale.mockReturnValue(entry);
+    cache.getStale.mockReturnValue({ value: entry, fetchedAt });
     provider.fetchFearGreedIndex.mockRejectedValue(new Error('boom'));
 
     const result = await useCase.execute();
 
-    expect(result).toBe(entry);
+    expect(result).toEqual({ ...entry, fetchedAt, isStale: true });
     expect(logger.warn).toHaveBeenCalled();
   });
 

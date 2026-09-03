@@ -2,8 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import {
   GLOBAL_MARKET_DATA_PORT,
-  GlobalMarketDataEntry,
   GlobalMarketDataPort,
+  GlobalMarketSnapshot,
   IGetMarketOverviewUseCase
 } from '../interfaces/market-overview.interface';
 import { MarketOverviewCacheService } from '../../infrastructure/cache/market-overview-cache.service';
@@ -27,14 +27,16 @@ export class GetMarketOverviewUseCase implements IGetMarketOverviewUseCase {
    * when the alternative to stale data exists. Only rethrows when there is no
    * cached value at all.
    */
-  async execute(): Promise<GlobalMarketDataEntry> {
+  async execute(): Promise<GlobalMarketSnapshot> {
     const cached = this.cache.get();
-    if (cached) return cached;
+    if (cached) {
+      return { ...cached.value, fetchedAt: cached.fetchedAt, isStale: false };
+    }
 
     try {
       const fresh = await this.provider.fetchGlobalMarketData();
       this.cache.set(fresh);
-      return fresh;
+      return { ...fresh, fetchedAt: new Date(), isStale: false };
     } catch (error) {
       const stale = this.cache.getStale();
 
@@ -43,7 +45,7 @@ export class GetMarketOverviewUseCase implements IGetMarketOverviewUseCase {
           { err: error },
           'Global market data provider failed; serving stale cached value'
         );
-        return stale;
+        return { ...stale.value, fetchedAt: stale.fetchedAt, isStale: true };
       }
 
       throw error;
