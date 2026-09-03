@@ -5,7 +5,14 @@ import globalMarketConfig from '../coingecko/global-market.config';
 
 interface CacheEntry {
   value: GlobalMarketDataEntry;
+  fetchedAt: Date;
   expiresAt: number;
+}
+
+/** The cached value together with when this backend fetched it. */
+export interface CachedEntry {
+  value: GlobalMarketDataEntry;
+  fetchedAt: Date;
 }
 
 /**
@@ -27,18 +34,23 @@ export class MarketOverviewCacheService {
     private readonly config: ConfigType<typeof globalMarketConfig>
   ) {}
 
-  /** Returns the cached value only while it is still fresh. */
-  get(): GlobalMarketDataEntry | null {
+  /** Returns the cached value and when it was fetched, only while still fresh. */
+  get(): CachedEntry | null {
     if (!this.entry || this.entry.expiresAt <= Date.now()) return null;
-    return this.entry.value;
+    return { value: this.entry.value, fetchedAt: this.entry.fetchedAt };
   }
 
   /** Returns the cached value regardless of freshness, for failure fallback. */
-  getStale(): GlobalMarketDataEntry | null {
-    return this.entry?.value ?? null;
+  getStale(): CachedEntry | null {
+    if (!this.entry) return null;
+    return { value: this.entry.value, fetchedAt: this.entry.fetchedAt };
   }
 
   set(value: GlobalMarketDataEntry): void {
-    this.entry = { value, expiresAt: Date.now() + this.config.cacheTtlMs };
+    this.entry = {
+      value,
+      fetchedAt: new Date(),
+      expiresAt: Date.now() + this.config.cacheTtlMs
+    };
   }
 }

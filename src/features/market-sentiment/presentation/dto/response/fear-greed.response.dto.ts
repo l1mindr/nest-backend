@@ -40,4 +40,21 @@ export class FearGreedResponseDto {
   })
   @Expose()
   nextUpdateAt!: Date | null;
+
+  @ApiProperty({
+    description:
+      'Instant at which this backend last successfully fetched the index from alternative.me. Distinct from `updatedAt`: this is when the cache entry being served was populated, not when the provider itself published the value.',
+    format: 'date-time',
+    example: '2026-08-02T14:36:12.000Z'
+  })
+  @Expose()
+  fetchedAt!: Date;
+
+  @ApiProperty({
+    description:
+      'True when the provider call for this request failed and a previously-cached value is being served instead of failing the request outright. Always `false` for a freshly-fetched or still-fresh cached response.',
+    example: false
+  })
+  @Expose()
+  isStale!: boolean;
 }

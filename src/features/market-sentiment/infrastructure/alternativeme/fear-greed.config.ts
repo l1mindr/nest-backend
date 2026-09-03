@@ -5,8 +5,10 @@ const DEFAULT_RETRIES = 2;
 const DEFAULT_BACKOFF_MS = 1_000;
 // The Fear & Greed Index is published roughly once a day upstream (the
 // response itself reports `time_until_update`), so a much longer cache
-// window than the market-overview cache is appropriate.
-const DEFAULT_CACHE_TTL_MS = 10 * 60 * 1000;
+// window than the market-overview cache is safe. Still short enough (well
+// under the actual daily update cadence) that a newly-published index is
+// visible within a few polling cycles rather than up to a stale hour.
+const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export default registerAs('fearGreed', () => ({
   baseUrl: process.env.FEAR_GREED_BASE_URL ?? 'https://api.alternative.me/fng',

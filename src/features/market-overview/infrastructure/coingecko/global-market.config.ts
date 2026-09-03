@@ -4,12 +4,18 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_RETRIES = 2;
 const DEFAULT_BACKOFF_MS = 1_000;
 const DEFAULT_CACHE_TTL_MS = 90_000;
+// Shorter than the global-overview cache: the BTC price card is the most
+// time-sensitive of the three market widgets, and this is exactly the value
+// the Dashboard previously (incorrectly) sourced from the hourly asset-sync
+// snapshot instead of a live call.
+const DEFAULT_BITCOIN_CACHE_TTL_MS = 30_000;
 
 /**
  * Reuses the same CoinGecko host/API key as the `assets` feature (it is the
- * same provider, just a different endpoint), with its own timeout/retry/cache
- * knobs since `/global` is a single lightweight call rather than a paginated
- * sync.
+ * same provider, just different endpoints): `/global` for the market
+ * overview, `/simple/price` for the live Bitcoin ticker. Each gets its own
+ * cache TTL since they have different freshness needs, but share the same
+ * timeout/retry knobs and HTTP client configuration.
  */
 export default registerAs('coingeckoGlobal', () => ({
   baseUrl: process.env.COINGECKO_BASE_URL ?? 'https://api.coingecko.com/api/v3',
@@ -19,5 +25,8 @@ export default registerAs('coingeckoGlobal', () => ({
   backoffMs: Number(process.env.COINGECKO_BACKOFF_MS ?? DEFAULT_BACKOFF_MS),
   cacheTtlMs: Number(
     process.env.MARKET_OVERVIEW_CACHE_TTL_MS ?? DEFAULT_CACHE_TTL_MS
+  ),
+  bitcoinCacheTtlMs: Number(
+    process.env.BITCOIN_MARKET_CACHE_TTL_MS ?? DEFAULT_BITCOIN_CACHE_TTL_MS
   )
 }));

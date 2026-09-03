@@ -18,8 +18,21 @@ export interface FearGreedPort {
   fetchFearGreedIndex(): Promise<FearGreedEntry>;
 }
 
+/**
+ * A {@link FearGreedEntry} plus freshness metadata about how this particular
+ * response was served. `fetchedAt` is when *this backend* last successfully
+ * called alternative.me — distinct from `updatedAt`, which is when the
+ * provider itself published the index. `isStale` is true only when the
+ * provider call for this request failed and a previously-cached value was
+ * served instead of failing the request.
+ */
+export interface FearGreedSnapshot extends FearGreedEntry {
+  fetchedAt: Date;
+  isStale: boolean;
+}
+
 export const GET_FEAR_GREED_USE_CASE = Symbol('IGetFearGreedUseCase');
 
 export interface IGetFearGreedUseCase {
-  execute(): Promise<FearGreedEntry>;
+  execute(): Promise<FearGreedSnapshot>;
 }
