@@ -35,12 +35,23 @@ export interface AssetSyncData extends MarketDataEntry {
 
 export const ASSET_REPOSITORY = Symbol('IAssetRepository');
 
+/**
+ * Position within the market-cap-rank ordering that `list()` paginates over.
+ * `marketCapRank` mirrors the row it was produced from (`null` sorts after
+ * every ranked asset), and `id` breaks ties (including between two rows that
+ * both have a `null` rank).
+ */
+export interface AssetListCursor {
+  marketCapRank: number | null;
+  id: string;
+}
+
 export interface IAssetRepository {
   upsertMany(data: AssetSyncData[]): Promise<void>;
   findById(id: string): Promise<Asset | null>;
   list(options: {
     search: string;
-    cursorId: string | null;
+    cursor: AssetListCursor | null;
     limit: number;
   }): Promise<Asset[]>;
 }
