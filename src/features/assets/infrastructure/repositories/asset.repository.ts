@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import {
+  AssetListCursor,
   AssetSyncData,
   IAssetRepository
 } from '../../application/interfaces/assets.interface';
@@ -118,9 +119,17 @@ export class AssetRepository implements IAssetRepository {
     return this.assetRepo.findOneBy({ id });
   }
 
+  /**
+   * Lists assets ordered by market-cap rank (most prominent first), so a
+   * consumer that takes only the first page — the transaction form's asset
+   * selector never pages beyond one — sees the actual top-ranked matches
+   * rather than an arbitrary slice. Unranked assets (`marketCapRank IS NULL`)
+   * sort after every ranked one; `id` breaks ties deterministically,
+   * including between two unranked rows.
+   */
   async list(options: {
     search: string;
-    cursorId: string | null;
+    cursor: AssetListCursor | null;
     limit: number;
   }): Promise<Asset[]> {
     const qb = this.assetRepo.createQueryBuilder('asset');
@@ -132,10 +141,38 @@ export class AssetRepository implements IAssetRepository {
       );
     }
 
-    if (options.cursorId) {
-      qb.andWhere('asset.id > :cursorId', { cursorId: options.cursorId });
+    if (options.cursor) {
+      qb.andWhere(this.cursorCondition(options.cursor), {
+        cursorRank: options.cursor.marketCapRank,
+        cursorId: options.cursor.id
+      });
     }
 
-    return qb.orderBy('asset.id', 'ASC').take(options.limit).getMany();
+    return qb
+      .orderBy('asset.marketCapRank', 'ASC', 'NULLS LAST')
+      .addOrderBy('asset.id', 'ASC')
+      .take(options.limit)
+      .getMany();
+  }
+
+  /**
+   * "Strictly after" `cursor` under the same ordering `list()` sorts by.
+   *
+   * When the cursor row was ranked, the next rows are: a higher rank, the same
+   * rank with a later id, or any unranked row (every unranked row sorts after
+   * every ranked one). When the cursor row was itself unranked, the next rows
+   * are the remaining unranked rows with a later id — there is nothing after
+   * it among ranked rows.
+   */
+  private cursorCondition(cursor: AssetListCursor): string {
+    if (cursor.marketCapRank === null) {
+      return 'asset.marketCapRank IS NULL AND asset.id > :cursorId';
+    }
+
+    return (
+      '(asset.marketCapRank > :cursorRank)' +
+      ' OR (asset.marketCapRank = :cursorRank AND asset.id > :cursorId)' +
+      ' OR asset.marketCapRank IS NULL'
+    );
   }
 }

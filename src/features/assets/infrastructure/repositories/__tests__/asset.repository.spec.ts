@@ -6,6 +6,7 @@ describe('AssetRepository', () => {
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
+    addOrderBy: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
     getMany: jest.fn()
   };
@@ -140,12 +141,12 @@ describe('AssetRepository', () => {
     expect(asset).toEqual({ id: 'asset-1' });
   });
 
-  it('should list assets with search, cursor and limit', async () => {
+  it('should list assets with search, a ranked cursor, and limit', async () => {
     queryBuilder.getMany.mockResolvedValue([{ id: 'asset-1' }]);
 
     const result = await repository.list({
       search: 'bit',
-      cursorId: 'cursor-1',
+      cursor: { marketCapRank: 5, id: 'cursor-1' },
       limit: 21
     });
 
@@ -153,11 +154,47 @@ describe('AssetRepository', () => {
       '(asset.symbol ILIKE :q OR asset.name ILIKE :q OR asset.coinGeckoId ILIKE :q)',
       { q: '%bit%' }
     );
-    expect(queryBuilder.andWhere).toHaveBeenCalledWith('asset.id > :cursorId', {
-      cursorId: 'cursor-1'
-    });
-    expect(queryBuilder.orderBy).toHaveBeenCalledWith('asset.id', 'ASC');
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      '(asset.marketCapRank > :cursorRank)' +
+        ' OR (asset.marketCapRank = :cursorRank AND asset.id > :cursorId)' +
+        ' OR asset.marketCapRank IS NULL',
+      { cursorRank: 5, cursorId: 'cursor-1' }
+    );
+    expect(queryBuilder.orderBy).toHaveBeenCalledWith(
+      'asset.marketCapRank',
+      'ASC',
+      'NULLS LAST'
+    );
+    expect(queryBuilder.addOrderBy).toHaveBeenCalledWith('asset.id', 'ASC');
     expect(queryBuilder.take).toHaveBeenCalledWith(21);
     expect(result).toEqual([{ id: 'asset-1' }]);
+  });
+
+  it('should list assets with an unranked cursor', async () => {
+    queryBuilder.getMany.mockResolvedValue([]);
+
+    await repository.list({
+      search: '',
+      cursor: { marketCapRank: null, id: 'cursor-1' },
+      limit: 21
+    });
+
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      'asset.marketCapRank IS NULL AND asset.id > :cursorId',
+      { cursorRank: null, cursorId: 'cursor-1' }
+    );
+  });
+
+  it('should list assets without a cursor', async () => {
+    queryBuilder.getMany.mockResolvedValue([]);
+
+    await repository.list({ search: '', cursor: null, limit: 21 });
+
+    expect(queryBuilder.andWhere).not.toHaveBeenCalled();
+    expect(queryBuilder.orderBy).toHaveBeenCalledWith(
+      'asset.marketCapRank',
+      'ASC',
+      'NULLS LAST'
+    );
   });
 });

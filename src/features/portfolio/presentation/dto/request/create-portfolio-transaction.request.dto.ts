@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 import { Trim } from '@presentation/validation/decorators/trim.decorator';
 import { PortfolioTransactionType } from '../../../domain/enums/portfolio-transaction-type.enum';
+import { TransferDestinationType } from '../../../domain/enums/transfer-destination-type.enum';
 import { IsDecimalString } from '../../validators/decimal-string.validator';
 
 const PRICE_MAX_FRACTION_DIGITS = 8;
@@ -86,4 +87,48 @@ export class CreatePortfolioTransactionRequestDto {
   @IsString()
   @MaxLength(1000)
   notes?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Where a TRANSFER_IN/TRANSFER_OUT counterparty sits. Required for those types, ignored otherwise.',
+    enum: TransferDestinationType,
+    example: TransferDestinationType.EXCHANGE
+  })
+  @IsOptional()
+  @IsEnum(TransferDestinationType)
+  destinationType?: TransferDestinationType;
+
+  @ApiPropertyOptional({
+    description:
+      'Exchange name. Required when `destinationType` is EXCHANGE, ignored otherwise.',
+    maxLength: 255,
+    example: 'Binance'
+  })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(255)
+  exchangeName?: string;
+
+  @ApiPropertyOptional({
+    description: 'On-chain transaction id. Always optional.',
+    maxLength: 255,
+    example: '0x9f2c...'
+  })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(255)
+  txid?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'UUID of a wallet registered by the caller. Required when `destinationType` is WALLET, ignored otherwise.',
+    format: 'uuid',
+    example: ExampleValue.WALLET_ID
+  })
+  @IsOptional()
+  @IsString()
+  @IsUUID()
+  walletId?: string;
 }

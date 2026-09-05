@@ -18,6 +18,10 @@ import {
   ResourceType
 } from '@infrastructure/logging/mongodb/mongodb.constants';
 import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+import {
+  IRealtimeEventPublisher,
+  REALTIME_EVENT_PUBLISHER
+} from '@features/realtime/application/interfaces/realtime.interface';
 
 @Injectable()
 export class DeletePortfolioTransactionUseCase implements IDeletePortfolioTransactionUseCase {
@@ -29,7 +33,9 @@ export class DeletePortfolioTransactionUseCase implements IDeletePortfolioTransa
     @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
     private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
     private readonly logger: PinoLogger,
-    private readonly auditLogService: AuditLogService
+    private readonly auditLogService: AuditLogService,
+    @Inject(REALTIME_EVENT_PUBLISHER)
+    private readonly realtimeEventPublisher: IRealtimeEventPublisher
   ) {
     this.logger.setContext(DeletePortfolioTransactionUseCase.name);
   }
@@ -103,6 +109,11 @@ export class DeletePortfolioTransactionUseCase implements IDeletePortfolioTransa
       resourceType: ResourceType.TRANSACTION,
       resourceId: transactionId,
       success: true
+    });
+
+    this.realtimeEventPublisher.publishToUser(userId, {
+      type: 'transaction.deleted',
+      payload: { portfolioId, transactionId }
     });
   }
 }

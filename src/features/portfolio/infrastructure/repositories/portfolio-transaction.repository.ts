@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  Repository,
+  SelectQueryBuilder
+} from 'typeorm';
 import { PortfolioTransaction } from '../../domain/entities/portfolio-transaction.entity';
 import {
   CreatePortfolioTransactionData,
@@ -43,16 +48,23 @@ export class PortfolioTransactionRepository implements IPortfolioTransactionRepo
     });
   }
 
-  async listByPortfolioAndUser(
-    filter: ListPortfolioTransactionsFilter
-  ): Promise<PortfolioTransaction[]> {
-    const qb = this.transactionRepo
-      .createQueryBuilder('transaction')
-      .leftJoinAndSelect('transaction.asset', 'asset')
-      .where('transaction.userId = :userId', { userId: filter.userId })
-      .andWhere('transaction.portfolioId = :portfolioId', {
-        portfolioId: filter.portfolioId
-      });
+  /**
+   * Applies every filter `listByPortfolioAndUser`/`countByPortfolioAndUser`
+   * share (everything except the keyset cursor, which only bounds a page, not
+   * the total count) so the two can never drift apart.
+   */
+  private applyFilters(
+    qb: SelectQueryBuilder<PortfolioTransaction>,
+    filter: Pick<
+      ListPortfolioTransactionsFilter,
+      'userId' | 'portfolioId' | 'assetId' | 'type' | 'from' | 'to'
+    >
+  ): void {
+    qb.where('transaction.userId = :userId', {
+      userId: filter.userId
+    }).andWhere('transaction.portfolioId = :portfolioId', {
+      portfolioId: filter.portfolioId
+    });
 
     if (filter.assetId) {
       qb.andWhere('transaction.assetId = :assetId', {
@@ -71,6 +83,16 @@ export class PortfolioTransactionRepository implements IPortfolioTransactionRepo
     if (filter.to) {
       qb.andWhere('transaction.occurredAt <= :to', { to: filter.to });
     }
+  }
+
+  async listByPortfolioAndUser(
+    filter: ListPortfolioTransactionsFilter
+  ): Promise<PortfolioTransaction[]> {
+    const qb = this.transactionRepo
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.asset', 'asset');
+
+    this.applyFilters(qb, filter);
 
     if (filter.cursor) {
       qb.andWhere(
@@ -87,6 +109,19 @@ export class PortfolioTransactionRepository implements IPortfolioTransactionRepo
       .addOrderBy('transaction.id', 'DESC')
       .take(filter.limit)
       .getMany();
+  }
+
+  async countByPortfolioAndUser(
+    filter: Pick<
+      ListPortfolioTransactionsFilter,
+      'userId' | 'portfolioId' | 'assetId' | 'type' | 'from' | 'to'
+    >
+  ): Promise<number> {
+    const qb = this.transactionRepo.createQueryBuilder('transaction');
+
+    this.applyFilters(qb, filter);
+
+    return qb.getCount();
   }
 
   async listForPnl(

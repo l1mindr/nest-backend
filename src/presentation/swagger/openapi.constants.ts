@@ -29,8 +29,10 @@ export const ApiTagName = {
   COINS: 'Coins',
   PRICE_ALERTS: 'Price Alerts',
   ASSETS: 'Assets',
+  MARKET: 'Market',
   ADMIN_USERS: 'Admin Users',
   PORTFOLIOS: 'Portfolios',
+  WALLETS: 'Wallets',
   ADMIN_ACCOUNTS: 'Administrators & Permissions',
   LOGS: 'Logs'
 } as const;
@@ -47,6 +49,7 @@ export const ExampleValue = {
   ASSET_ID: 'c6f0a2e4-8b3d-4f9a-8e2c-5d7b1a3f6e90',
   PORTFOLIO_ID: 'b3a7e1c2-4f5d-6789-abcd-ef1234567890',
   HOLDING_ID: 'd4b8f2e3-5a6e-7890-bcde-f12345678901',
+  WALLET_ID: 'f5c9a3d4-6b7f-4901-cdef-023456789012',
   EMAIL: 'mohammad.reza@example.com',
   USERNAME: 'mohammad_reza',
   NAME: 'Mohammad Reza',

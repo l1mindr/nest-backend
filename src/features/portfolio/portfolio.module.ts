@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Asset } from '@features/assets/domain/entities/asset.entity';
 import { AssetsModule } from '@features/assets/assets.module';
+import { WalletsModule } from '@features/wallets/wallets.module';
 import { Portfolio } from './domain/entities/portfolio.entity';
 import { Holding } from './domain/entities/holding.entity';
 import { PortfolioTransaction } from './domain/entities/portfolio-transaction.entity';
@@ -75,6 +76,7 @@ import {
 @Module({
   imports: [
     AssetsModule,
+    WalletsModule,
     TypeOrmModule.forFeature([
       Portfolio,
       Holding,
