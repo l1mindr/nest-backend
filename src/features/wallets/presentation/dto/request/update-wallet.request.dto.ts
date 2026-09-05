@@ -1,38 +1,36 @@
 import { Trim } from '@presentation/validation/decorators/trim.decorator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
-  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
+  MinLength,
   ValidateNested
 } from 'class-validator';
 import { WalletAddressRequestDto } from './wallet-address.request.dto';
 
-export class CreateWalletRequestDto {
-  @ApiProperty({
-    description:
-      'Display name of the wallet. Free text — the wallet is one identity that may hold addresses on several networks.',
+export class UpdateWalletRequestDto {
+  @ApiPropertyOptional({
+    description: 'Display name of the wallet.',
     example: 'Ledger X'
   })
+  @IsOptional()
   @Trim()
-  @IsNotEmpty()
+  @MinLength(1)
   @IsString()
   @MaxLength(100)
-  name!: string;
+  name?: string;
 
   @ApiPropertyOptional({
     description:
-      'Addresses this wallet holds, at most one per network. Omit or pass an empty array to register a wallet with no addresses yet.',
+      'The wallet’s complete address set. This **replaces** whatever is stored: a network left out is removed, a new network is added, and a changed address is updated. Pass an empty array to clear every address.',
     type: [WalletAddressRequestDto]
   })
   @IsOptional()
   @IsArray()
-  // A network may appear only once per wallet; the `wallet_address` unique
-  // constraint enforces the same rule at the database.
   @ArrayUnique((entry: WalletAddressRequestDto) => entry.network, {
     message: 'each network may appear only once per wallet'
   })
