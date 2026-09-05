@@ -16,17 +16,17 @@ import { ApiOperation } from '@nestjs/swagger';
 import { MarketOverviewErrors } from '../../domain/errors/market-overview-errors';
 import { CoinMarketResponseDto } from '../dto/response/coin-market.response.dto';
 
-/** Operation documentation for `BitcoinMarketController`. */
+/** Operation documentation for `EthereumMarketController`. */
 
-const PATH = '/v1/market/bitcoin';
+const PATH = '/v1/market/ethereum';
 
-export const ApiGetBitcoinMarket = () =>
+export const ApiGetEthereumMarket = () =>
   applyDecorators(
     ApiOperation({
-      operationId: 'getBitcoinMarket',
-      summary: 'Get the live Bitcoin/USD price',
+      operationId: 'getEthereumMarket',
+      summary: 'Get the live Ethereum/USD price',
       description: [
-        'Returns the current Bitcoin price in USD, fetched directly from CoinGecko — independent of the hourly-synchronised asset catalogue (`GET /v1/assets`), so this reflects the live market rather than the last background sync.',
+        'Returns the current Ethereum price in USD, fetched directly from CoinGecko — independent of the hourly-synchronised asset catalogue (`GET /v1/assets`), so this reflects the live market rather than the last background sync.',
         '',
         'The response may be served from a short-lived server-side cache; `updatedAt` reflects when the provider last updated the price, not when this request ran. If the provider is briefly unavailable, a still-cached value is served instead of failing the request; only a request with no cached value at all can fail.',
         '',
@@ -36,7 +36,7 @@ export const ApiGetBitcoinMarket = () =>
     ApiAuthenticated(),
     ApiSuccessResponse({
       status: 200,
-      description: 'The current Bitcoin/USD ticker.',
+      description: 'The current Ethereum/USD ticker.',
       type: CoinMarketResponseDto
     }),
     ApiErrorResponses(PATH, [

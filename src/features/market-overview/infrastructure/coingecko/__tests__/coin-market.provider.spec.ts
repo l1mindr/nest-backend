@@ -2,11 +2,11 @@ import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
 import { AppError } from '@core/errors/app.error';
 import { MarketOverviewErrorCode } from '../../../domain/errors/market-overview-error-code.enum';
-import { CoinGeckoBitcoinMarketProvider } from '../bitcoin-market.provider';
+import { CoinGeckoCoinMarketProvider } from '../coin-market.provider';
 
 const BASE_URL = 'https://api.coingecko.com/api/v3';
 
-describe('CoinGeckoBitcoinMarketProvider', () => {
+describe('CoinGeckoCoinMarketProvider', () => {
   const httpService = {
     get: jest.fn()
   };
@@ -26,7 +26,7 @@ describe('CoinGeckoBitcoinMarketProvider', () => {
   };
 
   let config: typeof baseConfig;
-  let provider: CoinGeckoBitcoinMarketProvider;
+  let provider: CoinGeckoCoinMarketProvider;
 
   const validBody = {
     bitcoin: {
@@ -39,7 +39,7 @@ describe('CoinGeckoBitcoinMarketProvider', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     config = { ...baseConfig, apiKey: null };
-    provider = new CoinGeckoBitcoinMarketProvider(
+    provider = new CoinGeckoCoinMarketProvider(
       httpService as unknown as HttpService,
       config as any,
       logger as any
@@ -49,7 +49,7 @@ describe('CoinGeckoBitcoinMarketProvider', () => {
   it('should fetch and normalize the bitcoin ticker', async () => {
     httpService.get.mockReturnValueOnce(of({ data: validBody }));
 
-    const result = await provider.fetchBitcoinMarketData();
+    const result = await provider.fetchCoinMarketData('bitcoin');
 
     expect(result).toEqual({
       priceUsd: '112345.67',
@@ -72,7 +72,7 @@ describe('CoinGeckoBitcoinMarketProvider', () => {
     config.apiKey = 'test-api-key';
     httpService.get.mockReturnValueOnce(of({ data: validBody }));
 
-    await provider.fetchBitcoinMarketData();
+    await provider.fetchCoinMarketData('bitcoin');
 
     expect(httpService.get).toHaveBeenCalledWith(
       `${BASE_URL}/simple/price`,
@@ -91,7 +91,7 @@ describe('CoinGeckoBitcoinMarketProvider', () => {
       })
     );
 
-    const result = await provider.fetchBitcoinMarketData();
+    const result = await provider.fetchCoinMarketData('bitcoin');
 
     expect(result.priceChangePercentage24h).toBe('0');
   });
@@ -102,7 +102,7 @@ describe('CoinGeckoBitcoinMarketProvider', () => {
       of({ data: { bitcoin: { usd_24h_change: 1.2 } } })
     );
 
-    const promise = provider.fetchBitcoinMarketData();
+    const promise = provider.fetchCoinMarketData('bitcoin');
 
     await expect(promise).rejects.toBeInstanceOf(AppError);
     await expect(promise).rejects.toMatchObject({
@@ -115,7 +115,7 @@ describe('CoinGeckoBitcoinMarketProvider', () => {
     config.retries = 5;
     httpService.get.mockReturnValue(of({ data: 'garbage' }));
 
-    const promise = provider.fetchBitcoinMarketData();
+    const promise = provider.fetchCoinMarketData('bitcoin');
 
     await expect(promise).rejects.toMatchObject({
       code: MarketOverviewErrorCode.MARKET_OVERVIEW_PROVIDER_INVALID_RESPONSE
@@ -130,7 +130,7 @@ describe('CoinGeckoBitcoinMarketProvider', () => {
       )
       .mockReturnValueOnce(of({ data: validBody }));
 
-    const result = await provider.fetchBitcoinMarketData();
+    const result = await provider.fetchCoinMarketData('bitcoin');
 
     expect(result.priceUsd).toBe('112345.67');
     expect(httpService.get).toHaveBeenCalledTimes(2);
@@ -143,7 +143,7 @@ describe('CoinGeckoBitcoinMarketProvider', () => {
       throwError(() => ({ response: { status: 429 }, isAxiosError: true }))
     );
 
-    const promise = provider.fetchBitcoinMarketData();
+    const promise = provider.fetchCoinMarketData('bitcoin');
 
     await expect(promise).rejects.toMatchObject({
       code: MarketOverviewErrorCode.MARKET_OVERVIEW_PROVIDER_RATE_LIMITED
@@ -157,7 +157,7 @@ describe('CoinGeckoBitcoinMarketProvider', () => {
       throwError(() => ({ response: { status: 403 }, isAxiosError: true }))
     );
 
-    const promise = provider.fetchBitcoinMarketData();
+    const promise = provider.fetchCoinMarketData('bitcoin');
 
     await expect(promise).rejects.toMatchObject({
       code: MarketOverviewErrorCode.MARKET_OVERVIEW_PROVIDER_BAD_REQUEST
@@ -170,7 +170,7 @@ describe('CoinGeckoBitcoinMarketProvider', () => {
       throwError(() => ({ code: 'ECONNABORTED', isAxiosError: true }))
     );
 
-    const promise = provider.fetchBitcoinMarketData();
+    const promise = provider.fetchCoinMarketData('bitcoin');
 
     await expect(promise).rejects.toMatchObject({
       code: MarketOverviewErrorCode.MARKET_OVERVIEW_PROVIDER_TIMEOUT
@@ -183,7 +183,7 @@ describe('CoinGeckoBitcoinMarketProvider', () => {
       throwError(() => ({ code: 'ECONNREFUSED', isAxiosError: true }))
     );
 
-    const promise = provider.fetchBitcoinMarketData();
+    const promise = provider.fetchCoinMarketData('bitcoin');
 
     await expect(promise).rejects.toMatchObject({
       code: MarketOverviewErrorCode.MARKET_OVERVIEW_PROVIDER_UNAVAILABLE

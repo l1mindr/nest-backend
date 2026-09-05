@@ -2,12 +2,12 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 
 /**
- * Live Bitcoin/USD ticker, fetched directly from CoinGecko rather than the
- * hourly-synchronised asset catalogue — see `BitcoinMarketEntry`.
+ * Live coin/USD ticker, fetched directly from CoinGecko rather than the
+ * hourly-synchronised asset catalogue — see `CoinMarketEntry`.
  */
-export class BitcoinMarketResponseDto {
+export class CoinMarketResponseDto {
   @ApiProperty({
-    description: 'Current Bitcoin price in USD.',
+    description: 'Current price of the coin in USD.',
     type: String,
     example: '112345.67000000'
   })

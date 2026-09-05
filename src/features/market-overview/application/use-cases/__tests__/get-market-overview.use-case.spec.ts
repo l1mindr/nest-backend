@@ -18,6 +18,7 @@ describe('GetMarketOverviewUseCase', () => {
     totalMarketCapUsd: '2412345678901.23',
     marketCapChangePercentage24h: '1.24',
     btcDominancePercentage: '51.32',
+    ethDominancePercentage: '17.84',
     updatedAt: new Date('2026-08-02T14:35:00.000Z')
   };
   const fetchedAt = new Date('2026-08-02T14:36:12.000Z');

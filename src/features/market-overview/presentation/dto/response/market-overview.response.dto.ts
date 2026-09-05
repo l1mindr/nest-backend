@@ -32,6 +32,15 @@ export class MarketOverviewResponseDto {
 
   @ApiProperty({
     description:
+      "Ethereum's share of the total market capitalisation, as a percentage. Read from the same provider snapshot as `btcDominancePercentage`, so the two are always consistent with each other.",
+    type: String,
+    example: '17.84'
+  })
+  @Expose()
+  ethDominancePercentage!: string;
+
+  @ApiProperty({
+    description:
       'Instant at which the provider computed this snapshot — not when this API fetched it, since the response may be served from a short-lived cache.',
     format: 'date-time',
     example: '2026-08-02T14:35:00.000Z'

@@ -8,20 +8,20 @@ import {
   TICKER_COIN_IDS
 } from '../../application/interfaces/coin-market.interface';
 import { CoinMarketResponseDto } from '../dto/response/coin-market.response.dto';
-import { ApiGetBitcoinMarket } from '../swagger/bitcoin-market.swagger';
+import { ApiGetEthereumMarket } from '../swagger/ethereum-market.swagger';
 
 /**
- * Live Bitcoin/USD ticker, synchronised directly from CoinGecko on every
- * cache miss rather than the hourly `assets` catalogue sync. `JwtGuard` is
- * registered globally, so this route requires a valid `access_token` cookie
- * and nothing more.
+ * Live Ethereum/USD ticker. Identical in shape and freshness to the Bitcoin
+ * route — the two dashboard price tiles sit side by side, so they share one
+ * provider, one cache policy and one response DTO rather than one being live
+ * and the other read from the hourly `assets` catalogue.
  */
 @Controller({
-  path: 'market/bitcoin',
+  path: 'market/ethereum',
   version: '1'
 })
 @ApiTags(ApiTagName.MARKET)
-export class BitcoinMarketController {
+export class EthereumMarketController {
   constructor(
     @Inject(GET_COIN_MARKET_USE_CASE)
     private readonly getCoinMarketUseCase: IGetCoinMarketUseCase
@@ -29,13 +29,13 @@ export class BitcoinMarketController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiGetBitcoinMarket()
-  async getBitcoin() {
-    const bitcoin = await this.getCoinMarketUseCase.execute(
-      TICKER_COIN_IDS.BITCOIN
+  @ApiGetEthereumMarket()
+  async getEthereum() {
+    const ethereum = await this.getCoinMarketUseCase.execute(
+      TICKER_COIN_IDS.ETHEREUM
     );
 
-    return plainToInstance(CoinMarketResponseDto, bitcoin, {
+    return plainToInstance(CoinMarketResponseDto, ethereum, {
       excludeExtraneousValues: true
     });
   }
