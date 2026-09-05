@@ -14,21 +14,23 @@ import { ApiAuthenticated } from '@presentation/swagger/api-security.decorator';
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 import { MarketOverviewErrors } from '../../domain/errors/market-overview-errors';
-import { CoinMarketResponseDto } from '../dto/response/coin-market.response.dto';
+import { UsdtTomanResponseDto } from '../dto/response/usdt-toman.response.dto';
 
-/** Operation documentation for `BitcoinMarketController`. */
+/** Operation documentation for `UsdtTomanController`. */
 
-const PATH = '/v1/market/bitcoin';
+const PATH = '/v1/market/usdt-toman';
 
-export const ApiGetBitcoinMarket = () =>
+export const ApiGetUsdtToman = () =>
   applyDecorators(
     ApiOperation({
-      operationId: 'getBitcoinMarket',
-      summary: 'Get the live Bitcoin/USD price',
+      operationId: 'getUsdtTomanRate',
+      summary: 'Get the live USDT price in Iranian Toman',
       description: [
-        'Returns the current Bitcoin price in USD, fetched directly from CoinGecko — independent of the hourly-synchronised asset catalogue (`GET /v1/assets`), so this reflects the live market rather than the last background sync.',
+        'Returns the current USDT price in Iranian **Toman**, read from an Iranian exchange. CoinGecko does not quote Iranian currency, so this route has its own upstream and its own cache.',
         '',
-        'The response may be served from a short-lived server-side cache; `updatedAt` reflects when the provider last updated the price, not when this request ran. If the provider is briefly unavailable, a still-cached value is served instead of failing the request; only a request with no cached value at all can fail.',
+        'The value is Toman, not Rial. The venue prices its market in Rial and this divides by `RIAL_PER_TOMAN` (default 10), which is configurable so the assumption can be corrected without a code change.',
+        '',
+        'The response may be served from a short-lived server-side cache. If the provider is briefly unavailable, a still-cached value is served instead of failing the request; only a request with no cached value at all can fail.',
         '',
         'Requires authentication.'
       ].join('\n')
@@ -36,8 +38,8 @@ export const ApiGetBitcoinMarket = () =>
     ApiAuthenticated(),
     ApiSuccessResponse({
       status: 200,
-      description: 'The current Bitcoin/USD ticker.',
-      type: CoinMarketResponseDto
+      description: 'The current USDT/Toman rate.',
+      type: UsdtTomanResponseDto
     }),
     ApiErrorResponses(PATH, [
       unauthorizedResponse(),
@@ -45,29 +47,29 @@ export const ApiGetBitcoinMarket = () =>
         'The market data provider rate limit was reached and no cached value was available.',
         errorExample(
           MarketOverviewErrors.providerRateLimited(),
-          'CoinGecko rejected the request with 429'
+          'The exchange rejected the request with 429'
         )
       ),
       badGatewayResponse(
         'The market data provider is unavailable, rejected the request, or returned a response this API could not parse, and no cached value was available.',
         errorExample(
           MarketOverviewErrors.providerUnavailable(),
-          'CoinGecko is unreachable or returned a 5xx'
+          'The exchange is unreachable or returned a 5xx'
         ),
         errorExample(
           MarketOverviewErrors.providerBadRequest(),
-          'CoinGecko rejected the request with an unexpected 4xx'
+          'The exchange rejected the request with an unexpected 4xx'
         ),
         errorExample(
           MarketOverviewErrors.providerInvalidResponse(),
-          'CoinGecko returned a body missing the expected fields'
+          'The exchange returned a body missing the expected fields'
         )
       ),
       gatewayTimeoutResponse(
         'The market data provider did not respond in time and no cached value was available.',
         errorExample(
           MarketOverviewErrors.providerTimeout(),
-          'CoinGecko did not respond within the configured timeout'
+          'The exchange did not respond within the configured timeout'
         )
       ),
       internalServerErrorResponse()

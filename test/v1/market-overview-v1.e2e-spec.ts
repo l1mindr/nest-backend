@@ -19,6 +19,7 @@ describe('Market Overview (e2e) version: 1', () => {
     totalMarketCapUsd: '2412345678901.23',
     marketCapChangePercentage24h: '1.24',
     btcDominancePercentage: '51.32',
+    ethDominancePercentage: '17.84',
     updatedAt: new Date('2026-08-02T14:35:00.000Z')
   };
 
@@ -60,6 +61,7 @@ describe('Market Overview (e2e) version: 1', () => {
       totalMarketCapUsd: '2412345678901.23',
       marketCapChangePercentage24h: '1.24',
       btcDominancePercentage: '51.32',
+      ethDominancePercentage: '17.84',
       updatedAt: snapshot.updatedAt.toISOString(),
       isStale: false
     });

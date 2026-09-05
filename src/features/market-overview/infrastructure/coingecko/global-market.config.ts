@@ -4,16 +4,17 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_RETRIES = 2;
 const DEFAULT_BACKOFF_MS = 1_000;
 const DEFAULT_CACHE_TTL_MS = 90_000;
-// Shorter than the global-overview cache: the BTC price card is the most
-// time-sensitive of the three market widgets, and this is exactly the value
-// the Dashboard previously (incorrectly) sourced from the hourly asset-sync
-// snapshot instead of a live call.
-const DEFAULT_BITCOIN_CACHE_TTL_MS = 30_000;
+// Shorter than the global-overview cache: the live price cards are the most
+// time-sensitive of the market widgets, and this is exactly the value the
+// Dashboard previously (incorrectly) sourced from the hourly asset-sync
+// snapshot instead of a live call. `BITCOIN_MARKET_CACHE_TTL_MS` is still read
+// as a fallback so an existing deployment keeps its configured value.
+const DEFAULT_COIN_TICKER_CACHE_TTL_MS = 30_000;
 
 /**
  * Reuses the same CoinGecko host/API key as the `assets` feature (it is the
  * same provider, just different endpoints): `/global` for the market
- * overview, `/simple/price` for the live Bitcoin ticker. Each gets its own
+ * overview, `/simple/price` for the live coin tickers. Each gets its own
  * cache TTL since they have different freshness needs, but share the same
  * timeout/retry knobs and HTTP client configuration.
  */
@@ -26,7 +27,9 @@ export default registerAs('coingeckoGlobal', () => ({
   cacheTtlMs: Number(
     process.env.MARKET_OVERVIEW_CACHE_TTL_MS ?? DEFAULT_CACHE_TTL_MS
   ),
-  bitcoinCacheTtlMs: Number(
-    process.env.BITCOIN_MARKET_CACHE_TTL_MS ?? DEFAULT_BITCOIN_CACHE_TTL_MS
+  coinTickerCacheTtlMs: Number(
+    process.env.COIN_TICKER_CACHE_TTL_MS ??
+      process.env.BITCOIN_MARKET_CACHE_TTL_MS ??
+      DEFAULT_COIN_TICKER_CACHE_TTL_MS
   )
 }));

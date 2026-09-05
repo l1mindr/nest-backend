@@ -1,8 +1,8 @@
-import { GetBitcoinMarketUseCase } from '../get-bitcoin-market.use-case';
+import { GetCoinMarketUseCase } from '../get-coin-market.use-case';
 
-describe('GetBitcoinMarketUseCase', () => {
+describe('GetCoinMarketUseCase', () => {
   const provider = {
-    fetchBitcoinMarketData: jest.fn()
+    fetchCoinMarketData: jest.fn()
   };
   const cache = {
     get: jest.fn(),
@@ -21,11 +21,11 @@ describe('GetBitcoinMarketUseCase', () => {
   };
   const fetchedAt = new Date('2026-08-02T14:35:20.000Z');
 
-  let useCase: GetBitcoinMarketUseCase;
+  let useCase: GetCoinMarketUseCase;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useCase = new GetBitcoinMarketUseCase(
+    useCase = new GetCoinMarketUseCase(
       provider as any,
       cache as any,
       logger as any
@@ -35,29 +35,29 @@ describe('GetBitcoinMarketUseCase', () => {
   it('should return the cached value without calling the provider, marked fresh', async () => {
     cache.get.mockReturnValue({ value: entry, fetchedAt });
 
-    const result = await useCase.execute();
+    const result = await useCase.execute('bitcoin');
 
     expect(result).toEqual({ ...entry, fetchedAt, isStale: false });
-    expect(provider.fetchBitcoinMarketData).not.toHaveBeenCalled();
+    expect(provider.fetchCoinMarketData).not.toHaveBeenCalled();
   });
 
   it('should fetch from the provider on a cache miss, populate the cache, and mark fresh', async () => {
     cache.get.mockReturnValue(null);
-    provider.fetchBitcoinMarketData.mockResolvedValue(entry);
+    provider.fetchCoinMarketData.mockResolvedValue(entry);
 
-    const result = await useCase.execute();
+    const result = await useCase.execute('bitcoin');
 
     expect(result).toMatchObject({ ...entry, isStale: false });
     expect(result.fetchedAt).toBeInstanceOf(Date);
-    expect(cache.set).toHaveBeenCalledWith(entry);
+    expect(cache.set).toHaveBeenCalledWith('bitcoin', entry);
   });
 
   it('should serve a stale cached value when the provider fails, marked stale', async () => {
     cache.get.mockReturnValue(null);
     cache.getStale.mockReturnValue({ value: entry, fetchedAt });
-    provider.fetchBitcoinMarketData.mockRejectedValue(new Error('boom'));
+    provider.fetchCoinMarketData.mockRejectedValue(new Error('boom'));
 
-    const result = await useCase.execute();
+    const result = await useCase.execute('bitcoin');
 
     expect(result).toEqual({ ...entry, fetchedAt, isStale: true });
     expect(logger.warn).toHaveBeenCalled();
@@ -67,8 +67,8 @@ describe('GetBitcoinMarketUseCase', () => {
     cache.get.mockReturnValue(null);
     cache.getStale.mockReturnValue(null);
     const error = new Error('boom');
-    provider.fetchBitcoinMarketData.mockRejectedValue(error);
+    provider.fetchCoinMarketData.mockRejectedValue(error);
 
-    await expect(useCase.execute()).rejects.toBe(error);
+    await expect(useCase.execute('bitcoin')).rejects.toBe(error);
   });
 });
