@@ -33,8 +33,8 @@ export class GetUsdtTomanUseCase implements IGetUsdtTomanUseCase {
 
     try {
       const fresh = await this.provider.fetchUsdtTomanRate();
-      this.cache.set(fresh);
-      return { ...fresh, fetchedAt: new Date(), isStale: false };
+      const stored = this.cache.set(fresh);
+      return { ...fresh, fetchedAt: stored.fetchedAt, isStale: false };
     } catch (error) {
       const stale = this.cache.getStale();
 

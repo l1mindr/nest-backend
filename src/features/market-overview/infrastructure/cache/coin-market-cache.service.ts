@@ -50,11 +50,21 @@ export class CoinMarketCacheService {
     return { value: entry.value, fetchedAt: entry.fetchedAt };
   }
 
-  set(coinId: string, value: CoinMarketEntry): void {
-    this.entries.set(coinId, {
+  /**
+   * Returns what it stored, so a caller serving this value fresh reports the
+   * same `fetchedAt` the cache will report for it on every later read. See
+   * `FearGreedCacheService.set` — reading the clock again at the call site let
+   * the two disagree by a millisecond.
+   */
+  set(coinId: string, value: CoinMarketEntry): CachedEntry {
+    const entry: CacheEntry = {
       value,
       fetchedAt: new Date(),
       expiresAt: Date.now() + this.config.coinTickerCacheTtlMs
-    });
+    };
+
+    this.entries.set(coinId, entry);
+
+    return { value: entry.value, fetchedAt: entry.fetchedAt };
   }
 }

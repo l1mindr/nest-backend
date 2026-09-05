@@ -45,11 +45,14 @@ describe('GetFearGreedUseCase', () => {
   it('should fetch from the provider on a cache miss, populate the cache, and mark fresh', async () => {
     cache.get.mockReturnValue(null);
     provider.fetchFearGreedIndex.mockResolvedValue(entry);
+    cache.set.mockReturnValue({ value: entry, fetchedAt });
 
     const result = await useCase.execute();
 
     expect(result).toMatchObject({ ...entry, isStale: false });
-    expect(result.fetchedAt).toBeInstanceOf(Date);
+    // The fresh response must carry the very `fetchedAt` the cache
+    // stored, so it agrees with what later cached reads report.
+    expect(result.fetchedAt).toBe(fetchedAt);
     expect(cache.set).toHaveBeenCalledWith(entry);
   });
 

@@ -33,8 +33,8 @@ export class GetFearGreedUseCase implements IGetFearGreedUseCase {
 
     try {
       const fresh = await this.provider.fetchFearGreedIndex();
-      this.cache.set(fresh);
-      return { ...fresh, fetchedAt: new Date(), isStale: false };
+      const stored = this.cache.set(fresh);
+      return { ...fresh, fetchedAt: stored.fetchedAt, isStale: false };
     } catch (error) {
       const stale = this.cache.getStale();
 

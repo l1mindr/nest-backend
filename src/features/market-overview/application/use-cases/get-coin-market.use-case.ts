@@ -33,8 +33,8 @@ export class GetCoinMarketUseCase implements IGetCoinMarketUseCase {
 
     try {
       const fresh = await this.provider.fetchCoinMarketData(coinId);
-      this.cache.set(coinId, fresh);
-      return { ...fresh, fetchedAt: new Date(), isStale: false };
+      const stored = this.cache.set(coinId, fresh);
+      return { ...fresh, fetchedAt: stored.fetchedAt, isStale: false };
     } catch (error) {
       const stale = this.cache.getStale(coinId);
 

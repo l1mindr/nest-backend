@@ -41,11 +41,22 @@ export class FearGreedCacheService {
     return { value: this.entry.value, fetchedAt: this.entry.fetchedAt };
   }
 
-  set(value: FearGreedEntry): void {
-    this.entry = {
+  /**
+   * Returns what it stored, so a caller serving this value fresh reports the
+   * same `fetchedAt` the cache will report for it on every later read.
+   * Reading the clock again at the call site let the fresh response and the
+   * subsequent cached one disagree whenever the millisecond ticked between
+   * the two calls.
+   */
+  set(value: FearGreedEntry): CachedEntry {
+    const entry: CacheEntry = {
       value,
       fetchedAt: new Date(),
       expiresAt: Date.now() + this.config.cacheTtlMs
     };
+
+    this.entry = entry;
+
+    return { value: entry.value, fetchedAt: entry.fetchedAt };
   }
 }
