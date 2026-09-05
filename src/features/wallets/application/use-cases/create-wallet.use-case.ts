@@ -19,7 +19,12 @@ export class CreateWalletUseCase implements ICreateWalletUseCase {
     const data: CreateWalletData = {
       userId,
       name: dto.name,
-      address: dto.address ?? null
+      // A wallet may be registered before any address is known, so an omitted
+      // list is an empty one rather than a rejection.
+      addresses: (dto.addresses ?? []).map((entry) => ({
+        network: entry.network,
+        address: entry.address
+      }))
     };
 
     return this.walletRepository.create(data);
