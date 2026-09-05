@@ -85,6 +85,24 @@ export const PERMISSION_CATALOG: Readonly<Record<Permission, PermissionMeta>> =
       description: 'Grant and revoke permissions on administrator accounts.',
       ownerOnly: true
     },
+    [Permission.ROLE_READ]: {
+      description:
+        'Read the role catalog and which permissions each role grants.',
+      ownerOnly: true
+    },
+    [Permission.ROLE_CREATE]: {
+      description: 'Create a named role.',
+      ownerOnly: true
+    },
+    [Permission.ROLE_UPDATE]: {
+      description:
+        'Rename a role, edit its description, or change the permissions it grants.',
+      ownerOnly: true
+    },
+    [Permission.ROLE_DELETE]: {
+      description: 'Delete a role that has no accounts assigned to it.',
+      ownerOnly: true
+    },
     [Permission.AUDIT_READ]: {
       description: 'Read the audit trail. Reserved.',
       ownerOnly: false

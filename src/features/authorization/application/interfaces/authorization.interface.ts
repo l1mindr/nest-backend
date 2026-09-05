@@ -5,11 +5,14 @@ import type { PaginatedResult } from '@core/pagination/paginated-result.interfac
 import { AdminInvitation } from '../../domain/entities/admin-invitation.entity';
 import { AdminPermission } from '../../domain/entities/admin-permission.entity';
 import { PermissionDefinition } from '../../domain/entities/permission-definition.entity';
+import { Role } from '../../domain/entities/role.entity';
 import { Permission } from '../../domain/enums/permission.enum';
 import { AcceptAdminInvitationRequestDto } from '../../presentation/dto/request/accept-admin-invitation.request.dto';
+import { CreateRoleRequestDto } from '../../presentation/dto/request/create-role.request.dto';
 import { InviteAdminRequestDto } from '../../presentation/dto/request/invite-admin.request.dto';
 import { PermissionSetRequestDto } from '../../presentation/dto/request/permission-set.request.dto';
 import { UpdateAdminRequestDto } from '../../presentation/dto/request/update-admin.request.dto';
+import { UpdateRoleRequestDto } from '../../presentation/dto/request/update-role.request.dto';
 
 export type { PaginatedResult } from '@core/pagination/paginated-result.interface';
 
@@ -204,4 +207,120 @@ export const ACCEPT_ADMIN_INVITATION_USE_CASE = Symbol(
 
 export interface IAcceptAdminInvitationUseCase {
   execute(dto: AcceptAdminInvitationRequestDto): Promise<void>;
+}
+
+/** A role together with the permissions it grants. */
+export interface RoleWithPermissions {
+  readonly role: Role;
+  readonly permissions: readonly Permission[];
+}
+
+export const ROLE_REPOSITORY = Symbol('IRoleRepository');
+
+export interface IRoleRepository {
+  findAll(): Promise<Role[]>;
+  findById(id: string): Promise<Role | null>;
+  findByName(name: string): Promise<Role | null>;
+  create(
+    role: Pick<Role, 'name' | 'description'>,
+    manager?: EntityManager
+  ): Promise<Role>;
+  update(
+    id: string,
+    patch: Partial<Pick<Role, 'name' | 'description'>>
+  ): Promise<void>;
+  delete(id: string): Promise<void>;
+  permissionsOf(roleId: string): Promise<Permission[]>;
+  /**
+   * Replaces the full permission set of a role in one transaction: whatever
+   * is not in `permissions` is removed, whatever is missing is added.
+   */
+  setPermissions(
+    roleId: string,
+    permissions: readonly Permission[]
+  ): Promise<void>;
+}
+
+export const USER_ROLE_REPOSITORY = Symbol('IUserRoleRepository');
+
+export interface IUserRoleRepository {
+  rolesForUser(userId: string): Promise<Role[]>;
+  /** The union of every permission granted by every role the account holds. */
+  permissionsForUser(userId: string): Promise<Permission[]>;
+  countAssignments(roleId: string): Promise<number>;
+  /** Idempotent: assigning a role an account already holds is a no-op. */
+  assign(
+    userId: string,
+    roleId: string,
+    assignedById: string | null
+  ): Promise<void>;
+  unassign(userId: string, roleId: string): Promise<void>;
+}
+
+export const CREATE_ROLE_USE_CASE = Symbol('ICreateRoleUseCase');
+
+export interface ICreateRoleUseCase {
+  execute(dto: CreateRoleRequestDto): Promise<Role>;
+}
+
+export const UPDATE_ROLE_USE_CASE = Symbol('IUpdateRoleUseCase');
+
+export interface IUpdateRoleUseCase {
+  execute(roleId: string, dto: UpdateRoleRequestDto): Promise<void>;
+}
+
+export const DELETE_ROLE_USE_CASE = Symbol('IDeleteRoleUseCase');
+
+export interface IDeleteRoleUseCase {
+  execute(roleId: string): Promise<void>;
+}
+
+export const LIST_ROLES_USE_CASE = Symbol('IListRolesUseCase');
+
+export interface IListRolesUseCase {
+  execute(): Promise<RoleWithPermissions[]>;
+}
+
+export const GET_ROLE_USE_CASE = Symbol('IGetRoleUseCase');
+
+export interface IGetRoleUseCase {
+  execute(roleId: string): Promise<RoleWithPermissions>;
+}
+
+export const SET_ROLE_PERMISSIONS_USE_CASE = Symbol(
+  'ISetRolePermissionsUseCase'
+);
+
+export interface ISetRolePermissionsUseCase {
+  execute(
+    actor: AuthorizationActor,
+    roleId: string,
+    dto: PermissionSetRequestDto
+  ): Promise<void>;
+}
+
+export const ASSIGN_ROLE_USE_CASE = Symbol('IAssignRoleUseCase');
+
+export interface IAssignRoleUseCase {
+  execute(
+    actor: AuthorizationActor,
+    userId: string,
+    roleId: string
+  ): Promise<void>;
+}
+
+export const UNASSIGN_ROLE_USE_CASE = Symbol('IUnassignRoleUseCase');
+
+export interface IUnassignRoleUseCase {
+  execute(
+    actor: AuthorizationActor,
+    userId: string,
+    roleId: string
+  ): Promise<void>;
+}
+
+export const LIST_USER_ROLES_USE_CASE = Symbol('IListUserRolesUseCase');
+
+export interface IListUserRolesUseCase {
+  execute(userId: string): Promise<RoleWithPermissions[]>;
 }

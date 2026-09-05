@@ -29,6 +29,12 @@ export enum LogEvent {
   ADMIN_INVITATION_REJECTED = 'authorization.invitation.rejected',
   PERMISSIONS_GRANTED = 'authorization.permissions.granted',
   PERMISSIONS_REVOKED = 'authorization.permissions.revoked',
+  ROLE_CREATED = 'authorization.role.created',
+  ROLE_UPDATED = 'authorization.role.updated',
+  ROLE_DELETED = 'authorization.role.deleted',
+  ROLE_PERMISSIONS_SET = 'authorization.role.permissions_set',
+  ROLE_ASSIGNED = 'authorization.role.assigned',
+  ROLE_UNASSIGNED = 'authorization.role.unassigned',
 
   COIN_SYNC_STARTED = 'coin_tracker.sync.started',
   COIN_SYNC_COMPLETED = 'coin_tracker.sync.completed',
@@ -99,7 +105,12 @@ export enum LogEvent {
 
   EMAIL_VERIFIED = 'email.verify.succeeded',
   VERIFICATION_ATTEMPTS_EXCEEDED = 'email.verify.attempts_exceeded',
-  VERIFICATION_RESEND_LIMIT_EXCEEDED = 'email.verify.resend_limit_exceeded'
+  VERIFICATION_RESEND_LIMIT_EXCEEDED = 'email.verify.resend_limit_exceeded',
+
+  REALTIME_WS_CONNECTED = 'realtime.ws.connected',
+  REALTIME_WS_DISCONNECTED = 'realtime.ws.disconnected',
+  REALTIME_WS_AUTH_REJECTED = 'realtime.ws.auth_rejected',
+  REALTIME_EVENT_PUBLISHED = 'realtime.event.published'
 }
 
 export const REDACT_PATHS = [

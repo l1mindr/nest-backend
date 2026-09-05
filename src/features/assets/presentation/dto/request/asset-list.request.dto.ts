@@ -27,7 +27,7 @@ export {
 export class AssetListRequestDto {
   @ApiPropertyOptional({
     ...cursorQueryDocs(),
-    description: `${cursorQueryDocs().description} The cursor encodes the asset \`id\` it was produced under; it stays valid only while the underlying page remains unchanged.`
+    description: `${cursorQueryDocs().description} The cursor encodes the market-cap-rank position (rank and \`id\`) it was produced under; it stays valid only while the underlying page remains unchanged.`
   })
   @IsOptional()
   @IsString()

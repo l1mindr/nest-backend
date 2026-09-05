@@ -97,6 +97,36 @@ describe('Sessions (e2e) version: 1', () => {
     expect(meRes.status).toBe(401);
   });
 
+  it('should not revoke another user session (cross-user isolation)', async () => {
+    const userA = await AuthFactory.authenticated(app, {
+      overrides: { email: 'user-a@test.com', username: 'userasessions' }
+    });
+    const userB = await AuthFactory.authenticated(app, {
+      overrides: { email: 'user-b@test.com', username: 'userbsessions' }
+    });
+
+    const {
+      client: clientA,
+      response: {
+        cookies: { refreshToken, csrfToken },
+        headers: { xCsrfToken }
+      }
+    } = userA;
+
+    const logoutRes = await clientA
+      .delete('/v1/sessions')
+      .set('Cookie', `${refreshToken}; ${csrfToken}`)
+      .set('X-CSRF-Token', xCsrfToken);
+
+    expect(logoutRes.status).toBe(204);
+
+    const meA = await clientA.get('/v1/user/me');
+    expect(meA.status).toBe(401);
+
+    const meB = await userB.client.get('/v1/user/me');
+    expect(meB.status).toBe(200);
+  });
+
   it('should terminate other sessions', async () => {
     const {
       client,

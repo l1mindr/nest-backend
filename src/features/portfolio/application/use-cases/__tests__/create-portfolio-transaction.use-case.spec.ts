@@ -43,6 +43,15 @@ describe('CreatePortfolioTransactionUseCase', () => {
     ),
     deleteByPortfolioAndAsset: jest.fn()
   };
+  const wallet = {
+    id: 'wallet-id',
+    userId: 'user-id',
+    name: 'MetaMask',
+    address: null
+  };
+  const walletRepository = {
+    findByIdAndUser: jest.fn()
+  };
   const logger = {
     setContext: jest.fn(),
     info: jest.fn()
@@ -53,6 +62,12 @@ describe('CreatePortfolioTransactionUseCase', () => {
   };
   const auditLogService = {
     record: jest.fn()
+  };
+  const realtimeEventPublisher = {
+    publishToUser: jest.fn(),
+    disconnectSession: jest.fn(),
+    disconnectUser: jest.fn(),
+    disconnectUserExcept: jest.fn()
   };
 
   let useCase: CreatePortfolioTransactionUseCase;
@@ -65,15 +80,18 @@ describe('CreatePortfolioTransactionUseCase', () => {
     transactionRepository.listByPortfolioAndAsset.mockResolvedValue([]);
     holdingsService.getAssetQuantity.mockResolvedValue('10');
     holdingsService.canSell.mockReturnValue(true);
+    walletRepository.findByIdAndUser.mockResolvedValue(wallet);
 
     useCase = new CreatePortfolioTransactionUseCase(
       transactionRepository as any,
       portfolioRepository as any,
       assetRepository as any,
       checkpointRepository as any,
+      walletRepository as any,
       holdingsService as any,
       logger as any,
-      auditLogService as any
+      auditLogService as any,
+      realtimeEventPublisher as any
     );
   });
 
@@ -126,7 +144,9 @@ describe('CreatePortfolioTransactionUseCase', () => {
       assetId: 'asset-id',
       type: PortfolioTransactionType.TRANSFER_IN,
       amount: '0.5',
-      occurredAt: '2026-07-28T08:00:00.000Z'
+      occurredAt: '2026-07-28T08:00:00.000Z',
+      destinationType: 'EXCHANGE',
+      exchangeName: 'Binance'
     } as any);
 
     expect(transactionRepository.create).toHaveBeenCalledWith(
@@ -134,7 +154,11 @@ describe('CreatePortfolioTransactionUseCase', () => {
         type: PortfolioTransactionType.TRANSFER_IN,
         price: null,
         fee: null,
-        notes: null
+        notes: null,
+        destinationType: 'EXCHANGE',
+        exchangeName: 'Binance',
+        txid: null,
+        walletId: null
       }),
       expect.any(Object)
     );
@@ -282,7 +306,9 @@ describe('CreatePortfolioTransactionUseCase', () => {
         assetId: 'asset-id',
         type: PortfolioTransactionType.TRANSFER_OUT,
         amount: '15',
-        occurredAt: '2026-07-28T08:00:00.000Z'
+        occurredAt: '2026-07-28T08:00:00.000Z',
+        destinationType: 'EXCHANGE',
+        exchangeName: 'Binance'
       } as any)
     ).rejects.toMatchObject({
       code: PortfolioErrorCode.INSUFFICIENT_HOLDINGS
@@ -313,10 +339,166 @@ describe('CreatePortfolioTransactionUseCase', () => {
       assetId: 'asset-id',
       type: PortfolioTransactionType.TRANSFER_OUT,
       amount: '5',
-      occurredAt: '2026-07-28T08:00:00.000Z'
+      occurredAt: '2026-07-28T08:00:00.000Z',
+      destinationType: 'WALLET',
+      walletId: 'wallet-id'
     } as any);
 
     expect(transactionRepository.create).toHaveBeenCalled();
     expect(result.asset).toBe(asset);
+  });
+
+  describe('transfer destination validation', () => {
+    it('rejects a transfer with no destinationType', async () => {
+      await expect(
+        useCase.execute('user-id', 'portfolio-id', {
+          assetId: 'asset-id',
+          type: PortfolioTransactionType.TRANSFER_IN,
+          amount: '1',
+          occurredAt: '2026-07-28T08:00:00.000Z'
+        } as any)
+      ).rejects.toMatchObject({
+        code: PortfolioErrorCode.TRANSFER_DESTINATION_REQUIRED
+      });
+
+      expect(transactionRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects an EXCHANGE transfer with no exchangeName', async () => {
+      await expect(
+        useCase.execute('user-id', 'portfolio-id', {
+          assetId: 'asset-id',
+          type: PortfolioTransactionType.TRANSFER_IN,
+          amount: '1',
+          occurredAt: '2026-07-28T08:00:00.000Z',
+          destinationType: 'EXCHANGE'
+        } as any)
+      ).rejects.toMatchObject({
+        code: PortfolioErrorCode.TRANSFER_EXCHANGE_NAME_REQUIRED
+      });
+
+      expect(transactionRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('accepts an EXCHANGE transfer without a txid (optional)', async () => {
+      await useCase.execute('user-id', 'portfolio-id', {
+        assetId: 'asset-id',
+        type: PortfolioTransactionType.TRANSFER_IN,
+        amount: '1',
+        occurredAt: '2026-07-28T08:00:00.000Z',
+        destinationType: 'EXCHANGE',
+        exchangeName: 'Kraken'
+      } as any);
+
+      expect(transactionRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          destinationType: 'EXCHANGE',
+          exchangeName: 'Kraken',
+          txid: null,
+          walletId: null
+        }),
+        expect.any(Object)
+      );
+    });
+
+    it('carries the txid through when supplied', async () => {
+      await useCase.execute('user-id', 'portfolio-id', {
+        assetId: 'asset-id',
+        type: PortfolioTransactionType.TRANSFER_IN,
+        amount: '1',
+        occurredAt: '2026-07-28T08:00:00.000Z',
+        destinationType: 'EXCHANGE',
+        exchangeName: 'Kraken',
+        txid: '0xabc123'
+      } as any);
+
+      expect(transactionRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ txid: '0xabc123' }),
+        expect.any(Object)
+      );
+    });
+
+    it('rejects a WALLET transfer with no walletId', async () => {
+      await expect(
+        useCase.execute('user-id', 'portfolio-id', {
+          assetId: 'asset-id',
+          type: PortfolioTransactionType.TRANSFER_IN,
+          amount: '1',
+          occurredAt: '2026-07-28T08:00:00.000Z',
+          destinationType: 'WALLET'
+        } as any)
+      ).rejects.toMatchObject({
+        code: PortfolioErrorCode.TRANSFER_WALLET_NOT_FOUND
+      });
+
+      expect(transactionRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a walletId that does not belong to the caller', async () => {
+      walletRepository.findByIdAndUser.mockResolvedValue(null);
+
+      await expect(
+        useCase.execute('user-id', 'portfolio-id', {
+          assetId: 'asset-id',
+          type: PortfolioTransactionType.TRANSFER_IN,
+          amount: '1',
+          occurredAt: '2026-07-28T08:00:00.000Z',
+          destinationType: 'WALLET',
+          walletId: 'someone-elses-wallet'
+        } as any)
+      ).rejects.toMatchObject({
+        code: PortfolioErrorCode.TRANSFER_WALLET_NOT_FOUND
+      });
+
+      expect(walletRepository.findByIdAndUser).toHaveBeenCalledWith(
+        'someone-elses-wallet',
+        'user-id'
+      );
+      expect(transactionRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('accepts a WALLET transfer with an owned wallet', async () => {
+      await useCase.execute('user-id', 'portfolio-id', {
+        assetId: 'asset-id',
+        type: PortfolioTransactionType.TRANSFER_IN,
+        amount: '1',
+        occurredAt: '2026-07-28T08:00:00.000Z',
+        destinationType: 'WALLET',
+        walletId: 'wallet-id'
+      } as any);
+
+      expect(transactionRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          destinationType: 'WALLET',
+          walletId: 'wallet-id',
+          exchangeName: null,
+          txid: null
+        }),
+        expect.any(Object)
+      );
+    });
+
+    it('ignores destination fields on a BUY transaction', async () => {
+      await useCase.execute('user-id', 'portfolio-id', {
+        assetId: 'asset-id',
+        type: PortfolioTransactionType.BUY,
+        amount: '1',
+        price: '10',
+        occurredAt: '2026-07-28T08:00:00.000Z',
+        destinationType: 'EXCHANGE',
+        exchangeName: 'Should be ignored'
+      } as any);
+
+      expect(transactionRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          destinationType: null,
+          exchangeName: null,
+          txid: null,
+          walletId: null
+        }),
+        expect.any(Object)
+      );
+      expect(walletRepository.findByIdAndUser).not.toHaveBeenCalled();
+    });
   });
 });
