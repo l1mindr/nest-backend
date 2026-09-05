@@ -20,7 +20,7 @@ import globalMarketConfig from './global-market.config';
 interface CoinGeckoGlobalRecord {
   total_market_cap?: { usd?: unknown };
   market_cap_change_percentage_24h_usd?: unknown;
-  market_cap_percentage?: { btc?: unknown };
+  market_cap_percentage?: { btc?: unknown; eth?: unknown };
   updated_at?: unknown;
 }
 
@@ -111,6 +111,12 @@ export class CoinGeckoGlobalMarketProvider implements GlobalMarketDataPort {
       record.market_cap_percentage?.btc,
       4
     );
+    // Read from the same `market_cap_percentage` object as BTC, so the two
+    // shares always come from one snapshot and no extra call is made.
+    const ethDominancePercentage = this.decimal(
+      record.market_cap_percentage?.eth,
+      4
+    );
     const marketCapChangePercentage24h = this.decimal(
       record.market_cap_change_percentage_24h_usd,
       4
@@ -120,6 +126,7 @@ export class CoinGeckoGlobalMarketProvider implements GlobalMarketDataPort {
     if (
       totalMarketCapUsd === null ||
       btcDominancePercentage === null ||
+      ethDominancePercentage === null ||
       typeof updatedAtSeconds !== 'number' ||
       !Number.isFinite(updatedAtSeconds)
     ) {
@@ -130,6 +137,7 @@ export class CoinGeckoGlobalMarketProvider implements GlobalMarketDataPort {
       totalMarketCapUsd,
       marketCapChangePercentage24h: marketCapChangePercentage24h ?? '0',
       btcDominancePercentage,
+      ethDominancePercentage,
       updatedAt: new Date(updatedAtSeconds * 1000)
     };
   }

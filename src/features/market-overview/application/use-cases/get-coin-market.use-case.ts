@@ -1,22 +1,22 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import {
-  BITCOIN_MARKET_PORT,
-  BitcoinMarketPort,
-  BitcoinMarketSnapshot,
-  IGetBitcoinMarketUseCase
-} from '../interfaces/bitcoin-market.interface';
-import { BitcoinCacheService } from '../../infrastructure/cache/bitcoin-cache.service';
+  COIN_MARKET_PORT,
+  CoinMarketPort,
+  CoinMarketSnapshot,
+  IGetCoinMarketUseCase
+} from '../interfaces/coin-market.interface';
+import { CoinMarketCacheService } from '../../infrastructure/cache/coin-market-cache.service';
 
 @Injectable()
-export class GetBitcoinMarketUseCase implements IGetBitcoinMarketUseCase {
+export class GetCoinMarketUseCase implements IGetCoinMarketUseCase {
   constructor(
-    @Inject(BITCOIN_MARKET_PORT)
-    private readonly provider: BitcoinMarketPort,
-    private readonly cache: BitcoinCacheService,
+    @Inject(COIN_MARKET_PORT)
+    private readonly provider: CoinMarketPort,
+    private readonly cache: CoinMarketCacheService,
     private readonly logger: PinoLogger
   ) {
-    this.logger.setContext(GetBitcoinMarketUseCase.name);
+    this.logger.setContext(GetCoinMarketUseCase.name);
   }
 
   /**
@@ -25,23 +25,23 @@ export class GetBitcoinMarketUseCase implements IGetBitcoinMarketUseCase {
    * (even if expired) value is served rather than failing the request. Only
    * rethrows when there is no cached value at all.
    */
-  async execute(): Promise<BitcoinMarketSnapshot> {
-    const cached = this.cache.get();
+  async execute(coinId: string): Promise<CoinMarketSnapshot> {
+    const cached = this.cache.get(coinId);
     if (cached) {
       return { ...cached.value, fetchedAt: cached.fetchedAt, isStale: false };
     }
 
     try {
-      const fresh = await this.provider.fetchBitcoinMarketData();
-      this.cache.set(fresh);
+      const fresh = await this.provider.fetchCoinMarketData(coinId);
+      this.cache.set(coinId, fresh);
       return { ...fresh, fetchedAt: new Date(), isStale: false };
     } catch (error) {
-      const stale = this.cache.getStale();
+      const stale = this.cache.getStale(coinId);
 
       if (stale) {
         this.logger.warn(
-          { err: error },
-          'Bitcoin market data provider failed; serving stale cached value'
+          { err: error, coinId },
+          'Coin market data provider failed; serving stale cached value'
         );
         return { ...stale.value, fetchedAt: stale.fetchedAt, isStale: true };
       }

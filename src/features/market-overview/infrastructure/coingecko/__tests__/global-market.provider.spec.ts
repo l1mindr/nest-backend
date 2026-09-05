@@ -31,7 +31,7 @@ describe('CoinGeckoGlobalMarketProvider', () => {
     data: {
       total_market_cap: { usd: 2_412_345_678_901.23 },
       market_cap_change_percentage_24h_usd: 1.2345,
-      market_cap_percentage: { btc: 51.3201 },
+      market_cap_percentage: { btc: 51.3201, eth: 17.8432 },
       updated_at: 1_753_700_000
     }
   };
@@ -55,6 +55,7 @@ describe('CoinGeckoGlobalMarketProvider', () => {
       totalMarketCapUsd: '2412345678901.23',
       marketCapChangePercentage24h: '1.2345',
       btcDominancePercentage: '51.3201',
+      ethDominancePercentage: '17.8432',
       updatedAt: new Date(1_753_700_000 * 1000)
     });
     expect(httpService.get).toHaveBeenCalledWith(`${BASE_URL}/global`, {
@@ -83,7 +84,7 @@ describe('CoinGeckoGlobalMarketProvider', () => {
         data: {
           data: {
             total_market_cap: { usd: 100 },
-            market_cap_percentage: { btc: 50 },
+            market_cap_percentage: { btc: 50, eth: 20 },
             updated_at: 1_753_700_000
           }
         }

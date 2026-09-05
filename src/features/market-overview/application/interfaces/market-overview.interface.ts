@@ -10,6 +10,7 @@ export interface GlobalMarketDataEntry {
   totalMarketCapUsd: string;
   marketCapChangePercentage24h: string;
   btcDominancePercentage: string;
+  ethDominancePercentage: string;
   updatedAt: Date;
 }
 

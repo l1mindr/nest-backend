@@ -1,8 +1,8 @@
 import {
-  BITCOIN_MARKET_PORT,
-  BitcoinMarketPort
-} from '@features/market-overview/application/interfaces/bitcoin-market.interface';
-import { BitcoinCacheService } from '@features/market-overview/infrastructure/cache/bitcoin-cache.service';
+  COIN_MARKET_PORT,
+  CoinMarketPort
+} from '@features/market-overview/application/interfaces/coin-market.interface';
+import { CoinMarketCacheService } from '@features/market-overview/infrastructure/cache/coin-market-cache.service';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createMigratedTestApp } from '../bootstrap/test-app';
@@ -46,9 +46,9 @@ describe('Market Bitcoin (e2e) version: 1', () => {
 
   it('should return the bitcoin ticker and serve it from cache on the next request', async () => {
     const { client } = await AuthFactory.authenticated(app);
-    const provider = app.get<BitcoinMarketPort>(BITCOIN_MARKET_PORT);
+    const provider = app.get<CoinMarketPort>(COIN_MARKET_PORT);
     const spy = jest
-      .spyOn(provider, 'fetchBitcoinMarketData')
+      .spyOn(provider, 'fetchCoinMarketData')
       .mockResolvedValue(snapshot);
 
     const first = await client.get('/v1/market/bitcoin');
@@ -69,10 +69,10 @@ describe('Market Bitcoin (e2e) version: 1', () => {
 
   it('should serve a stale cached ticker, marked as such, when the provider fails after a successful fetch', async () => {
     const { client } = await AuthFactory.authenticated(app);
-    const provider = app.get<BitcoinMarketPort>(BITCOIN_MARKET_PORT);
-    const spy = jest.spyOn(provider, 'fetchBitcoinMarketData');
+    const provider = app.get<CoinMarketPort>(COIN_MARKET_PORT);
+    const spy = jest.spyOn(provider, 'fetchCoinMarketData');
     spy.mockClear();
-    const cache = app.get(BitcoinCacheService);
+    const cache = app.get(CoinMarketCacheService);
     (cache as unknown as { entry: unknown }).entry = null;
 
     spy.mockResolvedValueOnce(snapshot);
