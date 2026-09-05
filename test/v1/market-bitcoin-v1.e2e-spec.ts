@@ -1,6 +1,7 @@
 import {
   COIN_MARKET_PORT,
-  CoinMarketPort
+  CoinMarketPort,
+  TICKER_COIN_IDS
 } from '@features/market-overview/application/interfaces/coin-market.interface';
 import { CoinMarketCacheService } from '@features/market-overview/infrastructure/cache/coin-market-cache.service';
 import { INestApplication } from '@nestjs/common';
@@ -72,8 +73,14 @@ describe('Market Bitcoin (e2e) version: 1', () => {
     const provider = app.get<CoinMarketPort>(COIN_MARKET_PORT);
     const spy = jest.spyOn(provider, 'fetchCoinMarketData');
     spy.mockClear();
+    // The cache is keyed by coin id, so the previous spec's bitcoin entry has
+    // to be dropped from the map for this one to start from a cold cache.
     const cache = app.get(CoinMarketCacheService);
-    (cache as unknown as { entry: unknown }).entry = null;
+    const entries = (
+      cache as unknown as { entries: Map<string, { expiresAt: number }> }
+    ).entries;
+
+    entries.clear();
 
     spy.mockResolvedValueOnce(snapshot);
     const first = await client.get('/v1/market/bitcoin');
@@ -81,7 +88,7 @@ describe('Market Bitcoin (e2e) version: 1', () => {
     expect(first.body.isStale).toBe(false);
     expect(spy).toHaveBeenCalledTimes(1);
 
-    (cache as unknown as { entry: { expiresAt: number } }).entry!.expiresAt = 0;
+    entries.get(TICKER_COIN_IDS.BITCOIN)!.expiresAt = 0;
 
     spy.mockRejectedValueOnce(new Error('provider unavailable'));
     const second = await client.get('/v1/market/bitcoin');

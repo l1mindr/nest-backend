@@ -52,7 +52,7 @@ describe('Wallet (e2e) version: 1', () => {
       expect(response.status).toBe(201);
       expect(response.body).toMatchObject({
         name: 'MetaMask',
-        address: null
+        addresses: []
       });
       expect(response.body.id).toEqual(expect.any(String));
       expect(response.body).not.toHaveProperty('userId');
@@ -64,7 +64,12 @@ describe('Wallet (e2e) version: 1', () => {
       const response = await auth.client.post('/v1/wallets', {
         body: {
           name: 'Ledger',
-          address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+          addresses: [
+            {
+              network: 'BITCOIN',
+              address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+            }
+          ]
         },
         headers: mutationHeaders(auth)
       });
@@ -72,7 +77,12 @@ describe('Wallet (e2e) version: 1', () => {
       expect(response.status).toBe(201);
       expect(response.body).toMatchObject({
         name: 'Ledger',
-        address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+        addresses: [
+          {
+            network: 'BITCOIN',
+            address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+          }
+        ]
       });
     });
 
