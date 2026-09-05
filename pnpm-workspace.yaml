@@ -7,3 +7,9 @@ allowBuilds:
   msgpackr-extract: false
 overrides:
   '@compodoc/compodoc>@angular-devkit/schematics': 21.2.13
+  # Transitive via ajv (@nestjs/cli, @commitlint/cli, and ~30 other paths).
+  # 3.1.5 is affected by four high advisories — host confusion via IDN and
+  # percent-encoded scheme normalization, plus SSRF via IPv6 normalization and
+  # repeated hostname percent-decoding. ajv asks for ^3.0.1, so this stays in
+  # range. Drop once ajv ships a release that requires >=3.1.6 itself.
+  fast-uri: ^3.1.6
