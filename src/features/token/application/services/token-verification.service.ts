@@ -18,7 +18,8 @@ export class TokenVerificationService implements ITokenVerificationService {
     try {
       return await this.jwtService.verifyAsync<IJwtClaims>(token, {
         secret: this.jwtConfiguration.accessTokenSecret,
-        audience: 'api'
+        audience: 'api',
+        algorithms: ['HS256']
       });
     } catch {
       throw TokenErrors.invalidToken();
@@ -29,7 +30,8 @@ export class TokenVerificationService implements ITokenVerificationService {
     try {
       return await this.jwtService.verifyAsync<IJwtClaims>(token, {
         secret: this.jwtConfiguration.refreshTokenSecret,
-        audience: 'refresh'
+        audience: 'refresh',
+        algorithms: ['HS256']
       });
     } catch {
       throw TokenErrors.invalidToken();

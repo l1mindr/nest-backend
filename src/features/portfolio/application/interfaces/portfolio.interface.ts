@@ -10,6 +10,7 @@ import { PortfolioOpeningBalance } from '../../domain/entities/portfolio-opening
 import { PortfolioTransaction } from '../../domain/entities/portfolio-transaction.entity';
 import { PortfolioSourceType } from '../../domain/enums/portfolio-source-type.enum';
 import { PortfolioTransactionType } from '../../domain/enums/portfolio-transaction-type.enum';
+import { TransferDestinationType } from '../../domain/enums/transfer-destination-type.enum';
 import { PortfolioValuationStatus } from '../../domain/enums/portfolio-valuation-status.enum';
 import { CreateHoldingRequestDto } from '../../presentation/dto/request/create-holding.request.dto';
 import { CreatePortfolioRequestDto } from '../../presentation/dto/request/create-portfolio.request.dto';
@@ -284,6 +285,10 @@ export interface CreatePortfolioTransactionData {
   fee: string | null;
   occurredAt: Date;
   notes: string | null;
+  destinationType: TransferDestinationType | null;
+  exchangeName: string | null;
+  txid: string | null;
+  walletId: string | null;
 }
 
 export interface UpdatePortfolioTransactionData {
@@ -328,6 +333,16 @@ export interface IPortfolioTransactionRepository {
   listByPortfolioAndUser(
     filter: ListPortfolioTransactionsFilter
   ): Promise<PortfolioTransaction[]>;
+  /**
+   * Total transactions matching the same filters as `listByPortfolioAndUser`,
+   * ignoring the cursor/limit — used to report a page-independent total.
+   */
+  countByPortfolioAndUser(
+    filter: Pick<
+      ListPortfolioTransactionsFilter,
+      'userId' | 'portfolioId' | 'assetId' | 'type' | 'from' | 'to'
+    >
+  ): Promise<number>;
   /**
    * Loads the complete transaction ledger of one portfolio with the asset
    * resolved inline, for P&L calculation. Never paginated: the calculation
@@ -401,6 +416,8 @@ export const LIST_PORTFOLIO_TRANSACTIONS_USE_CASE = Symbol(
 export interface PaginatedTransactions {
   items: PortfolioTransaction[];
   nextCursor: string | null;
+  /** Total transactions matching the filters, independent of the current page. */
+  total: number;
 }
 
 export interface IGetPortfolioTransactionUseCase {

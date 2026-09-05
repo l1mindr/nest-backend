@@ -11,7 +11,9 @@ import {
   ADMIN_PERMISSION_REPOSITORY,
   AuthorizationActor,
   IAdminPermissionRepository,
-  IPermissionEvaluationService
+  IPermissionEvaluationService,
+  IUserRoleRepository,
+  USER_ROLE_REPOSITORY
 } from '../interfaces/authorization.interface';
 
 /**
@@ -22,6 +24,12 @@ import {
  * their account. Roles below administrator simply hold no grants, so they fall
  * out of the same evaluation as denied — no per-role branch, and no rule that
  * has to be restated when a tier is added.
+ *
+ * An account's held permissions are the union of two sources: permissions
+ * granted directly (`admin_permission`) and permissions granted by any named
+ * role assigned to it (`role_permission` via `user_role_assignment`). A role
+ * only ever adds to what a direct grant already provides — it is never
+ * consulted to take a permission away.
  *
  * Requirements are conjunctive: `@RequirePermissions(A, B)` demands both.
  *
@@ -34,7 +42,9 @@ import {
 export class PermissionEvaluationService implements IPermissionEvaluationService {
   constructor(
     @Inject(ADMIN_PERMISSION_REPOSITORY)
-    private readonly adminPermissionRepository: IAdminPermissionRepository
+    private readonly adminPermissionRepository: IAdminPermissionRepository,
+    @Inject(USER_ROLE_REPOSITORY)
+    private readonly userRoleRepository: IUserRoleRepository
   ) {}
 
   async can(
@@ -51,11 +61,18 @@ export class PermissionEvaluationService implements IPermissionEvaluationService
     // hand administrator management to an administrator.
     if (required.some(isOwnerOnly)) return false;
 
-    const held = new Set(
-      await this.adminPermissionRepository.findByUserId(actor.id)
-    );
+    const held = await this.heldPermissions(actor.id);
 
     return required.every((permission) => held.has(permission));
+  }
+
+  private async heldPermissions(userId: string): Promise<Set<Permission>> {
+    const [direct, viaRoles] = await Promise.all([
+      this.adminPermissionRepository.findByUserId(userId),
+      this.userRoleRepository.permissionsForUser(userId)
+    ]);
+
+    return new Set([...direct, ...viaRoles]);
   }
 
   async assertCan(
@@ -79,11 +96,11 @@ export class PermissionEvaluationService implements IPermissionEvaluationService
       return [...ALL_PERMISSIONS];
     }
 
-    const held = await this.adminPermissionRepository.findByUserId(actor.id);
+    const held = await this.heldPermissions(actor.id);
 
     // Same defence as `can`: an owner-reserved code that somehow reached the
     // grant table is not reported as held, because it would not be honoured.
-    return held.filter((permission) => !isOwnerOnly(permission));
+    return [...held].filter((permission) => !isOwnerOnly(permission));
   }
 
   /**
