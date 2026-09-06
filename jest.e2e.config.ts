@@ -22,7 +22,18 @@ const config: Config = {
   testTimeout: 30000,
   globalSetup: '<rootDir>/test/setup/global-setup.ts',
   setupFiles: ['<rootDir>/test/setup/worker-env.ts'],
-  maxWorkers: MAX_WORKERS
+  maxWorkers: MAX_WORKERS,
+  // @nestjs/* ships ESM-only as of v12 (no CJS build), so its files reach
+  // Jest's CJS module loader as raw `import` syntax unless transpiled here;
+  // everything else in node_modules is still plain CJS and stays ignored.
+  transform: {
+    '^.+\\.tsx?$': 'ts-jest',
+    '^.+\\.jsx?$': '<rootDir>/test/setup/nestjs-esm.transformer.js'
+  },
+  // pnpm flattens packages into node_modules/.pnpm/<name>@<version>/... with
+  // scoped names' `/` replaced by `+` (e.g. `@nestjs+common@12.0.1_.../`), so
+  // the allowlist has to match against that store-key form, not `@nestjs/`.
+  transformIgnorePatterns: ['node_modules/\\.pnpm/(?!@nestjs\\+)']
 };
 
 export default config;

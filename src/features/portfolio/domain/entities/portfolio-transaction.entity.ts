@@ -1,5 +1,6 @@
 import { User } from '@features/users/domain/entities/user.entity';
 import { Asset } from '@features/assets/domain/entities/asset.entity';
+import { Wallet } from '@features/wallets/domain/entities/wallet.entity';
 import {
   Check,
   Column,
@@ -13,6 +14,7 @@ import {
 } from 'typeorm';
 import { Portfolio } from './portfolio.entity';
 import { PortfolioTransactionType } from '../enums/portfolio-transaction-type.enum';
+import { TransferDestinationType } from '../enums/transfer-destination-type.enum';
 
 @Entity('portfolio_transaction')
 @Index('IDX_portfolio_transaction_user_id', ['userId'])
@@ -61,6 +63,30 @@ export class PortfolioTransaction {
   @Column({ type: 'varchar', length: 1000, nullable: true })
   notes!: string | null;
 
+  /**
+   * Counterparty of a TRANSFER_IN/TRANSFER_OUT — where it came from or went
+   * to. `null` for BUY/SELL, which have no destination concept.
+   */
+  @Column({
+    type: 'enum',
+    enum: TransferDestinationType,
+    enumName: 'transfer_destination_type_enum',
+    nullable: true
+  })
+  destinationType!: TransferDestinationType | null;
+
+  /** Free-text exchange name, required when `destinationType` is EXCHANGE. */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  exchangeName!: string | null;
+
+  /** Optional on-chain transaction id, only meaningful for EXCHANGE transfers. */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  txid!: string | null;
+
+  /** Set when `destinationType` is WALLET; the wallet must belong to the same user. */
+  @Column({ type: 'uuid', nullable: true })
+  walletId!: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
@@ -78,4 +104,8 @@ export class PortfolioTransaction {
   @ManyToOne(() => Asset, { nullable: false, onDelete: 'NO ACTION' })
   @JoinColumn({ name: 'assetId' })
   asset!: Asset;
+
+  @ManyToOne(() => Wallet, { nullable: true, onDelete: 'NO ACTION' })
+  @JoinColumn({ name: 'walletId' })
+  wallet!: Wallet | null;
 }

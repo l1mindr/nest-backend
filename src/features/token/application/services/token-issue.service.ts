@@ -38,7 +38,8 @@ export class TokenIssueService implements ITokenIssueService {
       },
       {
         secret: this.jwtConfiguration.accessTokenSecret,
-        audience: 'api'
+        audience: 'api',
+        algorithm: 'HS256'
       }
     );
 
@@ -50,7 +51,8 @@ export class TokenIssueService implements ITokenIssueService {
       },
       {
         secret: this.jwtConfiguration.refreshTokenSecret,
-        audience: 'refresh'
+        audience: 'refresh',
+        algorithm: 'HS256'
       }
     );
 

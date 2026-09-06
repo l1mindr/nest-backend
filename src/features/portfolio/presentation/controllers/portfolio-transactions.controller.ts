@@ -88,15 +88,17 @@ export class PortfolioTransactionsController {
     @Param() params: PortfolioTransactionParamsDto,
     @Query() query: PortfolioTransactionListRequestDto
   ) {
-    const { items, nextCursor } = await this.listTransactionsUseCase.execute(
-      user.id,
-      params.portfolioId,
-      query
-    );
+    const { items, nextCursor, total } =
+      await this.listTransactionsUseCase.execute(
+        user.id,
+        params.portfolioId,
+        query
+      );
 
     return {
       items: this.transactionMapper.toResponseList(items),
-      nextCursor
+      nextCursor,
+      total
     };
   }
 

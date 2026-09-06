@@ -4,6 +4,7 @@ import { ExampleValue } from '@presentation/swagger/openapi.constants';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { PortfolioTransactionType } from '../../../domain/enums/portfolio-transaction-type.enum';
+import { TransferDestinationType } from '../../../domain/enums/transfer-destination-type.enum';
 
 /** One transaction recorded against a portfolio source. */
 export class PortfolioTransactionResponseDto extends TimestampResponseDto {
@@ -95,4 +96,43 @@ export class PortfolioTransactionResponseDto extends TimestampResponseDto {
   @Expose()
   @Type(() => AssetResponseDto)
   asset!: AssetResponseDto;
+
+  @ApiProperty({
+    description:
+      'Where a TRANSFER_IN/TRANSFER_OUT counterparty sits, or `null` for BUY/SELL.',
+    enum: TransferDestinationType,
+    nullable: true,
+    example: TransferDestinationType.EXCHANGE
+  })
+  @Expose()
+  destinationType!: TransferDestinationType | null;
+
+  @ApiProperty({
+    description: 'Exchange name, or `null` when not applicable.',
+    type: String,
+    nullable: true,
+    example: 'Binance'
+  })
+  @Expose()
+  exchangeName!: string | null;
+
+  @ApiProperty({
+    description: 'On-chain transaction id, or `null` when not set.',
+    type: String,
+    nullable: true,
+    example: '0x9f2c...'
+  })
+  @Expose()
+  txid!: string | null;
+
+  @ApiProperty({
+    description:
+      'UUID of the wallet counterparty, or `null` when not applicable.',
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    example: ExampleValue.WALLET_ID
+  })
+  @Expose()
+  walletId!: string | null;
 }

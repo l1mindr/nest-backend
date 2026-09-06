@@ -6,7 +6,12 @@ import { PinoLogger } from 'nestjs-pino';
 import { PortfolioTransaction } from '../../domain/entities/portfolio-transaction.entity';
 import { PortfolioErrors } from '../../domain/errors/portfolio-errors';
 import { PortfolioTransactionType } from '../../domain/enums/portfolio-transaction-type.enum';
+import { TransferDestinationType } from '../../domain/enums/transfer-destination-type.enum';
 import { CreatePortfolioTransactionRequestDto } from '../../presentation/dto/request/create-portfolio-transaction.request.dto';
+import {
+  IWalletRepository,
+  WALLET_REPOSITORY
+} from '@features/wallets/application/interfaces/wallet.interface';
 import {
   CreatePortfolioTransactionData,
   ICreatePortfolioTransactionUseCase,
@@ -24,6 +29,10 @@ import {
   ResourceType
 } from '@infrastructure/logging/mongodb/mongodb.constants';
 import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+import {
+  IRealtimeEventPublisher,
+  REALTIME_EVENT_PUBLISHER
+} from '@features/realtime/application/interfaces/realtime.interface';
 import { HoldingsService } from '../../infrastructure/providers/holdings.service';
 
 @Injectable()
@@ -37,9 +46,13 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
     private readonly assetRepository: IAssetRepository,
     @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
     private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
+    @Inject(WALLET_REPOSITORY)
+    private readonly walletRepository: IWalletRepository,
     private readonly holdingsService: HoldingsService,
     private readonly logger: PinoLogger,
-    private readonly auditLogService: AuditLogService
+    private readonly auditLogService: AuditLogService,
+    @Inject(REALTIME_EVENT_PUBLISHER)
+    private readonly realtimeEventPublisher: IRealtimeEventPublisher
   ) {
     this.logger.setContext(CreatePortfolioTransactionUseCase.name);
   }
@@ -103,6 +116,50 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
       }
     }
 
+    const isTransfer =
+      dto.type === PortfolioTransactionType.TRANSFER_IN ||
+      dto.type === PortfolioTransactionType.TRANSFER_OUT;
+
+    // Destination fields only mean something for a transfer; a BUY/SELL
+    // never persists them even if the caller sent some, mirroring how `price`
+    // is already dropped for transfers.
+    let destinationType: TransferDestinationType | null = null;
+    let exchangeName: string | null = null;
+    let txid: string | null = null;
+    let walletId: string | null = null;
+
+    if (isTransfer) {
+      if (dto.destinationType === undefined) {
+        throw PortfolioErrors.transferDestinationRequired();
+      }
+
+      destinationType = dto.destinationType;
+
+      if (destinationType === TransferDestinationType.EXCHANGE) {
+        if (!dto.exchangeName) {
+          throw PortfolioErrors.transferExchangeNameRequired();
+        }
+
+        exchangeName = dto.exchangeName;
+        txid = dto.txid ?? null;
+      } else {
+        if (!dto.walletId) {
+          throw PortfolioErrors.transferWalletNotFound();
+        }
+
+        const wallet = await this.walletRepository.findByIdAndUser(
+          dto.walletId,
+          userId
+        );
+
+        if (!wallet) {
+          throw PortfolioErrors.transferWalletNotFound(dto.walletId);
+        }
+
+        walletId = wallet.id;
+      }
+    }
+
     const data: CreatePortfolioTransactionData = {
       userId,
       portfolioId,
@@ -112,7 +169,11 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
       price: dto.price ?? null,
       fee: dto.fee ?? null,
       occurredAt: new Date(dto.occurredAt),
-      notes: dto.notes ?? null
+      notes: dto.notes ?? null,
+      destinationType,
+      exchangeName,
+      txid,
+      walletId
     };
 
     // Persist and invalidate the asset's calculation checkpoints atomically
@@ -157,6 +218,11 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
       resourceType: ResourceType.TRANSACTION,
       resourceId: transaction.id,
       success: true
+    });
+
+    this.realtimeEventPublisher.publishToUser(userId, {
+      type: 'transaction.created',
+      payload: { portfolioId, transactionId: transaction.id }
     });
 
     return transaction;

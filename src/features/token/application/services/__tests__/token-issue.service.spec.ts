@@ -62,7 +62,8 @@ describe('TokenIssueService', () => {
         }),
         {
           secret: jwtConfiguration.accessTokenSecret,
-          audience: 'api'
+          audience: 'api',
+          algorithm: 'HS256'
         }
       );
 
@@ -74,9 +75,22 @@ describe('TokenIssueService', () => {
         }),
         {
           secret: jwtConfiguration.refreshTokenSecret,
-          audience: 'refresh'
+          audience: 'refresh',
+          algorithm: 'HS256'
         }
       );
+    });
+
+    it('should pin the signing algorithm to HS256 to prevent algorithm confusion', async () => {
+      mockJwtService.signAsync
+        .mockResolvedValueOnce('access-token')
+        .mockResolvedValueOnce('refresh-token');
+
+      await service.issuePair('user-id', 'session-id', Date.now(), new Date());
+
+      for (const call of mockJwtService.signAsync.mock.calls) {
+        expect(call[1]).toMatchObject({ algorithm: 'HS256' });
+      }
     });
   });
 });

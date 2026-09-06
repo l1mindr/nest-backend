@@ -33,25 +33,27 @@ export class HoldingsCalculator {
     transactions: CalculationTransaction[],
     openingQuantity: string = '0'
   ): string {
-    if (transactions.length === 0) {
-      return openingQuantity;
-    }
+    let quantity = openingQuantity;
 
-    const amounts: { additions: string[]; subtractions: string[] } = {
-      additions: openingQuantity === '0' ? [] : [openingQuantity],
-      subtractions: []
-    };
-
+    // Processed transaction-by-transaction (the ledger is already supplied in
+    // chronological order) rather than as one bulk sum-then-subtract, so each
+    // disposal can be clamped individually — see `clampDisposal`. Order matters
+    // once clamping is involved: BUY 10 → SELL 50 → BUY 5 must floor at zero
+    // after the oversold SELL and then pick back up, which a single final
+    // `totalAdditions - totalSubtractions` cannot express.
     for (const transaction of transactions) {
       switch (transaction.type) {
         case CalculationTransactionType.BUY:
         case CalculationTransactionType.TRANSFER_IN:
-          amounts.additions.push(transaction.amount);
+          quantity = sumDecimals([quantity, transaction.amount]);
           break;
 
         case CalculationTransactionType.SELL:
         case CalculationTransactionType.TRANSFER_OUT:
-          amounts.subtractions.push(transaction.amount);
+          quantity = subtractDecimals(
+            quantity,
+            this.clampDisposal(quantity, transaction.amount)
+          );
           break;
 
         default:
@@ -60,18 +62,21 @@ export class HoldingsCalculator {
       }
     }
 
-    // Calculate total additions
-    const totalAdditions =
-      amounts.additions.length === 0 ? '0' : sumDecimals(amounts.additions);
+    return quantity;
+  }
 
-    // Calculate total subtractions
-    const totalSubtractions =
-      amounts.subtractions.length === 0
-        ? '0'
-        : sumDecimals(amounts.subtractions);
-
-    // Calculate net: additions - subtractions
-    return subtractDecimals(totalAdditions, totalSubtractions);
+  /**
+   * Clamps a disposal to the quantity actually held, mirroring
+   * `AverageCostCalculator.clampDisposal`: a holding can never be negative — you
+   * cannot hold −40 units of a coin — so a disposal may not drive the running
+   * quantity below zero. Any excess (the result of an oversell created before
+   * transaction-side validation existed, e.g. seeded or migrated data) is
+   * ignored rather than propagated; the position floors at zero for that
+   * disposal instead of going negative and later failing `multiplyDecimals`'s
+   * non-negative guard in valuation.
+   */
+  private clampDisposal(quantity: string, amount: string): string {
+    return compareDecimals(amount, quantity) > 0 ? quantity : amount;
   }
 
   /**

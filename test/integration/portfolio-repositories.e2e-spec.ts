@@ -359,7 +359,11 @@ describe('Portfolio repositories (e2e)', () => {
         price: '60000.50',
         fee: '0.75',
         occurredAt,
-        notes: 'Dollar-cost average'
+        notes: 'Dollar-cost average',
+        destinationType: null,
+        exchangeName: null,
+        txid: null,
+        walletId: null
       });
 
       expect(transaction).toMatchObject({
@@ -924,6 +928,10 @@ describe('Portfolio repositories (e2e)', () => {
       fee: null,
       occurredAt: new Date('2026-07-28T08:00:00.000Z'),
       notes: null,
+      destinationType: null,
+      exchangeName: null,
+      txid: null,
+      walletId: null,
       ...overrides
     });
   }

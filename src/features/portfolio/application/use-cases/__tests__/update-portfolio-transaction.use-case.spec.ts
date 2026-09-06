@@ -33,6 +33,10 @@ describe('UpdatePortfolioTransactionUseCase', () => {
     deleteByPortfolioAndAsset: jest.fn(),
     withAssetLock: jest.fn()
   };
+  const holdingsService = {
+    getAssetQuantityExcluding: jest.fn(),
+    canSell: jest.fn()
+  };
   const logger = {
     setContext: jest.fn(),
     info: jest.fn()
@@ -57,13 +61,19 @@ describe('UpdatePortfolioTransactionUseCase', () => {
         work: (manager: unknown) => Promise<unknown>
       ) => work({})
     );
+    // Sufficient by default so tests unrelated to oversell validation don't
+    // need to opt in; tests below override these to exercise rejection.
+    holdingsService.getAssetQuantityExcluding.mockResolvedValue('1000');
+    holdingsService.canSell.mockReturnValue(true);
 
     useCase = new UpdatePortfolioTransactionUseCase(
       transactionRepository as any,
       portfolioRepository as any,
       checkpointRepository as any,
+      holdingsService as any,
       logger as any,
-      { record: jest.fn() } as any
+      { record: jest.fn() } as any,
+      { publishToUser: jest.fn() } as any
     );
   });
 
@@ -374,5 +384,108 @@ describe('UpdatePortfolioTransactionUseCase', () => {
     );
 
     expect(result.type).toBe(PortfolioTransactionType.TRANSFER_IN);
+  });
+
+  describe('oversell validation on update', () => {
+    it('rejects increasing a SELL amount beyond the held quantity', async () => {
+      transactionRepository.findByIdAndPortfolioAndUser.mockResolvedValue({
+        ...transaction,
+        type: PortfolioTransactionType.SELL
+      });
+      holdingsService.getAssetQuantityExcluding.mockResolvedValue('5');
+      holdingsService.canSell.mockReturnValue(false);
+
+      await expect(
+        useCase.execute('user-id', 'portfolio-id', 'transaction-id', {
+          amount: '10'
+        })
+      ).rejects.toMatchObject({
+        code: PortfolioErrorCode.INSUFFICIENT_HOLDINGS
+      });
+
+      expect(holdingsService.getAssetQuantityExcluding).toHaveBeenCalledWith(
+        'portfolio-id',
+        'asset-id',
+        'user-id',
+        'transaction-id'
+      );
+      expect(holdingsService.canSell).toHaveBeenCalledWith('5', '10');
+      expect(transactionRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('allows decreasing a SELL amount', async () => {
+      transactionRepository.findByIdAndPortfolioAndUser.mockResolvedValue({
+        ...transaction,
+        type: PortfolioTransactionType.SELL,
+        amount: '10'
+      });
+      transactionRepository.update.mockResolvedValue({
+        ...transaction,
+        type: PortfolioTransactionType.SELL,
+        amount: '2'
+      });
+      holdingsService.getAssetQuantityExcluding.mockResolvedValue('5');
+      holdingsService.canSell.mockReturnValue(true);
+
+      const result = await useCase.execute(
+        'user-id',
+        'portfolio-id',
+        'transaction-id',
+        { amount: '2' }
+      );
+
+      expect(holdingsService.canSell).toHaveBeenCalledWith('5', '2');
+      expect(result.amount).toBe('2');
+    });
+
+    it('rejects changing type from BUY to SELL when the amount exceeds other holdings', async () => {
+      holdingsService.getAssetQuantityExcluding.mockResolvedValue('1');
+      holdingsService.canSell.mockReturnValue(false);
+
+      await expect(
+        useCase.execute('user-id', 'portfolio-id', 'transaction-id', {
+          type: PortfolioTransactionType.SELL
+        })
+      ).rejects.toMatchObject({
+        code: PortfolioErrorCode.INSUFFICIENT_HOLDINGS
+      });
+
+      expect(transactionRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a TRANSFER_OUT amount increase beyond the held quantity', async () => {
+      transactionRepository.findByIdAndPortfolioAndUser.mockResolvedValue({
+        ...transaction,
+        type: PortfolioTransactionType.TRANSFER_OUT,
+        price: null,
+        amount: '1'
+      });
+      holdingsService.getAssetQuantityExcluding.mockResolvedValue('3');
+      holdingsService.canSell.mockReturnValue(false);
+
+      await expect(
+        useCase.execute('user-id', 'portfolio-id', 'transaction-id', {
+          amount: '5'
+        })
+      ).rejects.toMatchObject({
+        code: PortfolioErrorCode.INSUFFICIENT_HOLDINGS
+      });
+    });
+
+    it('does not check holdings when neither type nor amount changes', async () => {
+      await useCase.execute('user-id', 'portfolio-id', 'transaction-id', {
+        notes: 'just a note'
+      });
+
+      expect(holdingsService.getAssetQuantityExcluding).not.toHaveBeenCalled();
+    });
+
+    it('does not check holdings for a BUY amount change', async () => {
+      await useCase.execute('user-id', 'portfolio-id', 'transaction-id', {
+        amount: '3'
+      });
+
+      expect(holdingsService.getAssetQuantityExcluding).not.toHaveBeenCalled();
+    });
   });
 });
