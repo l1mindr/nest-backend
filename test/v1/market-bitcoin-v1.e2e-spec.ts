@@ -73,7 +73,9 @@ describe('Market Bitcoin (e2e) version: 1', () => {
     const spy = jest.spyOn(provider, 'fetchCoinMarketData');
     spy.mockClear();
     const cache = app.get(CoinMarketCacheService);
-    (cache as unknown as { entry: unknown }).entry = null;
+    // The bitcoin ticker cache is keyed per coin id, so it is reset by
+    // clearing the whole map to start from a known, empty state.
+    (cache as unknown as { entries: Map<string, unknown> }).entries.clear();
 
     spy.mockResolvedValueOnce(snapshot);
     const first = await client.get('/v1/market/bitcoin');
@@ -81,7 +83,12 @@ describe('Market Bitcoin (e2e) version: 1', () => {
     expect(first.body.isStale).toBe(false);
     expect(spy).toHaveBeenCalledTimes(1);
 
-    (cache as unknown as { entry: { expiresAt: number } }).entry!.expiresAt = 0;
+    // Force the next request past the cache TTL without waiting on it for
+    // real, while keeping the cached value available for the stale-fallback
+    // path.
+    (
+      cache as unknown as { entries: Map<string, { expiresAt: number }> }
+    ).entries.get('bitcoin')!.expiresAt = 0;
 
     spy.mockRejectedValueOnce(new Error('provider unavailable'));
     const second = await client.get('/v1/market/bitcoin');

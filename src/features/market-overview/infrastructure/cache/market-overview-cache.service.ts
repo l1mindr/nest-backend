@@ -46,11 +46,15 @@ export class MarketOverviewCacheService {
     return { value: this.entry.value, fetchedAt: this.entry.fetchedAt };
   }
 
-  set(value: GlobalMarketDataEntry): void {
-    this.entry = {
+  set(value: GlobalMarketDataEntry): CachedEntry {
+    const entry: CacheEntry = {
       value,
       fetchedAt: new Date(),
       expiresAt: Date.now() + this.config.cacheTtlMs
     };
+
+    this.entry = entry;
+
+    return { value: entry.value, fetchedAt: entry.fetchedAt };
   }
 }

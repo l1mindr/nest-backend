@@ -41,11 +41,15 @@ export class FearGreedCacheService {
     return { value: this.entry.value, fetchedAt: this.entry.fetchedAt };
   }
 
-  set(value: FearGreedEntry): void {
-    this.entry = {
+  set(value: FearGreedEntry): CachedEntry {
+    const entry: CacheEntry = {
       value,
       fetchedAt: new Date(),
       expiresAt: Date.now() + this.config.cacheTtlMs
     };
+
+    this.entry = entry;
+
+    return { value: entry.value, fetchedAt: entry.fetchedAt };
   }
 }
