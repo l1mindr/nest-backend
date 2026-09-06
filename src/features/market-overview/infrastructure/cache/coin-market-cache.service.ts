@@ -50,11 +50,15 @@ export class CoinMarketCacheService {
     return { value: entry.value, fetchedAt: entry.fetchedAt };
   }
 
-  set(coinId: string, value: CoinMarketEntry): void {
-    this.entries.set(coinId, {
+  set(coinId: string, value: CoinMarketEntry): CachedEntry {
+    const entry: CacheEntry = {
       value,
       fetchedAt: new Date(),
       expiresAt: Date.now() + this.config.coinTickerCacheTtlMs
-    });
+    };
+
+    this.entries.set(coinId, entry);
+
+    return { value: entry.value, fetchedAt: entry.fetchedAt };
   }
 }
