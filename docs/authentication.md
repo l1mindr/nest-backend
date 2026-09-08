@@ -6,13 +6,45 @@ Cookie-based JWT authentication with server-side session validation, refresh tok
 
 ---
 
+## Token lifetimes
+
+| Token | Lifetime | Cookie |
+|-------|----------|--------|
+| `access_token` | **15 minutes** | HttpOnly, rotated on every refresh |
+| `refresh_token` | **7 days** | HttpOnly, single-use, rotated on every refresh |
+
+Both are intentional. The 15-minute access token is short **by design**: it
+bounds the damage of a leaked token while the 7-day refresh token keeps the user
+signed in. Any "user gets logged out too often" report is a bug in a refresh
+path, not a reason to lengthen the access token.
+
+Refresh **preserves the session id** and rotates only the refresh-token hash, so
+the session-bound CSRF token stays valid across a refresh.
+
+Consumers must therefore be able to refresh:
+
+- **Browser** — `lib/auth/refresh-manager.ts` in the frontend, single-flight so
+  concurrent 401s produce exactly one `POST /v1/auth/refresh`.
+- **Server-side rendering** — `src/proxy.ts` in the frontend refreshes before
+  deciding whether a request is authenticated, and forwards the resulting
+  `Set-Cookie` headers. Without that, a hard navigation more than 15 minutes
+  after the last request redirected a perfectly valid session to the login page.
+
+Both are deduplicated because presenting an already-consumed refresh token is
+treated as theft: `Refresh` compares against the stored hash and, on mismatch,
+revokes the whole session with `SESSION_REUSE_DETECTED`. The backend's Redis
+lock (`RedisKey.REFRESH_LOCK`) serializes concurrent attempts across processes.
+
+---
+
 ## Auth Flow Summary
 
 ```
 Registration:    POST /v1/auth/register           → 201 Created  (public, rate-limited)
-Email Verify:    POST /v1/auth/verify-email       → 200 OK       (public, rate-limited)
-Resend Code:     POST /v1/auth/resend-verification → 200 OK      (public, rate-limited)
-Login:           POST /v1/auth/login              → 200 OK       (public, rate-limited)
+Email Verify:    POST /v1/auth/verify-email       → 204 No Content (public, rate-limited)
+Resend Code:     POST /v1/auth/resend-verification → 204 No Content (public, rate-limited)
+Login:           POST /v1/auth/login              → 200 OK, NO BODY (public, rate-limited)
+Logout:          DELETE /v1/sessions              → 204, revokes + clears all auth cookies
 Refresh:         POST /v1/auth/refresh            → 200 OK       (public, CSRF skipped, rate-limited)
 Change Password: POST /v1/auth/change-password    → 204 No Content (authenticated, CSRF required, rate-limited)
 ```
@@ -61,7 +93,8 @@ New accounts are registered with status `PENDING_VERIFICATION` and can only log 
 4. Compares hash (timing-safe via `crypto.timingSafeEqual`)
 5. Marks code as verified (`markVerified`)
 6. Changes user status from `PENDING_VERIFICATION` to `ACTIVATE`
-7. Responds `200 { data: { message } }`
+7. Responds `204 No Content` — the handler is declared `@HttpCode(HttpStatus.NO_CONTENT)`
+   and returns no body. `POST /v1/auth/resend-verification` is likewise `204`.
 
 ### Verification Code
 
@@ -162,7 +195,7 @@ Emails are sent over SMTP (Gmail) via `SmtpEmailService` (Nodemailer). Delivery 
 3. Verifies refresh token JWT against refresh secret
 4. Loads active session by ID
 5. Compares refresh token hash (SHA-256 + timing-safe comparison)
-6. Rejects with `SESSION_REUSE_DETECTED` if the session version or hash no longer matches (a reused old token is treated as a leak) and revokes the session
+6. On mismatch, consults the **rotation grace window** (below). A hit returns the pair the winning request already received and stops here — no rotation, no revocation. A miss is treated as a leak: `SESSION_REUSE_DETECTED` and the session is revoked
 7. Issues new access + refresh token pair
 8. **Atomic rotation**: `SessionRotationUseCase.rotateRefreshToken()` — conditional UPDATE on Session:
    ```sql
@@ -180,6 +213,49 @@ Emails are sent over SMTP (Gmail) via `SmtpEmailService` (Nodemailer). Delivery 
 - **Database-level**: Optimistic concurrency via `version` field. Only one winner per refresh.
 - **Redis-level**: Lock prevents concurrent rotation attempts on same session.
 - **Reuse detection**: If old refresh token is used after rotation, hash mismatch or stale version triggers revocation.
+
+### Rotation Grace Window
+
+Rotation is single-use, so the instant `R1` becomes `R2` any request still
+holding `R1` fails the hash comparison. That is the correct answer for a stolen
+token and the wrong one for a race this system creates on purpose: the Next.js
+proxy refreshes server-side while the browser's own single-flight refresh may
+already be in flight, and the two processes share a cookie jar but no in-memory
+state. Legitimate users were being logged out for a race they did not cause.
+
+`RefreshReplayService` (`features/auth/application/services`) records, for
+**10 seconds** after each rotation, the pair the consumed token rotated into —
+keyed by that token's SHA-256 digest under
+`refresh:replay:{sessionId}:{hash}`, never by the token itself. A racing
+request presenting the previous token inside that window is handed back
+*exactly* the winner's pair: one logical rotation, no second lineage.
+
+What keeps it from becoming a multi-use refresh token:
+
+| Bound | Mechanism |
+|---|---|
+| One generation only | The record stores the session `version` its token was valid at; a hit requires `record.version === session.version - 1`. Two generations back is refused. |
+| Time bounded | Redis TTL, set once at write time. Serving a record never extends it. |
+| Session scoped | The key is namespaced by session id, so a record can only resolve a refresh for the session that created it. |
+| Not configurable | The window is a constant, deliberately not an environment variable — the security argument rests on it staying short. |
+
+The distinction to hold onto:
+
+- **Legitimate near-simultaneous rotation** → tolerated within the bounded
+  grace, logged as `auth.refresh.rotation_raced`.
+- **Actual old-token replay** (outside the window, or from an older
+  generation) → `SESSION_REUSE_DETECTED`, session revoked, logged as
+  `auth.refresh.reuse_detected`. Unchanged.
+
+The stored value is a bearer-token pair at rest for those seconds. Redis is
+already the trust-boundary store for session locks and rate-limit counters, and
+the exposure is bounded by the same TTL; it is the price of returning the
+winner's exact result rather than minting a second token lineage, which is what
+would actually be unsafe.
+
+Covered by `refresh.use-case.spec.ts` (normal rotation, tolerated race, expired
+grace, two-generations-back replay, cross-session isolation, refresh storm) and
+`test/v1/auth-refresh-v1.e2e-spec.ts` against the real stack.
 
 ---
 

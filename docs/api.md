@@ -100,10 +100,13 @@ Errors: `422 Validation`, `429 RATE_LIMIT_EXCEEDED`
 Request:
 ```json
 {
-  "identifier": "user@example.com",
+  "email": "user@example.com",
   "password": "Secure@123"
 }
 ```
+
+The field is named `email` but accepts an email address **or** a username
+(`LoginUserRequestDto.email`).
 
 Response: `200 OK` — Sets `access_token`, `refresh_token`, `csrf_token` cookies. No body is returned.
 
@@ -141,19 +144,24 @@ Response: `204 No Content`
 
 ### GET /v1/user/me
 
-Response: `200 OK`
+Response: `200 OK` — `UserProfileResponseDto`, serialized `@Expose()`-only:
+
 ```json
 {
-  "id": "uuid",
-  "email": "user@example.com",
-  "username": "john_doe",
   "name": "John Doe",
+  "username": "john_doe",
+  "email": "user@example.com",
   "role": "USER",
-  "status": "ACTIVATE",
-  "createdAt": "...",
-  "updatedAt": "..."
+  "joinedAt": "2026-08-02T14:35:00.000Z"
 }
 ```
+
+Exactly those five fields. In particular the caller's own `id` is **not** exposed,
+and there is no `status`/`createdAt`/`updatedAt`: the entity keeps its timestamps
+in the embedded `registryDates`, and the creation instant is surfaced as
+`joinedAt`. `name` is `null` until the user sets one through `PUT /v1/user`.
+
+There is no phone/mobile field anywhere on this entity or DTO.
 
 ### PUT /v1/user
 
@@ -199,6 +207,19 @@ Response: `200 OK`
 ```
 
 ### DELETE /v1/sessions
+
+Logout. Revokes the session server-side **and** clears all three auth cookies
+(`access_token`, `refresh_token`, `csrf_token`) via `ClearAuthCookiesInterceptor`.
+
+Previously only `csrf_token` was cleared, so the browser kept presenting dead
+`access_token`/`refresh_token` cookies until they expired (15 minutes / 7 days).
+That was never an access-control hole — `TokenValidationService` re-checks
+session liveness on every request — but each subsequent call paid a full
+401 → refresh → 401 round trip before the client concluded the session was gone.
+
+The cookies are cleared only when the revocation itself succeeds, so a failed
+logout never leaves the browser without credentials for a session that is still
+alive.
 
 Response: `204 No Content`
 
@@ -349,6 +370,17 @@ user sees an empty list; the owner sees every permission.
 |--------|------|------|------|-------------|
 | `GET` | `/v1/coins` | Authenticated | - | List coins (cursor-paginated) |
 | `POST` | `/v1/price-alerts` | Authenticated | Required | Create a price alert |
+
+> **Notification channels.** `NotificationChannel` has two members, but only
+> `EMAIL` is deliverable. `SMS` has no transport anywhere in the project —
+> `EmailNotificationService.sendSms` records the request and drops it — so
+> `POST` and `PATCH` reject it with `422 VALIDATION_ERROR` and
+> `meta.field = "notificationChannels"` (`SupportedNotificationChannelValidator`,
+> applied per element). The member stays in the enum because
+> `notificationChannels` is a PostgreSQL enum array and alerts created before
+> this restriction may still carry it; those alerts keep working, with their
+> EMAIL channel delivering and the SMS one logged and dropped. The single source
+> of truth is `SUPPORTED_NOTIFICATION_CHANNELS`.
 | `GET` | `/v1/price-alerts` | Authenticated | - | List price alerts (cursor-paginated) |
 | `PATCH` | `/v1/price-alerts/:id` | Authenticated | Required | Update a price alert |
 | `DELETE` | `/v1/price-alerts/:id` | Authenticated | Required | Cancel a price alert |
@@ -452,6 +484,388 @@ Errors: `404 PRICE_ALERT_NOT_FOUND`
 
 ---
 
+## Portfolios
+
+Five controllers back this feature. Note the route layout: **holdings are a top-level
+collection filtered by `portfolioId`**, while transactions, P&L and opening balances are
+**nested** under their portfolio.
+
+Every route is authenticated and scoped to the caller — each use case resolves the
+portfolio through `findByIdAndUser(portfolioId, userId)` before doing any work, so another
+user's id yields `404 PORTFOLIO_NOT_FOUND` rather than a 403.
+
+| Method | Path | CSRF | Status | Description |
+|--------|------|------|--------|-------------|
+| `POST` | `/v1/portfolios` | Required | 201 | Create a portfolio |
+| `GET` | `/v1/portfolios` | - | 200 | List the caller's portfolios (**bare array**, not paginated) |
+| `GET` | `/v1/portfolios/:id` | - | 200 | One portfolio |
+| `PATCH` | `/v1/portfolios/:id` | Required | 200 | Partial update; `{}` → `PORTFOLIO_EMPTY_UPDATE` |
+| `DELETE` | `/v1/portfolios/:id` | Required | 204 | Hard delete; cascades to holdings, transactions and calculation checkpoints |
+| `GET` | `/v1/portfolios/:id/valuation` | - | 200 | Current value, priced from ledger-derived holdings |
+| `GET` | `/v1/portfolios/:portfolioId/pnl` | - | 200 | Realized/unrealized P&L from the transaction ledger |
+
+### PortfolioResponseDto
+
+`{ id, name, sourceType, walletAddress, createdAt, updatedAt }`
+
+`sourceType` ∈ `LEDGER | EXCHANGE | WALLET | OTHER`. The portfolio record deliberately
+carries **no** totals — value lives only on the valuation and P&L sub-resources.
+
+### GET /v1/portfolios/:id/valuation
+
+```json
+{
+  "portfolioId": "...", "currency": "USD",
+  "totalValue": "60000.5",
+  "status": "COMPLETE",
+  "valuedHoldings": 2, "unvaluedHoldings": 0,
+  "pricedAt": "2026-08-02T14:35:00.000Z",
+  "holdings": [{ "holdingId": "...", "assetId": "...", "symbol": "btc",
+                 "name": "Bitcoin", "amount": "0.5",
+                 "currentPrice": "96785.25", "value": "48392.625" }]
+}
+```
+
+`status` ∈ `COMPLETE | PARTIAL | UNAVAILABLE | EMPTY`. `totalValue`, `currentPrice` and
+`value` are `null` when no price is available. Holdings that net to zero are excluded.
+
+Prices come from `asset.currentPrice`, which the **hourly** asset-sync job maintains — not
+from the live `/v1/market/*` tickers.
+
+`pricedAt` (ISO-8601, nullable) reports when the **oldest** price contributing to
+this valuation was last synchronised, making it a freshness floor: the valuation
+is at least that fresh, never less. It is `null` when nothing could be priced.
+Clients should present the age rather than implying the total is live — without
+it, a dashboard shows an hour-old portfolio total beside a 30-second-old BTC
+price with nothing to tell them apart.
+
+It is deliberately a timestamp rather than an `isStale` boolean: the threshold at
+which an hourly price becomes stale depends on `ASSET_SYNC_INTERVAL`, which is
+deployment configuration, so the API reports the instant and leaves the policy to
+the client.
+
+### GET /v1/portfolios/:portfolioId/pnl
+
+| Param | Type | Default |
+|-------|------|---------|
+| `costBasis` | `AVERAGE` \| `FIFO` \| `LIFO` | `AVERAGE` |
+
+```json
+{
+  "portfolioId": "...", "currency": "USD", "costBasis": "AVERAGE",
+  "pricedPositions": 2, "unpricedPositions": 0,
+  "totalCurrentValue": "96000", "totalCostBasis": "85000",
+  "totalRealizedPnl": "5000", "totalUnrealizedPnl": "6000", "totalPnl": "11000",
+  "positions": [{
+    "assetId": "...", "symbol": "btc", "name": "Bitcoin",
+    "quantity": "1.5", "totalCost": "85000", "averageCost": "56666.666666666666666666666666",
+    "currentPrice": "60000.00000000", "currentValue": "90000",
+    "realizedPnl": "5000", "unrealizedPnl": "5000", "totalPnl": "10000",
+    "realizedPnlEvents": [{
+      "transactionId": "...", "occurredAt": "...", "type": "SELL",
+      "amount": "0.5", "price": "60000", "proceeds": "30000",
+      "releasedCostBasis": "25000", "realizedPnl": "5000", "fee": "10"
+    }]
+  }]
+}
+```
+
+Every monetary and quantity value is a **decimal string**. Fields that can have no price are
+nullable. Results are memoized in calculation checkpoints, which any transaction write
+invalidates under a `(portfolioId, assetId)` advisory lock.
+
+Errors: `404 PORTFOLIO_NOT_FOUND`
+
+---
+
+## Holdings
+
+| Method | Path | CSRF | Status | Description |
+|--------|------|------|--------|-------------|
+| `GET` | `/v1/holdings?portfolioId=` | - | 200 | Holdings **derived from the transaction ledger** |
+| `POST` | `/v1/holdings` | Required | 201 | Create a stored holding row |
+| `PATCH` | `/v1/holdings/:id` | Required | 200 | Update `amount` / `notes` |
+| `DELETE` | `/v1/holdings/:id` | Required | 204 | Delete a stored holding row |
+
+> **Read and write use different sources.** `ListHoldingsUseCase` and
+> `GetPortfolioValuationUseCase` both compute holdings from the transaction ledger via
+> `HoldingsService` and deliberately never read the `holding` table, so the numbers always
+> agree with valuation and with the oversell check. The `POST`/`PATCH`/`DELETE` routes still
+> write that table, which nothing reads — they are **vestigial** and should not be used by
+> new clients. `GET` also returns a *synthesized* `id` (`derivedHoldingId(portfolioId,
+> assetId)`), stable across requests but corresponding to no row, so ids from the list are
+> not usable with `PATCH`/`DELETE`.
+
+Response: `{ items: HoldingResponseDto[], nextCursor: null }`. Each item is
+`{ id, portfolioId, assetId, amount, notes, asset, createdAt, updatedAt }`, where `asset` is
+the full `AssetResponseDto`. Positions that net to zero are omitted. `portfolioId` is an
+optional filter — without it, every portfolio the caller owns is derived.
+
+---
+
+## Portfolio Transactions
+
+The transaction ledger is the source of truth for holdings, valuation and P&L.
+
+| Method | Path | CSRF | Status |
+|--------|------|------|--------|
+| `POST` | `/v1/portfolios/:portfolioId/transactions` | Required | 201 |
+| `GET` | `/v1/portfolios/:portfolioId/transactions` | - | 200 |
+| `GET` | `/v1/portfolios/:portfolioId/transactions/:id` | - | 200 |
+| `PATCH` | `/v1/portfolios/:portfolioId/transactions/:id` | Required | 200 |
+| `DELETE` | `/v1/portfolios/:portfolioId/transactions/:id` | Required | 204 |
+
+### POST — request
+
+```json
+{
+  "assetId": "uuid", "type": "BUY", "amount": "0.5",
+  "price": "60000.50", "fee": "0.75",
+  "occurredAt": "2026-08-02T14:35:00.000Z", "notes": null,
+  "destinationType": null, "exchangeName": null, "txid": null, "walletId": null
+}
+```
+
+| Field | Rules |
+|-------|-------|
+| `amount` | decimal string, ≤ 18 fraction digits, **must be > 0** |
+| `price` | decimal string, ≤ 8 fraction digits. **Required for `BUY`/`SELL`**, dropped otherwise |
+| `fee` | decimal string, ≤ 8 fraction digits, zero allowed |
+| `occurredAt` | ISO 8601. Stored exactly as supplied; never rewritten from a live price |
+| `type` | `BUY \| SELL \| TRANSFER_IN \| TRANSFER_OUT`. `DEPOSIT`/`WITHDRAWAL` exist in the enum but are **rejected** |
+| `destinationType` | `EXCHANGE \| WALLET`. **Required for transfers**, dropped otherwise |
+| `exchangeName` | Required when `destinationType = EXCHANGE` |
+| `walletId` | Required when `destinationType = WALLET`; must belong to the caller |
+| `txid` | Always optional; only meaningful for an `EXCHANGE` transfer |
+
+Business rules, in the order the use case applies them:
+
+1. Portfolio must exist and belong to the caller → `404 PORTFOLIO_NOT_FOUND`
+2. Asset must exist → `404 ASSET_NOT_FOUND`
+3. `DEPOSIT`/`WITHDRAWAL` → `TRANSACTION_TYPE_NOT_SUPPORTED`
+4. `BUY`/`SELL` without `price` → `TRANSACTION_PRICE_REQUIRED`
+5. `SELL`/`TRANSFER_OUT` beyond the derived quantity → `INSUFFICIENT_HOLDINGS`, with
+   `meta.currentHolding` and `meta.requestedAmount`. Measured through the same
+   `HoldingsService` the holdings endpoint uses, so a rejection always matches what the
+   user sees, and anchored on the asset's opening balance
+6. Transfers: `TRANSFER_DESTINATION_REQUIRED`, `TRANSFER_EXCHANGE_NAME_REQUIRED`,
+   `TRANSFER_WALLET_NOT_FOUND`
+
+The write and the checkpoint invalidation happen atomically under a `(portfolioId,
+assetId)` advisory lock, so a concurrent P&L can never checkpoint a ledger missing the new
+row. On success the backend emits the realtime event `transaction.created` to
+`user:{userId}`.
+
+### GET — query
+
+| Param | Type | Default |
+|-------|------|---------|
+| `cursor` | string | - |
+| `limit` | number | 20 (max 100) |
+| `assetId` | uuid | - |
+| `type` | `PortfolioTransactionType` | - |
+| `from` / `to` | ISO 8601, inclusive | - |
+
+Response: `{ items, nextCursor, total }`. Ordered `occurredAt DESC, id DESC`. `total` counts
+everything matching the filters, independent of the current page.
+
+### Transaction response
+
+`{ id, portfolioId, assetId, type, amount, price, fee, occurredAt, notes, asset,
+destinationType, exchangeName, txid, walletId, createdAt, updatedAt }` — `asset` is the full
+`AssetResponseDto`; `price`, `fee`, `notes` and all four destination fields are nullable.
+
+`PATCH` accepts `type`, `amount`, `price`, `fee`, `occurredAt`, `notes`; `{}` →
+`TRANSACTION_EMPTY_UPDATE`. Editing a `SELL`/`TRANSFER_OUT` re-validates against the
+quantity computed **as if the edited transaction did not exist**, so its own amount is not
+double-counted. `PATCH`/`DELETE` emit `transaction.updated` / `transaction.deleted`.
+
+---
+
+## Portfolio Opening Balances
+
+The starting position of an asset in a portfolio, for ledgers that begin mid-history.
+
+| Method | Path | CSRF | Status |
+|--------|------|------|--------|
+| `PUT` | `/v1/portfolios/:portfolioId/opening-balances/:assetId` | Required | 200 (upsert) |
+| `GET` | `/v1/portfolios/:portfolioId/opening-balances` | - | 200 `{ items }` (no cursor) |
+
+Request: `{ openingQuantity: "1.5", openingCost: "90000" }` — both decimal strings.
+Response item: `{ id, portfolioId, assetId, openingQuantity, openingCost, asset, createdAt, updatedAt }`.
+
+These are not cosmetic: `HoldingsService` anchors its ledger replay on `openingQuantity`, so
+opening balances feed the holdings list, the valuation, the oversell check on
+`SELL`/`TRANSFER_OUT`, and the P&L cost basis.
+
+---
+
+## Wallets
+
+Named transfer destinations owned by the caller — one address per blockchain network.
+
+| Method | Path | CSRF | Status |
+|--------|------|------|--------|
+| `POST` | `/v1/wallets` | Required | 201 |
+| `GET` | `/v1/wallets` | - | 200 (**bare array**, not paginated) |
+| `PATCH` | `/v1/wallets/:id` | Required | 200 |
+| `DELETE` | `/v1/wallets/:id` | Required | 204 |
+
+Response: `{ id, name, addresses: [{ id, network, address }], createdAt, updatedAt }`.
+
+`WalletNetwork` ∈ `BITCOIN | ETHEREUM | SOLANA | BNB_CHAIN | POLYGON | ARBITRUM | OPTIMISM |
+AVALANCHE | BASE | TRON | OTHER`. `OTHER` is the escape hatch and accepts any non-empty
+address.
+
+Errors: `404 WALLET_NOT_FOUND`, `WALLET_EMPTY_UPDATE`, and `WALLET_IN_USE` — returned when
+a transfer transaction references the wallet, with `meta.transactionCount`.
+
+---
+
+## Assets
+
+The shared, read-only CoinGecko-synchronised currency catalogue. Independent of users,
+portfolios and wallets; both read routes need only a valid session.
+
+| Method | Path | Auth | CSRF | Status |
+|--------|------|------|------|--------|
+| `GET` | `/v1/assets?search,cursor,limit` | Authenticated | - | 200 |
+| `GET` | `/v1/assets/:id` | Authenticated | - | 200 |
+| `POST` | `/v1/assets/sync` | **OWNER**, 12/hour | Required | **202 Accepted** |
+
+`search` is a case-insensitive substring over symbol and name. `limit` defaults to 20, max
+100. Response: `{ items, nextCursor }`.
+
+`AssetResponseDto`: `{ id, coinGeckoId, symbol, name, imageUrl, currentPrice, marketCap,
+marketCapRank, totalVolume, circulatingSupply, totalSupply, maxSupply, priceChange24h,
+priceChangePercentage24h, lastSyncedAt, createdAt, updatedAt }`. Every monetary field is a
+nullable decimal **string**; `marketCapRank` is a nullable number.
+
+`POST /v1/assets/sync` enqueues a BullMQ job rather than syncing inline, so the request never
+waits on CoinGecko; an already-pending job is deduplicated. A repeating job refreshes the
+catalogue every `ASSET_SYNC_INTERVAL` seconds (default **3600**) — so `currentPrice` here,
+and therefore portfolio valuation and P&L, are **hourly**, not live. For live prices use
+`/v1/market/*`.
+
+---
+
+## Market Data
+
+Backend-owned snapshots of external providers. All authenticated; all read-through an
+in-memory, per-replica TTL cache — the browser never calls these providers directly.
+
+| Method | Path | Upstream | Cache TTL (env) |
+|--------|------|----------|-----------------|
+| `GET` | `/v1/market/overview` | CoinGecko `/global` | 90 s (`MARKET_OVERVIEW_CACHE_TTL_MS`) |
+| `GET` | `/v1/market/bitcoin` | CoinGecko `/simple/price` | 30 s (`COIN_TICKER_CACHE_TTL_MS`) |
+| `GET` | `/v1/market/ethereum` | CoinGecko `/simple/price` | 30 s (same) |
+| `GET` | `/v1/market/usdt-toman` | Nobitex `rls` market | 60 s (`USDT_TOMAN_CACHE_TTL_MS`) |
+| `GET` | `/v1/market/fear-greed` | alternative.me `/fng` | 5 min (`FEAR_GREED_CACHE_TTL_MS`) |
+
+Every response carries the same freshness triple:
+
+- `updatedAt` — when the **provider** computed the value
+- `fetchedAt` — when this backend last **successfully fetched** it
+- `isStale` — `true` only when the live provider call failed and a previously-cached value
+  was served instead
+
+```jsonc
+// /v1/market/overview
+{ "totalMarketCapUsd": "2412345678901.23", "marketCapChangePercentage24h": "1.24",
+  "btcDominancePercentage": "51.32", "ethDominancePercentage": "17.84",
+  "updatedAt": "...", "fetchedAt": "...", "isStale": false }
+
+// /v1/market/bitcoin and /v1/market/ethereum
+{ "priceUsd": "112345.67000000", "priceChangePercentage24h": "1.24",
+  "updatedAt": "...", "fetchedAt": "...", "isStale": false }
+
+// /v1/market/usdt-toman  — Toman, not Rial
+{ "priceToman": "123450", "priceChangePercentage24h": "0.6200",
+  "updatedAt": "...", "fetchedAt": "...", "isStale": false }
+
+// /v1/market/fear-greed
+{ "value": 74, "classification": "Greed", "updatedAt": "...",
+  "nextUpdateAt": "...", "fetchedAt": "...", "isStale": false }
+```
+
+Nobitex quotes an `rls` (Rial) market; the provider divides by `RIAL_PER_TOMAN` (default 10)
+because the application serves Toman.
+
+Provider failures surface as `MARKET_OVERVIEW_PROVIDER_*` / `MARKET_SENTIMENT_PROVIDER_*`
+codes (`RATE_LIMITED`, `TIMEOUT`, `UNAVAILABLE`, `BAD_REQUEST`, `INVALID_RESPONSE`).
+
+Caches are per-replica and in memory. At more than one instance, upstream request volume
+scales with instance count and different replicas may report slightly different values.
+
+---
+
+## Logs
+
+Operational log readers. Both restricted to the **OWNER** role at the class level.
+
+| Method | Path | Requires | Description |
+|--------|------|----------|-------------|
+| `GET` | `/v1/logs/audit` | OWNER | Audit trail (MongoDB), cursor-paginated |
+| `GET` | `/v1/logs/system` | OWNER | System/application logs (MongoDB), cursor-paginated |
+
+`/audit` filters: `cursor`, `limit`, `userId`, `action`, `resourceType`, `resourceId`,
+`actorType`, `success`, `startDate`, `endDate`, `requestId`.
+
+`/system` filters: `cursor`, `limit`, `level`, `event`, `context`, `startDate`, `endDate`,
+`requestId`, `userId`.
+
+Both return `{ items, nextCursor }`. System logs include unhandled 5xx exceptions written by
+`GlobalExceptionFilter`, with `metadata.statusCode`, `code`, `domain`, `method` and `url`.
+These are cross-user records — hence the OWNER restriction.
+
+---
+
+## Realtime (Socket.IO)
+
+Socket.IO attaches to the **same HTTP server and port** as REST (no separate port), with the
+same CORS allowlist applied to the handshake.
+
+**Authentication:** the handshake reads the `access_token` cookie and runs it through the
+same verification and validation services as the HTTP `JwtGuard`, so a socket can never
+exist under an identity REST would reject. Failure disconnects without explanation.
+
+**Rooms are server-derived:** on success the socket joins `user:{userId}` and
+`session:{sessionId}` from the *resolved* session. There are **no `@SubscribeMessage`
+handlers** — a client cannot request a room, and never declares who it is.
+
+| Event (server → client) | Payload |
+|---|---|
+| `transaction.created` | `{ portfolioId, transactionId }` |
+| `transaction.updated` | `{ portfolioId, transactionId }` |
+| `transaction.deleted` | `{ portfolioId, transactionId }` |
+| `price-alert.triggered` | `{ alertId, coinId, direction, targetPrice, currentPrice }` |
+
+Payloads carry identifiers only. Clients are expected to refetch through REST rather than
+trust a pushed snapshot.
+
+`RealtimeService` also exposes `disconnectSession`, `disconnectUser` and
+`disconnectUserExcept`, so session revocation reaches live sockets.
+
+---
+
+## Scheduled & Background Jobs
+
+Jobs that change what the API returns:
+
+| Job | Schedule | Guard | Effect |
+|-----|----------|-------|--------|
+| Asset sync (BullMQ repeating) | every `ASSET_SYNC_INTERVAL` s (default 3600) | BullMQ dedupe | Rewrites `asset.currentPrice` → **portfolio valuation and P&L** |
+| Price check (`@Cron` EVERY_MINUTE) | 1 min | Redis lock, 5 min TTL | Expires alerts, evaluates threshold crossings, queues emails, emits `price-alert.triggered` |
+| Coin sync (`@Cron` daily 1 AM) | daily | Redis lock | Refreshes the `/v1/coins` catalogue |
+| Pending-user cleanup (`@Cron` every 30 min) | 30 min | Redis lock | Removes unverified accounts |
+| Email queue (BullMQ, on demand) | — | `dedupeKey` | Verification codes, price-alert notifications |
+
+`EmailPublisher.publish` resolves once a message is **durably accepted for delivery**, not
+once it is delivered. Delivery is asynchronous and at-least-once — a `2xx` from an endpoint
+that sends mail says nothing about whether it reached an inbox.
+
+---
+
 ## Swagger
 
 Available in development mode at `http://localhost:8080/api`.
@@ -470,14 +884,54 @@ Swagger decorators are defined in each feature's `presentation/swagger/` directo
 | ID | UUID v4 |
 | Verification Code | Exactly 6 digits (`^\d{6}$`) |
 
-Validation errors return `422 UNPROCESSABLE ENTITY` with `VALIDATION_ERROR` domain.
+`ValidationPipe` runs globally with `whitelist: true`, `forbidNonWhitelisted: true` and
+`enableImplicitConversion: false`, so an unknown body field is **rejected**, not stripped,
+and a string is never coerced into a declared number.
+
+Validation errors return `422 UNPROCESSABLE ENTITY` with:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "domain": "VALIDATION",
+    "message": "<first class-validator constraint message>",
+    "meta": { "field": "<offending property>" },
+    "path": "...",
+    "timestamp": "..."
+  }
+}
+```
+
+The machine-readable code on the wire is **`VALIDATION_ERROR`**. Note the trap: the
+enum member is named `DomainErrorCode.VALIDATION` but its *value* is
+`'VALIDATION_ERROR'` (see `core/errors/domain-error-code.enum.ts`), and it is the
+value that clients see. `domain` is `VALIDATION`. Branch on the code value, and
+`meta.field` names the property that failed. Clients should branch on `code` and render
+`meta.field`, not parse `message`.
 
 ---
 
 ## Cookies
 
-| Cookie | Type | HTTP-only | SameSite | Description |
-|--------|------|-----------|----------|-------------|
-| `access_token` | JWT | Yes | Lax | Bearer token for API access (15 min) |
-| `refresh_token` | JWT | Yes | Lax | Token for refresh (7 days) |
-| `csrf_token` | `nonce.expiresAt.signature` | No | Lax | CSRF double-submit token |
+Issued by `AuthCookieService.set` (invoked by `AuthCookieInterceptor` on login and refresh).
+
+| Cookie | Type | HTTP-only | Secure | SameSite | Max-Age | Description |
+|--------|------|-----------|--------|----------|---------|-------------|
+| `access_token` | JWT (`aud: api`) | Yes | production only | `strict` in production, else `lax` | 15 min | Authenticates every REST request and the Socket.IO handshake |
+| `refresh_token` | JWT (`aud: refresh`) | Yes | production only | `strict` in production, else `lax` | 7 days | Single-use; rotated on every refresh |
+| `csrf_token` | `nonce.expiresAt.signature` | **No** (readable by design) | production only | `strict` in production, else `lax` | 7 days (`CSRF_TOKEN_TTL_MS`) | Double-submit token; echoed by the client as `X-CSRF-Token` |
+
+`csrf_token` is deliberately readable so the browser client can copy it into the request
+header. Its signature is `HMAC-SHA256(nonce.expiresAt.sessionId)`, so it is bound to one
+session and cannot be forged or replayed across sessions.
+
+`DELETE /v1/sessions` clears `csrf_token` only. The two HttpOnly cookies remain in the
+browser until they expire, but are inert: `TokenValidationService` re-checks session
+liveness on every request, so a revoked session is rejected immediately.
+
+> **Deployment note.** `sameSite: 'strict'` in production means the browser withholds these
+> cookies on cross-**site** requests. A frontend and backend on different subdomains of one
+> registrable domain (`app.example.com` / `api.example.com`) are same-site and work. Genuinely
+> different registrable domains do **not** — authentication will fail entirely, including the
+> WebSocket handshake.
