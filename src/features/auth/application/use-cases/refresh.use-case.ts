@@ -21,6 +21,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { AuthTokens, IRefresh } from '../interfaces/auth.interface';
 import { RefreshTokenHasher } from '../../infrastructure/providers/refresh-token-hasher.provider';
+import { RefreshReplayService } from '../services/refresh-replay.service';
 
 @Injectable()
 export class Refresh implements IRefresh {
@@ -38,6 +39,7 @@ export class Refresh implements IRefresh {
     private readonly sessionRotationUseCase: ISessionRotationUseCase,
     @Inject(TOKEN_ISSUE_SERVICE)
     private readonly tokenIssueService: ITokenIssueService,
+    private readonly refreshReplayService: RefreshReplayService,
     private readonly logger: PinoLogger
   ) {
     this.logger.setContext(Refresh.name);
@@ -63,12 +65,39 @@ export class Refresh implements IRefresh {
         throw SessionErrors.sessionExpired();
       }
 
+      const presentedHash = this.refreshTokenHasher.hash(refreshToken);
+
       const isValid = this.refreshTokenHasher.compare(
         refreshToken,
         session.refreshTokenHash
       );
 
       if (!isValid) {
+        // Not the current token — but it may be the one a near-simultaneous
+        // request rotated moments ago, which is a race this application
+        // creates on purpose (proxy and browser refresh against one cookie
+        // jar without shared single-flight state). Only the immediately
+        // previous generation, only inside the grace window; anything else
+        // returns null and falls through to revocation below.
+        const raced = await this.refreshReplayService.find(
+          sessionId,
+          presentedHash,
+          session.version
+        );
+
+        if (raced) {
+          this.logger.info(
+            {
+              event: LogEvent.REFRESH_ROTATION_RACED,
+              userId: sub,
+              sessionId
+            },
+            'Refresh token rotation race resolved from grace window'
+          );
+
+          return raced;
+        }
+
         await this.revocationUseCase.revoke(sub, sessionId);
         throw SessionErrors.sessionReuseDetected(sessionId);
       }
@@ -100,6 +129,16 @@ export class Refresh implements IRefresh {
       if (!ok) {
         throw SessionErrors.sessionReuseDetected(sessionId);
       }
+
+      // Written only after the rotation has committed, and pinned to the
+      // version the consumed token was valid at, so it can serve exactly one
+      // generation of racing requests and no older one.
+      await this.refreshReplayService.remember(
+        sessionId,
+        presentedHash,
+        session.version,
+        tokens
+      );
 
       this.logger.info(
         { event: LogEvent.REFRESH_ROTATED, userId: sub, sessionId },
