@@ -76,6 +76,12 @@ export class GetPortfolioValuationUseCase implements IGetPortfolioValuationUseCa
 
     const status = this.resolveStatus(items.length, valuedHoldings.length);
 
+    // The oldest sync instant among the holdings that could actually be
+    // priced. Reporting the oldest rather than the newest keeps the value a
+    // floor: the valuation is at least this fresh. `null` when nothing was
+    // priced, since there is then no price age to report.
+    const pricedAt = this.resolvePricedAt(holdings, items);
+
     this.logger.info(
       {
         event: LogEvent.PORTFOLIO_VALUATION_COMPUTED,
@@ -95,8 +101,37 @@ export class GetPortfolioValuationUseCase implements IGetPortfolioValuationUseCa
       status,
       valuedHoldings: valuedHoldings.length,
       unvaluedHoldings,
-      holdings: items
+      holdings: items,
+      pricedAt
     };
+  }
+
+  /**
+   * Age of the price data behind this valuation.
+   *
+   * `asset.currentPrice` is written by the hourly `asset-sync` job, so a
+   * valuation can legitimately be an hour behind the live `/v1/market/*`
+   * tickers shown elsewhere on the dashboard. Surfacing `lastSyncedAt` lets the
+   * client say so instead of presenting the total as if it were live.
+   */
+  private resolvePricedAt(
+    holdings: { assetId: string; asset: { lastSyncedAt: Date } }[],
+    items: PortfolioHoldingValuation[]
+  ): Date | null {
+    const pricedAssetIds = new Set(
+      items.filter((item) => item.value !== null).map((item) => item.assetId)
+    );
+
+    const timestamps = holdings
+      .filter((holding) => pricedAssetIds.has(holding.assetId))
+      .map((holding) => holding.asset.lastSyncedAt)
+      .filter((value): value is Date => value instanceof Date);
+
+    if (timestamps.length === 0) return null;
+
+    return timestamps.reduce((oldest, current) =>
+      current.getTime() < oldest.getTime() ? current : oldest
+    );
   }
 
   private resolveStatus(
