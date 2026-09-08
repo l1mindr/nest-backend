@@ -1,4 +1,4 @@
-import { ClearCsrfCookieInterceptor } from '@features/security/csrf/interceptors/clear-csrf-cookie.interceptor';
+import { ClearAuthCookiesInterceptor } from '@features/auth/presentation/interceptors/clear-auth-cookies.interceptor';
 import { Session } from '@features/security/decorators/session.decorator';
 import { User } from '@features/security/decorators/user.decorator';
 import { User as UserEntity } from '@features/users/domain/entities/user.entity';
@@ -67,7 +67,10 @@ export class SessionsController {
 
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseInterceptors(ClearCsrfCookieInterceptor)
+  // Logout clears every auth cookie, not just the CSRF one: leaving the two
+  // HttpOnly token cookies behind meant the browser kept presenting dead
+  // credentials until they expired (15 minutes / 7 days).
+  @UseInterceptors(ClearAuthCookiesInterceptor)
   @ApiRevokeCurrentSession()
   revokeSession(@User() user: UserEntity, @Session() session: SessionEntity) {
     return this.revocationUseCase.revoke(user.id, session.id);
