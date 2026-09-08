@@ -74,10 +74,65 @@ describe('Coin Tracker request validation', () => {
     const dto = plainToInstance(UpdatePriceAlertRequestDto, {
       expiresAt: null,
       targetPrice: 1,
-      notificationChannels: [NotificationChannel.SMS]
+      // EMAIL, not SMS: this case previously used SMS, which the DTO now
+      // rejects because no SMS transport exists (see
+      // SUPPORTED_NOTIFICATION_CHANNELS). The case is about clearing
+      // `expiresAt`, so the channel just needs to be a valid one.
+      notificationChannels: [NotificationChannel.EMAIL]
     });
 
     await expect(validate(dto)).resolves.toHaveLength(0);
+  });
+
+  // SMS remains a member of the enum — the column is a PostgreSQL enum array
+  // and existing alerts may still carry it — but it is not deliverable:
+  // `EmailNotificationService.sendSms` logs `channel_not_implemented` and
+  // drops the request. Accepting it on write meant the API reported success
+  // for a notification that would never arrive.
+  it.each([
+    [
+      'create',
+      () =>
+        plainToInstance(CreatePriceAlertRequestDto, {
+          coinId: 'bitcoin',
+          targetPrice: 120000,
+          direction: AlertDirection.SELL,
+          triggerMode: AlertTriggerMode.ONCE,
+          notificationChannels: [NotificationChannel.SMS]
+        })
+    ],
+    [
+      'update',
+      () =>
+        plainToInstance(UpdatePriceAlertRequestDto, {
+          notificationChannels: [NotificationChannel.SMS]
+        })
+    ]
+  ])(
+    'should reject an unsupported notification channel on %s',
+    async (_, build) => {
+      const errors = await validate(build());
+
+      expect(errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ property: 'notificationChannels' })
+        ])
+      );
+    }
+  );
+
+  it('should reject SMS even when combined with a supported channel', async () => {
+    const dto = plainToInstance(UpdatePriceAlertRequestDto, {
+      notificationChannels: [NotificationChannel.EMAIL, NotificationChannel.SMS]
+    });
+
+    // `{ each: true }` validates every element, so one bad member fails the
+    // whole array rather than being silently dropped.
+    await expect(validate(dto)).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ property: 'notificationChannels' })
+      ])
+    );
   });
 
   it('should validate coin search pagination and sorting inputs', async () => {
