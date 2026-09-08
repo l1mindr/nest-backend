@@ -34,6 +34,7 @@ describe('PortfolioValuationMapper', () => {
       valuedHoldings: 1,
       unvaluedHoldings: 0,
       holdings: [makeHoldingValuation()],
+      pricedAt: new Date('2026-08-02T14:35:00.000Z'),
       ...overrides
     };
   }
