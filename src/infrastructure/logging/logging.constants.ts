@@ -13,6 +13,10 @@ export enum LogEvent {
 
   REFRESH_ROTATED = 'auth.refresh.rotated',
   REFRESH_REUSE_DETECTED = 'auth.refresh.reuse_detected',
+  // A legitimate near-simultaneous refresh served from the rotation grace
+  // window. Distinct from REFRESH_REUSE_DETECTED on purpose: this one is
+  // expected background noise, that one is a security event.
+  REFRESH_ROTATION_RACED = 'auth.refresh.rotation_raced',
 
   SESSION_REVOKED = 'session.revoked',
   USER_SUSPENDED = 'user.suspended',

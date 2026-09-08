@@ -20,6 +20,7 @@ import {
 import { Argon2Provider } from './infrastructure/providers/argon2.provider';
 import { HashingProvider } from './infrastructure/providers/hashing.provider';
 import { RefreshTokenHasher } from './infrastructure/providers/refresh-token-hasher.provider';
+import { RefreshReplayService } from './application/services/refresh-replay.service';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { RefreshTokenHasher } from './infrastructure/providers/refresh-token-has
     { provide: REFRESH, useExisting: Refresh },
     AuthCookieService,
     RefreshTokenHasher,
+    RefreshReplayService,
     {
       provide: HashingProvider,
       useClass: Argon2Provider
