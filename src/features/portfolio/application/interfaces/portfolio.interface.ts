@@ -245,6 +245,27 @@ export interface PortfolioValuation {
   valuedHoldings: number;
   unvaluedHoldings: number;
   holdings: PortfolioHoldingValuation[];
+  /**
+   * When the oldest price used in this valuation was last synchronised, or
+   * `null` when nothing could be priced.
+   *
+   * A portfolio is priced from `asset.currentPrice`, which the hourly
+   * `asset-sync` BullMQ job maintains (`ASSET_SYNC_INTERVAL`, default 3600s) —
+   * NOT from the `/v1/market/*` tickers, which are 30-90 second read-through
+   * caches. Without this field the dashboard could show a Bitcoin price that
+   * moved minutes ago next to a portfolio total computed from an hour-old
+   * price, with nothing to tell the two apart.
+   *
+   * The *oldest* contributing timestamp is reported rather than the newest, so
+   * the number is a floor: the valuation is at least this fresh, never less.
+   *
+   * Deliberately a timestamp and not an `isStale` boolean: the threshold at
+   * which an hourly price becomes "stale" depends on `ASSET_SYNC_INTERVAL`,
+   * which is deployment configuration. Reporting the instant lets the client
+   * present age without this layer hardcoding a policy that could drift out of
+   * step with the job that actually sets it.
+   */
+  pricedAt: Date | null;
 }
 
 export interface IGetPortfolioValuationUseCase {

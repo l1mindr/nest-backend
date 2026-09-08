@@ -119,6 +119,17 @@ export class PortfolioValuationResponseDto {
   unvaluedHoldings!: number;
 
   @ApiProperty({
+    description:
+      'Instant at which the oldest price used in this valuation was last synchronised from CoinGecko, or `null` when nothing could be priced. Portfolio values come from the hourly `asset-sync` job (`ASSET_SYNC_INTERVAL`), NOT from the 30-90 second `/v1/market/*` tickers, so a valuation can legitimately lag the live price tiles. The oldest contributing timestamp is reported, making this a freshness floor. Clients should present the age rather than implying the total is live.',
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    example: ExampleValue.TIMESTAMP
+  })
+  @Expose()
+  pricedAt!: Date | null;
+
+  @ApiProperty({
     description: 'Per-holding valuation lines.',
     type: PortfolioHoldingValuationDto,
     isArray: true
