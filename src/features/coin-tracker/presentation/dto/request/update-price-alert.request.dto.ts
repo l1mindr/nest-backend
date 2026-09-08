@@ -15,6 +15,7 @@ import { AlertDirection } from '../../../domain/enums/alert-direction.enum';
 import { AlertTriggerMode } from '../../../domain/enums/alert-trigger-mode.enum';
 import { NotificationChannel } from '../../../domain/enums/notification-channel.enum';
 import { FutureDateValidator } from '../../validators/future-date.validator';
+import { SupportedNotificationChannelValidator } from '../../validators/supported-notification-channel.validator';
 
 /**
  * Partial update of an `ACTIVE` alert. Every field is optional, but the body
@@ -86,5 +87,8 @@ export class UpdatePriceAlertRequestDto {
   @ArrayNotEmpty()
   @ArrayUnique()
   @IsEnum(NotificationChannel, { each: true })
+  // Membership in the enum is not enough: SMS is a member with no
+  // transport. See SUPPORTED_NOTIFICATION_CHANNELS.
+  @Validate(SupportedNotificationChannelValidator, { each: true })
   notificationChannels?: NotificationChannel[];
 }

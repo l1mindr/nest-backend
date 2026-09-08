@@ -226,10 +226,12 @@ describe('Coin Tracker (e2e) version: 1', () => {
         direction: AlertDirection.BUY,
         triggerMode: AlertTriggerMode.REPEAT,
         expiresAt: null,
-        notificationChannels: [
-          NotificationChannel.EMAIL,
-          NotificationChannel.SMS
-        ]
+        // EMAIL only. This case used to send [EMAIL, SMS], which the API now
+        // rejects: SMS has no transport (`EmailNotificationService.sendSms`
+        // logs `channel_not_implemented` and drops it), so accepting it meant
+        // answering 200 for a notification nobody would ever receive. See
+        // SUPPORTED_NOTIFICATION_CHANNELS and the dedicated case below.
+        notificationChannels: [NotificationChannel.EMAIL]
       }
     });
 
@@ -239,11 +241,58 @@ describe('Coin Tracker (e2e) version: 1', () => {
       direction: AlertDirection.BUY,
       triggerMode: AlertTriggerMode.REPEAT,
       expiresAt: null,
-      notificationChannels: [
-        NotificationChannel.EMAIL,
-        NotificationChannel.SMS
-      ],
+      notificationChannels: [NotificationChannel.EMAIL],
       lastCheckedPrice: null
+    });
+  });
+
+  it('should reject an unsupported notification channel on create', async () => {
+    const context = await AuthFactory.authenticated(app);
+
+    const response = await context.client.post('/v1/price-alerts', {
+      headers: mutationHeaders(context),
+      body: {
+        coinId: 'bitcoin',
+        targetPrice: 120000,
+        direction: AlertDirection.SELL,
+        triggerMode: AlertTriggerMode.ONCE,
+        notificationChannels: [NotificationChannel.SMS]
+      }
+    });
+
+    // The standard validation envelope, so clients branch on `code` and can
+    // point the user at the offending field.
+    expect(response.status).toBe(422);
+    expect(response.body.error).toMatchObject({
+      // Enum member is `VALIDATION`; its wire value is `VALIDATION_ERROR`.
+      code: 'VALIDATION_ERROR',
+      domain: 'VALIDATION',
+      meta: { field: 'notificationChannels' }
+    });
+  });
+
+  it('should reject an unsupported notification channel on update', async () => {
+    const context = await AuthFactory.authenticated(app);
+    const created = await createAlert(context);
+
+    const response = await context.client.patch(
+      `/v1/price-alerts/${created.body.id as string}`,
+      {
+        headers: mutationHeaders(context),
+        // Rejected even alongside a channel that IS deliverable: `{ each: true }`
+        // validates every element rather than silently dropping the bad one.
+        body: {
+          notificationChannels: [
+            NotificationChannel.EMAIL,
+            NotificationChannel.SMS
+          ]
+        }
+      }
+    );
+
+    expect(response.status).toBe(422);
+    expect(response.body.error.meta).toMatchObject({
+      field: 'notificationChannels'
     });
   });
 
