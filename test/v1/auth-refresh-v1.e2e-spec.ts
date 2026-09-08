@@ -87,21 +87,56 @@ describe('Auth Refresh (e2e) version: 1', () => {
     expect(res.headers['set-cookie'][2]).toContain('csrf_token');
   });
 
-  it('should revoke the session when an old refresh token is reused', async () => {
+  it('should serve a near-simultaneous retry of the just-rotated token without revoking', async () => {
+    const original = await authenticate();
+    const firstRefresh = await refresh(original);
+
+    expect(firstRefresh.status).toBe(200);
+
+    // The ordinary cross-process race: a request that left before the
+    // winner's Set-Cookie landed still carries the previous token. Inside the
+    // rotation grace window that is answered with the winner's own pair
+    // rather than treated as replay.
+    const raced = await refresh(original);
+    expect(raced.status).toBe(200);
+
+    const winner = readCredentials(firstRefresh.headers['set-cookie']);
+    const loser = readCredentials(raced.headers['set-cookie']);
+
+    // The same pair, not a second lineage — one logical rotation.
+    expect(loser.refreshCookie).toBe(winner.refreshCookie);
+
+    const [session] = await dataSource.getRepository(Session).find();
+    expect(session.isRevoked).toBe(false);
+    // One rotation only.
+    expect(session.version).toBe(1);
+  });
+
+  it('should revoke the session when a token from an older generation is replayed', async () => {
     const original = await authenticate();
     const firstRefresh = await refresh(original);
 
     expect(firstRefresh.status).toBe(200);
 
     const rotated = readCredentials(firstRefresh.headers['set-cookie']);
+    const secondRefresh = await refresh(rotated);
 
+    expect(secondRefresh.status).toBe(200);
+
+    const current = readCredentials(secondRefresh.headers['set-cookie']);
+
+    // `original` is now two rotations behind. The grace window only ever
+    // covers the immediately previous generation, so this is replay however
+    // quickly it arrives — no waiting, and nothing timing-dependent about it.
     const reuseAttempt = await refresh(original);
     expect(reuseAttempt.status).toBe(401);
+    expect(reuseAttempt.body.error.code).toBe('SESSION_REUSE_DETECTED');
 
     const [session] = await dataSource.getRepository(Session).find();
     expect(session.isRevoked).toBe(true);
 
-    const afterRevoke = await refresh(rotated);
+    // Revocation kills the session outright, including its current token.
+    const afterRevoke = await refresh(current);
     expect(afterRevoke.status).toBe(401);
   });
 
