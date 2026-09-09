@@ -60,12 +60,22 @@ test/
 ├── factories/
 │   ├── auth.factory.ts            # login + authenticated helpers
 │   └── user.factory.ts            # register, verifyEmail, admin helpers
+├── email/                         # delivered-email specs (need Mailpit)
+│   ├── verification-email-mailpit.e2e-spec.ts
+│   ├── admin-invitation-email-mailpit.e2e-spec.ts
+│   ├── price-alert-email-mailpit.e2e-spec.ts
+│   └── email-retry-backoff.e2e-spec.ts
 ├── helpers/
 │   ├── api-client.helper.ts       # ApiClient (get/post/patch/put/delete)
 │   ├── create-user.helper.ts      # createUserDto()
+│   ├── email-queue.helper.ts      # observeEmailProcessor, emailQueue
+│   ├── log-capture.helper.ts      # captureApplicationLogs
+│   ├── mailpit.helper.ts          # Mailpit API client, uniqueRecipient
 │   ├── postgresql.helper.ts       # truncateDatabase
 │   ├── rate-limit.helper.ts       # counterKeyFor, blockKeyFor, resetPolicy, forceExpiry
-│   └── redis.helper.ts            # clearRedis
+│   ├── redis.helper.ts            # clearRedis
+│   ├── secret-leak.helper.ts      # expectNoSecrets
+│   └── smtp-stub.server.ts        # scripted SMTP server for retry/backoff
 ├── setup/
 │   ├── global-setup.ts            # per-worker database migration
 │   ├── migrations.ts
@@ -165,12 +175,24 @@ Repositories use `TypeOrmModule` with a test database or mocked query runner.
 
 ### Bootstrap
 
-`createTestApp()` in `test/bootstrap/test-app.ts`:
+`createTestApp(options?)` in `test/bootstrap/test-app.ts`:
 1. Sets `NODE_ENV=test`
 2. Creates `AppModule` via `Test.createTestingModule`, overriding `REDIS_CLIENT` with a test Redis client
-3. Overrides `EmailService` with a capturing test double (`test/helpers/email.helper.ts`) so no real SMTP connection is attempted
+3. Overrides `EmailService` and `EmailPublisher` with capturing test doubles (`test/helpers/email.helper.ts`) so no queue job is written and no SMTP connection is attempted
 4. Calls `setupApp()` for global configuration and listens on an ephemeral port
 5. Returns `{ app, dataSource }`
+
+`options.email` selects which email pipeline runs:
+
+| Mode                    | What the application does                                              |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `'captured'` (default)  | Queue and provider both replaced; a send is observable synchronously    |
+| `'delivered'`           | The real one — `BullEmailPublisher` → BullMQ → `EmailProcessor` → SMTP  |
+
+`options.smtpTransport` replaces only the transport within a `delivered` run,
+which is how the retry spec chooses the server's replies. A `delivered` run
+opens pooled SMTP sockets, so it must call `releaseSmtpTransport(app)` before
+`app.close()` or the Jest worker will not exit.
 
 Database schema preparation (migrations) happens once per worker in the Jest global setup (`test/setup/global-setup.ts`).
 
@@ -191,6 +213,58 @@ Database schema preparation (migrations) happens once per worker in the Jest glo
 - `postgresql.helper.ts` → `truncateDatabase()`
 - `redis.helper.ts` → `clearRedis(app)` (flushes the Redis DB)
 - `email.helper.ts` → captures emails sent by the app; `getVerificationCode(to)`, `getVerificationTtlMinutes(to)`, `getVerificationEmailCount(to)`, `resetEmailStore()`
+- `mailpit.helper.ts` → reads the mailbox Mailpit received; `uniqueRecipient(prefix)`, `waitForMessages(to, n)`, `raw(id)`, `deleteMessagesTo(to)`
+- `email-queue.helper.ts` → `observeEmailProcessor()` records every `EmailProcessor.process` attempt (job, attempt number, start time, outcome) without replacing it
+- `log-capture.helper.ts` → `captureApplicationLogs()` records everything passed to `PinoLogger`, for asserting a secret never reaches a log line
+- `secret-leak.helper.ts` → `expectNoSecrets(text, what, extra?)`; reports *names*, never values, so a failure message cannot publish the secret
+- `smtp-stub.server.ts` → a real SMTP server whose reply to each submission the spec scripts (`451`, `550`, `250`)
+
+### Delivered-email E2E (Mailpit)
+
+Everything under `test/v1/` stops at the publisher: `EmailPublisher` and
+`EmailService` are replaced, so the assertion is that a use case *decided* to
+send. That is the right default — delivery is asynchronous and a spec that had
+to wait for a queue worker to finish before checking a status code would be slow
+and flaky for no gain.
+
+It leaves the second half untested, which is what `test/email/` covers. Those
+specs run with `email: 'delivered'`, so the message crosses BullMQ, is rendered
+by `SmtpEmailService`, is delivered over real SMTP by nodemailer, and is then
+read back out of Mailpit over its HTTP API. Nothing between the HTTP request and
+the mailbox is substituted.
+
+| Spec                                       | Flow                                                        |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| `verification-email-mailpit.e2e-spec.ts`   | register → delivered code → `POST /v1/auth/verify-email`     |
+| `admin-invitation-email-mailpit.e2e-spec.ts` | invite → delivered token → `POST .../invitations/accept`   |
+| `price-alert-email-mailpit.e2e-spec.ts`    | alert crosses its target → delivered notification            |
+| `email-retry-backoff.e2e-spec.ts`          | 4xx retried with growing backoff; 5xx not retried            |
+
+They need Mailpit listening on the SMTP and API ports named in `.env.test`:
+
+```bash
+docker compose -f ../docker/compose.yml up -d mailpit
+```
+
+Without it the specs fail immediately with an explanation rather than timing
+out one assertion at a time.
+
+Three things they are careful about, worth preserving in anything added there:
+
+- **Unique recipients.** One Mailpit instance serves every Jest worker, so every
+  lookup is scoped to a `uniqueRecipient()` address and cleanup deletes only
+  those messages. Nothing reads "the latest message" or clears the mailbox.
+- **Secrets are named, never printed.** `expectNoSecrets` reports which
+  configured value leaked, not the value — a Jest diff ends up in CI logs, and
+  one that quotes an app password has published it.
+- **Provenance is asserted, not assumed.** A message in Mailpit proves SMTP
+  happened, not what dialled it. `observeEmailProcessor()` records the job the
+  BullMQ worker was handed, so "the queue delivered this" is checked directly.
+
+The retry spec drives an SMTP server it scripts (`smtp-stub.server.ts`) rather
+than breaking something real: a refused port, a stopped container and a dropped
+packet each produce a different error at a different layer, none of them on
+demand.
 
 ## Running Tests
 
@@ -198,8 +272,13 @@ Database schema preparation (migrations) happens once per worker in the Jest glo
 # Unit tests only
 pnpm run test:unit
 
-# E2E tests (requires running PostgreSQL + Redis)
+# E2E tests (requires running PostgreSQL + Redis + MongoDB, and Mailpit for
+# the test/email/ specs)
+docker compose -f ../docker/compose.yml up -d mailpit
 pnpm run test:e2e
+
+# Just the delivered-email specs
+npx jest --config jest.e2e.config.ts test/email
 
 # Dockerized E2E
 pnpm run test:e2e:docker

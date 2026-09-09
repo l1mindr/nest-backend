@@ -54,12 +54,24 @@ services:
       REFRESH_TOKEN_SECRET: juQXiRL05Isuon4mhjdwwwd4lUCaEc4Z
       CSRF_TOKEN_SECRET: Py2RzgyepufR9xQD
 
-      EMAIL_HOST: smtp.gmail.com
-      EMAIL_PORT: 587
+      # Mailpit, not Gmail. The specs under test/email/ deliver over real SMTP
+      # and read the message back, so the suite needs a server that accepts one
+      # — and must not have one that could reach a real recipient. These
+      # override `.env.test`, which names the host-published ports instead.
+      #
+      # `senderOf`/subject assertions read EMAIL_FROM and APP_NAME back out of
+      # the environment, so both are set explicitly rather than left to a
+      # schema default.
+      EMAIL_HOST: mailpit
+      EMAIL_PORT: 1025
       EMAIL_SECURE: 'false'
-      EMAIL_USER: test@test.com
-      EMAIL_APP_PASSWORD: test-app-password
-      EMAIL_FROM: test@test.com
+      EMAIL_USER: dashboard-e2e@mailpit.test
+      EMAIL_APP_PASSWORD: mailpit-accepts-any-password
+      EMAIL_FROM: Dashboard E2E <no-reply@mailpit.test>
+      APP_NAME: Dashboard E2E
+      # Read by test/helpers/mailpit.helper.ts only.
+      MAILPIT_API_URL: http://mailpit:8025
+
       CORS_ORIGIN: http://localhost:4321
 
     depends_on:
@@ -73,6 +85,9 @@ services:
         condition: service_healthy
 
       mongo:
+        condition: service_healthy
+
+      mailpit:
         condition: service_healthy
 
     # The E2E suite is compiled on the fly by ts-jest and imports from `src`,
@@ -104,6 +119,32 @@ services:
 
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # The SMTP server the delivered-email specs send to and then read back.
+  #
+  # Mailpit stores what it accepts and has no upstream: relaying and forwarding
+  # are opt-in flags and none are set, so a message that reaches it cannot leave
+  # for the Internet. That is what makes it safe to point a CI job's email at.
+  #
+  # Not published to the host — CI reaches it as `mailpit` on the Compose
+  # network, and the run is the only thing that should be reading this mailbox.
+  mailpit:
+    image: axllent/mailpit:v1.28
+
+    environment:
+      # The transport authenticates because the production provider requires
+      # it; Mailpit takes any credentials so that the tested code path stays
+      # the production one.
+      MP_SMTP_AUTH_ACCEPT_ANY: 'true'
+      MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
+      MP_DISABLE_VERSION_CHECK: 'true'
+      MP_QUIET: 'true'
+
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
       interval: 5s
       timeout: 3s
       retries: 20

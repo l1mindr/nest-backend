@@ -1,12 +1,14 @@
 import redisConfig from '@infrastructure/config/databases/redis.config';
 import { REDIS_CLIENT } from '@infrastructure/databases/redis/redis.constants';
 import { createRedisClient } from '@infrastructure/databases/redis/redis.provider';
+import { EMAIL_TRANSPORT } from '@infrastructure/email/email.constants';
 import { EmailPublisher } from '@infrastructure/email/email.publisher';
 import { EmailService } from '@infrastructure/email/email.service';
 import { INestApplication } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import Redis from 'ioredis';
+import { Transporter } from 'nodemailer';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
 import { setupApp } from '../../src/bootstrap';
@@ -21,15 +23,50 @@ export interface ITextContext {
   dataSource: DataSource;
 }
 
-export async function createTestApp(): Promise<ITextContext> {
+/**
+ * Which email pipeline the application under test runs.
+ *
+ * `captured` is the default and what nearly every spec wants: the queue and the
+ * provider are both replaced, so a use case's decision to send is observable
+ * the instant the request returns. See `helpers/email.helper.ts`.
+ *
+ * `delivered` leaves the real one in place — `BullEmailPublisher` onto BullMQ,
+ * `EmailProcessor` off it, `SmtpEmailService` through nodemailer to whatever
+ * `EMAIL_HOST` names, which under `.env.test` is Mailpit. Delivery is then
+ * asynchronous and the assertion is the message itself, read back over
+ * Mailpit's API. Used by the specs in `test/email/`.
+ */
+export type TestEmailMode = 'captured' | 'delivered';
+
+export interface TestAppOptions {
+  /** Defaults to `captured`. */
+  email?: TestEmailMode;
+
+  /**
+   * Replaces the SMTP transport, leaving the rest of the delivered pipeline
+   * intact.
+   *
+   * Only for the retry spec, which needs a server whose replies it chooses.
+   * It is still a real nodemailer transport speaking real SMTP — the point is
+   * to control the *server*, not to stub the client. Ignored unless
+   * {@link email} is `delivered`.
+   */
+  smtpTransport?: Transporter;
+}
+
+export async function createTestApp(
+  options: TestAppOptions = {}
+): Promise<ITextContext> {
   process.env.NODE_ENV = 'test';
+
+  const { email = 'captured', smtpTransport } = options;
 
   let moduleFixture: TestingModule | undefined;
   let app: NestExpressApplication | undefined;
   let redisClient: Redis | undefined;
 
   try {
-    moduleFixture = await Test.createTestingModule({
+    let builder = Test.createTestingModule({
       imports: [AppModule]
     })
       .overrideProvider(REDIS_CLIENT)
@@ -42,12 +79,21 @@ export async function createTestApp(): Promise<ITextContext> {
           return redisClient;
         },
         inject: [redisConfig.KEY]
-      })
-      .overrideProvider(EmailService)
-      .useValue(capturingEmailService)
-      .overrideProvider(EmailPublisher)
-      .useValue(capturingEmailPublisher)
-      .compile();
+      });
+
+    if (email === 'captured') {
+      builder = builder
+        .overrideProvider(EmailService)
+        .useValue(capturingEmailService)
+        .overrideProvider(EmailPublisher)
+        .useValue(capturingEmailPublisher);
+    } else if (smtpTransport) {
+      builder = builder
+        .overrideProvider(EMAIL_TRANSPORT)
+        .useValue(smtpTransport);
+    }
+
+    moduleFixture = await builder.compile();
 
     app = moduleFixture.createNestApplication<NestExpressApplication>();
 
@@ -86,8 +132,26 @@ export async function createTestApp(): Promise<ITextContext> {
  * each spec explicit: specs that touch tables use this, the rest use
  * {@link createTestApp}.
  */
-export async function createMigratedTestApp(): Promise<ITextContext> {
-  return createTestApp();
+export async function createMigratedTestApp(
+  options: TestAppOptions = {}
+): Promise<ITextContext> {
+  return createTestApp(options);
+}
+
+/**
+ * Closes the pooled SMTP connections a `delivered` run opened.
+ *
+ * `createSmtpTransport` sets `pool: true`, so nodemailer keeps sockets alive
+ * between messages — the right thing for a process that sends email all day and
+ * an open handle that outlives the suite in one that does not. Nest never sees
+ * the transport as something to shut down (it is a plain value provider), so
+ * closing it is the caller's job.
+ *
+ * Harmless for a `captured` run: nothing ever connected, and `close()` on an
+ * idle pool is a no-op.
+ */
+export function releaseSmtpTransport(app: INestApplication): void {
+  app.get<Transporter>(EMAIL_TRANSPORT).close();
 }
 
 async function closeAfterSetupFailure(
