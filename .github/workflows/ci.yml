@@ -143,6 +143,13 @@ jobs:
       - name: Migrations (Production Image)
         run: docker compose run --rm --no-deps migration
 
+      # Jest parallelism is pinned by E2E_MAX_WORKERS on the `app` service
+      # rather than passed here, so that running the same Compose command
+      # locally reproduces the runner's worker count instead of only this
+      # step's. A standard runner cannot hold more than two workers: each is a
+      # full Nest app and Node sizes its heap from total host memory, so a
+      # higher count gets workers SIGKILLed mid-`beforeAll` and reported as
+      # "Test suite failed to run".
       - name: E2E Tests
         run: docker compose run --rm --no-deps app
 
