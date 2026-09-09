@@ -26,6 +26,28 @@ export const ACCESS_TOKEN_COOKIE_MAX_AGE_MS = 15 * 60 * 1000;
 export const REFRESH_TOKEN_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
+ * Same 7 days as the refresh token, and deliberately expressed as *being* that
+ * value rather than repeating the arithmetic.
+ *
+ * The CSRF cookie used to carry no `maxAge` at all, which made it a session
+ * cookie: it vanished when the browser closed while `refresh_token` survived
+ * for a week. Reopening the browser therefore left an authenticated user with
+ * no CSRF token, and the first unsafe request failed the double-submit check
+ * with 403. Nothing recovered from that on its own — the client only refreshes
+ * on 401, and the proxy re-issues cookies only when the access token is missing
+ * or rejected — so a still-valid access token could keep the user blocked for
+ * up to fifteen minutes.
+ *
+ * Tying the cookie to the refresh token's lifetime removes the gap: the token
+ * is useful for exactly as long as the session that can present it. It is not
+ * a lifetime extension in any meaningful sense — the value inside is an HMAC
+ * that already carries its own 7-day expiry and is bound to the session id
+ * (see `CsrfTokenService`), so a persisted cookie past that point validates
+ * against nothing.
+ */
+export const CSRF_TOKEN_COOKIE_MAX_AGE_MS = REFRESH_TOKEN_COOKIE_MAX_AGE_MS;
+
+/**
  * Attributes shared by every auth cookie.
  *
  * `sameSite: 'strict'` in production is intentional. It assumes the frontend
@@ -48,7 +70,18 @@ export function tokenCookieOptions(maxAge: number): CookieOptions {
 /**
  * Options for the CSRF cookie. Deliberately readable: the browser client has
  * to copy its value into the `X-CSRF-Token` header for the double-submit check.
+ *
+ * Persistent for the same window as the refresh token — see
+ * {@link CSRF_TOKEN_COOKIE_MAX_AGE_MS} for why a session cookie was wrong here.
+ *
+ * Safe to reuse for clearing: `res.clearCookie` deletes `maxAge` from the
+ * options it forwards before setting `expires` to the epoch, so the delete is
+ * still a delete rather than a week-long empty cookie.
  */
 export function csrfCookieOptions(): CookieOptions {
-  return { ...baseAuthCookieOptions(), httpOnly: false };
+  return {
+    ...baseAuthCookieOptions(),
+    httpOnly: false,
+    maxAge: CSRF_TOKEN_COOKIE_MAX_AGE_MS
+  };
 }
