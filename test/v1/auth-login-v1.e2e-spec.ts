@@ -5,6 +5,7 @@ import { AuthFactory } from '../factories/auth.factory';
 import { UserFactory } from '../factories/user.factory';
 import { truncateDatabase } from '../helpers/postgresql.helper';
 import { clearRedis } from '../helpers/redis.helper';
+import { normalizeHeader } from '../utils/cookie.util';
 
 describe('Auth Login (e2e) version: 1', () => {
   let app: INestApplication;
@@ -38,6 +39,45 @@ describe('Auth Login (e2e) version: 1', () => {
     expect(login.headers['set-cookie']).toBeDefined();
     expect(login.headers['set-cookie'][0]).toContain('access_token');
     expect(login.headers['set-cookie'][1]).toContain('refresh_token');
+  });
+
+  /**
+   * The CSRF cookie is persistent, on the wire, for the same seven days as the
+   * refresh token.
+   *
+   * It used to carry no `Max-Age`, which made it a session cookie: closing the
+   * browser dropped it while `refresh_token` survived the week, so the
+   * reopened browser was authenticated with no CSRF token and the first unsafe
+   * request answered 403. Nothing recovered from that on its own — the client
+   * refreshes on 401 only — so a still-valid access token could keep the user
+   * blocked for up to fifteen minutes.
+   *
+   * Asserted here rather than only in a unit test because `Max-Age` is a
+   * property of the header Express actually emits.
+   */
+  it('should issue a persistent csrf_token matching the refresh window', async () => {
+    const {
+      response: { login }
+    } = await AuthFactory.authenticated(app, { loginBy: 'email' });
+
+    const cookies = normalizeHeader(login.headers['set-cookie']);
+    const csrf = cookies.find((cookie) => cookie.startsWith('csrf_token='))!;
+    const refresh = cookies.find((cookie) =>
+      cookie.startsWith('refresh_token=')
+    )!;
+
+    expect(csrf).toContain('Max-Age=604800');
+    expect(csrf).toContain('Expires=');
+    // Same window as the session that can present it.
+    expect(refresh).toContain('Max-Age=604800');
+
+    // Readable by design — the browser client copies this into X-CSRF-Token.
+    expect(csrf).not.toContain('HttpOnly');
+    expect(refresh).toContain('HttpOnly');
+
+    // The rest of the policy is untouched and shared with the token cookies.
+    expect(csrf).toContain('Path=/');
+    expect(csrf).toContain('SameSite=Lax');
   });
 
   it('should login successfully with username', async () => {
