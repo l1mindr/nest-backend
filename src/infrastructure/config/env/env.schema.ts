@@ -131,6 +131,36 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
       })
   }),
 
+  // Parent domain the authentication cookies are scoped to, e.g.
+  // `.your-domain.com`. Set this only when the frontend and the API are served
+  // from different hosts under one registrable domain (app./api.), which is the
+  // deployment `CORS_ORIGIN` and `PUBLIC_API_URL` above describe.
+  //
+  // Leave it unset for localhost and Docker, where a single host serves both
+  // ports and host-only cookies already reach everything.
+  //
+  // SECURITY: a domain cookie is sent to *every* subdomain, and `HttpOnly` does
+  // not protect it there — a server on any sibling subdomain reads the Cookie
+  // header directly. Only set this when every host under the parent domain is
+  // trusted and operated by you. See docs/authentication.md.
+  //
+  // The pattern requires at least two labels and an alphabetic final label, so
+  // a public suffix (`.com`), a single label (`localhost`) and an IP address
+  // are all refused — none of which a browser would accept as a cookie domain.
+  //
+  // An empty value is accepted and means the same as unset: Compose and `.env`
+  // files routinely define a variable as `` rather than omitting it, and
+  // failing startup over that would be hostile for a setting whose default is
+  // "do nothing".
+  COOKIE_DOMAIN: Joi.string()
+    .pattern(/^\.?([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i)
+    .allow('')
+    .optional()
+    .messages({
+      'string.pattern.base':
+        'COOKIE_DOMAIN must be a parent domain such as `.your-domain.com` — not a bare TLD, a single label like `localhost`, or an IP address.'
+    }),
+
   EMAIL_HOST: Joi.alternatives()
     .try(Joi.string().hostname(), Joi.string().ip())
     .required(),
