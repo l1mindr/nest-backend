@@ -54,11 +54,33 @@ export const CSRF_TOKEN_COOKIE_MAX_AGE_MS = REFRESH_TOKEN_COOKIE_MAX_AGE_MS;
  * and the API are same-site (same registrable domain — `app.example.com` and
  * `api.example.com` qualify); genuinely cross-site deployments would need
  * `'none'` plus `secure`, which is a deployment decision, not a default.
+ *
+ * `domain` is what makes that same-site assumption actually work. Without it a
+ * cookie is *host-only*: set by `api.example.com`, it is sent to that host and
+ * nowhere else — so the Next.js proxy on `app.example.com` cannot read
+ * `access_token`, and `document.cookie` there cannot read `csrf_token` for the
+ * double-submit header. Both are invisible on localhost, where one host serves
+ * both ports and the cookie is shared regardless.
+ *
+ * Read at call time rather than module load so a test can set the environment
+ * after import, matching how `CORS_ORIGIN` is read in `bootstrap.ts`.
+ *
+ * Unset (localhost, Docker) leaves the cookie host-only exactly as before.
+ *
+ * SECURITY: a domain cookie reaches every subdomain of that parent, and
+ * `httpOnly` does not help there — any server on a sibling subdomain reads the
+ * Cookie header directly. See docs/authentication.md for the conditions this
+ * is safe under.
  */
 export function baseAuthCookieOptions(): CookieOptions {
+  const domain = process.env.COOKIE_DOMAIN;
+
   return {
     secure: IS_PRODUCTION,
-    sameSite: IS_PRODUCTION ? 'strict' : 'lax'
+    sameSite: IS_PRODUCTION ? 'strict' : 'lax',
+    // Spread rather than `domain: undefined`, so the host-only case emits no
+    // `Domain` attribute at all instead of a literal `Domain=undefined`.
+    ...(domain ? { domain } : {})
   };
 }
 

@@ -166,6 +166,67 @@ describe('Environment validation', () => {
     });
   });
 
+  describe('COOKIE_DOMAIN', () => {
+    it('should be optional, leaving cookies host-only', () => {
+      const { error } = ENV_VALIDATION_SCHEMA.validate({
+        ...VALID_ENV,
+        COOKIE_DOMAIN: undefined
+      });
+
+      expect(error).toBeUndefined();
+    });
+
+    it('should treat an empty value as unset rather than failing startup', () => {
+      // `COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}` in Compose defines the variable as
+      // an empty string. That must mean host-only, not a boot failure.
+      const { error } = ENV_VALIDATION_SCHEMA.validate({
+        ...VALID_ENV,
+        COOKIE_DOMAIN: ''
+      });
+
+      expect(error).toBeUndefined();
+    });
+
+    it.each([
+      '.your-domain.com',
+      'your-domain.com',
+      '.localtest.me',
+      '.a-b.co.uk'
+    ])('should accept the parent domain %p', (cookieDomain) => {
+      const { error } = ENV_VALIDATION_SCHEMA.validate({
+        ...VALID_ENV,
+        COOKIE_DOMAIN: cookieDomain
+      });
+
+      expect(error).toBeUndefined();
+    });
+
+    it.each([
+      // A bare public suffix would be refused by every browser, and asking for
+      // it signals a misunderstanding worth failing loudly on.
+      ['.com', 'bare TLD'],
+      // Single label: `localhost` needs no domain scoping, and browsers treat
+      // `Domain=localhost` inconsistently.
+      ['localhost', 'single label'],
+      // Cookie domains cannot be IP addresses.
+      ['127.0.0.1', 'IPv4 address'],
+      ['.192.168.0.1', 'dotted IPv4 address'],
+      // A leading dot with nothing after it, and a scheme/port, are all
+      // shapes that look plausible in a .env but are not domains.
+      ['.', 'lone dot'],
+      ['https://app.your-domain.com', 'absolute URL'],
+      ['your-domain.com:8080', 'host with port'],
+      ['.your_domain.com', 'underscore in label']
+    ])('should reject %p (%s)', (cookieDomain) => {
+      const { error } = ENV_VALIDATION_SCHEMA.validate({
+        ...VALID_ENV,
+        COOKIE_DOMAIN: cookieDomain
+      });
+
+      expect(error?.message).toContain('COOKIE_DOMAIN');
+    });
+  });
+
   describe('SECURITY_HASH_SECRET', () => {
     // Production-shaped values: the schema demands 64 chars for the token
     // secrets and 32 with real entropy for the hash secret.
