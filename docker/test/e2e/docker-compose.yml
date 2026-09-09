@@ -46,6 +46,17 @@ services:
       # REDIS_PASSWORD: ''
       # REDIS_DB: 0
 
+      # Pinned rather than left to the config default so the parallelism this
+      # lane runs at is visible next to the resources it runs against, and so a
+      # future change to the default cannot quietly re-break CI.
+      #
+      # Each worker is a full Nest app and Node sizes its heap from total host
+      # memory, so ~1.9 GB per worker: 2 peaks near 3.9 GB, which fits a GitHub
+      # Actions standard runner (2 vCPU / 7 GB) alongside the four service
+      # containers. At 4 the kernel starts SIGKILLing workers mid-`beforeAll`.
+      # See the comment in jest.e2e.config.ts for the measurements.
+      E2E_MAX_WORKERS: 2
+
       MONGODB_URI: mongodb://mongo:27017
       # worker-env.ts derives one database per Jest worker from this base name.
       MONGODB_DATABASE: test_e2e_logs
