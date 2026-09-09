@@ -297,6 +297,65 @@ When an admin unsuspends a user (`PATCH /v1/admin/users/:id/unsuspend`):
 
 Path: `/` for all cookies.
 
+### Cookie Domain and production topology
+
+By default the auth cookies are **host-only**: no `Domain` attribute, so a
+cookie set by `api.your-domain.com` is sent to that host and nowhere else.
+
+That is correct on localhost and in Docker, where one host (`localhost`) serves
+both the frontend and the API and the port plays no part in cookie scope. It is
+**wrong for the production `app.` / `api.` split**, where two consumers live on
+the frontend host and can see nothing:
+
+- `proxy.ts` reads `access_token` from the request to `app.your-domain.com` for
+  the SSR auth gate;
+- `lib/api/client.ts` reads `csrf_token` via `document.cookie` on that origin to
+  build the `X-CSRF-Token` double-submit header.
+
+Host-only cookies leave both blind, so login succeeds and the next navigation
+redirects to `/auth/login`, while every unsafe request fails CSRF. Neither the
+mocked nor the localhost integration lane can catch this — same host, shared
+cookie, bug invisible.
+
+`COOKIE_DOMAIN` supplies the missing attribute:
+
+```bash
+COOKIE_DOMAIN=.your-domain.com
+```
+
+`baseAuthCookieOptions()` reads it, so the writer (`AuthCookieService`) and the
+clearer (`ClearAuthCookiesInterceptor`) pick it up together — which matters,
+because a browser only deletes a cookie when the clearing `Set-Cookie` repeats
+the same `Domain`, `Path`, `Secure` and `SameSite`. That pairing is pinned by
+`auth-cookie.parity.spec.ts`.
+
+`SameSite=strict` stays as it is: `app.` and `api.` are the *same site*, so
+strict permits their XHR. Only a genuinely cross-site split (a different
+registrable domain) would need `none`, which is a deployment decision.
+
+**Do not set `COOKIE_DOMAIN` unless every host under the parent domain is
+trusted and operated by you.** A domain cookie is sent to *every* subdomain, and
+`HttpOnly` does not protect it there — any server under the domain reads
+`access_token` and `refresh_token` straight from the `Cookie` header. It is
+unsafe when subdomain takeover is possible (dangling CNAME/A records), when any
+subdomain is third-party hosted (status page, docs, marketing, CI previews),
+when wildcard DNS points at shared infrastructure, or when any sibling
+subdomain serves untrusted content. If you cannot guarantee all of that, serve
+the API under the app's own origin via an edge proxy and leave cookies
+host-only. Setting a `Domain` also rules out the `__Host-` prefix, which is
+defined as forbidding it.
+
+**Rollout.** Browsers already holding host-only cookies keep them alongside the
+new domain-scoped ones until they expire on their own — 15 minutes for
+`access_token`, 7 days for `refresh_token`. No migration step is required.
+Logout clears the domain-scoped cookies. If the overlap ever needs to be cut
+short, a future change can clear both scopes explicitly for one release.
+
+Reproduced locally by the distinct-host lane,
+`next-dashboard-frontend/playwright.topology.config.ts`, which serves the app
+and API from `app.localtest.me` / `api.localtest.me` under
+`COOKIE_DOMAIN=.localtest.me`.
+
 ---
 
 ## Token Specifications
