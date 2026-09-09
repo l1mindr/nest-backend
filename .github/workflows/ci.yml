@@ -134,8 +134,11 @@ jobs:
           tags: nest-backend-e2e-app:latest
           cache-from: type=gha
 
+      # `mailpit` is in the list because the E2E run below uses --no-deps: the
+      # delivered-email specs need an SMTP server that accepts a message and
+      # serves it back, and nothing else would start one.
       - name: Start Services
-        run: docker compose up -d --wait postgres redis mongo
+        run: docker compose up -d --wait postgres redis mongo mailpit
 
       - name: Migrations (Production Image)
         run: docker compose run --rm --no-deps migration
