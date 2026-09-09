@@ -87,6 +87,22 @@ describe('Auth Refresh (e2e) version: 1', () => {
     expect(res.headers['set-cookie'][2]).toContain('csrf_token');
   });
 
+  it('should re-issue the csrf_token as a persistent cookie on every rotation', async () => {
+    const credentials = await authenticate();
+
+    const res = await refresh(credentials);
+
+    const csrf = normalizeHeader(res.headers['set-cookie']).find((cookie) =>
+      cookie.startsWith('csrf_token=')
+    )!;
+
+    // Rotation must not quietly downgrade it back to a session cookie, which
+    // would restore the "authenticated but cannot mutate after a browser
+    // restart" gap this lifetime exists to close.
+    expect(csrf).toContain('Max-Age=604800');
+    expect(csrf).not.toContain('HttpOnly');
+  });
+
   it('should serve a near-simultaneous retry of the just-rotated token without revoking', async () => {
     const original = await authenticate();
     const firstRefresh = await refresh(original);

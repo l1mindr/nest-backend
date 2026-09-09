@@ -192,8 +192,15 @@ describe('CSRF protection (e2e) version: 1', () => {
     const cleared = getCookie(cookies, 'csrf_token');
 
     expect(cleared).toBe('csrf_token=');
-    expect(cookies.find((c) => c.startsWith('csrf_token='))).toContain(
-      'Expires=Thu, 01 Jan 1970'
-    );
+
+    const clearHeader = cookies.find((c) => c.startsWith('csrf_token='))!;
+
+    expect(clearHeader).toContain('Expires=Thu, 01 Jan 1970');
+    // The cookie is now written with a 7-day `maxAge`, and `res.cookie` would
+    // turn that into a future `Expires` — overwriting the epoch and handing
+    // back a week-long empty cookie instead of deleting it. Express strips
+    // `maxAge` inside `clearCookie` precisely to avoid that; this is the
+    // assertion that notices if it ever stops.
+    expect(clearHeader).not.toContain('Max-Age=604800');
   });
 });
