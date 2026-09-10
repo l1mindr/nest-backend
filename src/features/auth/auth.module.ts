@@ -1,3 +1,4 @@
+import { ActivityModule } from '@features/activity/activity.module';
 import { CsrfModule } from '@features/security/csrf/csrf.module';
 import { RateLimitModule } from '@features/security/rate-limit/rate-limit.module';
 import { DeviceDetectionModule } from '@features/security/device-detection/device-detection.module';
@@ -24,6 +25,7 @@ import { RefreshReplayService } from './application/services/refresh-replay.serv
 
 @Module({
   imports: [
+    ActivityModule,
     UsersModule,
     SessionsModule,
     TokenModule,

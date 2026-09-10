@@ -1,3 +1,4 @@
+import { ActivityModule } from '@features/activity/activity.module';
 import { RateLimitModule } from '@features/security/rate-limit/rate-limit.module';
 import { SessionsModule } from '@features/sessions/sessions.module';
 import { Module } from '@nestjs/common';
@@ -40,6 +41,7 @@ import { UsersController } from './presentation/controllers/users.controller';
 
 @Module({
   imports: [
+    ActivityModule,
     TypeOrmModule.forFeature([User, UserVerificationCode]),
     SessionsModule,
     // Verification attempts and resend allowances are counted through the rate

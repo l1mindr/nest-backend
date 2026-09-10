@@ -33,6 +33,12 @@ import {
   ResourceType
 } from '@infrastructure/logging/mongodb/mongodb.constants';
 import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+import {
+  IUserActivityRecorder,
+  USER_ACTIVITY_RECORDER
+} from '@features/activity/application/interfaces/activity.interface';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { LoginUserRequestDto } from '../../presentation/dto/request/login-user.request.dto';
@@ -63,7 +69,9 @@ export class Login implements ILogin {
     @Inject(RATE_LIMIT_SERVICE)
     private readonly rateLimitService: IRateLimitService,
     private readonly logger: PinoLogger,
-    private readonly auditLogService: AuditLogService
+    private readonly auditLogService: AuditLogService,
+    @Inject(USER_ACTIVITY_RECORDER)
+    private readonly activityRecorder: IUserActivityRecorder
   ) {
     this.logger.setContext(Login.name);
   }
@@ -191,6 +199,17 @@ export class Login implements ILogin {
       resourceId: session.id,
       success: true,
       context: { ipAddress }
+    });
+
+    // Only on the success path: every branch above throws, so a rejected
+    // sign-in never produces a "you signed in" row. The failures are still
+    // recorded — as audit entries, which is where a failed attempt belongs.
+    this.activityRecorder.record({
+      userId: user.id,
+      category: ActivityCategory.SECURITY,
+      action: ActivityAction.LOGIN,
+      entityType: 'SESSION',
+      entityId: session.id
     });
 
     return { accessToken, refreshToken };

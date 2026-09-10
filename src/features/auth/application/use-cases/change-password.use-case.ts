@@ -14,6 +14,12 @@ import {
   ResourceType
 } from '@infrastructure/logging/mongodb/mongodb.constants';
 import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
+import {
+  IUserActivityRecorder,
+  USER_ACTIVITY_RECORDER
+} from '@features/activity/application/interfaces/activity.interface';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { DataSource } from 'typeorm';
@@ -32,7 +38,9 @@ export class ChangePassword implements IChangePassword {
     private readonly revocationUseCase: ISessionRevocationUseCase,
     private readonly dataSource: DataSource,
     private readonly logger: PinoLogger,
-    private readonly auditLogService: AuditLogService
+    private readonly auditLogService: AuditLogService,
+    @Inject(USER_ACTIVITY_RECORDER)
+    private readonly activityRecorder: IUserActivityRecorder
   ) {
     this.logger.setContext(ChangePassword.name);
   }
@@ -87,6 +95,14 @@ export class ChangePassword implements IChangePassword {
       resourceType: ResourceType.USER,
       resourceId: userId,
       success: true
+    });
+
+    // No metadata: neither the old nor the new password, nor anything derived
+    // from them, belongs in a record the user can read back.
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.SECURITY,
+      action: ActivityAction.PASSWORD_CHANGED
     });
   }
 }
