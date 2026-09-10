@@ -11,6 +11,7 @@ import {
 } from '@features/realtime/application/interfaces/realtime.interface';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
+import { SessionErrors } from '../../domain/errors/session-errors';
 import { EntityManager } from 'typeorm';
 import {
   ISessionRepository,
@@ -29,6 +30,39 @@ export class SessionRevocationUseCase implements ISessionRevocationUseCase {
     private readonly realtimeEventPublisher: IRealtimeEventPublisher
   ) {
     this.logger.setContext(SessionRevocationUseCase.name);
+  }
+
+  /**
+   * Revokes one of the caller's other sessions.
+   *
+   * `revoke` writes through a `userId`-scoped update, so it cannot touch
+   * another account's session — but an id that matches nothing updates zero
+   * rows and reports success, which would tell the user a device was signed
+   * out when it was not. This looks the session up first so a wrong or already
+   * revoked id is a 404 rather than a silent no-op.
+   *
+   * Refuses the current session outright: ending that is a logout, and the
+   * route for it clears the auth cookies as well.
+   */
+  async revokeOwned(
+    userId: string,
+    currentSessionId: string,
+    targetSessionId: string
+  ): Promise<void> {
+    if (targetSessionId === currentSessionId) {
+      throw SessionErrors.sessionIsCurrent(targetSessionId);
+    }
+
+    const session = await this.sessionRepository.findActiveSession(
+      userId,
+      targetSessionId
+    );
+
+    if (!session) {
+      throw SessionErrors.sessionNotFound(targetSessionId);
+    }
+
+    await this.revoke(userId, targetSessionId);
   }
 
   async revoke(userId: string, sessionId: string): Promise<void> {

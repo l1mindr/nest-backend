@@ -151,6 +151,179 @@ describe('Sessions (e2e) version: 1', () => {
     expect(terminateOtherSessionsRes.status).toBe(204);
   });
 
+  describe('revoking one other session', () => {
+    /** Signs in twice as the same user and returns both, plus the other id. */
+    async function twoSessions() {
+      const owner = await AuthFactory.authenticated(app, {});
+      const second = await AuthFactory.authenticated(app, {});
+
+      const listed = await owner.client.get('/v1/sessions');
+
+      expect(listed.status).toBe(200);
+      expect(listed.body.items).toHaveLength(1);
+
+      return { owner, second, otherId: listed.body.items[0].sessionId };
+    }
+
+    function auth(
+      context: Awaited<ReturnType<typeof AuthFactory.authenticated>>
+    ) {
+      const {
+        cookies: { refreshToken, csrfToken },
+        headers: { xCsrfToken }
+      } = context.response;
+
+      return { cookie: `${refreshToken}; ${csrfToken}`, xCsrfToken };
+    }
+
+    it('should revoke the addressed session and leave the caller signed in', async () => {
+      const { owner, second, otherId } = await twoSessions();
+      const { cookie, xCsrfToken } = auth(owner);
+
+      const response = await owner.client
+        .delete(`/v1/sessions/${otherId}`)
+        .set('Cookie', cookie)
+        .set('X-CSRF-Token', xCsrfToken);
+
+      expect(response.status).toBe(204);
+
+      // The revoked device is out...
+      expect((await second.client.get('/v1/user/me')).status).toBe(401);
+      // ...and the caller is not.
+      expect((await owner.client.get('/v1/user/me')).status).toBe(200);
+    });
+
+    it('should drop the revoked session from the list', async () => {
+      const { owner, otherId } = await twoSessions();
+      const { cookie, xCsrfToken } = auth(owner);
+
+      await owner.client
+        .delete(`/v1/sessions/${otherId}`)
+        .set('Cookie', cookie)
+        .set('X-CSRF-Token', xCsrfToken);
+
+      const listed = await owner.client.get('/v1/sessions');
+
+      expect(listed.status).toBe(200);
+      expect(listed.body.items).toHaveLength(0);
+    });
+
+    // A second delete would otherwise report success for a device that was
+    // already signed out, from a list the caller had not refreshed.
+    it('should return 404 when the session is already revoked', async () => {
+      const { owner, otherId } = await twoSessions();
+      const { cookie, xCsrfToken } = auth(owner);
+
+      await owner.client
+        .delete(`/v1/sessions/${otherId}`)
+        .set('Cookie', cookie)
+        .set('X-CSRF-Token', xCsrfToken);
+
+      const again = await owner.client
+        .delete(`/v1/sessions/${otherId}`)
+        .set('Cookie', cookie)
+        .set('X-CSRF-Token', xCsrfToken);
+
+      expect(again.status).toBe(404);
+      expect(again.body.error.code).toBe('SESSION_NOT_FOUND');
+    });
+
+    it('should return 404 for an id that does not exist', async () => {
+      const owner = await AuthFactory.authenticated(app, {});
+      const { cookie, xCsrfToken } = auth(owner);
+
+      const response = await owner.client
+        .delete(`/v1/sessions/${randomUUID()}`)
+        .set('Cookie', cookie)
+        .set('X-CSRF-Token', xCsrfToken);
+
+      expect(response.status).toBe(404);
+    });
+
+    // Another account's session is indistinguishable from a missing one.
+    it('should not revoke a session belonging to another user', async () => {
+      const userA = await AuthFactory.authenticated(app, {
+        overrides: { email: 'revoke-a@test.com', username: 'revokea' }
+      });
+      const userB = await AuthFactory.authenticated(app, {
+        overrides: { email: 'revoke-b@test.com', username: 'revokeb' }
+      });
+
+      const listedB = await userB.client.get('/v1/sessions');
+      const targetId = listedB.body.currentSession.sessionId;
+      const { cookie, xCsrfToken } = auth(userA);
+
+      const response = await userA.client
+        .delete(`/v1/sessions/${targetId}`)
+        .set('Cookie', cookie)
+        .set('X-CSRF-Token', xCsrfToken);
+
+      expect(response.status).toBe(404);
+      // B is untouched.
+      expect((await userB.client.get('/v1/user/me')).status).toBe(200);
+    });
+
+    // Ending the current session is a logout, and that route also clears the
+    // auth cookies — doing it here would strand dead credentials in the browser.
+    it('should refuse the current session and point at the logout route', async () => {
+      const owner = await AuthFactory.authenticated(app, {});
+      const listed = await owner.client.get('/v1/sessions');
+      const currentId = listed.body.currentSession.sessionId;
+      const { cookie, xCsrfToken } = auth(owner);
+
+      const response = await owner.client
+        .delete(`/v1/sessions/${currentId}`)
+        .set('Cookie', cookie)
+        .set('X-CSRF-Token', xCsrfToken);
+
+      expect(response.status).toBe(409);
+      expect(response.body.error.code).toBe('SESSION_IS_CURRENT');
+      // Still signed in.
+      expect((await owner.client.get('/v1/user/me')).status).toBe(200);
+    });
+
+    it('should reject an id that is not a UUID', async () => {
+      const owner = await AuthFactory.authenticated(app, {});
+      const { cookie, xCsrfToken } = auth(owner);
+
+      const response = await owner.client
+        .delete('/v1/sessions/not-a-uuid')
+        .set('Cookie', cookie)
+        .set('X-CSRF-Token', xCsrfToken);
+
+      expect(response.status).toBe(422);
+    });
+
+    // The literal segment is declared first, so it must never be read as an id.
+    it('should still route /others to the bulk endpoint', async () => {
+      const { owner } = await twoSessions();
+      const { cookie, xCsrfToken } = auth(owner);
+
+      const response = await owner.client
+        .delete('/v1/sessions/others')
+        .set('Cookie', cookie)
+        .set('X-CSRF-Token', xCsrfToken);
+
+      expect(response.status).toBe(204);
+      expect((await owner.client.get('/v1/sessions')).body.items).toHaveLength(
+        0
+      );
+    });
+
+    it('should require the CSRF header', async () => {
+      const { owner, otherId } = await twoSessions();
+      const {
+        cookies: { refreshToken, csrfToken }
+      } = owner.response;
+
+      const response = await owner.client
+        .delete(`/v1/sessions/${otherId}`)
+        .set('Cookie', `${refreshToken}; ${csrfToken}`);
+
+      expect(response.status).toBe(403);
+    });
+  });
+
   it('should return sessions ordered by lastActivityAt ascending', async () => {
     const { client } = await AuthFactory.authenticated(app, {});
 

@@ -49,6 +49,18 @@ export interface ISessionRotationUseCase {
 export const SESSION_REVOCATION_USE_CASE = Symbol('ISessionRevocationUseCase');
 export interface ISessionRevocationUseCase {
   revoke(userId: string, sessionId: string): Promise<void>;
+  /**
+   * Revokes one of the caller's *other* sessions, by id.
+   *
+   * Separate from `revoke` because it verifies before acting: `revoke` is the
+   * logout path, where the session is known to exist because the request
+   * authenticated with it.
+   */
+  revokeOwned(
+    userId: string,
+    currentSessionId: string,
+    targetSessionId: string
+  ): Promise<void>;
   revokeAll(userId: string, manager?: EntityManager): Promise<void>;
   terminateOthers(
     userId: string,
