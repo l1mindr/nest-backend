@@ -11,11 +11,13 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Param,
   Query,
   UseInterceptors
 } from '@nestjs/common';
 import { SessionMapper } from '../../application/mappers/session.mapper';
 import { SessionListRequestDto } from '../dto/request/session-list-request.dto';
+import { SessionParamsDto } from '../dto/request/session.params.dto';
 import { Session as SessionEntity } from '../../domain/entities/session.entity';
 import {
   ISessionListService,
@@ -26,6 +28,7 @@ import {
 import {
   ApiGetSessions,
   ApiRevokeCurrentSession,
+  ApiRevokeSession,
   ApiTerminateOtherSessions
 } from '../swagger/sessions.swagger';
 
@@ -84,5 +87,22 @@ export class SessionsController {
     @Session() session: SessionEntity
   ) {
     return this.revocationUseCase.terminateOthers(user.id, session.id);
+  }
+
+  // Declared after `others` so the literal segment is matched first and can
+  // never be read as a session id.
+  @Delete(':sessionId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiRevokeSession()
+  revokeOneSession(
+    @User() user: UserEntity,
+    @Session() session: SessionEntity,
+    @Param() params: SessionParamsDto
+  ) {
+    return this.revocationUseCase.revokeOwned(
+      user.id,
+      session.id,
+      params.sessionId
+    );
   }
 }

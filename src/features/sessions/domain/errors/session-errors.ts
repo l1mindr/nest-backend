@@ -14,6 +14,25 @@ export class SessionErrors {
     );
   }
 
+  /**
+   * The caller asked to revoke the session they are currently using, by id.
+   *
+   * That is a logout, and `DELETE /v1/sessions` is the route for it — it
+   * carries `ClearAuthCookiesInterceptor`, so it also clears the auth cookies.
+   * Revoking the same session through this route would leave the browser
+   * presenting credentials the server has already invalidated, which is a
+   * worse state than refusing.
+   */
+  static sessionIsCurrent(sessionId?: string) {
+    return new AppError(
+      SessionErrorCode.SESSION_IS_CURRENT,
+      ErrorDomain.SESSION,
+      HttpStatus.CONFLICT,
+      sessionId ? { sessionId } : undefined,
+      'Use DELETE /v1/sessions to end the current session'
+    );
+  }
+
   static sessionExpired(sessionId?: string) {
     return new AppError(
       SessionErrorCode.SESSION_EXPIRED,

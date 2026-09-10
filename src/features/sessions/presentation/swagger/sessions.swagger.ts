@@ -1,8 +1,10 @@
 import { SessionErrors } from '@features/sessions/domain/errors/session-errors';
 import {
   badRequestResponse,
+  conflictResponse,
   csrfForbiddenResponse,
   internalServerErrorResponse,
+  notFoundResponse,
   unauthorizedResponse,
   validationError,
   validationResponse
@@ -34,7 +36,8 @@ import { SessionListResponseDto } from '../dto/response/session-list-response.dt
 const PATH = {
   LIST: '/v1/sessions',
   REVOKE: '/v1/sessions',
-  REVOKE_OTHERS: '/v1/sessions/others'
+  REVOKE_OTHERS: '/v1/sessions/others',
+  REVOKE_ONE: '/v1/sessions/{sessionId}'
 } as const;
 
 const invalidCursor = () =>
@@ -128,6 +131,52 @@ export const ApiTerminateOtherSessions = () =>
     ApiErrorResponses(PATH.REVOKE_OTHERS, [
       unauthorizedResponse(),
       csrfForbiddenResponse(),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiRevokeSession = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'revokeSession',
+      summary: 'Sign out of one other device',
+      description: [
+        'Revokes a single session of the account, addressed by the `sessionId` returned in `GET /v1/sessions`. The calling session is unaffected and its cookies remain valid.',
+        '',
+        'Scoped to the caller: a `sessionId` belonging to another account is indistinguishable from one that does not exist, and both return `404`. A session that has already been revoked or has expired returns `404` as well, so a stale list cannot report a device as signed out twice.',
+        '',
+        'The current session cannot be ended here — that is a logout, and `DELETE /v1/sessions` is the route for it, since it also clears the auth cookies. Addressing it by id returns `409` rather than leaving the browser holding credentials the server has invalidated.',
+        '',
+        'Requires authentication and a valid `x-csrf-token` header.'
+      ].join('\n')
+    }),
+    ApiCsrfProtected(),
+    ApiNoContent({
+      description:
+        'The session was revoked; the calling session survives. No body is returned.'
+    }),
+    ApiErrorResponses(PATH.REVOKE_ONE, [
+      unauthorizedResponse(),
+      csrfForbiddenResponse(),
+      notFoundResponse(
+        'No active session of the caller has this id.',
+        errorExample(
+          SessionErrors.sessionNotFound('b3f1c2d4-5e6a-4b7c-8d9e-0f1a2b3c4d5e'),
+          'The id is unknown, already revoked, or belongs to another account'
+        )
+      ),
+      conflictResponse(
+        'The id addresses the calling session.',
+        errorExample(
+          SessionErrors.sessionIsCurrent(
+            'b3f1c2d4-5e6a-4b7c-8d9e-0f1a2b3c4d5e'
+          ),
+          'Use DELETE /v1/sessions to end the current session'
+        )
+      ),
+      validationResponse('The session id is not a UUID.', [
+        validationError('sessionId', 'sessionId must be a UUID')
+      ]),
       internalServerErrorResponse()
     ])
   );
