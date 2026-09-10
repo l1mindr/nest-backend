@@ -1,4 +1,5 @@
 import { HttpModule } from '@nestjs/axios';
+import { ActivityModule } from '@features/activity/activity.module';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -40,6 +41,7 @@ import { PriceCheckScheduler } from './infrastructure/schedulers/price-check.sch
 
 @Module({
   imports: [
+    ActivityModule,
     TypeOrmModule.forFeature([Coin, PriceAlert]),
     HttpModule.register({
       timeout: 10_000,
