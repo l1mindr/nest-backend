@@ -95,6 +95,8 @@ describe('Login', () => {
     record: jest.fn()
   };
 
+  const mockActivityRecorder = { record: jest.fn() };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -127,7 +129,8 @@ describe('Login', () => {
       mockUserRepository as any,
       mockRateLimitService as any,
       mockLogger as any,
-      mockAuditLogService as any
+      mockAuditLogService as any,
+      mockActivityRecorder as any
     );
   });
 
