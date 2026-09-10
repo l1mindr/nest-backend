@@ -15,6 +15,8 @@ describe('CancelPriceAlertUseCase', () => {
 
   let useCase: CancelPriceAlertUseCase;
 
+  const activityRecorder = { record: jest.fn() };
+
   beforeEach(() => {
     jest.clearAllMocks();
     priceAlertRepository.findByIdAndUser.mockResolvedValue({
@@ -26,7 +28,8 @@ describe('CancelPriceAlertUseCase', () => {
 
     useCase = new CancelPriceAlertUseCase(
       priceAlertRepository as any,
-      logger as any
+      logger as any,
+      activityRecorder as any
     );
   });
 

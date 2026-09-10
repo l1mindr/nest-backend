@@ -1,4 +1,10 @@
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import {
+  IUserActivityRecorder,
+  USER_ACTIVITY_RECORDER
+} from '@features/activity/application/interfaces/activity.interface';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { CoinTrackerErrors } from '../../domain/errors/coin-tracker-errors';
@@ -14,7 +20,9 @@ export class CancelPriceAlertUseCase implements ICancelPriceAlertUseCase {
   constructor(
     @Inject(PRICE_ALERT_REPOSITORY)
     private readonly priceAlertRepository: IPriceAlertRepository,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    @Inject(USER_ACTIVITY_RECORDER)
+    private readonly activityRecorder: IUserActivityRecorder
   ) {
     this.logger.setContext(CancelPriceAlertUseCase.name);
   }
@@ -50,5 +58,16 @@ export class CancelPriceAlertUseCase implements ICancelPriceAlertUseCase {
       },
       'Price alert cancelled'
     );
+
+    // Cancelling is how an alert is removed from a user's point of view — the
+    // row is retained with a CANCELLED status, but what they did was delete it.
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.PRICE_ALERT,
+      action: ActivityAction.DELETED,
+      entityType: 'PRICE_ALERT',
+      entityId: alertId,
+      metadata: { assetSymbol: alert.coin?.symbol ?? null }
+    });
   }
 }

@@ -5,6 +5,8 @@ import { AlertStatus } from '../../../domain/enums/alert-status.enum';
 import { AlertTriggerMode } from '../../../domain/enums/alert-trigger-mode.enum';
 import { NotificationChannel } from '../../../domain/enums/notification-channel.enum';
 import { CoinTrackerErrorCode } from '../../../domain/errors/coin-tracker-error-code.enum';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
 import { CreatePriceAlertUseCase } from '../create-price-alert.use-case';
 
 describe('CreatePriceAlertUseCase', () => {
@@ -38,6 +40,8 @@ describe('CreatePriceAlertUseCase', () => {
 
   let useCase: CreatePriceAlertUseCase;
 
+  const activityRecorder = { record: jest.fn() };
+
   beforeEach(() => {
     jest.clearAllMocks();
     clockService.nowMs.mockReturnValue(now);
@@ -48,7 +52,8 @@ describe('CreatePriceAlertUseCase', () => {
       priceAlertRepository as any,
       coinRepository as any,
       clockService as unknown as ClockService,
-      logger as any
+      logger as any,
+      activityRecorder as any
     );
   });
 
@@ -108,5 +113,45 @@ describe('CreatePriceAlertUseCase', () => {
     });
 
     expect(coinRepository.findActiveById).not.toHaveBeenCalled();
+  });
+
+  describe('user activity', () => {
+    const validDto = {
+      coinId: 'bitcoin',
+      targetPrice: 120000,
+      direction: AlertDirection.SELL,
+      triggerMode: AlertTriggerMode.ONCE,
+      notificationChannels: [NotificationChannel.EMAIL]
+    };
+
+    it('records the alert once it exists', async () => {
+      await useCase.execute('user-id', validDto);
+
+      expect(activityRecorder.record).toHaveBeenCalledWith({
+        userId: 'user-id',
+        category: ActivityCategory.PRICE_ALERT,
+        action: ActivityAction.CREATED,
+        entityType: 'PRICE_ALERT',
+        entityId: 'alert-id',
+        metadata: { assetSymbol: 'btc', direction: AlertDirection.SELL }
+      });
+    });
+
+    // The target price is a financial value the alert itself already holds.
+    it('keeps the target price out of the metadata', async () => {
+      await useCase.execute('user-id', validDto);
+
+      const { metadata } = activityRecorder.record.mock.calls[0][0];
+
+      expect(metadata).not.toHaveProperty('targetPrice');
+    });
+
+    it('records nothing when the coin is rejected', async () => {
+      coinRepository.findActiveById.mockResolvedValue(null);
+
+      await expect(useCase.execute('user-id', validDto)).rejects.toBeDefined();
+
+      expect(activityRecorder.record).not.toHaveBeenCalled();
+    });
   });
 });

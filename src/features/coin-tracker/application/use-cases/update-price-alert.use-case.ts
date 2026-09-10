@@ -1,5 +1,11 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import {
+  IUserActivityRecorder,
+  USER_ACTIVITY_RECORDER
+} from '@features/activity/application/interfaces/activity.interface';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { CoinTrackerErrors } from '../../domain/errors/coin-tracker-errors';
@@ -19,7 +25,9 @@ export class UpdatePriceAlertUseCase implements IUpdatePriceAlertUseCase {
     @Inject(PRICE_ALERT_REPOSITORY)
     private readonly priceAlertRepository: IPriceAlertRepository,
     private readonly clockService: ClockService,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    @Inject(USER_ACTIVITY_RECORDER)
+    private readonly activityRecorder: IUserActivityRecorder
   ) {
     this.logger.setContext(UpdatePriceAlertUseCase.name);
   }
@@ -89,6 +97,20 @@ export class UpdatePriceAlertUseCase implements IUpdatePriceAlertUseCase {
       },
       'Price alert updated'
     );
+
+    // Reached only past every guard above — an expired, cancelled or already
+    // triggered alert throws, so a refused edit records nothing.
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.PRICE_ALERT,
+      action: ActivityAction.UPDATED,
+      entityType: 'PRICE_ALERT',
+      entityId: alertId,
+      metadata: {
+        assetSymbol: updated.coin?.symbol ?? null,
+        updatedFields: Object.keys(dto).sort()
+      }
+    });
 
     return updated;
   }
