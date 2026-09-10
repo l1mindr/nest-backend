@@ -6,6 +6,12 @@ import {
 } from '@infrastructure/logging/mongodb/mongodb.constants';
 import { AuditLogService } from '@infrastructure/logging/audit/audit-log.service';
 import {
+  IUserActivityRecorder,
+  USER_ACTIVITY_RECORDER
+} from '@features/activity/application/interfaces/activity.interface';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
+import {
   IRealtimeEventPublisher,
   REALTIME_EVENT_PUBLISHER
 } from '@features/realtime/application/interfaces/realtime.interface';
@@ -27,7 +33,9 @@ export class SessionRevocationUseCase implements ISessionRevocationUseCase {
     private readonly logger: PinoLogger,
     private readonly auditLogService: AuditLogService,
     @Inject(REALTIME_EVENT_PUBLISHER)
-    private readonly realtimeEventPublisher: IRealtimeEventPublisher
+    private readonly realtimeEventPublisher: IRealtimeEventPublisher,
+    @Inject(USER_ACTIVITY_RECORDER)
+    private readonly activityRecorder: IUserActivityRecorder
   ) {
     this.logger.setContext(SessionRevocationUseCase.name);
   }
@@ -62,10 +70,43 @@ export class SessionRevocationUseCase implements ISessionRevocationUseCase {
       throw SessionErrors.sessionNotFound(targetSessionId);
     }
 
-    await this.revoke(userId, targetSessionId);
+    await this.performRevoke(userId, targetSessionId);
+
+    // Signing another device out, not signing yourself out — a different fact
+    // to the user, and the reason this does not go through `revoke()`.
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.SECURITY,
+      action: ActivityAction.SESSION_REVOKED,
+      entityType: 'SESSION',
+      entityId: targetSessionId
+    });
   }
 
+  /**
+   * Ends the caller's own session.
+   *
+   * Reached by the logout route and by refresh-token reuse detection, so the
+   * activity it records is `LOGOUT`. Revoking *another* device goes through
+   * `revokeOwned`, which records `SESSION_REVOKED` instead.
+   */
   async revoke(userId: string, sessionId: string): Promise<void> {
+    await this.performRevoke(userId, sessionId);
+
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.SECURITY,
+      action: ActivityAction.LOGOUT,
+      entityType: 'SESSION',
+      entityId: sessionId
+    });
+  }
+
+  /** The revocation itself, without deciding what the user did to cause it. */
+  private async performRevoke(
+    userId: string,
+    sessionId: string
+  ): Promise<void> {
     await this.sessionRepository.revokeSession(userId, sessionId);
 
     this.logger.info(
@@ -112,5 +153,15 @@ export class SessionRevocationUseCase implements ISessionRevocationUseCase {
     );
 
     this.realtimeEventPublisher.disconnectUserExcept(userId, sessionId);
+
+    // One row for the whole action rather than one per session: the user
+    // performed a single "sign out everywhere else", and that is what a
+    // history screen should show them.
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.SECURITY,
+      action: ActivityAction.SESSION_REVOKED,
+      metadata: { scope: 'OTHERS' }
+    });
   }
 }

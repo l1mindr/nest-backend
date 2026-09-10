@@ -75,11 +75,14 @@ describe('SessionIssueUseCase', () => {
     );
   });
 
+  const mockActivityRecorder = { record: jest.fn() };
+
   const service = new SessionIssueUseCase(
     mockClockService as unknown as ClockService,
     mockConfigService as any,
     mockDataSource as unknown as DataSource,
-    mockSessionRepository as any
+    mockSessionRepository as any,
+    mockActivityRecorder as any
   );
 
   describe('execute', () => {

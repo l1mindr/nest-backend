@@ -1,3 +1,4 @@
+import { ActivityModule } from '@features/activity/activity.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SessionCursorService } from './application/services/session-cursor.service';
@@ -21,7 +22,7 @@ import { SessionRepository } from './infrastructure/repositories/session.reposit
 import { SessionsController } from './presentation/controllers/sessions.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Session])],
+  imports: [ActivityModule, TypeOrmModule.forFeature([Session])],
   providers: [
     SessionRepository,
     { provide: SESSION_REPOSITORY, useExisting: SessionRepository },

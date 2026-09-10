@@ -1,5 +1,11 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { User } from '@features/users/domain/entities/user.entity';
+import {
+  IUserActivityRecorder,
+  USER_ACTIVITY_RECORDER
+} from '@features/activity/application/interfaces/activity.interface';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, In } from 'typeorm';
@@ -18,7 +24,9 @@ export class SessionIssueUseCase implements ISessionIssueUseCase {
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
     @Inject(SESSION_REPOSITORY)
-    private readonly sessionRepository: ISessionRepository
+    private readonly sessionRepository: ISessionRepository,
+    @Inject(USER_ACTIVITY_RECORDER)
+    private readonly activityRecorder: IUserActivityRecorder
   ) {}
 
   async execute(
@@ -34,6 +42,43 @@ export class SessionIssueUseCase implements ISessionIssueUseCase {
     const { now } = this.clockService.snapshot();
     const nowDate = this.clockService.dateFromMs(now);
 
+    const session = await this.issueWithinTransaction(
+      userId,
+      ipAddress,
+      device,
+      expiresAt,
+      maxSessions,
+      nowDate
+    );
+
+    // After the transaction commits, so a rolled-back issue leaves no record
+    // of a device that was never signed in. The device is worth carrying: on a
+    // security screen "a session started on Chrome / macOS" is the detail that
+    // makes the row actionable.
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.SECURITY,
+      action: ActivityAction.SESSION_CREATED,
+      entityType: 'SESSION',
+      entityId: session.id,
+      metadata: {
+        browserName: device.browserName,
+        osName: device.osName,
+        deviceType: device.deviceType
+      }
+    });
+
+    return session;
+  }
+
+  private issueWithinTransaction(
+    userId: string,
+    ipAddress: string,
+    device: ISessionDevice,
+    expiresAt: Date,
+    maxSessions: number,
+    nowDate: Date
+  ): Promise<Session> {
     return this.dataSource.transaction(async (manager) => {
       await manager
         .getRepository(User)

@@ -40,6 +40,7 @@ describe('ChangePassword', () => {
     record: jest.fn()
   };
 
+  const mockActivityRecorder = { record: jest.fn() };
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -49,7 +50,8 @@ describe('ChangePassword', () => {
       mockRevocationUseCase as any,
       mockDataSource as unknown as DataSource,
       mockLogger as any,
-      mockAuditLogService as any
+      mockAuditLogService as any,
+      mockActivityRecorder as any
     );
   });
 
