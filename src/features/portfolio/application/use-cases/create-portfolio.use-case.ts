@@ -1,4 +1,10 @@
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import {
+  IUserActivityRecorder,
+  USER_ACTIVITY_RECORDER
+} from '@features/activity/application/interfaces/activity.interface';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { Portfolio } from '../../domain/entities/portfolio.entity';
@@ -23,7 +29,9 @@ export class CreatePortfolioUseCase implements ICreatePortfolioUseCase {
     @Inject(PORTFOLIO_REPOSITORY)
     private readonly portfolioRepository: IPortfolioRepository,
     private readonly logger: PinoLogger,
-    private readonly auditLogService: AuditLogService
+    private readonly auditLogService: AuditLogService,
+    @Inject(USER_ACTIVITY_RECORDER)
+    private readonly activityRecorder: IUserActivityRecorder
   ) {
     this.logger.setContext(CreatePortfolioUseCase.name);
   }
@@ -58,6 +66,16 @@ export class CreatePortfolioUseCase implements ICreatePortfolioUseCase {
       resourceType: ResourceType.PORTFOLIO,
       resourceId: portfolio.id,
       success: true
+    });
+
+    // The name is the one field that makes the row identifiable to the user.
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.PORTFOLIO,
+      action: ActivityAction.CREATED,
+      entityType: 'PORTFOLIO',
+      entityId: portfolio.id,
+      metadata: { portfolioName: portfolio.name }
     });
 
     return portfolio;
