@@ -1,3 +1,4 @@
+import { ActivityModule } from '@features/activity/activity.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Asset } from '@features/assets/domain/entities/asset.entity';
@@ -75,6 +76,7 @@ import {
 
 @Module({
   imports: [
+    ActivityModule,
     AssetsModule,
     WalletsModule,
     TypeOrmModule.forFeature([

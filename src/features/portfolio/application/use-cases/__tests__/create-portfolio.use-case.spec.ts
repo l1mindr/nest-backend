@@ -19,6 +19,8 @@ describe('CreatePortfolioUseCase', () => {
 
   let useCase: CreatePortfolioUseCase;
 
+  const activityRecorder = { record: jest.fn() };
+
   beforeEach(() => {
     jest.clearAllMocks();
     portfolioRepository.create.mockResolvedValue(portfolio);
@@ -26,7 +28,8 @@ describe('CreatePortfolioUseCase', () => {
     useCase = new CreatePortfolioUseCase(
       portfolioRepository as any,
       logger as any,
-      { record: jest.fn() } as any
+      { record: jest.fn() } as any,
+      activityRecorder as any
     );
   });
 

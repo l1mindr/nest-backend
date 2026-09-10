@@ -1,4 +1,10 @@
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import {
+  IUserActivityRecorder,
+  USER_ACTIVITY_RECORDER
+} from '@features/activity/application/interfaces/activity.interface';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { PortfolioErrors } from '../../domain/errors/portfolio-errors';
@@ -25,7 +31,9 @@ export class DeletePortfolioUseCase implements IDeletePortfolioUseCase {
     @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
     private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
     private readonly logger: PinoLogger,
-    private readonly auditLogService: AuditLogService
+    private readonly auditLogService: AuditLogService,
+    @Inject(USER_ACTIVITY_RECORDER)
+    private readonly activityRecorder: IUserActivityRecorder
   ) {
     this.logger.setContext(DeletePortfolioUseCase.name);
   }
@@ -58,6 +66,16 @@ export class DeletePortfolioUseCase implements IDeletePortfolioUseCase {
       resourceType: ResourceType.PORTFOLIO,
       resourceId: portfolioId,
       success: true
+    });
+
+    // No name in the metadata: the row is gone by now, and `delete` reports
+    // only whether it removed anything.
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.PORTFOLIO,
+      action: ActivityAction.DELETED,
+      entityType: 'PORTFOLIO',
+      entityId: portfolioId
     });
   }
 }
