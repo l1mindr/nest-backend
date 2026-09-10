@@ -1,5 +1,11 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import {
+  IUserActivityRecorder,
+  USER_ACTIVITY_RECORDER
+} from '@features/activity/application/interfaces/activity.interface';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { CoinTrackerErrors } from '../../domain/errors/coin-tracker-errors';
@@ -21,7 +27,9 @@ export class CreatePriceAlertUseCase implements ICreatePriceAlertUseCase {
     @Inject(COIN_REPOSITORY)
     private readonly coinRepository: ICoinRepository,
     private readonly clockService: ClockService,
-    private readonly logger: PinoLogger
+    private readonly logger: PinoLogger,
+    @Inject(USER_ACTIVITY_RECORDER)
+    private readonly activityRecorder: IUserActivityRecorder
   ) {
     this.logger.setContext(CreatePriceAlertUseCase.name);
   }
@@ -65,6 +73,22 @@ export class CreatePriceAlertUseCase implements ICreatePriceAlertUseCase {
       },
       'Price alert created'
     );
+
+    // The symbol and the direction are what a history row needs to read as
+    // "you set an alert on BTC for a rise". The target price is left out: it
+    // is a financial detail the alert itself already holds, and the activity
+    // screen is not where it needs to be duplicated.
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.PRICE_ALERT,
+      action: ActivityAction.CREATED,
+      entityType: 'PRICE_ALERT',
+      entityId: alert.id,
+      metadata: {
+        assetSymbol: coin.symbol,
+        direction: alert.direction
+      }
+    });
 
     return alert;
   }

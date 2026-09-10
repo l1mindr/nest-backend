@@ -30,6 +30,8 @@ describe('UpdatePriceAlertUseCase', () => {
 
   let useCase: UpdatePriceAlertUseCase;
 
+  const activityRecorder = { record: jest.fn() };
+
   beforeEach(() => {
     jest.clearAllMocks();
     clockService.nowDate.mockReturnValue(now);
@@ -44,7 +46,8 @@ describe('UpdatePriceAlertUseCase', () => {
     useCase = new UpdatePriceAlertUseCase(
       priceAlertRepository as any,
       clockService as unknown as ClockService,
-      logger as any
+      logger as any,
+      activityRecorder as any
     );
   });
 
