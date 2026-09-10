@@ -13,5 +13,6 @@ export enum ErrorDomain {
   SYSTEM = 'SYSTEM',
   HTTP = 'HTTP',
   VALIDATION = 'VALIDATION',
-  SECURITY = 'SECURITY'
+  SECURITY = 'SECURITY',
+  ACTIVITY = 'ACTIVITY'
 }

@@ -34,7 +34,8 @@ export const ApiTagName = {
   PORTFOLIOS: 'Portfolios',
   WALLETS: 'Wallets',
   ADMIN_ACCOUNTS: 'Administrators & Permissions',
-  LOGS: 'Logs'
+  LOGS: 'Logs',
+  ACTIVITY: 'User Activity'
 } as const;
 
 /**
