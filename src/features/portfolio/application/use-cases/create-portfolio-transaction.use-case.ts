@@ -1,6 +1,12 @@
 import { IAssetRepository } from '@features/assets/application/interfaces/assets.interface';
 import { ASSET_REPOSITORY } from '@features/assets/application/interfaces/assets.interface';
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import {
+  IUserActivityRecorder,
+  USER_ACTIVITY_RECORDER
+} from '@features/activity/application/interfaces/activity.interface';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { PortfolioTransaction } from '../../domain/entities/portfolio-transaction.entity';
@@ -52,7 +58,9 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
     private readonly logger: PinoLogger,
     private readonly auditLogService: AuditLogService,
     @Inject(REALTIME_EVENT_PUBLISHER)
-    private readonly realtimeEventPublisher: IRealtimeEventPublisher
+    private readonly realtimeEventPublisher: IRealtimeEventPublisher,
+    @Inject(USER_ACTIVITY_RECORDER)
+    private readonly activityRecorder: IUserActivityRecorder
   ) {
     this.logger.setContext(CreatePortfolioTransactionUseCase.name);
   }
@@ -223,6 +231,21 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
     this.realtimeEventPublisher.publishToUser(userId, {
       type: 'transaction.created',
       payload: { portfolioId, transactionId: transaction.id }
+    });
+
+    // Symbol and side are what a history row needs to read as "you bought
+    // BTC". Amount, price and fee are left out: they are financial detail the
+    // transaction itself holds, and this collection exists to render headings.
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.TRANSACTION,
+      action: ActivityAction.CREATED,
+      entityType: 'TRANSACTION',
+      entityId: transaction.id,
+      metadata: {
+        assetSymbol: asset.symbol,
+        transactionType: transaction.type
+      }
     });
 
     return transaction;

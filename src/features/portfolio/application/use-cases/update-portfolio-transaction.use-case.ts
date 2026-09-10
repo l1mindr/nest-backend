@@ -1,4 +1,10 @@
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import {
+  IUserActivityRecorder,
+  USER_ACTIVITY_RECORDER
+} from '@features/activity/application/interfaces/activity.interface';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { PortfolioTransaction } from '../../domain/entities/portfolio-transaction.entity';
@@ -41,7 +47,9 @@ export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransa
     private readonly logger: PinoLogger,
     private readonly auditLogService: AuditLogService,
     @Inject(REALTIME_EVENT_PUBLISHER)
-    private readonly realtimeEventPublisher: IRealtimeEventPublisher
+    private readonly realtimeEventPublisher: IRealtimeEventPublisher,
+    @Inject(USER_ACTIVITY_RECORDER)
+    private readonly activityRecorder: IUserActivityRecorder
   ) {
     this.logger.setContext(UpdatePortfolioTransactionUseCase.name);
   }
@@ -193,6 +201,15 @@ export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransa
     this.realtimeEventPublisher.publishToUser(userId, {
       type: 'transaction.updated',
       payload: { portfolioId, transactionId }
+    });
+
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.TRANSACTION,
+      action: ActivityAction.UPDATED,
+      entityType: 'TRANSACTION',
+      entityId: transactionId,
+      metadata: { transactionType: updated.type }
     });
 
     return updated;

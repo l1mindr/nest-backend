@@ -1,4 +1,10 @@
 import { LogEvent } from '@infrastructure/logging/logging.constants';
+import {
+  IUserActivityRecorder,
+  USER_ACTIVITY_RECORDER
+} from '@features/activity/application/interfaces/activity.interface';
+import { ActivityAction } from '@features/activity/domain/enums/activity-action.enum';
+import { ActivityCategory } from '@features/activity/domain/enums/activity-category.enum';
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { PortfolioErrors } from '../../domain/errors/portfolio-errors';
@@ -35,7 +41,9 @@ export class DeletePortfolioTransactionUseCase implements IDeletePortfolioTransa
     private readonly logger: PinoLogger,
     private readonly auditLogService: AuditLogService,
     @Inject(REALTIME_EVENT_PUBLISHER)
-    private readonly realtimeEventPublisher: IRealtimeEventPublisher
+    private readonly realtimeEventPublisher: IRealtimeEventPublisher,
+    @Inject(USER_ACTIVITY_RECORDER)
+    private readonly activityRecorder: IUserActivityRecorder
   ) {
     this.logger.setContext(DeletePortfolioTransactionUseCase.name);
   }
@@ -114,6 +122,14 @@ export class DeletePortfolioTransactionUseCase implements IDeletePortfolioTransa
     this.realtimeEventPublisher.publishToUser(userId, {
       type: 'transaction.deleted',
       payload: { portfolioId, transactionId }
+    });
+
+    this.activityRecorder.record({
+      userId,
+      category: ActivityCategory.TRANSACTION,
+      action: ActivityAction.DELETED,
+      entityType: 'TRANSACTION',
+      entityId: transactionId
     });
   }
 }

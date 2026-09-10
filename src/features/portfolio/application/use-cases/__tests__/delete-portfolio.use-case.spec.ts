@@ -15,6 +15,8 @@ describe('DeletePortfolioUseCase', () => {
 
   let useCase: DeletePortfolioUseCase;
 
+  const activityRecorder = { record: jest.fn() };
+
   beforeEach(() => {
     jest.clearAllMocks();
     portfolioRepository.delete.mockResolvedValue(true);
@@ -23,7 +25,8 @@ describe('DeletePortfolioUseCase', () => {
       portfolioRepository as any,
       checkpointRepository as any,
       logger as any,
-      { record: jest.fn() } as any
+      { record: jest.fn() } as any,
+      activityRecorder as any
     );
   });
 

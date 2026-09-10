@@ -44,6 +44,8 @@ describe('UpdatePortfolioTransactionUseCase', () => {
 
   let useCase: UpdatePortfolioTransactionUseCase;
 
+  const activityRecorder = { record: jest.fn() };
+
   beforeEach(() => {
     jest.clearAllMocks();
     portfolioRepository.findByIdAndUser.mockResolvedValue(portfolio);
@@ -73,7 +75,8 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       holdingsService as any,
       logger as any,
       { record: jest.fn() } as any,
-      { publishToUser: jest.fn() } as any
+      { publishToUser: jest.fn() } as any,
+      activityRecorder as any
     );
   });
 
