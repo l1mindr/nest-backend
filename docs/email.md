@@ -156,12 +156,12 @@ makes it safe to point a CI job's email at.
 
 ### Development stack
 
-`docker/compose.yml` publishes both ports to the host (`1025`, `8025`), so the
+`compose/compose.dev.yml` publishes both ports to the host (`1025`, `8025`), so the
 UI is at `http://localhost:8025` and a suite running on the host reaches SMTP at
 `localhost:1025` (see `nest-backend/.env.test`).
 
 ```bash
-docker compose -f docker/compose.yml up -d mailpit
+docker compose -f compose/compose.dev.yml up -d mailpit
 ```
 
 ### Inside Docker
@@ -179,7 +179,7 @@ MAILPIT_API_URL=http://mailpit:8025
 `MAILPIT_API_URL` is read by `test/helpers/mailpit.helper.ts` only. The
 application knows nothing about it.
 
-In `docker/test/e2e/docker-compose.yml` Mailpit is deliberately **not**
+In `compose/compose.test.yml` Mailpit is deliberately **not**
 published to the host: CI reaches it as `mailpit` on the Compose network, and
 the run is the only thing that should be reading that mailbox.
 

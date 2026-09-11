@@ -16,7 +16,11 @@ docs
 
 .env*
 
+# Build and orchestration configuration. Neither belongs inside the image, and
+# compose/ holds a gitignored .env with real local credentials — a `COPY . .`
+# in the development and test stages would otherwise bake it in.
 docker
+compose
 
 *.md
 PROJECT_REVIEW.txt

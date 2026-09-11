@@ -81,7 +81,7 @@ jobs:
 
     # Every Compose invocation below targets the same stack.
     env:
-      COMPOSE_FILE: docker/test/e2e/docker-compose.yml
+      COMPOSE_FILE: compose/compose.test.yml
 
     steps:
       - name: Checkout repository
@@ -97,6 +97,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          file: docker/Dockerfile
           target: production
           load: true
           tags: |
@@ -129,6 +130,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          file: docker/Dockerfile
           target: test
           load: true
           tags: nest-backend-e2e-app:latest

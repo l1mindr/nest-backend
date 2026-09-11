@@ -1,0 +1,28 @@
+# Unit tests in a container.
+#
+# Optional: `./dev.sh unit backend` runs the same suite on the host with the
+# project's own `pnpm run test:unit`, which is what CI does and what is fastest
+# day to day. This file exists for the case where a hermetic, host-independent
+# run is wanted — it needs no databases, because unit tests have none.
+#
+#   docker compose -f nest-backend/compose/compose.unit.yml run --rm app
+#
+# Pinned rather than left to default to this file's directory name, so the
+# project keeps the `unit` name it had when this lived at docker/test/unit/.
+name: unit
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: test
+
+    environment:
+      NODE_ENV: test
+
+      ACCESS_TOKEN_SECRET: accessjwtsecret
+      REFRESH_TOKEN_SECRET: refreshjwtsecret
+      CSRF_TOKEN_SECRET: csrftokensecret
+
+    command: pnpm run test:unit

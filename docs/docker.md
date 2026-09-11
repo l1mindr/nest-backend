@@ -1,22 +1,52 @@
 # Docker
 
+Every file the backend needs to build or run in Docker lives here:
+
+```
+nest-backend/
+├── docker/Dockerfile        # every image, one multi-stage build
+└── compose/
+    ├── compose.dev.yml      # backend + postgres/redis/mongo/mailpit
+    ├── compose.prod.yml     # immutable image named by APP_IMAGE
+    ├── compose.test.yml     # the CI-shaped E2E lane
+    └── compose.unit.yml     # unit tests in a container (optional)
+```
+
 Two distinct Compose stacks serve two distinct purposes. Confusing them is the
 most common source of "it works locally" — they publish different ports, run
 different images, and answer to different environment.
 
 | Stack | File | Purpose |
 |-------|------|---------|
-| **Development** | `docker/compose.yml` (repository root) | Full app: frontend, backend, databases, Mailpit, migrations, owner bootstrap. Source-mounted, hot reload |
-| **Docker E2E** | `nest-backend/docker/test/e2e/docker-compose.yml` | The CI-shaped backend E2E lane. No frontend, no source mount, no host-published Mailpit |
+| **Development** | `nest-backend/compose/compose.dev.yml` | Backend, databases, Mailpit, migrations, owner bootstrap. Source-mounted, hot reload. The frontend adds itself by `include`ing this file — see `next-dashboard-frontend/compose/compose.dev.yml` |
+| **Docker E2E** | `nest-backend/compose/compose.test.yml` | The CI-shaped backend E2E lane. No frontend, no source mount, no host-published Mailpit |
 
 Related: [testing.md](testing.md), [ci.md](ci.md), [email.md](email.md),
 [configuration.md](configuration.md), [deployment.md](deployment.md).
 
 ## Development stack
 
+From the repository root, through the launcher:
+
 ```bash
-docker compose -f docker/compose.yml up -d
+./dev.sh dev backend    # this stack
+./dev.sh dev all        # this stack plus the frontend
 ```
+
+Or directly:
+
+```bash
+docker compose -f compose/compose.dev.yml up -d
+```
+
+The project name is pinned to `dashboard-dev` in the file rather than derived
+from the directory, so that the named volumes keep their `dashboard-dev_` prefix
+whichever of the two files the stack is entered through — and the development
+database is not stranded by the choice.
+
+Local overrides go in `compose/.env` (gitignored); see `compose/.env.example`.
+It is read both for `${VAR}` substitution and, via `env_file:`, by the backend
+container itself.
 
 ### Services
 
@@ -84,11 +114,11 @@ volumes so the container's installed dependencies are not shadowed by the host's
 
 ### Owner bootstrap
 
-`docker/bootstrap-owner.sh` seeds the account the integration and topology
-Playwright lanes sign in as. It is idempotent:
+`nest-backend/docker/bootstrap-owner.sh` seeds the account the integration and
+topology Playwright lanes sign in as. It is idempotent:
 
 ```bash
-docker/bootstrap-owner.sh owner@example.com 'DevOwner!123'
+nest-backend/docker/bootstrap-owner.sh owner@example.com 'DevOwner!123'
 ```
 
 ### How the backend reaches Mailpit inside Docker
@@ -109,15 +139,23 @@ the network the service name is what resolves. See [email.md](email.md).
 ## Docker E2E stack
 
 ```bash
-cd nest-backend
-export COMPOSE_FILE=docker/test/e2e/docker-compose.yml
+./dev.sh e2e backend
+```
+
+which runs, from `nest-backend`:
+
+```bash
+export COMPOSE_FILE=compose/compose.test.yml
 docker compose up -d --wait postgres redis mongo mailpit
 docker compose run --rm --no-deps migration
 docker compose run --rm --no-deps app
 docker compose down -v
 ```
 
-This is exactly what CI runs. The Compose project name is `e2e`.
+This is exactly what CI runs. The Compose project name is `e2e`, pinned in the
+file so it survived the move out of `docker/test/e2e/`. The launcher tears the
+stack down from a `trap` and returns the suite's own exit code, so a cancelled
+or failing run leaves nothing behind and still reports honestly.
 
 ### Services
 
@@ -139,7 +177,7 @@ Note the ports differ from the development stack (5433/6380/27018 versus
 
 ### Images
 
-Two targets from the same `nest-backend/Dockerfile`:
+Two targets from the same `nest-backend/docker/Dockerfile`:
 
 - **`production`** — the runtime image. Runs as the `node` user, `NODE_ENV=production`,
   `CMD ["node","dist/main.js"]`, pruned production dependencies plus `dist`. Also
@@ -183,10 +221,11 @@ anywhere else. See [ci.md](ci.md).
 
 ## Which stack for which job
 
-| Task | Stack |
-|------|-------|
-| Day-to-day development, frontend + backend | Development |
-| Frontend Playwright integration lane | Development (plus `bootstrap-owner.sh`) |
-| Frontend Playwright topology lane | Development, started with `COOKIE_DOMAIN` and `app.`/`api.` origins |
-| Backend E2E on the host | Development stack for the databases + Mailpit, then `pnpm run test:e2e` |
-| Reproducing a CI E2E failure | Docker E2E |
+| Task | Stack | Command |
+|------|-------|---------|
+| Day-to-day development, frontend + backend | Development | `./dev.sh dev all` |
+| API work only | Development, backend entry | `./dev.sh dev backend` |
+| Frontend Playwright integration lane | Development (plus `bootstrap-owner.sh`) | `./dev.sh dev all` |
+| Frontend Playwright topology lane | Development, started with `COOKIE_DOMAIN` and `app.`/`api.` origins | see `playwright.topology.config.ts` |
+| Backend E2E on the host | Development stack for the databases + Mailpit, then `pnpm run test:e2e` | `./dev.sh dev backend` |
+| Reproducing a CI E2E failure | Docker E2E | `./dev.sh e2e backend` |

@@ -5,14 +5,19 @@
 ```
 nest-backend/
 ├── docs/                   # Architecture documentation
-├── docker/                 # Docker Compose files
-│   ├── development/
-│   ├── production/
-│   └── test/
+├── docker/                 # Image and the scripts that drive it
+│   ├── Dockerfile          # Multi-stage build
+│   ├── bootstrap-owner.sh
+│   ├── deploy.sh
+│   └── test-bootstrap.sh
+├── compose/                # Compose stacks
+│   ├── compose.dev.yml     # backend + postgres/redis/mongo/mailpit
+│   ├── compose.prod.yml
+│   ├── compose.test.yml    # the CI-shaped E2E lane
+│   └── compose.unit.yml
 ├── scripts/                # Utility scripts
 ├── src/                    # Application source
 ├── test/                   # E2E and integration tests
-├── Dockerfile              # Multi-stage build
 ├── commitlint.config.ts
 ├── eslint.config.mjs       # Flat config with architecture rules
 ├── jest.config.ts
