@@ -1,5 +1,6 @@
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { SessionErrors } from '@features/sessions/domain/errors/session-errors';
+import { LogEvent } from '@infrastructure/logging/logging.constants';
 import { createHash } from 'crypto';
 import { Refresh } from '../../use-cases/refresh.use-case';
 import {
@@ -236,7 +237,12 @@ describe('Refresh', () => {
       );
     });
 
-    it('should throw when rotate fails', async () => {
+    /**
+     * `affected = 0` on the optimistic update. The presented token matched the
+     * stored hash — it *was* the current token — so this is a lost race, not a
+     * replay, and it must not reach for the reuse machinery.
+     */
+    it('should raise a retryable rotation conflict when the optimistic write loses', async () => {
       mockTokenVerificationService.verifyRefresh.mockResolvedValue({
         sub: 'user-id',
         sessionId: 'session-id'
@@ -268,8 +274,91 @@ describe('Refresh', () => {
       mockSessionRotationUseCase.execute.mockResolvedValue(false);
 
       await expect(service.refresh('token')).rejects.toEqual(
-        SessionErrors.sessionReuseDetected('session-id')
+        SessionErrors.refreshRotationConflict('session-id')
       );
+    });
+
+    it('should not revoke the session when the optimistic write loses', async () => {
+      mockTokenVerificationService.verifyRefresh.mockResolvedValue({
+        sub: 'user-id',
+        sessionId: 'session-id'
+      });
+
+      mockRedisLockService.acquire.mockResolvedValue({
+        key: 'lock-key',
+        token: 'lock-token'
+      });
+
+      mockSessionQueryService.findActive.mockResolvedValue({
+        id: 'session-id',
+        refreshTokenHash: sha256('token'),
+        owner: { id: 'user-id' }
+      });
+
+      mockTokenIssueService.issuePair.mockResolvedValue({
+        accessToken: 'access',
+        refreshToken: 'refresh'
+      });
+
+      mockSessionRotationUseCase.execute.mockResolvedValue(false);
+
+      await expect(service.refresh('token')).rejects.toMatchObject({
+        code: 'REFRESH_ROTATION_CONFLICT',
+        statusCode: 409
+      });
+
+      expect(mockRevocationUseCase.revoke).not.toHaveBeenCalled();
+    });
+
+    /**
+     * `auth.refresh.reuse_detected` is emitted by `GlobalExceptionFilter` off
+     * the error *code*, so the assertion that matters here is that the code
+     * this path throws is not the one that triggers it. The filter's own spec
+     * covers the other half.
+     */
+    it('should log the optimistic write loss as a rotation conflict, not as reuse', async () => {
+      mockTokenVerificationService.verifyRefresh.mockResolvedValue({
+        sub: 'user-id',
+        sessionId: 'session-id'
+      });
+
+      mockRedisLockService.acquire.mockResolvedValue({
+        key: 'lock-key',
+        token: 'lock-token'
+      });
+
+      mockSessionQueryService.findActive.mockResolvedValue({
+        id: 'session-id',
+        refreshTokenHash: sha256('token'),
+        owner: { id: 'user-id' }
+      });
+
+      mockTokenIssueService.issuePair.mockResolvedValue({
+        accessToken: 'access',
+        refreshToken: 'refresh'
+      });
+
+      mockSessionRotationUseCase.execute.mockResolvedValue(false);
+
+      await expect(service.refresh('token')).rejects.toMatchObject({
+        code: 'REFRESH_ROTATION_CONFLICT'
+      });
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: LogEvent.REFRESH_ROTATION_CONFLICT,
+          sessionId: 'session-id'
+        }),
+        expect.any(String)
+      );
+
+      const emitted = [
+        ...mockLogger.info.mock.calls,
+        ...mockLogger.warn.mock.calls,
+        ...mockLogger.error.mock.calls
+      ].map(([payload]) => (payload as { event?: string }).event);
+
+      expect(emitted).not.toContain(LogEvent.REFRESH_REUSE_DETECTED);
     });
   });
 
@@ -415,6 +504,57 @@ describe('Refresh', () => {
       await expect(service.refresh('other-R1')).rejects.toEqual(
         SessionErrors.sessionExpired()
       );
+    });
+
+    /**
+     * The lock-expiry case, made deterministic.
+     *
+     * `REFRESH_LOCK` lives five seconds; a request still in flight when it
+     * lapses no longer excludes anyone, so a second refresh can acquire the
+     * lock and commit between this one's read and its compare-and-swap write.
+     * `issuePair` runs in exactly that gap, so committing the winner's rotation
+     * from there reproduces the interleaving precisely — no timers, no sleeps,
+     * no flakiness.
+     */
+    function rotateFromUnderneath(winnerToken: string) {
+      mockTokenIssueService.issuePair.mockImplementationOnce(async () => {
+        session.version += 1;
+        session.refreshTokenHash = sha256(winnerToken);
+
+        return { accessToken: 'access-loser', refreshToken: 'refresh-loser' };
+      });
+    }
+
+    it('answers a lost compare-and-swap with a retryable conflict, leaving the session alone', async () => {
+      seedSession('R1');
+      rotateFromUnderneath('winner-refresh');
+
+      await expect(service.refresh('R1')).rejects.toEqual(
+        SessionErrors.refreshRotationConflict(SESSION_ID)
+      );
+
+      // Not reuse: no revocation, and the winner's rotation is the only one
+      // that landed — the loser did not mint a second lineage.
+      expect(mockRevocationUseCase.revoke).not.toHaveBeenCalled();
+      expect(session.version).toBe(1);
+      expect(session.refreshTokenHash).toBe(sha256('winner-refresh'));
+    });
+
+    it('lets a bounded retry succeed once the winner’s token is in hand', async () => {
+      seedSession('R1');
+      rotateFromUnderneath('winner-refresh');
+
+      await expect(service.refresh('R1')).rejects.toEqual(
+        SessionErrors.refreshRotationConflict(SESSION_ID)
+      );
+
+      // What the client does next: retry with the cookie the winner set. The
+      // session is still active, so this is an ordinary rotation.
+      const retry = await service.refresh('winner-refresh');
+
+      expect(retry.refreshToken).toBe('refresh-1');
+      expect(session.version).toBe(2);
+      expect(mockRevocationUseCase.revoke).not.toHaveBeenCalled();
     });
 
     it('keeps one session authenticated through a concurrent refresh storm', async () => {
