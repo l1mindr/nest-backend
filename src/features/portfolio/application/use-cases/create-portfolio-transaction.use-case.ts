@@ -252,7 +252,6 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
       payload: { portfolioId, transactionId: transaction.id }
     });
 
-
     // Symbol and side are what a history row needs to read as "you bought
     // BTC". Amount, price and fee are left out: they are financial detail the
     // transaction itself holds, and this collection exists to render headings.

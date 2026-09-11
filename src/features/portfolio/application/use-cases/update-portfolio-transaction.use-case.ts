@@ -229,7 +229,6 @@ export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransa
       payload: { portfolioId, transactionId }
     });
 
-
     this.activityRecorder.record({
       userId,
       category: ActivityCategory.TRANSACTION,
