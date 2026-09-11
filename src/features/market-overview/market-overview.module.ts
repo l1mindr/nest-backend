@@ -19,8 +19,12 @@ import {
 import { CoinGeckoGlobalMarketProvider } from './infrastructure/coingecko/global-market.provider';
 import { CoinGeckoCoinMarketProvider } from './infrastructure/coingecko/coin-market.provider';
 import { NobitexUsdtTomanProvider } from './infrastructure/nobitex/usdt-toman.provider';
+import { WallexUsdtTomanProvider } from './infrastructure/wallex/usdt-toman.provider';
+import { FailoverUsdtTomanProvider } from './infrastructure/usdt-toman/failover-usdt-toman.provider';
 import globalMarketConfig from './infrastructure/coingecko/global-market.config';
 import nobitexUsdtTomanConfig from './infrastructure/nobitex/usdt-toman.config';
+import wallexUsdtTomanConfig from './infrastructure/wallex/usdt-toman.config';
+import usdtTomanConfig from './infrastructure/usdt-toman/usdt-toman.config';
 import { MarketOverviewCacheService } from './infrastructure/cache/market-overview-cache.service';
 import { CoinMarketCacheService } from './infrastructure/cache/coin-market-cache.service';
 import { UsdtTomanCacheService } from './infrastructure/cache/usdt-toman-cache.service';
@@ -33,8 +37,10 @@ import { UsdtTomanController } from './presentation/controllers/usdt-toman.contr
   imports: [
     ConfigModule.forFeature(globalMarketConfig),
     ConfigModule.forFeature(nobitexUsdtTomanConfig),
+    ConfigModule.forFeature(wallexUsdtTomanConfig),
+    ConfigModule.forFeature(usdtTomanConfig),
     // One HTTP client for the module. The per-request `timeout` each provider
-    // passes wins over this default, so the Nobitex calls are not bound to the
+    // passes wins over this default, so the exchange calls are not bound to the
     // CoinGecko timeout despite sharing the client.
     HttpModule.registerAsync({
       imports: [ConfigModule.forFeature(globalMarketConfig)],
@@ -74,10 +80,15 @@ import { UsdtTomanController } from './presentation/controllers/usdt-toman.contr
       provide: GET_COIN_MARKET_USE_CASE,
       useExisting: GetCoinMarketUseCase
     },
+    // Both exchanges are registered concretely, but only the failover chain is
+    // bound to the port: nothing above infrastructure gets to pick a venue, so
+    // switching `USDT_TOMAN_PROVIDER` is the only way to change the order.
     NobitexUsdtTomanProvider,
+    WallexUsdtTomanProvider,
+    FailoverUsdtTomanProvider,
     {
       provide: USDT_TOMAN_PORT,
-      useExisting: NobitexUsdtTomanProvider
+      useExisting: FailoverUsdtTomanProvider
     },
     UsdtTomanCacheService,
     GetUsdtTomanUseCase,
@@ -85,6 +96,12 @@ import { UsdtTomanController } from './presentation/controllers/usdt-toman.contr
       provide: GET_USDT_TOMAN_USE_CASE,
       useExisting: GetUsdtTomanUseCase
     }
-  ]
+  ],
+  // The USDT/Toman rate is the only thing another feature needs from here: the
+  // portfolio converts a Toman-entered transaction price with it. Exporting
+  // the use case rather than a provider keeps the cache and the failover chain
+  // on this side of the boundary, so there is still exactly one path to an
+  // exchange.
+  exports: [GET_USDT_TOMAN_USE_CASE]
 })
 export class MarketOverviewModule {}

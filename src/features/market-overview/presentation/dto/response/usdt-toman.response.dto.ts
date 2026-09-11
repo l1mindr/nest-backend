@@ -1,16 +1,27 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
+import { USDT_TOMAN_PROVIDERS } from '../../../infrastructure/usdt-toman/usdt-toman.config';
 
 /** Live USDT price in Iranian Toman, from an Iranian exchange. */
 export class UsdtTomanResponseDto {
   @ApiProperty({
     description:
-      'Current USDT price in Iranian **Toman** (not Rial), as an integer-valued decimal string.',
+      'Current USDT price in Iranian **Toman** (not Rial), as a decimal string. Normally integer-valued, since the venues quote whole Rial or Toman; a fractional part is possible when a Rial quote does not divide evenly by 10.',
     type: String,
-    example: '123450'
+    example: '234619'
   })
   @Expose()
   priceToman!: string;
+
+  @ApiProperty({
+    description:
+      'The exchange this rate came from. Varies between requests: if the preferred exchange is unavailable the API falls back to the other one, and this reports which actually answered.',
+    type: String,
+    enum: USDT_TOMAN_PROVIDERS,
+    example: 'nobitex'
+  })
+  @Expose()
+  provider!: string;
 
   @ApiProperty({
     description:

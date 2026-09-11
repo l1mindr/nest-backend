@@ -21,9 +21,15 @@ export class GetUsdtTomanUseCase implements IGetUsdtTomanUseCase {
 
   /**
    * Serves the cached rate while fresh; on a cache miss, fetches from the
-   * provider and repopulates the cache. If the provider fails, a still-cached
-   * (even if expired) value is served rather than failing the request. Only
-   * rethrows when there is no cached value at all.
+   * provider and repopulates the cache.
+   *
+   * The port behind this is the failover chain, so by the time a fetch throws,
+   * *every* configured exchange has already been tried and logged. Only then
+   * is a still-cached (even if expired) value served rather than failing the
+   * request — and it is returned with its original `fetchedAt` and
+   * `isStale: true`, never dressed up as a fresh read. A failed fetch does not
+   * touch the cache, so a good value is never overwritten by an outage. With
+   * no cached value at all, the provider error is rethrown.
    */
   async execute(): Promise<UsdtTomanSnapshot> {
     const cached = this.cache.get();
@@ -40,8 +46,8 @@ export class GetUsdtTomanUseCase implements IGetUsdtTomanUseCase {
 
       if (stale) {
         this.logger.warn(
-          { err: error },
-          'USDT rate provider failed; serving stale cached value'
+          { err: error, provider: stale.value.provider },
+          'All USDT rate providers failed; serving stale cached value'
         );
         return { ...stale.value, fetchedAt: stale.fetchedAt, isStale: true };
       }
