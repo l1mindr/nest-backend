@@ -8,6 +8,7 @@ import {
   MaxLength
 } from 'class-validator';
 import { PortfolioTransactionType } from '../../../domain/enums/portfolio-transaction-type.enum';
+import { TransactionPriceCurrency } from '../../../domain/enums/transaction-price-currency.enum';
 import { IsDecimalString } from '../../validators/decimal-string.validator';
 
 const PRICE_MAX_FRACTION_DIGITS = 8;
@@ -57,6 +58,20 @@ export class UpdatePortfolioTransactionRequestDto {
     allowZero: true
   })
   fee?: string | null;
+
+  @ApiPropertyOptional({
+    description: [
+      'Currency `price` and `fee` are expressed in for this update. Defaults to `USD` when omitted, so an existing client that patches only a price keeps its previous meaning.',
+      '',
+      "Supplying it re-denominates the transaction: a `TOMAN` patch converts the new price and fee at the current rate and records them as entered, while a `USD` patch clears any earlier conversion. Because the rate is read at update time, re-saving a Toman transaction re-stamps it at today's rate rather than the original one."
+    ].join('\n'),
+    enum: TransactionPriceCurrency,
+    default: TransactionPriceCurrency.USD,
+    example: TransactionPriceCurrency.TOMAN
+  })
+  @IsOptional()
+  @IsEnum(TransactionPriceCurrency)
+  priceCurrency?: TransactionPriceCurrency;
 
   @ApiPropertyOptional({
     description:

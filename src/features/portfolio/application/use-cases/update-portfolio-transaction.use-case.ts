@@ -33,6 +33,7 @@ import {
   REALTIME_EVENT_PUBLISHER
 } from '@features/realtime/application/interfaces/realtime.interface';
 import { HoldingsService } from '../../infrastructure/providers/holdings.service';
+import { TransactionPriceNormalizerService } from '../services/transaction-price-normalizer.service';
 
 @Injectable()
 export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransactionUseCase {
@@ -44,6 +45,7 @@ export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransa
     @Inject(PORTFOLIO_CALCULATION_CHECKPOINT_REPOSITORY)
     private readonly checkpointRepository: IPortfolioCalculationCheckpointRepository,
     private readonly holdingsService: HoldingsService,
+    private readonly priceNormalizer: TransactionPriceNormalizerService,
     private readonly logger: PinoLogger,
     private readonly auditLogService: AuditLogService,
     @Inject(REALTIME_EVENT_PUBLISHER)
@@ -65,6 +67,7 @@ export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransa
       dto.amount === undefined &&
       dto.price === undefined &&
       dto.fee === undefined &&
+      dto.priceCurrency === undefined &&
       dto.occurredAt === undefined &&
       dto.notes === undefined
     ) {
@@ -144,8 +147,31 @@ export class UpdatePortfolioTransactionUseCase implements IUpdatePortfolioTransa
 
     if (dto.type !== undefined) data.type = dto.type;
     if (dto.amount !== undefined) data.amount = dto.amount;
-    if (dto.price !== undefined) data.price = dto.price;
-    if (dto.fee !== undefined) data.fee = dto.fee;
+
+    // The denomination columns move as a set, so any edit that touches a
+    // monetary field rewrites all four rather than leaving a stored original
+    // or rate describing a value the row no longer holds.
+    if (
+      dto.price !== undefined ||
+      dto.fee !== undefined ||
+      dto.priceCurrency !== undefined
+    ) {
+      const pricing = await this.priceNormalizer.normalizeUpdate({
+        type: updatedType,
+        price: dto.price,
+        fee: dto.fee,
+        priceCurrency: dto.priceCurrency,
+        existing
+      });
+
+      data.price = pricing.price;
+      data.fee = pricing.fee;
+      data.priceCurrency = pricing.priceCurrency;
+      data.enteredPrice = pricing.enteredPrice;
+      data.enteredFee = pricing.enteredFee;
+      data.usdtTomanRate = pricing.usdtTomanRate;
+    }
+
     if (dto.occurredAt !== undefined)
       data.occurredAt = new Date(dto.occurredAt);
     if (dto.notes !== undefined) data.notes = dto.notes;

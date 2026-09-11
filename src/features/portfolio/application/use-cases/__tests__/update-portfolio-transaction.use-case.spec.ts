@@ -2,6 +2,7 @@ import { Portfolio } from '../../../domain/entities/portfolio.entity';
 import { PortfolioTransaction } from '../../../domain/entities/portfolio-transaction.entity';
 import { PortfolioErrorCode } from '../../../domain/errors/portfolio-error-code.enum';
 import { PortfolioTransactionType } from '../../../domain/enums/portfolio-transaction-type.enum';
+import { TransactionPriceCurrency } from '../../../domain/enums/transaction-price-currency.enum';
 import { UpdatePortfolioTransactionUseCase } from '../update-portfolio-transaction.use-case';
 
 describe('UpdatePortfolioTransactionUseCase', () => {
@@ -41,6 +42,27 @@ describe('UpdatePortfolioTransactionUseCase', () => {
     setContext: jest.fn(),
     info: jest.fn()
   };
+  /**
+   * Stands in for the real normalizer, which has its own spec. The default
+   * echoes a USD patch back unchanged, matching what every test here that
+   * predates Toman support expects to reach the repository.
+   */
+  const priceNormalizer = {
+    normalizeUpdate: jest.fn(
+      async (input: {
+        price?: string | null;
+        fee?: string | null;
+        existing: { price: string | null; fee: string | null };
+      }) => ({
+        price: input.price !== undefined ? input.price : input.existing.price,
+        fee: input.fee !== undefined ? input.fee : input.existing.fee,
+        priceCurrency: TransactionPriceCurrency.USD,
+        enteredPrice: null,
+        enteredFee: null,
+        usdtTomanRate: null
+      })
+    )
+  };
 
   let useCase: UpdatePortfolioTransactionUseCase;
 
@@ -73,6 +95,7 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       portfolioRepository as any,
       checkpointRepository as any,
       holdingsService as any,
+      priceNormalizer as any,
       logger as any,
       { record: jest.fn() } as any,
       { publishToUser: jest.fn() } as any,
@@ -105,7 +128,16 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       'transaction-id',
       'portfolio-id',
       'user-id',
-      { amount: '2.0', price: '65000' },
+      {
+        amount: '2.0',
+        price: '65000',
+        // The denomination columns move as a set with any monetary patch.
+        fee: '0.75',
+        priceCurrency: TransactionPriceCurrency.USD,
+        enteredPrice: null,
+        enteredFee: null,
+        usdtTomanRate: null
+      },
       expect.any(Object)
     );
     expect(checkpointRepository.withAssetLock).toHaveBeenCalledWith(
@@ -140,7 +172,15 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       'transaction-id',
       'portfolio-id',
       'user-id',
-      { type: PortfolioTransactionType.TRANSFER_IN, price: null },
+      {
+        type: PortfolioTransactionType.TRANSFER_IN,
+        price: null,
+        fee: '0.75',
+        priceCurrency: TransactionPriceCurrency.USD,
+        enteredPrice: null,
+        enteredFee: null,
+        usdtTomanRate: null
+      },
       expect.any(Object)
     );
     expect(result.type).toBe(PortfolioTransactionType.TRANSFER_IN);
@@ -189,7 +229,15 @@ describe('UpdatePortfolioTransactionUseCase', () => {
       'transaction-id',
       'portfolio-id',
       'user-id',
-      { fee: null, notes: null },
+      {
+        fee: null,
+        notes: null,
+        price: '60000',
+        priceCurrency: TransactionPriceCurrency.USD,
+        enteredPrice: null,
+        enteredFee: null,
+        usdtTomanRate: null
+      },
       expect.any(Object)
     );
     expect(result.fee).toBeNull();

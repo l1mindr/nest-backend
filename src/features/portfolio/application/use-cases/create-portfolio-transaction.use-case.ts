@@ -40,6 +40,7 @@ import {
   REALTIME_EVENT_PUBLISHER
 } from '@features/realtime/application/interfaces/realtime.interface';
 import { HoldingsService } from '../../infrastructure/providers/holdings.service';
+import { TransactionPriceNormalizerService } from '../services/transaction-price-normalizer.service';
 
 @Injectable()
 export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransactionUseCase {
@@ -55,6 +56,7 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
     @Inject(WALLET_REPOSITORY)
     private readonly walletRepository: IWalletRepository,
     private readonly holdingsService: HoldingsService,
+    private readonly priceNormalizer: TransactionPriceNormalizerService,
     private readonly logger: PinoLogger,
     private readonly auditLogService: AuditLogService,
     @Inject(REALTIME_EVENT_PUBLISHER)
@@ -168,14 +170,29 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
       }
     }
 
+    // Resolves the denomination before anything is written: a Toman entry is
+    // converted to the USD the ledger is valued in, and the value as entered
+    // plus the rate used are carried alongside it. A USD entry passes through
+    // untouched and never triggers a market lookup.
+    const pricing = await this.priceNormalizer.normalize({
+      type: dto.type,
+      price: dto.price ?? null,
+      fee: dto.fee ?? null,
+      priceCurrency: dto.priceCurrency
+    });
+
     const data: CreatePortfolioTransactionData = {
       userId,
       portfolioId,
       assetId: dto.assetId,
       type: dto.type,
       amount: dto.amount,
-      price: dto.price ?? null,
-      fee: dto.fee ?? null,
+      price: pricing.price,
+      fee: pricing.fee,
+      priceCurrency: pricing.priceCurrency,
+      enteredPrice: pricing.enteredPrice,
+      enteredFee: pricing.enteredFee,
+      usdtTomanRate: pricing.usdtTomanRate,
       occurredAt: new Date(dto.occurredAt),
       notes: dto.notes ?? null,
       destinationType,
@@ -214,7 +231,9 @@ export class CreatePortfolioTransactionUseCase implements ICreatePortfolioTransa
         type: transaction.type,
         amount: transaction.amount,
         price: transaction.price,
-        fee: transaction.fee
+        fee: transaction.fee,
+        priceCurrency: transaction.priceCurrency,
+        usdtTomanRate: transaction.usdtTomanRate
       },
       'Portfolio transaction created'
     );
