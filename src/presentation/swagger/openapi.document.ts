@@ -82,6 +82,9 @@ Authentication is **cookie-based**; the API does not read \`Authorization\` head
 
 \`POST /v1/auth/refresh\` rotates both tokens. Refresh tokens are single-use:
 replaying one revokes the whole session and returns \`401 SESSION_REUSE_DETECTED\`.
+Two refreshes that overlap are a different thing entirely — the loser gets
+\`429 REFRESH_RATE_LIMITED\` or \`409 REFRESH_ROTATION_CONFLICT\`, keeps its cookie,
+and should retry rather than sign the user out.
 
 ## CSRF
 

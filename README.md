@@ -51,7 +51,12 @@ The detailed project documentation lives in [docs](docs/). It is based on the cu
 | [Entities](docs/entities.md)                   | User/session entities, embedded timestamps, DTOs, and serialization.         |
 | [Caching](docs/caching.md)                     | Redis usage, rate-limit counters, and refresh-flow key helper.               |
 | [Configuration](docs/configuration.md)         | Environment variables, config modules, TypeScript, and package manager notes.|
+| [Portfolio & Market](docs/portfolio-market.md) | Transactions, holdings, valuation, cost basis, P&L, market data freshness.   |
+| [USDT/Toman Rate](docs/usdt-toman.md)          | The two exchange providers, unit conversion, fallback order, and switching.  |
+| [Email](docs/email.md)                         | Queue pipeline, email types, SMTP providers, Mailpit, retries, and security. |
 | [Testing](docs/testing.md)                     | Unit tests, e2e tests, helpers, factories, Dockerized test flow, and CI.     |
+| [Docker](docs/docker.md)                       | Development vs Docker E2E stacks, ports, healthchecks, and worker limits.    |
+| [CI/CD](docs/ci.md)                            | GitHub Actions workflow, image contract, and E2E worker configuration.       |
 | [Deployment](docs/deployment.md)               | Production image, migration release job, Compose flow, rollback, and CI.     |
 | [Development Guide](docs/development-guide.md) | Local setup, migrations, tests, code quality, and hooks.                     |
 | [Coding Decisions](docs/coding-decisions.md)   | Implementation decisions visible in the codebase.                            |
