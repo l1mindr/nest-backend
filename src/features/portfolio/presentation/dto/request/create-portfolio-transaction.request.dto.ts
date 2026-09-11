@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 import { Trim } from '@presentation/validation/decorators/trim.decorator';
 import { PortfolioTransactionType } from '../../../domain/enums/portfolio-transaction-type.enum';
+import { TransactionPriceCurrency } from '../../../domain/enums/transaction-price-currency.enum';
 import { TransferDestinationType } from '../../../domain/enums/transfer-destination-type.enum';
 import { IsDecimalString } from '../../validators/decimal-string.validator';
 
@@ -56,7 +57,7 @@ export class CreatePortfolioTransactionRequestDto {
 
   @ApiPropertyOptional({
     description:
-      'Fee paid for the trade, as a non-negative decimal string with at most 8 fractional digits.',
+      'Fee paid for the trade, as a non-negative decimal string with at most 8 fractional digits. Denominated in `priceCurrency`, not independently.',
     type: String,
     nullable: true,
     example: '0.75'
@@ -67,6 +68,22 @@ export class CreatePortfolioTransactionRequestDto {
     allowZero: true
   })
   fee?: string;
+
+  @ApiPropertyOptional({
+    description: [
+      'Currency `price` and `fee` are expressed in. Defaults to `USD`, which is what every transaction recorded before this field existed means, so omitting it preserves the previous behaviour exactly.',
+      '',
+      'With `TOMAN`, `price` is Toman per one unit of the asset and `fee` is a Toman amount. Both are converted to USD at the live USDT/Toman rate before storage — the portfolio is valued in USD — and the values as entered, along with the rate used, are kept on the transaction so it always reads back in the currency it was created in.',
+      '',
+      'The rate is read server-side from the same source as `GET /v1/market/usdt-toman`; it is never taken from the request. Only `BUY` and `SELL` accept a currency, since no other type records a price.'
+    ].join('\n'),
+    enum: TransactionPriceCurrency,
+    default: TransactionPriceCurrency.USD,
+    example: TransactionPriceCurrency.TOMAN
+  })
+  @IsOptional()
+  @IsEnum(TransactionPriceCurrency)
+  priceCurrency?: TransactionPriceCurrency;
 
   @ApiProperty({
     description:
