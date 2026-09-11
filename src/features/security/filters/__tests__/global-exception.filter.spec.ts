@@ -101,6 +101,28 @@ describe('GlobalExceptionFilter', () => {
     );
   });
 
+  /**
+   * The counterpart to the assertion above. A rotation conflict is a
+   * concurrency outcome — the presented token was current when it was read —
+   * so it must never be filed as the security event that reuse is, and never
+   * answered with a 401 the frontend reads as a dead session.
+   */
+  it('does not log a rotation conflict as reuse detection', () => {
+    filter.catch(SessionErrors.refreshRotationConflict('session-id'), host);
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.CONFLICT);
+    expect(mockLogger.error).not.toHaveBeenCalledWith(
+      expect.objectContaining({ event: LogEvent.REFRESH_REUSE_DETECTED }),
+      expect.anything()
+    );
+    expect(json).toHaveBeenCalledWith({
+      error: expect.objectContaining({
+        code: 'REFRESH_ROTATION_CONFLICT',
+        domain: ErrorDomain.SESSION
+      })
+    });
+  });
+
   it('logs authentication failures as warnings', () => {
     filter.catch(SecurityErrors.authenticationRequired(), host);
 
