@@ -184,5 +184,6 @@ Refresh:
 | `SESSION_EXPIRED` | Session has expired | 401 |
 | `SESSION_REVOKED` | Session was revoked | 401 |
 | `SESSION_REUSE_DETECTED` | Old refresh token used after rotation | 401 |
+| `REFRESH_ROTATION_CONFLICT` | The optimistic rotation lost to a concurrent refresh; retryable, session kept | 409 |
 | `REFRESH_RATE_LIMITED` | Refresh attempted within the rate-limit window | 429 |
 | `INVALID_CURSOR` | Malformed pagination cursor | 400 |

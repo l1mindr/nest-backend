@@ -204,7 +204,7 @@ Emails are sent over SMTP (Gmail) via `SmtpEmailService` (Nodemailer). Delivery 
        rotated_at = :now, last_used_at = :now, expires_at = :newExpiresAt
    WHERE id = :id AND refresh_token_hash = :oldHash AND version = :oldVersion
    ```
-9. If 0 rows affected → `SESSION_REUSE_DETECTED`
+9. If 0 rows affected → `409 REFRESH_ROTATION_CONFLICT` (below). **Not** reuse: the presented token matched the stored hash at step 5, so this is a lost race, not a replay. The session is left active and the cookie is left in place
 10. Releases Redis lock
 11. Sets new cookies via `AuthCookieInterceptor`
 
@@ -212,7 +212,35 @@ Emails are sent over SMTP (Gmail) via `SmtpEmailService` (Nodemailer). Delivery 
 
 - **Database-level**: Optimistic concurrency via `version` field. Only one winner per refresh.
 - **Redis-level**: Lock prevents concurrent rotation attempts on same session.
-- **Reuse detection**: If old refresh token is used after rotation, hash mismatch or stale version triggers revocation.
+- **Reuse detection**: If an old refresh token is used after rotation, the hash mismatch at step 5 triggers revocation — subject to the grace window below.
+
+### Rotation Conflict (`409 REFRESH_ROTATION_CONFLICT`)
+
+The Redis lock is held for five seconds. A request still in flight when it
+lapses no longer excludes anyone, so a second refresh can acquire the lock and
+commit its rotation between the first request's read (step 4) and its
+compare-and-swap write (step 8). The first request's `UPDATE` then matches no
+rows.
+
+That used to raise `SESSION_REUSE_DETECTED`, which is the wrong claim twice
+over: the token *was* current when it was compared, and the 401 that carried it
+is read by the frontend as a dead session — so a millisecond of bad luck signed
+the user out. It answers `409` instead:
+
+| | Replay | Rotation conflict |
+|---|---|---|
+| Signal | Presented hash ≠ stored hash, and no grace record | `affected = 0` on the optimistic write |
+| Token at compare time | Already spent | Current |
+| Session | **Revoked** | Untouched |
+| `refresh_token` cookie | Cleared | Left in place |
+| Response | `401 SESSION_REUSE_DETECTED` | `409 REFRESH_ROTATION_CONFLICT` |
+| Log event | `auth.refresh.reuse_detected` (error) | `auth.refresh.rotation_conflict` (warn) |
+| Client | Log in again | Retry, bounded |
+
+The conflict is reported only after the winner has committed, so a retry meets a
+settled session: it either presents the new token or resolves through the grace
+window below. `refresh-manager.ts` in the frontend makes at most one such retry
+per refresh, with no delay.
 
 ### Rotation Grace Window
 
@@ -383,6 +411,7 @@ Separate secrets from environment variables. Symmetric signing (asymmetric key r
 | `SESSION_EXPIRED` | Session expired | 401 |
 | `SESSION_REVOKED` | Session revoked | 401 |
 | `SESSION_REUSE_DETECTED` | Old refresh token reused | 401 |
+| `REFRESH_ROTATION_CONFLICT` | Another request rotated this session first; retryable, session kept | 409 |
 | `REFRESH_RATE_LIMITED` | Too many refresh attempts | 429 |
 | `INVALID_TOKEN` | JWT signature invalid | 401 |
 | `EXPIRED_TOKEN` | JWT expired | 401 |
