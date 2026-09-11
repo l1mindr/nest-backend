@@ -1,4 +1,8 @@
 import * as Joi from 'joi';
+import {
+  DEFAULT_USDT_TOMAN_PROVIDER,
+  USDT_TOMAN_PROVIDERS
+} from '@features/market-overview/infrastructure/usdt-toman/usdt-toman.config';
 
 // Allowed environments
 const NODE_ENVS = ['development', 'production', 'test', 'staging'] as const;
@@ -355,6 +359,131 @@ export const ENV_VALIDATION_SCHEMA = Joi.object({
         'COINGECKO_BACKOFF_MS must be between 100 and 60000 milliseconds.',
       'number.max':
         'COINGECKO_BACKOFF_MS must be between 100 and 60000 milliseconds.'
+    }),
+
+  // The USDT/Toman rate comes from Iranian exchanges, which CoinGecko cannot
+  // supply. `USDT_TOMAN_PROVIDER` names the preferred venue; the other is used
+  // automatically when it fails. An unrecognised name fails startup rather
+  // than silently defaulting, so a typo cannot quietly change which exchange a
+  // deployment prices from.
+  USDT_TOMAN_PROVIDER: Joi.string()
+    .valid(...USDT_TOMAN_PROVIDERS)
+    .default(DEFAULT_USDT_TOMAN_PROVIDER)
+    .optional()
+    .messages({
+      'any.only': `USDT_TOMAN_PROVIDER must be one of: ${USDT_TOMAN_PROVIDERS.join(', ')}.`
+    }),
+  USDT_TOMAN_CACHE_TTL_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .max(3600000)
+    .default(60000)
+    .optional()
+    .messages({
+      'number.min':
+        'USDT_TOMAN_CACHE_TTL_MS must be between 1000 and 3600000 milliseconds.',
+      'number.max':
+        'USDT_TOMAN_CACHE_TTL_MS must be between 1000 and 3600000 milliseconds.'
+    }),
+
+  // Rial per Toman for venues that quote Rial. Validated as an exact integer
+  // because the conversion runs through the decimal helpers, not float
+  // division; 10 is the real ratio and anything else is a deliberate override.
+  RIAL_PER_TOMAN: Joi.number()
+    .integer()
+    .min(1)
+    .max(1000)
+    .default(10)
+    .optional()
+    .messages({
+      'number.min': 'RIAL_PER_TOMAN must be a positive integer (10 in reality).'
+    }),
+
+  // Nobitex's public market endpoints need no key. Like the CoinGecko base
+  // URL, the host is trusted server configuration only — never derived from
+  // client input — so a misconfigured deployment fails startup validation
+  // rather than enabling SSRF through a request parameter.
+  NOBITEX_BASE_URL: Joi.string()
+    .uri({ scheme: ['https'] })
+    .optional()
+    .messages({
+      'string.uri': 'NOBITEX_BASE_URL must be an absolute https URL.'
+    }),
+  NOBITEX_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .max(60000)
+    .default(10000)
+    .optional()
+    .messages({
+      'number.min':
+        'NOBITEX_TIMEOUT_MS must be between 1000 and 60000 milliseconds.',
+      'number.max':
+        'NOBITEX_TIMEOUT_MS must be between 1000 and 60000 milliseconds.'
+    }),
+  NOBITEX_RETRIES: Joi.number()
+    .integer()
+    .min(0)
+    .max(5)
+    .default(2)
+    .optional()
+    .messages({
+      'number.max': 'NOBITEX_RETRIES must not exceed 5.'
+    }),
+  NOBITEX_BACKOFF_MS: Joi.number()
+    .integer()
+    .min(100)
+    .max(60000)
+    .default(1000)
+    .optional()
+    .messages({
+      'number.min':
+        'NOBITEX_BACKOFF_MS must be between 100 and 60000 milliseconds.',
+      'number.max':
+        'NOBITEX_BACKOFF_MS must be between 100 and 60000 milliseconds.'
+    }),
+
+  // Wallex, the second exchange behind the same rate. Same reasoning as the
+  // Nobitex block above; kept separate so one venue's timeout budget is not
+  // silently applied to the other.
+  WALLEX_BASE_URL: Joi.string()
+    .uri({ scheme: ['https'] })
+    .optional()
+    .messages({
+      'string.uri': 'WALLEX_BASE_URL must be an absolute https URL.'
+    }),
+  WALLEX_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .max(60000)
+    .default(10000)
+    .optional()
+    .messages({
+      'number.min':
+        'WALLEX_TIMEOUT_MS must be between 1000 and 60000 milliseconds.',
+      'number.max':
+        'WALLEX_TIMEOUT_MS must be between 1000 and 60000 milliseconds.'
+    }),
+  WALLEX_RETRIES: Joi.number()
+    .integer()
+    .min(0)
+    .max(5)
+    .default(2)
+    .optional()
+    .messages({
+      'number.max': 'WALLEX_RETRIES must not exceed 5.'
+    }),
+  WALLEX_BACKOFF_MS: Joi.number()
+    .integer()
+    .min(100)
+    .max(60000)
+    .default(1000)
+    .optional()
+    .messages({
+      'number.min':
+        'WALLEX_BACKOFF_MS must be between 100 and 60000 milliseconds.',
+      'number.max':
+        'WALLEX_BACKOFF_MS must be between 100 and 60000 milliseconds.'
     }),
 
   BCRYPT_ROUNDS: Joi.number()

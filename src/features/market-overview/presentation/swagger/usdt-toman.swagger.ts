@@ -26,11 +26,13 @@ export const ApiGetUsdtToman = () =>
       operationId: 'getUsdtTomanRate',
       summary: 'Get the live USDT price in Iranian Toman',
       description: [
-        'Returns the current USDT price in Iranian **Toman**, read from an Iranian exchange. CoinGecko does not quote Iranian currency, so this route has its own upstream and its own cache.',
+        'Returns the current USDT price in Iranian **Toman**, read from an Iranian exchange. CoinGecko does not quote Iranian currency, so this route has its own upstreams and its own cache.',
         '',
-        'The value is Toman, not Rial. The venue prices its market in Rial and this divides by `RIAL_PER_TOMAN` (default 10), which is configurable so the assumption can be corrected without a code change.',
+        'Two exchanges back this route — Nobitex and Wallex. `USDT_TOMAN_PROVIDER` picks the preferred one; if it is unavailable the other is tried automatically, and the `provider` field reports which actually answered.',
         '',
-        'The response may be served from a short-lived server-side cache. If the provider is briefly unavailable, a still-cached value is served instead of failing the request; only a request with no cached value at all can fail.',
+        'The value is Toman, not Rial, whichever exchange served it. Nobitex prices its market in Rial and is divided by `RIAL_PER_TOMAN` (default 10), configurable so the assumption can be corrected without a code change; Wallex quotes Toman already and is passed through unscaled.',
+        '',
+        'The response may be served from a short-lived server-side cache. If *every* exchange is unavailable, a still-cached value is served instead of failing the request — flagged with `isStale: true` and its original `fetchedAt`, never presented as a fresh read. Only a request with no cached value at all can fail.',
         '',
         'Requires authentication.'
       ].join('\n')
@@ -51,7 +53,11 @@ export const ApiGetUsdtToman = () =>
         )
       ),
       badGatewayResponse(
-        'The market data provider is unavailable, rejected the request, or returned a response this API could not parse, and no cached value was available.',
+        'Every configured exchange is unavailable, rejected the request, or returned a response this API could not parse, and no cached value was available.',
+        errorExample(
+          MarketOverviewErrors.providersExhausted(['nobitex', 'wallex']),
+          'Both the preferred exchange and its fallback failed'
+        ),
         errorExample(
           MarketOverviewErrors.providerUnavailable(),
           'The exchange is unreachable or returned a 5xx'

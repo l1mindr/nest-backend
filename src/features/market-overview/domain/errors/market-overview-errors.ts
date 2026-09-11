@@ -53,4 +53,23 @@ export class MarketOverviewErrors {
       'Global market data provider returned an invalid response'
     );
   }
+
+  /**
+   * Every exchange in a failover chain failed for one request.
+   *
+   * Distinct from the single-provider errors above so the cause is not
+   * mistaken for one venue having a bad day: reaching this means the preferred
+   * exchange *and* its fallback both failed, which is an outage rather than a
+   * blip. The per-provider failures are logged by the failover provider; only
+   * the venue names travel in the message, never a URL or a credential.
+   */
+  static providersExhausted(providers: readonly string[]) {
+    return new AppError(
+      MarketOverviewErrorCode.MARKET_OVERVIEW_PROVIDERS_EXHAUSTED,
+      ErrorDomain.MARKET_OVERVIEW,
+      HttpStatus.BAD_GATEWAY,
+      undefined,
+      `All market data providers failed (${providers.join(', ')})`
+    );
+  }
 }

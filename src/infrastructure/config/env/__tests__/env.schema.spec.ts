@@ -227,6 +227,72 @@ describe('Environment validation', () => {
     });
   });
 
+  describe('USDT_TOMAN_PROVIDER', () => {
+    it('should default to nobitex when unset', () => {
+      const { error, value } = ENV_VALIDATION_SCHEMA.validate({
+        ...VALID_ENV,
+        USDT_TOMAN_PROVIDER: undefined
+      });
+
+      expect(error).toBeUndefined();
+      expect(value.USDT_TOMAN_PROVIDER).toBe('nobitex');
+    });
+
+    it.each(['nobitex', 'wallex'])('should accept %p', (provider) => {
+      const { error, value } = ENV_VALIDATION_SCHEMA.validate({
+        ...VALID_ENV,
+        USDT_TOMAN_PROVIDER: provider
+      });
+
+      expect(error).toBeUndefined();
+      expect(value.USDT_TOMAN_PROVIDER).toBe(provider);
+    });
+
+    // An unrecognised name must fail startup rather than silently picking a
+    // venue: a typo would otherwise change which exchange a deployment prices
+    // from, with nothing in the logs to say so.
+    it.each(['binance', 'Nobitex', 'providerA', ''])(
+      'should reject %p at startup',
+      (provider) => {
+        const { error } = ENV_VALIDATION_SCHEMA.validate({
+          ...VALID_ENV,
+          USDT_TOMAN_PROVIDER: provider
+        });
+
+        expect(error?.message).toContain('USDT_TOMAN_PROVIDER');
+      }
+    );
+
+    it.each([
+      ['NOBITEX_BASE_URL', 'http://apiv2.nobitex.ir'],
+      ['NOBITEX_BASE_URL', 'not-a-url'],
+      ['WALLEX_BASE_URL', 'http://api.wallex.ir'],
+      ['NOBITEX_TIMEOUT_MS', 100],
+      ['WALLEX_TIMEOUT_MS', 90000],
+      ['NOBITEX_RETRIES', 9],
+      ['RIAL_PER_TOMAN', 0],
+      ['RIAL_PER_TOMAN', 1.5],
+      ['USDT_TOMAN_CACHE_TTL_MS', 10]
+    ])('should reject %s=%p', (key, invalid) => {
+      const { error } = ENV_VALIDATION_SCHEMA.validate({
+        ...VALID_ENV,
+        [key]: invalid
+      });
+
+      expect(error?.message).toContain(key);
+    });
+
+    it('should apply the exchange defaults when nothing is set', () => {
+      const { error, value } = ENV_VALIDATION_SCHEMA.validate(VALID_ENV);
+
+      expect(error).toBeUndefined();
+      expect(value.RIAL_PER_TOMAN).toBe(10);
+      expect(value.USDT_TOMAN_CACHE_TTL_MS).toBe(60000);
+      expect(value.NOBITEX_TIMEOUT_MS).toBe(10000);
+      expect(value.WALLEX_TIMEOUT_MS).toBe(10000);
+    });
+  });
+
   describe('SECURITY_HASH_SECRET', () => {
     // Production-shaped values: the schema demands 64 chars for the token
     // secrets and 32 with real entropy for the hash secret.
