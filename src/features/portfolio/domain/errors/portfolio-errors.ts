@@ -104,6 +104,35 @@ export class PortfolioErrors {
     );
   }
 
+  /**
+   * A price currency only means something alongside a price. Accepting one on
+   * a transfer would record a denomination for a value that does not exist.
+   */
+  static transactionPriceCurrencyNotApplicable() {
+    return new AppError(
+      PortfolioErrorCode.TRANSACTION_PRICE_CURRENCY_NOT_APPLICABLE,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      { field: 'priceCurrency' },
+      'priceCurrency only applies to BUY and SELL transactions'
+    );
+  }
+
+  /**
+   * Converting a Toman entry needs a live USDT/Toman rate. Failing here is
+   * deliberate: guessing a rate, or falling back to treating the number as
+   * USD, would record a transaction the user never entered.
+   */
+  static transactionPriceRateUnavailable() {
+    return new AppError(
+      PortfolioErrorCode.TRANSACTION_PRICE_RATE_UNAVAILABLE,
+      ErrorDomain.PORTFOLIO,
+      HttpStatus.SERVICE_UNAVAILABLE,
+      { field: 'priceCurrency' },
+      'The USDT/Toman rate needed to convert a Toman price is unavailable'
+    );
+  }
+
   static invalidCursor() {
     return new AppError(
       PortfolioErrorCode.INVALID_CURSOR,

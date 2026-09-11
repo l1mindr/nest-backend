@@ -3,6 +3,7 @@ import { Portfolio } from '../../../domain/entities/portfolio.entity';
 import { PortfolioTransaction } from '../../../domain/entities/portfolio-transaction.entity';
 import { PortfolioErrorCode } from '../../../domain/errors/portfolio-error-code.enum';
 import { PortfolioTransactionType } from '../../../domain/enums/portfolio-transaction-type.enum';
+import { TransactionPriceCurrency } from '../../../domain/enums/transaction-price-currency.enum';
 import { CreatePortfolioTransactionUseCase } from '../create-portfolio-transaction.use-case';
 
 describe('CreatePortfolioTransactionUseCase', () => {
@@ -70,6 +71,24 @@ describe('CreatePortfolioTransactionUseCase', () => {
     disconnectUserExcept: jest.fn()
   };
 
+  /**
+   * Stands in for the real normalizer, which is covered by its own spec. The
+   * default passes a USD entry straight through, which is what every test here
+   * that predates Toman support expects; the Toman tests override it.
+   */
+  const priceNormalizer = {
+    normalize: jest.fn(
+      async (input: { price: string | null; fee: string | null }) => ({
+        price: input.price,
+        fee: input.fee,
+        priceCurrency: TransactionPriceCurrency.USD,
+        enteredPrice: null,
+        enteredFee: null,
+        usdtTomanRate: null
+      })
+    )
+  };
+
   let useCase: CreatePortfolioTransactionUseCase;
 
   const activityRecorder = { record: jest.fn() };
@@ -91,11 +110,102 @@ describe('CreatePortfolioTransactionUseCase', () => {
       checkpointRepository as any,
       walletRepository as any,
       holdingsService as any,
+      priceNormalizer as any,
       logger as any,
       auditLogService as any,
       realtimeEventPublisher as any,
       activityRecorder as any
     );
+  });
+
+  describe('price denomination', () => {
+    it('should default a BUY to USD and record no conversion', async () => {
+      await useCase.execute('user-id', 'portfolio-id', {
+        assetId: 'asset-id',
+        type: PortfolioTransactionType.BUY,
+        amount: '1.5',
+        price: '60000.5',
+        fee: '0.75',
+        occurredAt: '2026-07-28T08:00:00.000Z'
+      } as any);
+
+      expect(priceNormalizer.normalize).toHaveBeenCalledWith({
+        type: PortfolioTransactionType.BUY,
+        price: '60000.5',
+        fee: '0.75',
+        priceCurrency: undefined
+      });
+      expect(transactionRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          price: '60000.5',
+          fee: '0.75',
+          priceCurrency: TransactionPriceCurrency.USD,
+          enteredPrice: null,
+          enteredFee: null,
+          usdtTomanRate: null
+        }),
+        expect.any(Object)
+      );
+    });
+
+    it('should persist the converted USD figures and the Toman originals', async () => {
+      priceNormalizer.normalize.mockResolvedValueOnce({
+        price: '0.99736168',
+        fee: '0.21311147',
+        priceCurrency: TransactionPriceCurrency.TOMAN,
+        enteredPrice: '234000',
+        enteredFee: '50000',
+        usdtTomanRate: '234619'
+      } as never);
+
+      await useCase.execute('user-id', 'portfolio-id', {
+        assetId: 'asset-id',
+        type: PortfolioTransactionType.BUY,
+        amount: '100',
+        price: '234000',
+        fee: '50000',
+        priceCurrency: TransactionPriceCurrency.TOMAN,
+        occurredAt: '2026-07-28T08:00:00.000Z'
+      } as any);
+
+      expect(priceNormalizer.normalize).toHaveBeenCalledWith({
+        type: PortfolioTransactionType.BUY,
+        price: '234000',
+        fee: '50000',
+        priceCurrency: TransactionPriceCurrency.TOMAN
+      });
+      // `price`/`fee` reach the ledger in USD — the cost-basis engine reads
+      // them — while the Toman the user typed is preserved beside them.
+      expect(transactionRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: '100',
+          price: '0.99736168',
+          fee: '0.21311147',
+          priceCurrency: TransactionPriceCurrency.TOMAN,
+          enteredPrice: '234000',
+          enteredFee: '50000',
+          usdtTomanRate: '234619'
+        }),
+        expect.any(Object)
+      );
+    });
+
+    it('should surface a rejection from the normalizer rather than storing anything', async () => {
+      priceNormalizer.normalize.mockRejectedValueOnce(new Error('no rate'));
+
+      await expect(
+        useCase.execute('user-id', 'portfolio-id', {
+          assetId: 'asset-id',
+          type: PortfolioTransactionType.BUY,
+          amount: '100',
+          price: '234000',
+          priceCurrency: TransactionPriceCurrency.TOMAN,
+          occurredAt: '2026-07-28T08:00:00.000Z'
+        } as any)
+      ).rejects.toThrow('no rate');
+
+      expect(transactionRepository.create).not.toHaveBeenCalled();
+    });
   });
 
   it('should record a BUY transaction with the supplied price and instant', async () => {

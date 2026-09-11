@@ -5,6 +5,7 @@ import { PortfolioTransaction } from '@features/portfolio/domain/entities/portfo
 import { Portfolio } from '@features/portfolio/domain/entities/portfolio.entity';
 import { PortfolioSourceType } from '@features/portfolio/domain/enums/portfolio-source-type.enum';
 import { PortfolioTransactionType } from '@features/portfolio/domain/enums/portfolio-transaction-type.enum';
+import { TransactionPriceCurrency } from '@features/portfolio/domain/enums/transaction-price-currency.enum';
 import { HoldingRepository } from '@features/portfolio/infrastructure/repositories/holding.repository';
 import { PortfolioOpeningBalanceRepository } from '@features/portfolio/infrastructure/repositories/portfolio-opening-balance.repository';
 import { PortfolioTransactionRepository } from '@features/portfolio/infrastructure/repositories/portfolio-transaction.repository';
@@ -358,6 +359,10 @@ describe('Portfolio repositories (e2e)', () => {
         amount: '0.5',
         price: '60000.50',
         fee: '0.75',
+        priceCurrency: TransactionPriceCurrency.USD,
+        enteredPrice: null,
+        enteredFee: null,
+        usdtTomanRate: null,
         occurredAt,
         notes: 'Dollar-cost average',
         destinationType: null,
@@ -932,7 +937,14 @@ describe('Portfolio repositories (e2e)', () => {
       exchangeName: null,
       txid: null,
       walletId: null,
-      ...overrides
+      ...overrides,
+      // After the spread, so a `Partial<PortfolioTransaction>` override cannot
+      // widen these back to `undefined`. An override that genuinely wants a
+      // different denomination still comes through the fallbacks.
+      priceCurrency: overrides.priceCurrency ?? TransactionPriceCurrency.USD,
+      enteredPrice: overrides.enteredPrice ?? null,
+      enteredFee: overrides.enteredFee ?? null,
+      usdtTomanRate: overrides.usdtTomanRate ?? null
     });
   }
 

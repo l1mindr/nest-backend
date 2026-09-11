@@ -18,6 +18,7 @@ import { CreateRoleTables1700000016000 } from '../../src/infrastructure/database
 import { CreateWalletTable1700000017000 } from '../../src/infrastructure/databases/postgres/migrations/1700000017000-CreateWalletTable';
 import { AddTransferDestinationToPortfolioTransaction1700000018000 } from '../../src/infrastructure/databases/postgres/migrations/1700000018000-AddTransferDestinationToPortfolioTransaction';
 import { CreateWalletAddressTable1700000019000 } from '../../src/infrastructure/databases/postgres/migrations/1700000019000-CreateWalletAddressTable';
+import { AddPriceCurrencyToPortfolioTransaction1700000020000 } from '../../src/infrastructure/databases/postgres/migrations/1700000020000-AddPriceCurrencyToPortfolioTransaction';
 
 /**
  * The runtime data source resolves migrations from a `dist/**` glob, which is
@@ -46,5 +47,6 @@ export const E2E_MIGRATIONS = [
   CreateRoleTables1700000016000,
   CreateWalletTable1700000017000,
   AddTransferDestinationToPortfolioTransaction1700000018000,
-  CreateWalletAddressTable1700000019000
+  CreateWalletAddressTable1700000019000,
+  AddPriceCurrencyToPortfolioTransaction1700000020000
 ];

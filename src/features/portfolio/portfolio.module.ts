@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Asset } from '@features/assets/domain/entities/asset.entity';
 import { AssetsModule } from '@features/assets/assets.module';
 import { WalletsModule } from '@features/wallets/wallets.module';
+import { MarketOverviewModule } from '@features/market-overview/market-overview.module';
 import { Portfolio } from './domain/entities/portfolio.entity';
 import { Holding } from './domain/entities/holding.entity';
 import { PortfolioTransaction } from './domain/entities/portfolio-transaction.entity';
@@ -39,6 +40,7 @@ import { HoldingMapper } from './application/mappers/holding.mapper';
 import { PortfolioTransactionMapper } from './application/mappers/portfolio-transaction.mapper';
 import { PortfolioOpeningBalanceMapper } from './application/mappers/portfolio-opening-balance.mapper';
 import { HoldingsService } from './infrastructure/providers/holdings.service';
+import { TransactionPriceNormalizerService } from './application/services/transaction-price-normalizer.service';
 import { PortfoliosController } from './presentation/controllers/portfolios.controller';
 import { HoldingsController } from './presentation/controllers/holdings.controller';
 import { PortfolioTransactionsController } from './presentation/controllers/portfolio-transactions.controller';
@@ -79,6 +81,11 @@ import {
     ActivityModule,
     AssetsModule,
     WalletsModule,
+    // For the USDT/Toman rate alone, used to convert a Toman-entered
+    // transaction price into the USD the portfolio is valued in. The rate
+    // still comes from the market feature's own cache and failover chain — the
+    // portfolio never talks to an exchange.
+    MarketOverviewModule,
     TypeOrmModule.forFeature([
       Portfolio,
       Holding,
@@ -191,7 +198,8 @@ import {
     HoldingMapper,
     PortfolioTransactionMapper,
     PortfolioOpeningBalanceMapper,
-    HoldingsService
+    HoldingsService,
+    TransactionPriceNormalizerService
   ]
 })
 export class PortfolioModule {}

@@ -4,6 +4,7 @@ import { ExampleValue } from '@presentation/swagger/openapi.constants';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { PortfolioTransactionType } from '../../../domain/enums/portfolio-transaction-type.enum';
+import { TransactionPriceCurrency } from '../../../domain/enums/transaction-price-currency.enum';
 import { TransferDestinationType } from '../../../domain/enums/transfer-destination-type.enum';
 
 /** One transaction recorded against a portfolio source. */
@@ -52,7 +53,7 @@ export class PortfolioTransactionResponseDto extends TimestampResponseDto {
 
   @ApiProperty({
     description:
-      'Price per unit at the time of the trade, as a decimal string with up to 8 fractional digits, or `null` when the transaction type has no price.',
+      'Price per unit at the time of the trade in **USD**, as a decimal string with up to 8 fractional digits, or `null` when the transaction type has no price. Always USD regardless of `priceCurrency` — this is the figure cost basis and P&L are computed from. For a Toman transaction, `enteredPrice` holds what the user actually typed.',
     type: String,
     nullable: true,
     example: '60000.50'
@@ -62,13 +63,52 @@ export class PortfolioTransactionResponseDto extends TimestampResponseDto {
 
   @ApiProperty({
     description:
-      'Fee paid for the trade, as a decimal string with up to 8 fractional digits, or `null` when none was recorded.',
+      'Fee paid for the trade in **USD**, as a decimal string with up to 8 fractional digits, or `null` when none was recorded. Same USD guarantee as `price`.',
     type: String,
     nullable: true,
     example: '0.75'
   })
   @Expose()
   fee!: string | null;
+
+  @ApiProperty({
+    description:
+      'Currency the price and fee were entered in. `USD` for every transaction recorded before Toman entry existed, and for every transaction entered in dollars since.',
+    enum: TransactionPriceCurrency,
+    example: TransactionPriceCurrency.USD
+  })
+  @Expose()
+  priceCurrency!: TransactionPriceCurrency;
+
+  @ApiProperty({
+    description:
+      'Price per unit exactly as the user entered it, in `priceCurrency`, or `null` when no conversion happened (`priceCurrency` is `USD`). Display this rather than `price` when it is present, so the transaction reads back in the currency it was created in.',
+    type: String,
+    nullable: true,
+    example: '234000'
+  })
+  @Expose()
+  enteredPrice!: string | null;
+
+  @ApiProperty({
+    description:
+      'Fee exactly as the user entered it, in `priceCurrency`, or `null` when no conversion happened.',
+    type: String,
+    nullable: true,
+    example: '50000'
+  })
+  @Expose()
+  enteredFee!: string | null;
+
+  @ApiProperty({
+    description:
+      'Toman per 1 USDT applied when this transaction was recorded, or `null` when no conversion happened. Frozen at write time: a later move in the market rate does not restate this transaction.',
+    type: String,
+    nullable: true,
+    example: '234619'
+  })
+  @Expose()
+  usdtTomanRate!: string | null;
 
   @ApiProperty({
     description:

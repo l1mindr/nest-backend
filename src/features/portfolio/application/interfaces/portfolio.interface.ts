@@ -10,6 +10,7 @@ import { PortfolioOpeningBalance } from '../../domain/entities/portfolio-opening
 import { PortfolioTransaction } from '../../domain/entities/portfolio-transaction.entity';
 import { PortfolioSourceType } from '../../domain/enums/portfolio-source-type.enum';
 import { PortfolioTransactionType } from '../../domain/enums/portfolio-transaction-type.enum';
+import { TransactionPriceCurrency } from '../../domain/enums/transaction-price-currency.enum';
 import { TransferDestinationType } from '../../domain/enums/transfer-destination-type.enum';
 import { PortfolioValuationStatus } from '../../domain/enums/portfolio-valuation-status.enum';
 import { CreateHoldingRequestDto } from '../../presentation/dto/request/create-holding.request.dto';
@@ -302,8 +303,14 @@ export interface CreatePortfolioTransactionData {
   assetId: string;
   type: PortfolioTransactionType;
   amount: string;
+  /** USD, already converted from `enteredPrice` when a conversion happened. */
   price: string | null;
+  /** USD, on the same terms as `price`. */
   fee: string | null;
+  priceCurrency: TransactionPriceCurrency;
+  enteredPrice: string | null;
+  enteredFee: string | null;
+  usdtTomanRate: string | null;
   occurredAt: Date;
   notes: string | null;
   destinationType: TransferDestinationType | null;
@@ -315,8 +322,19 @@ export interface CreatePortfolioTransactionData {
 export interface UpdatePortfolioTransactionData {
   type?: PortfolioTransactionType;
   amount?: string;
+  /** USD, already converted. */
   price?: string | null;
+  /** USD, already converted. */
   fee?: string | null;
+  /**
+   * The denomination fields move as a set: a patch that touches the price or
+   * fee rewrites all four, so a row can never keep an original or a rate that
+   * belongs to a value it no longer holds.
+   */
+  priceCurrency?: TransactionPriceCurrency;
+  enteredPrice?: string | null;
+  enteredFee?: string | null;
+  usdtTomanRate?: string | null;
   occurredAt?: Date;
   notes?: string | null;
 }
