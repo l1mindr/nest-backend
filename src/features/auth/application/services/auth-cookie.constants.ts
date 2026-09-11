@@ -90,6 +90,22 @@ export function tokenCookieOptions(maxAge: number): CookieOptions {
 }
 
 /**
+ * Options for *deleting* one of the HttpOnly token cookies.
+ *
+ * Identical to {@link tokenCookieOptions} minus `maxAge`, which is the whole
+ * point: a browser matches a deleting `Set-Cookie` to an existing cookie by
+ * name plus `Domain`/`Path`/`Secure`/`SameSite`, so the delete has to be built
+ * from the same source as the write or it silently creates a second cookie
+ * instead of removing the first. `res.clearCookie` supplies the expiry.
+ *
+ * Shared by `ClearAuthCookiesInterceptor` (logout) and
+ * `ClearRefreshCookieInterceptor` (a refresh that failed terminally).
+ */
+export function clearTokenCookieOptions(): CookieOptions {
+  return { ...baseAuthCookieOptions(), httpOnly: true };
+}
+
+/**
  * Options for the CSRF cookie. Deliberately readable: the browser client has
  * to copy its value into the `X-CSRF-Token` header for the double-submit check.
  *
