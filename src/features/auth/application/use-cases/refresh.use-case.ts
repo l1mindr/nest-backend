@@ -127,7 +127,25 @@ export class Refresh implements IRefresh {
       );
 
       if (!ok) {
-        throw SessionErrors.sessionReuseDetected(sessionId);
+        // The CAS matched nothing, so the session moved between the read above
+        // and this write — another request rotated it first. The token this
+        // caller presented was the current one when it was compared, which is
+        // exactly what distinguishes this from replay: nothing here says the
+        // token was ever spent by someone who should not have had it.
+        //
+        // So the session is left intact and the caller is told to retry. The
+        // winner's rotation has already committed, so the retry either
+        // presents the new token or resolves through the grace window above.
+        this.logger.warn(
+          {
+            event: LogEvent.REFRESH_ROTATION_CONFLICT,
+            userId: sub,
+            sessionId
+          },
+          'Refresh rotation lost the optimistic compare-and-swap'
+        );
+
+        throw SessionErrors.refreshRotationConflict(sessionId);
       }
 
       // Written only after the rotation has committed, and pinned to the
