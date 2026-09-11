@@ -16,8 +16,25 @@ Three Jest configs:
 | Config | Purpose |
 |--------|---------|
 | `jest.unit.config.ts` | Unit tests (colocated `*.spec.ts`) |
-| `jest.e2e.config.ts` | E2E tests (under `test/v1/`) |
+| `jest.e2e.config.ts` | E2E tests (`**/*.e2e-spec.ts` under `test/v1/`, `test/email/`, `test/integration/`) |
 | `jest.config.ts` | Combined (all specs) |
+
+### E2E parallelism
+
+`jest.e2e.config.ts` sets `maxWorkers` from `E2E_MAX_WORKERS`, defaulting to
+**2**. The value is validated and capped at the 15 usable Redis databases, since
+`test/setup/worker-env.ts` gives each worker its own Redis database index
+alongside its own Postgres and MongoDB databases.
+
+The bound is memory, not CPU. Each worker boots a whole Nest application and Node
+sizes each worker's heap from the machine's *total* memory, so workers each grow
+as though they owned the box — roughly 1.9 GB resident each for this suite. Above
+two on an 8 GB Docker host the kernel starts SIGKILLing workers mid-`beforeAll`,
+which Jest reports as `Test suite failed to run` and hook timeouts.
+
+**When a containerised run goes red, grep it for `SIGKILL` first.** That single
+string separates resource starvation from a real regression. See
+[ci.md](ci.md) and [docker.md](docker.md).
 
 ## Test Location
 
@@ -302,14 +319,19 @@ quality:  corepack enable → pnpm install --frozen-lockfile --prefer-offline
 
 e2e:      buildx (cached layers) → production image + image contract
             → e2e image (test target)
-            → postgres + redis (--wait on healthchecks)
+            → postgres + redis + mongo + mailpit (--wait on healthchecks)
             → migrations from the production image
-            → dockerized e2e (docker-compose -f docker/test/e2e)
-            → cleanup
+            → dockerized e2e (docker-compose -f docker/test/e2e, E2E_MAX_WORKERS=2)
+            → cleanup (down -v, always)
 ```
+
+`mailpit` is started because the E2E run uses `--no-deps` and the `test/email/`
+specs need an SMTP server that accepts a message and serves it back.
 
 `nest build` is not run on the runner: the production image builds the same
 output in its `builder` stage, and the image contract asserts the result.
+
+[ci.md](ci.md) documents the workflow in full.
 
 ## Current Test Coverage
 

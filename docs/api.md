@@ -118,7 +118,7 @@ Request: No body. Uses `refresh_token` cookie + `X-CSRF-Token` header.
 
 Response: `200 OK` — Rotates both tokens, sets new cookies.
 
-Errors: `401 INVALID_REFRESH_TOKEN`, `401 SESSION_REUSE_DETECTED`, `429 REFRESH_RATE_LIMITED`
+Errors: `401 INVALID_REFRESH_TOKEN`, `401 SESSION_REUSE_DETECTED`, `409 REFRESH_ROTATION_CONFLICT` (retryable — another request rotated first; the session and the cookie are kept), `429 REFRESH_RATE_LIMITED`
 
 ### POST /v1/auth/change-password
 
@@ -183,6 +183,7 @@ Response: `204 No Content`
 | `GET` | `/v1/sessions` | Authenticated | - | List active sessions (cursor-paginated) |
 | `DELETE` | `/v1/sessions` | Authenticated | Required | Revoke current session (logout) |
 | `DELETE` | `/v1/sessions/others` | Authenticated | Required | Revoke all other sessions |
+| `DELETE` | `/v1/sessions/:sessionId` | Authenticated | Required | Revoke one other session |
 
 ### GET /v1/sessions
 
@@ -205,6 +206,25 @@ Response: `200 OK`
   "nextCursor": "base64string"
 }
 ```
+
+### DELETE /v1/sessions/:sessionId
+
+Signs one other device out, addressed by the `sessionId` from `GET /v1/sessions`.
+The calling session is untouched and its cookies stay valid.
+
+Scoped to the caller. The lookup runs before the revocation, so an id that is
+unknown, already revoked, expired, or owned by another account all return the
+same `404 SESSION_NOT_FOUND` — a stale list cannot report a device as signed out
+twice, and the route leaks nothing about other accounts.
+
+The current session is refused with `409 SESSION_IS_CURRENT`. Ending it is a
+logout, and `DELETE /v1/sessions` is the route for that because it also clears
+the auth cookies; revoking it here would leave the browser holding credentials
+the server had already invalidated.
+
+Declared after `/others` so the literal segment is matched first.
+
+Response: `204 No Content`
 
 ### DELETE /v1/sessions
 
@@ -620,7 +640,7 @@ The transaction ledger is the source of truth for holdings, valuation and P&L.
 ```json
 {
   "assetId": "uuid", "type": "BUY", "amount": "0.5",
-  "price": "60000.50", "fee": "0.75",
+  "price": "60000.50", "fee": "0.75", "priceCurrency": "USD",
   "occurredAt": "2026-08-02T14:35:00.000Z", "notes": null,
   "destinationType": null, "exchangeName": null, "txid": null, "walletId": null
 }
@@ -631,6 +651,7 @@ The transaction ledger is the source of truth for holdings, valuation and P&L.
 | `amount` | decimal string, ≤ 18 fraction digits, **must be > 0** |
 | `price` | decimal string, ≤ 8 fraction digits. **Required for `BUY`/`SELL`**, dropped otherwise |
 | `fee` | decimal string, ≤ 8 fraction digits, zero allowed |
+| `priceCurrency` | `USD \| TOMAN`. Optional, defaults to `USD`. Denominates **both** `price` and `fee`. `BUY`/`SELL` only — see [Toman-denominated entry](#toman-denominated-entry) |
 | `occurredAt` | ISO 8601. Stored exactly as supplied; never rewritten from a live price |
 | `type` | `BUY \| SELL \| TRANSFER_IN \| TRANSFER_OUT`. `DEPOSIT`/`WITHDRAWAL` exist in the enum but are **rejected** |
 | `destinationType` | `EXCHANGE \| WALLET`. **Required for transfers**, dropped otherwise |
@@ -650,11 +671,39 @@ Business rules, in the order the use case applies them:
    user sees, and anchored on the asset's opening balance
 6. Transfers: `TRANSFER_DESTINATION_REQUIRED`, `TRANSFER_EXCHANGE_NAME_REQUIRED`,
    `TRANSFER_WALLET_NOT_FOUND`
+7. `priceCurrency` on a type with no price → `TRANSACTION_PRICE_CURRENCY_NOT_APPLICABLE`
+8. `priceCurrency = TOMAN` with no USDT/Toman rate available →
+   `TRANSACTION_PRICE_RATE_UNAVAILABLE` (503), and nothing is written
 
 The write and the checkpoint invalidation happen atomically under a `(portfolioId,
 assetId)` advisory lock, so a concurrent P&L can never checkpoint a ledger missing the new
 row. On success the backend emits the realtime event `transaction.created` to
 `user:{userId}`.
+
+### Toman-denominated entry
+
+`price` and `fee` are **always stored in USD**, because `PORTFOLIO_VALUATION_CURRENCY` is
+USD and every position is valued against a USD market price. `priceCurrency` says what the
+*user* typed, not what is stored:
+
+| `priceCurrency` | `price` / `fee` | `enteredPrice` / `enteredFee` | `usdtTomanRate` |
+|---|---|---|---|
+| `USD` (default) | as supplied | `null` | `null` |
+| `TOMAN` | converted to USD | as supplied, in Toman | rate applied |
+
+The rate is read server-side from the same source as
+[`GET /v1/market/usdt-toman`](usdt-toman.md) — never from the request — and is **frozen on
+the row**. A later move in the market cannot restate a recorded transaction: a BUY entered
+at 234,000 Toman still reads 234,000 Toman when the rate reaches 250,000.
+
+Conversion is `price ÷ usdtTomanRate`, through the exact decimal helpers at the columns'
+own 8-digit scale, truncated rather than rounded. Every transaction recorded before this
+field existed reads back as `USD` with all three companion columns `null`, which is exactly
+what those rows already meant.
+
+`PATCH` accepts `priceCurrency` too. Because the rate is read at update time, re-saving a
+Toman transaction re-stamps it at today's rate — the stored rate records the conversion
+actually applied to the values now in the row.
 
 ### GET — query
 
@@ -759,7 +808,7 @@ in-memory, per-replica TTL cache — the browser never calls these providers dir
 | `GET` | `/v1/market/overview` | CoinGecko `/global` | 90 s (`MARKET_OVERVIEW_CACHE_TTL_MS`) |
 | `GET` | `/v1/market/bitcoin` | CoinGecko `/simple/price` | 30 s (`COIN_TICKER_CACHE_TTL_MS`) |
 | `GET` | `/v1/market/ethereum` | CoinGecko `/simple/price` | 30 s (same) |
-| `GET` | `/v1/market/usdt-toman` | Nobitex `rls` market | 60 s (`USDT_TOMAN_CACHE_TTL_MS`) |
+| `GET` | `/v1/market/usdt-toman` | Nobitex `usdt-rls` **or** Wallex `USDTTMN` | 60 s (`USDT_TOMAN_CACHE_TTL_MS`) |
 | `GET` | `/v1/market/fear-greed` | alternative.me `/fng` | 5 min (`FEAR_GREED_CACHE_TTL_MS`) |
 
 Every response carries the same freshness triple:
@@ -780,7 +829,7 @@ Every response carries the same freshness triple:
   "updatedAt": "...", "fetchedAt": "...", "isStale": false }
 
 // /v1/market/usdt-toman  — Toman, not Rial
-{ "priceToman": "123450", "priceChangePercentage24h": "0.6200",
+{ "priceToman": "234619", "priceChangePercentage24h": "3.3000", "provider": "nobitex",
   "updatedAt": "...", "fetchedAt": "...", "isStale": false }
 
 // /v1/market/fear-greed
@@ -788,11 +837,17 @@ Every response carries the same freshness triple:
   "nextUpdateAt": "...", "fetchedAt": "...", "isStale": false }
 ```
 
-Nobitex quotes an `rls` (Rial) market; the provider divides by `RIAL_PER_TOMAN` (default 10)
-because the application serves Toman.
+`/v1/market/usdt-toman` is the only route with **two** upstreams. `USDT_TOMAN_PROVIDER`
+(`nobitex` | `wallex`) picks the preferred exchange and the other is the automatic
+fallback; `provider` on the response reports which one actually answered. Both are
+normalised to Toman — Nobitex quotes an `usdt-rls` (Rial) market and is divided by
+`RIAL_PER_TOMAN` (default 10), Wallex quotes `USDTTMN` in Toman already — so the number
+means the same thing either way. See [usdt-toman.md](usdt-toman.md).
 
 Provider failures surface as `MARKET_OVERVIEW_PROVIDER_*` / `MARKET_SENTIMENT_PROVIDER_*`
 codes (`RATE_LIMITED`, `TIMEOUT`, `UNAVAILABLE`, `BAD_REQUEST`, `INVALID_RESPONSE`).
+When *every* exchange behind `/v1/market/usdt-toman` fails and nothing is cached, the
+route returns `MARKET_OVERVIEW_PROVIDERS_EXHAUSTED` (502) rather than one venue's error.
 
 Caches are per-replica and in memory. At more than one instance, upstream request volume
 scales with instance count and different replicas may report slightly different values.

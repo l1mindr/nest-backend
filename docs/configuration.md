@@ -47,6 +47,97 @@ Reads `.env.${NODE_ENV}`, then `.env` (`.env` overrides).
 | `OWNER_EMAIL` | — | Email for the initial Owner, required only when running `pnpm seed:owner` |
 | `OWNER_PASSWORD` | — | Password for the initial Owner (8–128 chars), required only when running `pnpm seed:owner` |
 
+### Cookies, CORS, and origins
+
+| Variable | Default | Description | Secret |
+|----------|---------|-------------|--------|
+| `COOKIE_DOMAIN` | — (host-only) | Parent domain for auth cookies, e.g. `.example.com`. Unset leaves cookies host-only, which is correct on localhost and in Docker. Required when the frontend and API are on different subdomains. See [authentication.md](authentication.md) | No |
+| `CORS_ORIGIN` | — | Allowed browser origin. Also applied to the Socket.IO adapter | No |
+| `PUBLIC_API_URL` | — | Public base URL of the API, used where an absolute link is rendered | No |
+
+### MongoDB
+
+| Variable | Default | Description | Secret |
+|----------|---------|-------------|--------|
+| `MONGODB_URI` | — | Connection string for the log store | Yes, if it embeds credentials |
+| `MONGODB_DATABASE` | — | Database name. `test/setup/worker-env.ts` derives one per Jest worker from this base | No |
+
+### CoinGecko and market upstreams
+
+| Variable | Default | Description | Secret |
+|----------|---------|-------------|--------|
+| `COINGECKO_BASE_URL` | — | CoinGecko API base | No |
+| `COINGECKO_API_KEY` | — | CoinGecko API key | **Yes** |
+| `COINGECKO_TIMEOUT_MS` | — | Per-request timeout | No |
+| `COINGECKO_RETRIES` | — | Retry attempts | No |
+| `COINGECKO_BACKOFF_MS` | — | Retry backoff | No |
+
+### Queues
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `QUEUE_PREFIX` | `bull` | Namespaces every BullMQ key so deployments can share one Redis |
+| `EMAIL_QUEUE_ATTEMPTS` | 5 | Delivery attempts |
+| `EMAIL_QUEUE_BACKOFF_MS` | 5000 | Exponential backoff base |
+| `EMAIL_QUEUE_KEEP_COMPLETED` | 100 | Completed jobs retained |
+| `EMAIL_QUEUE_KEEP_FAILED` | 1000 | Failed jobs retained |
+| `EMAIL_QUEUE_PUBLISH_TIMEOUT_MS` | 2000 | Ceiling on how long publishing may block a request |
+| `ASSET_SYNC_INTERVAL` | 3600 | Asset price sync interval, **seconds** |
+| `ASSET_SYNC_QUEUE_ATTEMPTS` | 4 | Sync attempts |
+| `ASSET_SYNC_QUEUE_BACKOFF_MS` | 60000 | Sync backoff |
+| `ASSET_SYNC_QUEUE_KEEP_COMPLETED` | 10 | Completed sync jobs retained |
+| `ASSET_SYNC_QUEUE_KEEP_FAILED` | 50 | Failed sync jobs retained |
+| `ASSET_SYNC_QUEUE_PUBLISH_TIMEOUT_MS` | 2000 | Publish ceiling |
+
+See [email.md](email.md) and [portfolio-market.md](portfolio-market.md).
+
+### Password hashing
+
+| Variable | Description |
+|----------|-------------|
+| `BCRYPT_ROUNDS` | Cost factor. Lowered in `.env.test` to keep the suite fast |
+| `ARGON2_MEMORY_COST` | Argon2 memory cost |
+| `ARGON2_TIME_COST` | Argon2 time cost |
+| `ARGON2_PARALLELISM` | Argon2 parallelism |
+| `ARGON2_HASH_LENGTH` | Argon2 output length |
+
+See [password-hashing.md](password-hashing.md).
+
+### Read from the environment but **not** in the Joi schema
+
+These are consumed via `process.env` with in-code defaults and are therefore not
+validated at startup. A typo in one is silently ignored rather than reported:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MARKET_OVERVIEW_CACHE_TTL_MS` | 90000 | `/v1/market/overview` cache TTL |
+| `BITCOIN_MARKET_CACHE_TTL_MS` | 30000 | `/v1/market/bitcoin` cache TTL |
+| `COIN_TICKER_CACHE_TTL_MS` | 30000 | Coin ticker cache TTL |
+| `FEAR_GREED_CACHE_TTL_MS` | — | `/v1/market/fear-greed` cache TTL |
+| `FEAR_GREED_BASE_URL` | — | Alternative.me API base |
+
+The USDT/Toman variables are **not** in that list — they are validated at
+startup, so a typo fails the boot instead of being ignored:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `USDT_TOMAN_PROVIDER` | `nobitex` | Preferred exchange: `nobitex` or `wallex`. Any other value fails startup. The unchosen one is the automatic fallback. |
+| `USDT_TOMAN_CACHE_TTL_MS` | 60000 | `/v1/market/usdt-toman` cache TTL, shared by both exchanges |
+| `RIAL_PER_TOMAN` | 10 | Rial per Toman, for venues quoting Rial |
+| `NOBITEX_BASE_URL` | `https://apiv2.nobitex.ir` | Nobitex API base (https). Note `api.nobitex.ir` does **not** resolve. |
+| `NOBITEX_TIMEOUT_MS` | 10000 | Per-request timeout (1000–60000) |
+| `NOBITEX_RETRIES` | 2 | Retries for transient failures (0–5) |
+| `NOBITEX_BACKOFF_MS` | 1000 | Exponential base delay between retries |
+| `WALLEX_BASE_URL` | `https://api.wallex.ir` | Wallex API base (https) |
+| `WALLEX_TIMEOUT_MS` | 10000 | Per-request timeout (1000–60000) |
+| `WALLEX_RETRIES` | 2 | Retries for transient failures (0–5) |
+| `WALLEX_BACKOFF_MS` | 1000 | Exponential base delay between retries |
+
+See [usdt-toman.md](usdt-toman.md) for units, fallback order and observability.
+
+`E2E_MAX_WORKERS` is likewise absent from the schema, and correctly so: it
+configures the Jest runner, not the application. See [testing.md](testing.md).
+
 ## Secrets Validation
 
 Secrets (`ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `CSRF_TOKEN_SECRET`, `SECURITY_HASH_SECRET`, and production `REDIS_PASSWORD`) undergo **Shannon entropy validation** to prevent weak keys:
@@ -73,14 +164,28 @@ In production mode, the schema enforces additional rules:
 
 ## Configuration Namespaces
 
+Registered with `registerAs`:
+
 | Namespace | Variables | Usage |
 |-----------|-----------|-------|
 | `database` | host, port, username, password, database, pool size, timeouts | TypeORM data source |
 | `redis` | host, port, password, db | ioredis client |
+| `mongodb` | uri, database | Mongoose connection for system/audit logs |
 | `jwt` | accessSecret, refreshSecret | TokenIssueService, JwtStrategy |
 | `csrf` | secret | CsrfTokenService |
-| `app` | nodeEnv, logLevel, port | Application bootstrap |
+| `security` | hash secret | Device identifiers, rate-limit key HMAC |
 | `email` | appName, host, port, secure, user, appPassword, from | SMTP transport (Nodemailer) |
+| `queue` | prefix, email.*, assetSync.* | BullMQ job options |
+| `coingecko` | baseUrl, apiKey, timeout, retries, backoff | Asset sync + coin tracker |
+| `coingeckoGlobal` | baseUrl, cache TTLs | Market overview / coin tickers |
+| `usdtToman` | preferred provider, cache TTL | USDT/Toman provider selection |
+| `nobitexUsdtToman` | baseUrl, timeout, retries, backoff, rialPerToman | USDT/Toman rate (Nobitex) |
+| `wallexUsdtToman` | baseUrl, timeout, retries, backoff | USDT/Toman rate (Wallex) |
+| `fearGreed` | baseUrl, cache TTL | Fear & Greed index |
+
+There is **no `app` namespace and no `PORT` variable**. The HTTP port is
+hardcoded as `8080` in `src/main.ts`; remap it at the container or proxy layer
+rather than by environment.
 
 ## Validation
 
