@@ -17,6 +17,11 @@ export enum LogEvent {
   // window. Distinct from REFRESH_REUSE_DETECTED on purpose: this one is
   // expected background noise, that one is a security event.
   REFRESH_ROTATION_RACED = 'auth.refresh.rotation_raced',
+  // The optimistic compare-and-swap found the session already rotated. Also
+  // not a security event: the presented token was current when it was read.
+  // Worth its own event because a rising rate means the refresh lock is
+  // expiring under load, which is an operational signal rather than an attack.
+  REFRESH_ROTATION_CONFLICT = 'auth.refresh.rotation_conflict',
 
   SESSION_REVOKED = 'session.revoked',
   USER_SUSPENDED = 'user.suspended',

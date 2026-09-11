@@ -4,6 +4,7 @@ import { TokenErrors } from '@features/token/errors/token-errors';
 import { UserErrors } from '@features/users/domain/errors/user-errors';
 import {
   badRequestResponse,
+  conflictResponse,
   credentialsRejectedResponse,
   csrfForbiddenResponse,
   forbiddenResponse,
@@ -270,6 +271,10 @@ export const ApiRefreshToken = () =>
         '',
         'Concurrent refreshes on one session are additionally guarded by a short lock; losing that race returns `429 REFRESH_RATE_LIMITED` and is safe to retry.',
         '',
+        'If that lock lapses and two rotations do overlap, the loser of the optimistic write returns `409 REFRESH_ROTATION_CONFLICT`. The token it presented was the current one, so **the session is not revoked** — retry once and the winner’s rotation is picked up. Do not treat it as a sign-out.',
+        '',
+        `A \`401\` expires the \`${AuthCookie.REFRESH_TOKEN}\` cookie, because every \`401\` here means the presented token can never work again. The \`409\` and \`429\` deliberately leave it in place so the retry still has a credential.`,
+        '',
         'Rate limited to 20 per minute per address and 20 per minute per device. No access token is required — the refresh cookie is the credential — and no CSRF token is required.'
       ].join('\n')
     }),
@@ -282,7 +287,7 @@ export const ApiRefreshToken = () =>
     }),
     ApiErrorResponses(PATH.REFRESH, [
       credentialsRejectedResponse(
-        'The refresh token was absent, unusable, or already spent. `SESSION_REUSE_DETECTED` additionally means the session has just been revoked as a precaution and every client on it must log in again.',
+        `The refresh token was absent, unusable, or already spent. \`SESSION_REUSE_DETECTED\` additionally means the session has just been revoked as a precaution and every client on it must log in again. Every variant carries \`Set-Cookie: ${AuthCookie.REFRESH_TOKEN}=; Max-Age=0\` — the token is dead, so the browser is told to drop it rather than keep re-presenting it for the remaining seven days.`,
         errorExample(
           TokenErrors.invalidToken(),
           'Cookie is missing, malformed, or signed with a rotated secret'
@@ -294,6 +299,13 @@ export const ApiRefreshToken = () =>
         errorExample(
           SessionErrors.sessionReuseDetected(),
           'A spent refresh token was replayed; the session has been revoked'
+        )
+      ),
+      conflictResponse(
+        `Another request rotated this session first. Transient and retryable: the session stays active and the \`${AuthCookie.REFRESH_TOKEN}\` cookie is left untouched, so the retry has a credential to make.`,
+        errorExample(
+          SessionErrors.refreshRotationConflict(),
+          'The rotation lost an optimistic write to a concurrent refresh; retry once'
         )
       ),
       rateLimitResponse(
