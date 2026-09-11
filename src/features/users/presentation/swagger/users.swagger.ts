@@ -33,6 +33,7 @@ import { UserStatus } from '../../domain/enums/user-status.enum';
 import { SuspendUserRequestDto } from '../dto/request/suspend-user.request.dto';
 import { UpdateProfileRequestDto } from '../dto/request/update-profile.request.dto';
 import { AdminUserResponseDto } from '../dto/response/admin-user.response.dto';
+import { AdminUserStatisticsResponseDto } from '../dto/response/admin-user-statistics.response.dto';
 import { AdminUsersListResponseDto } from '../dto/response/admin-users-list.response.dto';
 import { UserProfileResponseDto } from '../dto/response/user-profile.response.dto';
 
@@ -49,6 +50,7 @@ const PATH = {
   UPDATE_PROFILE: '/v1/user',
   DELETE_ACCOUNT: '/v1/user/delete-account',
   ADMIN_LIST: '/v1/admin/users',
+  ADMIN_STATISTICS: '/v1/admin/users/statistics',
   ADMIN_GET: `/v1/admin/users/${ExampleValue.USER_ID}`,
   ADMIN_SUSPEND: `/v1/admin/users/${ExampleValue.USER_ID}/suspend`,
   ADMIN_UNSUSPEND: `/v1/admin/users/${ExampleValue.USER_ID}/unsuspend`
@@ -223,6 +225,34 @@ export const ApiAdminGetAllUsers = () =>
       validationResponse('A pagination parameter is out of range.', [
         validationError('limit', 'limit must not be greater than 100')
       ]),
+      internalServerErrorResponse()
+    ])
+  );
+
+export const ApiAdminGetUserStatistics = () =>
+  applyDecorators(
+    ApiOperation({
+      operationId: 'adminGetUserStatistics',
+      summary: 'Count the account population',
+      description: [
+        'How many accounts exist, in total and broken down by role and status.',
+        '',
+        '`total` spans **every** role — the owner and the administrators are accounts, and are counted here even though neither appears in `GET /v1/admin/users`. Read `byRole.USER` for the regular-user population.',
+        '',
+        'Counted in one aggregate query, so the figures describe the whole population rather than the page a caller happens to have fetched. Soft-deleted accounts are excluded.',
+        '',
+        'Requires authentication and the `USER_READ` permission. Holding the `ADMIN` role is not sufficient on its own.'
+      ].join('\n')
+    }),
+    ApiAuthenticated(),
+    ApiSuccessResponse({
+      status: 200,
+      description: 'Counts over every account.',
+      type: AdminUserStatisticsResponseDto
+    }),
+    ApiErrorResponses(PATH.ADMIN_STATISTICS, [
+      unauthorizedResponse(),
+      permissionRequired(Permission.USER_READ),
       internalServerErrorResponse()
     ])
   );
