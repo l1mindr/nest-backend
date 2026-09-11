@@ -1,10 +1,10 @@
 import { of, throwError } from 'rxjs';
 import { AxiosError } from 'axios';
 import { HttpService } from '@nestjs/axios';
-import { NobitexUsdtTomanProvider } from '../usdt-toman.provider';
+import { WallexUsdtTomanProvider } from '../usdt-toman.provider';
 import { MarketOverviewErrorCode } from '../../../domain/errors/market-overview-error-code.enum';
 
-const BASE_URL = 'https://apiv2.nobitex.test';
+const BASE_URL = 'https://api.wallex.test';
 
 /** Builds the axios failure shape for an upstream HTTP status. */
 function httpError(status: number): AxiosError {
@@ -18,7 +18,15 @@ function timeoutError(code = 'ECONNABORTED'): AxiosError {
   return new AxiosError('timeout of 10000ms exceeded', code);
 }
 
-describe('NobitexUsdtTomanProvider', () => {
+/** Wraps market stats in Wallex's `/v1/markets` envelope. */
+function marketsBody(stats: Record<string, unknown>) {
+  return {
+    result: { symbols: { USDTTMN: { symbol: 'USDTTMN', stats } } },
+    success: true
+  };
+}
+
+describe('WallexUsdtTomanProvider', () => {
   const httpService = { get: jest.fn() };
   const logger = { setContext: jest.fn(), warn: jest.fn() };
 
@@ -26,24 +34,23 @@ describe('NobitexUsdtTomanProvider', () => {
     baseUrl: BASE_URL,
     timeoutMs: 10_000,
     retries: 0,
-    backoffMs: 1,
-    rialPerToman: '10'
+    backoffMs: 1
   };
 
   let config: typeof baseConfig;
-  let provider: NobitexUsdtTomanProvider;
+  let provider: WallexUsdtTomanProvider;
 
-  // A real body from `GET /market/stats?srcCurrency=usdt&dstCurrency=rls`,
-  // trimmed to the fields this adapter reads. `latest` is Rial.
-  const validBody = {
-    status: 'ok',
-    stats: { 'usdt-rls': { latest: '2346190', dayChange: '3.3' } }
-  };
+  // Real field shapes from `GET /v1/markets`: the price is a string padded to
+  // 16 decimals and already in Toman; the change is a JSON number.
+  const validBody = marketsBody({
+    lastPrice: '234251.0000000000000000',
+    '24h_ch': 2.88
+  });
 
   beforeEach(() => {
     jest.resetAllMocks();
     config = { ...baseConfig };
-    provider = new NobitexUsdtTomanProvider(
+    provider = new WallexUsdtTomanProvider(
       httpService as unknown as HttpService,
       config as never,
       logger as never
@@ -51,55 +58,43 @@ describe('NobitexUsdtTomanProvider', () => {
   });
 
   describe('success', () => {
-    it('fetches the Rial market and serves it as Toman', async () => {
+    it('serves the Toman market unscaled, trimming the padded zeros', async () => {
       httpService.get.mockReturnValueOnce(of({ data: validBody }));
 
       const result = await provider.fetchUsdtTomanRate();
 
       expect(result).toMatchObject({
-        priceToman: '234619',
-        priceChangePercentage24h: '3.3000',
-        provider: 'nobitex'
+        priceToman: '234251',
+        priceChangePercentage24h: '2.8800',
+        provider: 'wallex'
       });
       expect(result.updatedAt).toBeInstanceOf(Date);
-      expect(httpService.get).toHaveBeenCalledWith(`${BASE_URL}/market/stats`, {
-        timeout: 10_000,
-        params: { srcCurrency: 'usdt', dstCurrency: 'rls' }
+      expect(httpService.get).toHaveBeenCalledWith(`${BASE_URL}/v1/markets`, {
+        timeout: 10_000
       });
     });
 
-    it('accepts a numeric rate as well as a string one', async () => {
+    it('accepts a numeric price as well as a string one', async () => {
       httpService.get.mockReturnValueOnce(
-        of({ data: { stats: { 'usdt-rls': { latest: 2_346_190 } } } })
+        of({ data: marketsBody({ lastPrice: 234_251 }) })
       );
 
       await expect(provider.fetchUsdtTomanRate()).resolves.toMatchObject({
-        priceToman: '234619'
-      });
-    });
-
-    // The unit guard: if the upstream is ever found to quote Toman already,
-    // this divisor corrects it without a code change — so it has to apply.
-    it('honours the configured Rial-per-Toman divisor', async () => {
-      config.rialPerToman = '1';
-      httpService.get.mockReturnValueOnce(
-        of({ data: { stats: { 'usdt-rls': { latest: 234_619 } } } })
-      );
-
-      await expect(provider.fetchUsdtTomanRate()).resolves.toMatchObject({
-        priceToman: '234619'
+        priceToman: '234251'
       });
     });
 
     it('carries the 24h change through, defaulting to zero when absent', async () => {
-      httpService.get.mockReturnValueOnce(of({ data: validBody }));
+      httpService.get.mockReturnValueOnce(
+        of({ data: marketsBody({ lastPrice: '234251', '24h_ch': -1.42 }) })
+      );
 
       await expect(provider.fetchUsdtTomanRate()).resolves.toMatchObject({
-        priceChangePercentage24h: '3.3000'
+        priceChangePercentage24h: '-1.4200'
       });
 
       httpService.get.mockReturnValueOnce(
-        of({ data: { stats: { 'usdt-rls': { latest: '2346190' } } } })
+        of({ data: marketsBody({ lastPrice: '234251' }) })
       );
 
       await expect(provider.fetchUsdtTomanRate()).resolves.toMatchObject({
@@ -107,15 +102,26 @@ describe('NobitexUsdtTomanProvider', () => {
       });
     });
 
-    it('converts a realistic Rial price without floating-point corruption', async () => {
+    // Wallex quotes Toman, Nobitex quotes Rial. Both adapters must land on the
+    // same economic quantity, which is the whole point of the abstraction.
+    it('agrees with the Rial venue on the same economic quantity', async () => {
       httpService.get.mockReturnValueOnce(
-        of({ data: { stats: { 'usdt-rls': { latest: '2346195' } } } })
+        of({ data: marketsBody({ lastPrice: '234619' }) })
       );
 
-      // 2346195 / 10 is exactly 234619.5 — the old float division plus
-      // `.toFixed(0)` rounded this away to 234620.
+      // Nobitex would report 2346190 Rial for this; ÷10 is the same number.
       await expect(provider.fetchUsdtTomanRate()).resolves.toMatchObject({
-        priceToman: '234619.5'
+        priceToman: '234619'
+      });
+    });
+
+    it('holds a high-precision price without floating-point corruption', async () => {
+      httpService.get.mockReturnValueOnce(
+        of({ data: marketsBody({ lastPrice: '234619.1234567890123456' }) })
+      );
+
+      await expect(provider.fetchUsdtTomanRate()).resolves.toMatchObject({
+        priceToman: '234619.1234567890123456'
       });
     });
   });
@@ -124,21 +130,22 @@ describe('NobitexUsdtTomanProvider', () => {
     it.each([
       ['a payload that is not an object', 'nope'],
       ['a null payload', null],
-      ['a payload with no stats', { status: 'ok' }],
+      ['a payload with no result', { success: true }],
+      ['a payload with no symbols', { result: {} }],
+      ['a payload missing the usdt market', { result: { symbols: {} } }],
       [
-        'a payload missing the usdt market',
-        { stats: { 'btc-rls': { latest: 1 } } }
+        'a market missing its stats',
+        { result: { symbols: { USDTTMN: { symbol: 'USDTTMN' } } } }
       ],
-      ['a null market', { stats: { 'usdt-rls': null } }],
-      ['a non-numeric rate', { stats: { 'usdt-rls': { latest: 'abc' } } }],
-      ['a missing rate', { stats: { 'usdt-rls': { dayChange: '1' } } }],
-      ['a zero rate', { stats: { 'usdt-rls': { latest: 0 } } }],
-      ['a zero rate as a string', { stats: { 'usdt-rls': { latest: '0' } } }],
-      ['a negative rate', { stats: { 'usdt-rls': { latest: -5 } } }],
+      ['a non-numeric price', marketsBody({ lastPrice: 'abc' })],
+      ['a missing price', marketsBody({ '24h_ch': 1 })],
+      ['a zero price', marketsBody({ lastPrice: 0 })],
       [
-        'a negative rate as a string',
-        { stats: { 'usdt-rls': { latest: '-2346190' } } }
-      ]
+        'a zero price as a padded string',
+        marketsBody({ lastPrice: '0.0000000000000000' })
+      ],
+      ['a negative price', marketsBody({ lastPrice: -234_251 })],
+      ['a negative price as a string', marketsBody({ lastPrice: '-234251' })]
     ])('rejects %s as an invalid response', async (_label, body) => {
       httpService.get.mockReturnValue(of({ data: body }));
 
@@ -151,7 +158,7 @@ describe('NobitexUsdtTomanProvider', () => {
 
     it('does not retry a malformed body', async () => {
       config.retries = 3;
-      httpService.get.mockReturnValue(of({ data: { status: 'ok' } }));
+      httpService.get.mockReturnValue(of({ data: { result: {} } }));
 
       await expect(provider.fetchUsdtTomanRate()).rejects.toThrow();
       expect(httpService.get).toHaveBeenCalledTimes(1);
@@ -192,7 +199,7 @@ describe('NobitexUsdtTomanProvider', () => {
     });
 
     it('maps a 5xx onto the unavailable error', async () => {
-      httpService.get.mockReturnValue(throwError(() => httpError(503)));
+      httpService.get.mockReturnValue(throwError(() => httpError(502)));
 
       await expect(provider.fetchUsdtTomanRate()).rejects.toThrow(
         expect.objectContaining({
@@ -201,8 +208,6 @@ describe('NobitexUsdtTomanProvider', () => {
       );
     });
 
-    // The failure mode that caused the outage: the configured host did not
-    // resolve, so axios raised a connection error with no response at all.
     it('maps an unresolvable host onto the unavailable error', async () => {
       httpService.get.mockReturnValue(
         throwError(() => new AxiosError('getaddrinfo ENOTFOUND', 'ENOTFOUND'))
@@ -222,7 +227,7 @@ describe('NobitexUsdtTomanProvider', () => {
         .mockReturnValueOnce(of({ data: validBody }));
 
       await expect(provider.fetchUsdtTomanRate()).resolves.toMatchObject({
-        priceToman: '234619'
+        priceToman: '234251'
       });
       expect(httpService.get).toHaveBeenCalledTimes(2);
     });
@@ -241,7 +246,7 @@ describe('NobitexUsdtTomanProvider', () => {
 
     it('does not retry a permanent 4xx rejection', async () => {
       config.retries = 3;
-      httpService.get.mockReturnValue(throwError(() => httpError(400)));
+      httpService.get.mockReturnValue(throwError(() => httpError(404)));
 
       await expect(provider.fetchUsdtTomanRate()).rejects.toThrow(
         expect.objectContaining({
