@@ -12,7 +12,10 @@ import {
 } from 'typeorm';
 import { CreateUserRequestDto } from '../../presentation/dto/request/create-user.request.dto';
 import { UpdateProfileRequestDto } from '../../presentation/dto/request/update-profile.request.dto';
-import { IUserRepository } from '../../application/interfaces/users.interface';
+import {
+  IUserRepository,
+  UserAccountCount
+} from '../../application/interfaces/users.interface';
 
 @Injectable()
 export class UserRepository implements IUserRepository {
@@ -115,6 +118,41 @@ export class UserRepository implements IUserRepository {
       order: { id: 'ASC' },
       take: limit
     });
+  }
+
+  /**
+   * Counts every live account, grouped by role and status.
+   *
+   * Aggregated in the database rather than by paging accounts into memory: the
+   * administrative listings are cursor-paginated, so a caller that counted the
+   * rows it had fetched would report the size of a page, not of the population.
+   *
+   * Unlike `findUsersByRole`, this deliberately spans *all* roles. Keeping the
+   * populations apart is a rule about who is listed and administrable, not
+   * about who exists — the owner is an account like any other when the question
+   * is how many accounts there are.
+   *
+   * Soft-deleted rows are excluded by TypeORM's own `deletedAt IS NULL`
+   * condition, which the query builder applies because `User` carries a
+   * `@DeleteDateColumn`.
+   */
+  async countAccountsByRoleAndStatus(): Promise<UserAccountCount[]> {
+    const rows = await this.userRepo
+      .createQueryBuilder('user')
+      .select('user.role', 'role')
+      .addSelect('user.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('user.role')
+      .addGroupBy('user.status')
+      .getRawMany<{ role: UserRole; status: UserStatus; count: string }>();
+
+    // `COUNT(*)` arrives as a string: node-postgres maps bigint to string so
+    // values beyond Number.MAX_SAFE_INTEGER cannot be silently truncated.
+    return rows.map((row) => ({
+      role: row.role,
+      status: row.status,
+      count: Number(row.count)
+    }));
   }
 
   async updateUserProfile(

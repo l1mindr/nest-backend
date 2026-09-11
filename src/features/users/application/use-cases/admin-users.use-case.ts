@@ -9,12 +9,23 @@ import { ADMIN_USERS_PAGE_SIZE_DEFAULT } from '../../presentation/dto/request/ad
 import { UserErrors } from '../../domain/errors/user-errors';
 import { User } from '../../domain/entities/user.entity';
 import { UserRole } from '../../domain/enums/user-role.enum';
+import { UserStatus } from '../../domain/enums/user-status.enum';
 import {
   IAdminUsersUseCase,
   IUserRepository,
   PaginatedResult,
-  USER_REPOSITORY
+  USER_REPOSITORY,
+  UserAccountStatistics
 } from '../interfaces/users.interface';
+
+/** Every member of `enumeration` mapped to 0. */
+function zeroed<T extends string>(
+  enumeration: Record<string, T>
+): Record<T, number> {
+  return Object.fromEntries(
+    Object.values(enumeration).map((member) => [member, 0])
+  ) as Record<T, number>;
+}
 
 /**
  * Reads of the *user* population, and only that population.
@@ -43,6 +54,38 @@ export class AdminUsersUseCase implements IAdminUsersUseCase {
     );
 
     return paginate(items, take, (user) => encodeCursor(user.id));
+  }
+
+  /**
+   * How many accounts exist, in total and broken down by role and status.
+   *
+   * The one read here that is *not* scoped to `USER`. Listing keeps the
+   * populations apart because an administrator must not be administrable from
+   * user management; counting them does not, because "how many accounts exist"
+   * has one answer and the owner is one of the accounts. Excluding them would
+   * report a total that no listing, and no database, agrees with.
+   *
+   * `byRole` still carries the narrower figures, so a caller that wants the
+   * regular-user population reads `byRole.USER` rather than a total that had
+   * been quietly narrowed on its behalf.
+   */
+  async statistics(): Promise<UserAccountStatistics> {
+    const buckets = await this.userRepository.countAccountsByRoleAndStatus();
+
+    // Seeded from the enums so every key is present at zero. A caller reading
+    // `byStatus.SUSPEND` gets 0 rather than `undefined` when nobody is
+    // suspended, which is what keeps the consumers free of `?? 0`.
+    const byRole = zeroed(UserRole);
+    const byStatus = zeroed(UserStatus);
+    let total = 0;
+
+    for (const bucket of buckets) {
+      byRole[bucket.role] += bucket.count;
+      byStatus[bucket.status] += bucket.count;
+      total += bucket.count;
+    }
+
+    return { total, byRole, byStatus };
   }
 
   /**

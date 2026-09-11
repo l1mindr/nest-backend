@@ -2,11 +2,40 @@ import { CreateUserRequestDto } from '../../presentation/dto/request/create-user
 import { UpdateProfileRequestDto } from '../../presentation/dto/request/update-profile.request.dto';
 import { User } from '../../domain/entities/user.entity';
 import { UserRole } from '../../domain/enums/user-role.enum';
+import { UserStatus } from '../../domain/enums/user-status.enum';
 import { UserVerificationCode } from '../../domain/entities/user-verification-code.entity';
 import type { EntityManager } from 'typeorm';
 import type { PaginatedResult } from '@core/pagination/paginated-result.interface';
 
 export type { PaginatedResult } from '@core/pagination/paginated-result.interface';
+
+/** One `(role, status)` bucket of the account population. */
+export interface UserAccountCount {
+  role: UserRole;
+  status: UserStatus;
+  count: number;
+}
+
+/**
+ * Aggregate over the whole account population — the owner included.
+ *
+ * The administrative *listing* is deliberately scoped to `USER` (see
+ * `AdminUsersUseCase`), so a total derived from it counts neither the owner nor
+ * the administrators, and only ever sees the pages that happen to have been
+ * fetched. This is the separate aggregate the "total accounts" figure is meant
+ * to come from: every role, in one query, independent of pagination.
+ *
+ * `byRole` keeps the narrower populations available — `byRole.USER` is the
+ * "regular users" metric — without the total having to exclude anyone.
+ *
+ * Soft-deleted accounts are excluded: they are deleted accounts, and counting
+ * them would make the figure disagree with every listing in the application.
+ */
+export interface UserAccountStatistics {
+  total: number;
+  byRole: Record<UserRole, number>;
+  byStatus: Record<UserStatus, number>;
+}
 
 export const USER_REPOSITORY = Symbol('IUserRepository');
 
@@ -22,6 +51,7 @@ export interface IUserRepository {
     cursorId: string | null,
     limit: number
   ): Promise<User[]>;
+  countAccountsByRoleAndStatus(): Promise<UserAccountCount[]>;
   updateUserProfile(id: string, dto: UpdateProfileRequestDto): Promise<void>;
   softDeleteUser(user: User, manager?: EntityManager): Promise<void>;
   updatePasswordHash(
@@ -102,6 +132,7 @@ export const ADMIN_USERS_USE_CASE = Symbol('IAdminUsersUseCase');
 export interface IAdminUsersUseCase {
   list(cursor?: string, limit?: number): Promise<PaginatedResult<User>>;
   findById(id: string): Promise<User>;
+  statistics(): Promise<UserAccountStatistics>;
 }
 
 export const INITIATE_REGISTRATION_USE_CASE = Symbol(

@@ -1,5 +1,6 @@
 import { User } from '../../../domain/entities/user.entity';
 import { UserRole } from '../../../domain/enums/user-role.enum';
+import { UserStatus } from '../../../domain/enums/user-status.enum';
 import { UserErrors } from '../../../domain/errors/user-errors';
 import { AdminUsersUseCase } from '../../use-cases/admin-users.use-case';
 
@@ -8,7 +9,8 @@ describe('AdminUsersUseCase', () => {
 
   const mockUserRepository = {
     findUsersByRole: jest.fn(),
-    findUserForAdmin: jest.fn()
+    findUserForAdmin: jest.fn(),
+    countAccountsByRoleAndStatus: jest.fn()
   };
 
   const user = (overrides: Partial<User> = {}) =>
@@ -108,6 +110,147 @@ describe('AdminUsersUseCase', () => {
         null,
         21
       );
+    });
+  });
+
+  describe('statistics', () => {
+    /** `(role, status)` buckets as the repository reports them. */
+    const bucket = (
+      role: UserRole,
+      count: number,
+      status = UserStatus.ACTIVATE
+    ) => ({
+      role,
+      status,
+      count
+    });
+
+    /**
+     * The regression this endpoint exists for.
+     *
+     * The total used to be counted from the administrative listing, which is
+     * scoped to `USER` — so a system holding an owner and two users reported
+     * two. The owner is an account; the total says three.
+     */
+    it.each([
+      ['owner only', [bucket(UserRole.OWNER, 1)], 1],
+      [
+        'owner + 1 user',
+        [bucket(UserRole.OWNER, 1), bucket(UserRole.USER, 1)],
+        2
+      ],
+      [
+        'owner + 2 users',
+        [bucket(UserRole.OWNER, 1), bucket(UserRole.USER, 2)],
+        3
+      ],
+      [
+        'owner + admin + 2 users',
+        [
+          bucket(UserRole.OWNER, 1),
+          bucket(UserRole.ADMIN, 1),
+          bucket(UserRole.USER, 2)
+        ],
+        4
+      ]
+    ])('should count %s as %i accounts', async (_label, buckets, expected) => {
+      mockUserRepository.countAccountsByRoleAndStatus.mockResolvedValue(
+        buckets
+      );
+
+      const result = await service.statistics();
+
+      expect(result.total).toBe(expected);
+    });
+
+    it('should include the owner in the total', async () => {
+      mockUserRepository.countAccountsByRoleAndStatus.mockResolvedValue([
+        bucket(UserRole.OWNER, 1),
+        bucket(UserRole.USER, 2)
+      ]);
+
+      const { total, byRole } = await service.statistics();
+
+      expect(byRole[UserRole.OWNER]).toBe(1);
+      expect(total).toBe(byRole.OWNER + byRole.ADMIN + byRole.USER);
+    });
+
+    /**
+     * The narrower population stays reachable, so a caller that genuinely wants
+     * "regular users" does not need the total to be narrowed for them.
+     */
+    it('should keep the regular-user population available separately', async () => {
+      mockUserRepository.countAccountsByRoleAndStatus.mockResolvedValue([
+        bucket(UserRole.OWNER, 1),
+        bucket(UserRole.ADMIN, 3),
+        bucket(UserRole.USER, 7)
+      ]);
+
+      const result = await service.statistics();
+
+      expect(result.byRole).toEqual({
+        [UserRole.OWNER]: 1,
+        [UserRole.ADMIN]: 3,
+        [UserRole.USER]: 7
+      });
+      expect(result.total).toBe(11);
+    });
+
+    it('should sum statuses across roles', async () => {
+      mockUserRepository.countAccountsByRoleAndStatus.mockResolvedValue([
+        bucket(UserRole.OWNER, 1, UserStatus.ACTIVATE),
+        bucket(UserRole.USER, 2, UserStatus.PENDING_VERIFICATION),
+        bucket(UserRole.USER, 1, UserStatus.SUSPEND)
+      ]);
+
+      const result = await service.statistics();
+
+      expect(result.byStatus).toEqual({
+        [UserStatus.ACTIVATE]: 1,
+        [UserStatus.DEACTIVATE]: 0,
+        [UserStatus.SUSPEND]: 1,
+        [UserStatus.PENDING_VERIFICATION]: 2
+      });
+      expect(result.total).toBe(4);
+    });
+
+    /**
+     * Exhaustive keys, so a consumer reading `byStatus.SUSPEND` on a system
+     * with nobody suspended gets 0 rather than `undefined`.
+     */
+    it('should report every role and status even when the database is empty', async () => {
+      mockUserRepository.countAccountsByRoleAndStatus.mockResolvedValue([]);
+
+      const result = await service.statistics();
+
+      expect(result).toEqual({
+        total: 0,
+        byRole: {
+          [UserRole.OWNER]: 0,
+          [UserRole.ADMIN]: 0,
+          [UserRole.USER]: 0
+        },
+        byStatus: {
+          [UserStatus.ACTIVATE]: 0,
+          [UserStatus.DEACTIVATE]: 0,
+          [UserStatus.SUSPEND]: 0,
+          [UserStatus.PENDING_VERIFICATION]: 0
+        }
+      });
+    });
+
+    /**
+     * Counting must not go through the role-scoped listing, whatever the
+     * result happens to look like — that path is what produced the wrong total.
+     */
+    it('should not derive the total from the role-scoped listing', async () => {
+      mockUserRepository.countAccountsByRoleAndStatus.mockResolvedValue([
+        bucket(UserRole.OWNER, 1)
+      ]);
+
+      await service.statistics();
+
+      expect(mockUserRepository.findUsersByRole).not.toHaveBeenCalled();
     });
   });
 
