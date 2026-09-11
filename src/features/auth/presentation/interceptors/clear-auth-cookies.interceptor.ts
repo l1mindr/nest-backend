@@ -8,7 +8,7 @@ import { Response } from 'express';
 import { Observable, tap } from 'rxjs';
 import {
   AUTH_COOKIE_NAMES,
-  baseAuthCookieOptions,
+  clearTokenCookieOptions,
   csrfCookieOptions
 } from '../../application/services/auth-cookie.constants';
 
@@ -41,15 +41,15 @@ export class ClearAuthCookiesInterceptor implements NestInterceptor {
       tap(() => {
         // Attributes must match those the cookies were written with, or the
         // browser treats this as a different cookie and keeps the original.
-        res.clearCookie(AUTH_COOKIE_NAMES.ACCESS_TOKEN, {
-          ...baseAuthCookieOptions(),
-          httpOnly: true
-        });
+        res.clearCookie(
+          AUTH_COOKIE_NAMES.ACCESS_TOKEN,
+          clearTokenCookieOptions()
+        );
 
-        res.clearCookie(AUTH_COOKIE_NAMES.REFRESH_TOKEN, {
-          ...baseAuthCookieOptions(),
-          httpOnly: true
-        });
+        res.clearCookie(
+          AUTH_COOKIE_NAMES.REFRESH_TOKEN,
+          clearTokenCookieOptions()
+        );
 
         res.clearCookie(AUTH_COOKIE_NAMES.CSRF_TOKEN, csrfCookieOptions());
       })

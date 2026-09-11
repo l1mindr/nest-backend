@@ -52,6 +52,7 @@ import { RegisterUserRequestDto } from '../dto/request/register-user.request.dto
 import { ResendVerificationRequestDto } from '../dto/request/resend-verification.request.dto';
 import { VerifyEmailRequestDto } from '../dto/request/verify-email.request.dto';
 import { AuthCookieInterceptor } from '../interceptors/auth-cookie.interceptor';
+import { ClearRefreshCookieInterceptor } from '../interceptors/clear-refresh-cookie.interceptor';
 
 @Controller({ path: 'auth', version: '1' })
 @ApiTags(ApiTagName.AUTHENTICATION)
@@ -121,7 +122,10 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(AuthCookieInterceptor)
+  // Outermost, so it sees the failures the inner one lets pass: rotation
+  // writes the new cookies on success, this removes the dead one on a terminal
+  // failure. Exactly one of the two ever fires.
+  @UseInterceptors(ClearRefreshCookieInterceptor, AuthCookieInterceptor)
   @RateLimit(RateLimitPolicies.Auth.Refresh)
   @SkipCsrf()
   @ApiRefreshToken()
