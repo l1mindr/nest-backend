@@ -7,3 +7,5 @@ allowBuilds:
   msgpackr-extract: false
 overrides:
   '@compodoc/compodoc>@angular-devkit/schematics': 21.2.13
+  js-yaml: ^4.3.2
+  multer: ^2.3.0
