@@ -34,6 +34,7 @@ import { UserMapper } from '../../application/mappers/user.mapper';
 import {
   ApiAdminGetAllUsers,
   ApiAdminGetUser,
+  ApiAdminGetUserStatistics,
   ApiAdminSuspendUser,
   ApiAdminUnsuspendUser
 } from '../swagger/users.swagger';
@@ -83,6 +84,23 @@ export class AdminUsersController {
       items: this.userMapper.toAdminList(items),
       nextCursor
     };
+  }
+
+  /**
+   * Declared before `@Get(':id')`: Nest matches routes in declaration order, so
+   * the parameterised route would otherwise swallow `/statistics` and answer
+   * with a validation failure on a malformed identifier.
+   *
+   * The one read here that spans every role. Listing keeps the owner and the
+   * administrators out because they are not administrable from user management;
+   * counting accounts is a different question, and they are accounts.
+   */
+  @Get('statistics')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions(Permission.USER_READ)
+  @ApiAdminGetUserStatistics()
+  getStatistics() {
+    return this.adminUsersUseCase.statistics();
   }
 
   @Get(':id')
