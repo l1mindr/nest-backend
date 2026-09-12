@@ -212,6 +212,21 @@ http://localhost:8080/api
 
 ## Quick Start
 
+The shortest path needs nothing installed but Docker. From the repository root:
+
+```bash
+./dev.sh dev backend     # backend, Postgres, Redis, Mongo and Mailpit
+./dev.sh unit backend    # this project's `test:unit`
+./dev.sh e2e backend     # the Dockerized E2E lane CI runs
+./dev.sh stop
+```
+
+`./dev.sh` with no arguments opens a menu. The stacks it drives live in
+[`compose/`](compose/) and the image in [`docker/`](docker/); see
+[docs/docker.md](docs/docker.md).
+
+To run the application directly on the host instead:
+
 Prerequisites:
 
 - Node.js 22

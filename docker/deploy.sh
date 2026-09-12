@@ -3,7 +3,7 @@
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-compose_file="${script_dir}/docker-compose.yml"
+compose_file="${script_dir}/../compose/compose.prod.yml"
 
 : "${APP_IMAGE:?Set APP_IMAGE to an immutable production image reference}"
 

@@ -14,8 +14,8 @@ import { baseDatabaseName, postgresConnection } from '../setup/worker-context';
  * What a production-like startup actually puts in an empty database.
  *
  * The startup sequence a deployment runs is `migration:run` followed by the
- * one-shot `seed:owner` (see `docker/production/docker-compose.yml` and the
- * `migration` → `owner-bootstrap` → `backend` chain in `docker/compose.yml`).
+ * one-shot `seed:owner` (see `compose/compose.prod.yml` and the
+ * `migration` → `owner-bootstrap` → `backend` chain in `compose/compose.dev.yml`).
  * This spec reproduces exactly that, against a database created for the run and
  * dropped afterwards, and asserts the resulting rows table by table.
  *

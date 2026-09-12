@@ -1,0 +1,480 @@
+# Local development stack for nest-backend and the infrastructure it owns.
+#
+# Development/test only. Every secret below is a throwaway generated for this
+# file; nothing here is derived from a real environment. See ../docs/docker.md
+# and DOCKER_DEVELOPMENT.md at the repository root.
+#
+#   Browser ──▶ frontend :3000 ──▶ backend :8080 ──┬─▶ postgres
+#                (localhost)      (localhost, and  ├─▶ redis
+#                                  backend:8080    ├─▶ mongo
+#                                  container-side) └─▶ mailpit (SMTP)
+#
+# Startup chain: postgres → migration → owner-bootstrap → backend.
+#
+# The `frontend` service is not here: it belongs to next-dashboard-frontend and
+# is defined in ../../next-dashboard-frontend/compose/compose.dev.yml, which
+# `include`s this file. Postgres, Redis, Mongo and Mailpit live here rather than
+# in a shared infrastructure project because the backend is the only thing that
+# connects to them — the frontend talks to the backend over HTTP and to nothing
+# else.
+#
+# Start it with the repository-root launcher:
+#
+#   ./dev.sh dev backend    # this file
+#   ./dev.sh dev all        # this file plus the frontend
+#
+# Host infrastructure ports are deliberately offset (5442/6382/27019) so this
+# stack coexists with locally installed Postgres/Redis/MongoDB. Mailpit keeps
+# its own defaults (1025/8025) because nothing else installs it locally.
+
+# Pinned explicitly. The project name decides the prefix of every named volume
+# (`dashboard-dev_postgres-data`), so it cannot be left to default to the
+# directory name — this file is entered both directly and through the
+# frontend's `include`, and a name that moved with the entry point would strand
+# the development database.
+name: dashboard-dev
+
+# Anchors for values that must agree between services. Defined once so the
+# backend's connection settings and the database's own credentials cannot drift.
+x-postgres-credentials: &postgres-credentials
+  POSTGRES_DB: dashboard_dev
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+
+services:
+  backend:
+    build:
+      # The backend's multi-stage Dockerfile, reused as-is rather than
+      # duplicated, so the image this stack runs stays identical to the one the
+      # repository maintains. `dockerfile` is resolved relative to `context`.
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: development
+
+    image: dashboard-dev-backend
+
+    env_file:
+      # Local overrides. Compose already loads this same file for `${VAR}`
+      # substitution (it sits next to this compose file); listing it here also
+      # hands its contents to the container, which is what makes variables the
+      # stack does not name — COINGECKO_API_KEY, say — reach the backend.
+      # `required: false` keeps `up` working before the file exists.
+      - path: ./.env
+        required: false
+
+    environment:
+      NODE_ENV: development
+
+      # Service names, not localhost: these resolve on the `dashboard` network.
+      DATA_SOURCE_HOST: postgres
+      DATA_SOURCE_PORT: 5432
+      DATA_SOURCE_USERNAME: postgres
+      DATA_SOURCE_PASSWORD: postgres
+      DATA_SOURCE_DATABASE: dashboard_dev
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DATABASE: dashboard_dev_logs
+
+      # Must match the browser's origin exactly. The backend rejects a
+      # wildcard here because authentication rides on cookies with
+      # credentials: true (see src/bootstrap.ts). The frontend publishes itself
+      # on FRONTEND_HOST_PORT in its own compose/.env — the two must agree.
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+
+      # Unset by default, which keeps the auth cookies host-only — correct for
+      # this stack, where the browser reaches both services on `localhost` and
+      # that one host scope already covers them.
+      #
+      # The distinct-host topology lane sets it to `.localtest.me`, so the
+      # production app./api. split can be reproduced locally. See
+      # ../../next-dashboard-frontend/playwright.topology.config.ts.
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+
+      MAX_ACTIVE_SESSIONS: 10
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+
+      # Development-only throwaway secrets, generated for this file. They pass
+      # the Joi length/entropy checks in env.schema.ts and are all distinct, as
+      # that schema requires. Real values belong in ./.env, never here.
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-xKmod3J46IMWTRpBg1X5ow_j-VhEbpimd0kztkf-s5SmRVxZ}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-qvrn37dPvnmnKa3fP97Inre8puFs8KKQzsCSpm95EoPF1q5k}
+      CSRF_TOKEN_SECRET: ${CSRF_TOKEN_SECRET:-hfCcZiHbhjiX3yGaZD-ALGDZiNzpu10Y}
+      SECURITY_HASH_SECRET: ${SECURITY_HASH_SECRET:-wff6-QT4byGL8mSad7lZqh2N9jCNWfan}
+
+      # SMTP defaults to the `mailpit` service on this network, so a fresh clone
+      # delivers every verification code, invitation and price alert into a
+      # mailbox you can open at http://localhost:8025 — and never to a real
+      # recipient. The provider is chosen entirely by these variables; the
+      # backend has one SMTP implementation and does not know which server it
+      # is talking to.
+      #
+      # Real values belong in ./.env, which is what these ${VAR} references
+      # read. Point them at Gmail there when you specifically want to exercise
+      # real delivery — and note that doing so sends to real addresses.
+      #
+      # Mailpit runs without TLS, so EMAIL_SECURE stays false and the port is
+      # its plain SMTP one. Credentials are still sent because env.schema.ts
+      # requires them and the production provider needs them; Mailpit is
+      # started with --smtp-auth-accept-any and takes whatever arrives.
+      EMAIL_HOST: ${EMAIL_HOST:-mailpit}
+      EMAIL_PORT: ${EMAIL_PORT:-1025}
+      EMAIL_SECURE: ${EMAIL_SECURE:-false}
+      EMAIL_USER: ${EMAIL_USER:-dev@example.com}
+      EMAIL_APP_PASSWORD: ${EMAIL_APP_PASSWORD:-dev-placeholder-password}
+      EMAIL_FROM: ${EMAIL_FROM:-Dashboard Dev <dev@example.com>}
+
+      # Sender/brand name rendered into every email body and subject.
+      APP_NAME: ${APP_NAME:-Dashboard Dev}
+
+      # tsc --watch cannot receive inotify events across a bind mount from
+      # macOS, so the compiler polls instead. Scoped to this container only.
+      TSC_WATCHFILE: UseFsEventsWithFallbackDynamicPolling
+      TSC_WATCHDIRECTORY: DynamicPriorityPolling
+
+      # Owner bootstrap credentials (seed:owner). Required only when the
+      # owner-bootstrap service or manual `pnpm seed:owner` runs; harmless
+      # for the rest of the backend's lifetime. Override in ./.env.
+      OWNER_EMAIL: ${OWNER_EMAIL:-owner@example.com}
+      OWNER_PASSWORD: ${OWNER_PASSWORD:-DevOwner!123}
+
+    ports:
+      - '${BACKEND_HOST_PORT:-8080}:8080'
+
+    volumes:
+      - ../src:/app/src
+      - ../test:/app/test
+      - ../scripts:/app/scripts
+      - ../package.json:/app/package.json
+      - ../tsconfig.json:/app/tsconfig.json
+      - ../tsconfig.build.json:/app/tsconfig.build.json
+      - ../nest-cli.json:/app/nest-cli.json
+
+      - backend-node-modules:/app/node_modules
+      # dist is container-local: `migration:run` and `start:dev` both read it,
+      # and a host build targets darwin.
+      - backend-dist:/app/dist
+
+    depends_on:
+      owner-bootstrap:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      # Not required to start — SMTP is dialled lazily, per delivery, from the
+      # queue worker — but waiting means the first email of a session is not
+      # spent on a retry.
+      mailpit:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - dashboard
+
+  # One-shot schema migration, run to completion before the backend starts.
+  #
+  # The backend sets TypeORM `synchronize: false` and ships explicit migrations
+  # (src/infrastructure/databases/postgres/migrations), so the schema is applied
+  # with the project's own `migration:run` script and never auto-synchronized —
+  # enabling synchronize here would be destructive and is not how this project
+  # initializes its database.
+  #
+  # `migration:run` targets `dist/`, so the source is compiled first with the
+  # project's own `build` script. Only Postgres is required: data-source.ts
+  # reads the Postgres config and dotenv, nothing else.
+  migration:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: development
+
+    image: dashboard-dev-backend
+
+    environment:
+      NODE_ENV: development
+
+      DATA_SOURCE_HOST: postgres
+      DATA_SOURCE_PORT: 5432
+      DATA_SOURCE_USERNAME: postgres
+      DATA_SOURCE_PASSWORD: postgres
+      DATA_SOURCE_DATABASE: dashboard_dev
+
+    volumes:
+      - ../src:/app/src
+      - ../package.json:/app/package.json
+      - ../tsconfig.json:/app/tsconfig.json
+      - ../tsconfig.build.json:/app/tsconfig.build.json
+      - ../nest-cli.json:/app/nest-cli.json
+
+      - backend-node-modules:/app/node_modules
+      # Migration needs its own dist volume since it builds fresh and nest-cli.json
+      # has deleteOutDir: true, which would conflict with backend's watch mode.
+      - migration-dist:/app/dist
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    command: sh -c 'pnpm run build && NODE_OPTIONS="-r tsconfig-paths/register" pnpm run migration:run'
+
+    init: true
+
+    restart: 'no'
+
+    networks:
+      - dashboard
+
+  # One-shot Owner bootstrap, run to completion after migrations and before the
+  # backend starts (backend depends on this: service_completed_successfully).
+  #
+  # Runs the backend's own idempotent `seed:owner` command (scripts/seed-owner.ts),
+  # reusing the existing Owner-bootstrap mechanism — no second mechanism is
+  # introduced. It is safe to run on every `up`: once an Owner exists the command
+  # reports so and makes no changes, and the database-level partial unique index
+  # `uq_user_single_owner` prevents duplicates even under concurrency.
+  #
+  # `seed-owner` validates the full env.schema.ts, so it needs the same
+  # environment the backend does (Redis/Mongo/email/secrets are all required by
+  # the schema), not just Postgres. Credentials come from OWNER_EMAIL /
+  # OWNER_PASSWORD environment variables and are never logged.
+  #
+  # The tsconfig-paths/register loader is injected via NODE_OPTIONS so the
+  # `@features/*` / `@infrastructure/*` aliases used by compiled source resolve.
+  owner-bootstrap:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: development
+
+    image: dashboard-dev-backend
+
+    environment:
+      NODE_ENV: development
+
+      DATA_SOURCE_HOST: postgres
+      DATA_SOURCE_PORT: 5432
+      DATA_SOURCE_USERNAME: postgres
+      DATA_SOURCE_PASSWORD: postgres
+      DATA_SOURCE_DATABASE: dashboard_dev
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DATABASE: dashboard_dev_logs
+
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+
+      MAX_ACTIVE_SESSIONS: 10
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-xKmod3J46IMWTRpBg1X5ow_j-VhEbpimd0kztkf-s5SmRVxZ}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-qvrn37dPvnmnKa3fP97Inre8puFs8KKQzsCSpm95EoPF1q5k}
+      CSRF_TOKEN_SECRET: ${CSRF_TOKEN_SECRET:-hfCcZiHbhjiX3yGaZD-ALGDZiNzpu10Y}
+      SECURITY_HASH_SECRET: ${SECURITY_HASH_SECRET:-wff6-QT4byGL8mSad7lZqh2N9jCNWfan}
+
+      # `seed:owner` validates the whole schema, so these have to be present.
+      # It sends nothing, and the values only need to agree with the backend's
+      # so the two services cannot describe different providers.
+      EMAIL_HOST: ${EMAIL_HOST:-mailpit}
+      EMAIL_PORT: ${EMAIL_PORT:-1025}
+      EMAIL_SECURE: ${EMAIL_SECURE:-false}
+      EMAIL_USER: ${EMAIL_USER:-dev@example.com}
+      EMAIL_APP_PASSWORD: ${EMAIL_APP_PASSWORD:-dev-placeholder-password}
+      EMAIL_FROM: ${EMAIL_FROM:-Dashboard Dev <dev@example.com>}
+
+      OWNER_EMAIL: ${OWNER_EMAIL:-owner@example.com}
+      OWNER_PASSWORD: ${OWNER_PASSWORD:-DevOwner!123}
+
+    volumes:
+      - ../src:/app/src
+      - ../scripts:/app/scripts
+      - ../package.json:/app/package.json
+      - ../tsconfig.json:/app/tsconfig.json
+      - ../tsconfig.build.json:/app/tsconfig.build.json
+      - ../nest-cli.json:/app/nest-cli.json
+
+      - backend-node-modules:/app/node_modules
+      # Reuses the compiled output produced by the migration service, which
+      # built fresh into this volume and ran before this service starts.
+      - migration-dist:/app/dist
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+
+    command: sh -c 'NODE_OPTIONS="-r tsconfig-paths/register" pnpm run seed:owner'
+
+    init: true
+
+    restart: 'no'
+
+    networks:
+      - dashboard
+
+  postgres:
+    image: postgres:17-alpine
+
+    environment: *postgres-credentials
+
+    ports:
+      # Offset from 5432 so a locally installed Postgres keeps its port.
+      - '${POSTGRES_HOST_PORT:-5442}:5432'
+
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      # -d guards against the window where the server accepts connections but
+      # the database is not created yet.
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d dashboard_dev']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+    restart: unless-stopped
+
+    networks:
+      - dashboard
+
+  redis:
+    image: redis:7-alpine
+
+    # Published for redis-cli/GUI inspection of BullMQ queues, rate-limit
+    # counters and session keys during development.
+    ports:
+      - '${REDIS_HOST_PORT:-6382}:6379'
+
+    # BullMQ jobs and rate-limit counters are regenerable, but persistence keeps
+    # queued email retries alive across a restart. No password: the instance is
+    # only reachable on this network and via the loopback-published port.
+    command: ['redis-server', '--appendonly', 'yes']
+
+    volumes:
+      - redis-data:/data
+
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+    restart: unless-stopped
+
+    networks:
+      - dashboard
+
+  # The SMTP server this stack delivers to, and the mailbox that receives it.
+  #
+  # Mailpit accepts a message, stores it, and stops there — it has no notion of
+  # an upstream and holds no credentials for one, so a message that reaches it
+  # cannot leave for the Internet. Relaying and forwarding are opt-in features
+  # (--smtp-relay-config, --smtp-relay-all, --smtp-forward-config) and none of
+  # them are configured here; that omission is what makes this safe, so do not
+  # add one.
+  #
+  # It is also what makes email testable: the same HTTP API the web UI runs on
+  # is what test/helpers/mailpit.helper.ts reads, so a spec can assert on the
+  # message a recipient would actually have opened rather than on a fake the
+  # test itself supplied.
+  mailpit:
+    # Pinned rather than :latest — the E2E helper reads the v1 API, and a
+    # silent major bump would break specs for a reason unrelated to the code
+    # they cover.
+    image: axllent/mailpit:v1.28
+
+    environment:
+      # Nodemailer always authenticates: EMAIL_USER/EMAIL_APP_PASSWORD are
+      # required by env.schema.ts because the production provider needs them,
+      # and the transport is the same code either way. Mailpit takes any
+      # credentials rather than the backend needing a Mailpit-shaped exception,
+      # which is what keeps the tested path identical to the production one.
+      MP_SMTP_AUTH_ACCEPT_ANY: 'true'
+      # AUTH over a plaintext connection. Correct here and nowhere else: the
+      # listener is reachable only on this network and via a loopback-published
+      # port, and the credentials it accepts are throwaway by construction.
+      MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
+
+      # No -d/--database, so messages live in memory only and every restart
+      # starts empty. Nothing here is worth persisting and a mailbox that
+      # survives a restart is one specs have to clean up.
+      MP_MAX_MESSAGES: ${MAILPIT_MAX_MESSAGES:-2000}
+
+      # This instance never reaches the network, and a version check is the one
+      # thing that would make it try.
+      MP_DISABLE_VERSION_CHECK: 'true'
+
+      MP_QUIET: ${MAILPIT_QUIET:-true}
+
+    ports:
+      # 1025 SMTP: what EMAIL_HOST/EMAIL_PORT resolve to inside the network as
+      # `mailpit:1025`, and what the backend E2E suite reaches on the host as
+      # `localhost:1025` (see ../.env.test).
+      - '${MAILPIT_SMTP_HOST_PORT:-1025}:1025'
+      # 8025 web UI and REST API. Open http://localhost:8025 to read what the
+      # application sent.
+      - '${MAILPIT_WEB_HOST_PORT:-8025}:8025'
+
+    healthcheck:
+      # Mailpit ships its own readiness probe; the image has no shell utilities
+      # worth preferring over it.
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+    restart: unless-stopped
+
+    networks:
+      - dashboard
+
+  mongo:
+    # Required by the backend: MONGODB_URI/MONGODB_DATABASE are non-optional in
+    # env.schema.ts and back audit/system log persistence. No alpine variant
+    # is published for this image.
+    image: mongo:7-jammy
+
+    ports:
+      - '${MONGO_HOST_PORT:-27019}:27017'
+
+    volumes:
+      - mongo-data:/data/db
+
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'mongosh --quiet --eval "db.runCommand({ ping: 1 }).ok" | grep 1'
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+    restart: unless-stopped
+
+    networks:
+      - dashboard
+
+networks:
+  dashboard:
+    driver: bridge
+
+volumes:
+  # Named, so `docker compose down` preserves data. Removed only by
+  # `docker compose down -v` (destructive).
+  postgres-data:
+  redis-data:
+  mongo-data:
+  backend-node-modules:
+  backend-dist:
+  migration-dist:

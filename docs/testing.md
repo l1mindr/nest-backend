@@ -260,7 +260,7 @@ the mailbox is substituted.
 They need Mailpit listening on the SMTP and API ports named in `.env.test`:
 
 ```bash
-docker compose -f ../docker/compose.yml up -d mailpit
+docker compose -f compose/compose.dev.yml up -d mailpit
 ```
 
 Without it the specs fail immediately with an explanation rather than timing
@@ -285,13 +285,17 @@ demand.
 
 ## Running Tests
 
+From the repository root, `./dev.sh unit backend` and `./dev.sh e2e backend` run
+the two lanes below — the first with this project's own `test:unit` script, the
+second as the Dockerized suite CI runs. Everything else is run from here:
+
 ```bash
 # Unit tests only
 pnpm run test:unit
 
 # E2E tests (requires running PostgreSQL + Redis + MongoDB, and Mailpit for
 # the test/email/ specs)
-docker compose -f ../docker/compose.yml up -d mailpit
+docker compose -f compose/compose.dev.yml up -d mailpit
 pnpm run test:e2e
 
 # Just the delivered-email specs
@@ -321,7 +325,7 @@ e2e:      buildx (cached layers) → production image + image contract
             → e2e image (test target)
             → postgres + redis + mongo + mailpit (--wait on healthchecks)
             → migrations from the production image
-            → dockerized e2e (docker-compose -f docker/test/e2e, E2E_MAX_WORKERS=2)
+            → dockerized e2e (docker compose -f compose/compose.test.yml, E2E_MAX_WORKERS=2)
             → cleanup (down -v, always)
 ```
 

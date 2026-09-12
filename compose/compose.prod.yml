@@ -1,0 +1,41 @@
+# Production runtime for nest-backend.
+#
+# No `build:` on purpose — production runs an immutable image that was built
+# and pushed elsewhere, named by APP_IMAGE. `../docker/deploy.sh` pulls it,
+# runs migrations to completion, then starts the app.
+#
+#   APP_IMAGE=registry.example.com/nest-backend:1.4.2 ./dev.sh prod backend
+#
+# APP_ENV_FILE points at the file holding the real configuration; it defaults
+# to nest-backend/.env.production, which is deliberately not in the repository.
+#
+# Pinned rather than left to default to this file's directory name, so the
+# project keeps the `production` name it had when this lived at
+# docker/production/ and an existing deployment is not orphaned.
+name: production
+
+services:
+  migration:
+    image: ${APP_IMAGE:?Set APP_IMAGE to an immutable production image reference}
+    env_file:
+      - ${APP_ENV_FILE:-../.env.production}
+    environment:
+      NODE_ENV: production
+    command: ['npm', 'run', 'migration:run']
+    init: true
+    restart: 'no'
+
+  app:
+    image: ${APP_IMAGE:?Set APP_IMAGE to an immutable production image reference}
+    env_file:
+      - ${APP_ENV_FILE:-../.env.production}
+    environment:
+      NODE_ENV: production
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    init: true
+    ports:
+      - '${APP_PORT:-8080}:8080'
+    restart: unless-stopped
+    stop_grace_period: 30s
