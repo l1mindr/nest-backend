@@ -49,11 +49,13 @@ export class UsdtTomanCacheService {
     return { value: this.entry.value, fetchedAt: this.entry.fetchedAt };
   }
 
-  set(value: UsdtTomanEntry): void {
+  set(value: UsdtTomanEntry): CachedEntry {
     this.entry = {
       value,
       fetchedAt: new Date(),
       expiresAt: Date.now() + this.config.cacheTtlMs
     };
+
+    return { value: this.entry.value, fetchedAt: this.entry.fetchedAt };
   }
 }

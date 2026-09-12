@@ -34,12 +34,14 @@ describe('GetUsdtTomanUseCase', () => {
   it('fetches and caches on a cache miss', async () => {
     cache.get.mockReturnValue(null);
     provider.fetchUsdtTomanRate.mockResolvedValue(RATE);
+    cache.set.mockReturnValue({ value: RATE, fetchedAt: FETCHED_AT });
 
     const result = await useCase.execute();
 
     expect(result).toMatchObject({
       priceToman: '234619',
       provider: 'nobitex',
+      fetchedAt: FETCHED_AT,
       isStale: false
     });
     expect(cache.set).toHaveBeenCalledWith(RATE);
@@ -60,6 +62,10 @@ describe('GetUsdtTomanUseCase', () => {
 
   it('carries the answering venue through the cache', async () => {
     cache.get.mockReturnValue(null);
+    cache.set.mockReturnValue({
+      value: { ...RATE, provider: 'wallex' },
+      fetchedAt: FETCHED_AT
+    });
     provider.fetchUsdtTomanRate.mockResolvedValue({
       ...RATE,
       provider: 'wallex'
