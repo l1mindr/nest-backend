@@ -41,7 +41,7 @@ entry against file contents, so a stale restore can only ever be a miss.
 
 ## Job: `e2e` — Image • Migrations • E2E
 
-`COMPOSE_FILE` is set to `docker/test/e2e/docker-compose.yml` for every step.
+`COMPOSE_FILE` is set to `compose/compose.test.yml` for every step.
 
 ```
 docker/setup-buildx-action@v4
@@ -109,7 +109,7 @@ The E2E lane runs Jest with a bounded worker count:
 E2E_MAX_WORKERS=2
 ```
 
-It is set on the `app` service in `docker/test/e2e/docker-compose.yml` and read
+It is set on the `app` service in `compose/compose.test.yml` and read
 by `jest.e2e.config.ts`, which validates it and caps it at the 15 usable Redis
 databases. It is pinned there rather than passed as a flag in the workflow step
 so that running the same Compose command locally reproduces the runner's worker

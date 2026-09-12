@@ -74,7 +74,7 @@ export class MailpitUnavailableError extends Error {
   constructor(baseUrl: string, cause: unknown) {
     super(
       `Mailpit is not reachable at ${baseUrl}. These specs deliver real SMTP and read the message back, so they need it running:\n` +
-        '  docker compose -f docker/compose.yml up -d mailpit\n' +
+        '  docker compose -f compose/compose.dev.yml up -d mailpit\n' +
         `Cause: ${cause instanceof Error ? cause.message : String(cause)}`
     );
     this.name = 'MailpitUnavailableError';

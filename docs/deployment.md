@@ -96,5 +96,5 @@ pnpm install --frozen-lockfile
 ├── build (nest build)
 ├── unit tests (jest --config jest.unit.config.ts)
 ├── build production Docker image
-└── dockerized e2e (docker-compose -f docker/test/e2e)
+└── dockerized e2e (docker compose -f compose/compose.test.yml)
 ```

@@ -1,3 +1,15 @@
+# The CI-shaped backend E2E lane. No frontend, no source mount, no
+# host-published Mailpit — see ../docs/docker.md and ../docs/ci.md.
+#
+# Run it with the repository-root launcher:
+#
+#   ./dev.sh e2e backend
+#
+# Pinned rather than left to default to this file's directory name, so the
+# project keeps the `e2e` name it had when this lived at docker/test/e2e/ and
+# CI's `down -v` still finds the containers it started.
+name: e2e
+
 services:
   migration:
     # Named explicitly so CI can build the image once, with a layer cache, and
@@ -5,7 +17,10 @@ services:
     image: nest-backend-e2e-migration
 
     build:
-      context: ../../..
+      # No `target`, so this builds the Dockerfile's last stage — `production`.
+      # Migrations therefore run against the same artifact that ships.
+      context: ..
+      dockerfile: docker/Dockerfile
 
     environment:
       NODE_ENV: production
@@ -27,7 +42,8 @@ services:
     image: nest-backend-e2e-app
 
     build:
-      context: ../../..
+      context: ..
+      dockerfile: docker/Dockerfile
       target: test
 
     environment:
